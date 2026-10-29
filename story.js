@@ -50,13 +50,11 @@ function moneyYear(L){
  if(L.money<0){const it=-L.money*.03;L.money-=it;ledger(L,"債務利息",-it)}
  // 房租或房貸（成年、沒和父母住）
  // 一般生活費已含在每年的儲蓄裡；離鄉打拚或出國的人另外多付一筆房租
- if(L.age>=20&&!L.house&&(L.moved||L.abroad)&&L.job){const rent=L.inc*.08;L.money-=rent;ledger(L,"房租",-rent)}
- if(L.age>=20&&!L.house&&L.job&&R()<.04){const up=L.inc*.03;L.money-=up;ledger(L,"房租上漲",-up);if(L===P)say(L,`房東通知要漲房租，生活更緊了。（−${money(up)}）`)}
- if(L.kids&&L.age<55)ledger(L,"養孩子",-L.inc*.02*L.kids);
+  if(L.age>=20&&!L.house&&L.job&&R()<.04){const up=L.inc*.03;L.money-=up;ledger(L,"房租上漲",-up);if(L===P)say(L,`房東通知要漲房租，生活更緊了。（−${money(up)}）`)}
  // 欠太多會失眠
  if(L.money<-c.gdp*.5&&R()<.35){L.happy-=4;L.health-=1;if(L===P)say(L,`還欠著 ${money(-L.money)} 的債，晚上常常睡不著。`)}
  // 年底報告：只在有大筆變化時說
- if(L===P&&L.led){const ROUTINE=["房租","養孩子"],items=Object.entries(L.led).filter(([k,v])=>Math.abs(v)>c.gdp*.02&&(!ROUTINE.includes(k)||Object.keys(L.led).some(x=>!ROUTINE.includes(x)&&Math.abs(L.led[x])>c.gdp*.02))).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,3);
+ if(L===P&&L.led){const ROUTINE=["吃","穿","住","行","養孩子","薪水"],items=Object.entries(L.led).filter(([k,v])=>Math.abs(v)>c.gdp*.02&&(!ROUTINE.includes(k)||Object.keys(L.led).some(x=>!ROUTINE.includes(x)&&Math.abs(L.led[x])>c.gdp*.02))).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,3);
   if(items.length&&R()<.6)say(L,`今年的大筆收支：${items.map(([k,v])=>`${k} ${v>0?"+":"−"}${money(Math.abs(v))}`).join("・")}`)}
  L.led={};
 }
@@ -112,4 +110,37 @@ async function smallChoice(L){
  const x=pick(ok);L.smallSeen[x[2]]=1;
  await ask(L,x[2],x[3].map(([t,e,m])=>{const cost=m?Math.abs(m)*L.c.gdp:0;return [t,()=>{for(const k in e)L[k]+=e[k];if(m){L.money+=m*L.c.gdp;ledger(L,m>0?"打工":"花費",m*L.c.gdp)}},m>0?`收入 +${money(cost)}`:m<0?`約 ${money(cost)}`:"",m<0?cost:0]}));
 }
-async function storyYear(L){await smallChoice(L);kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L);await spendYear(L)}
+
+// 性別薪資落差（女性薪資約少幾成）：依富裕程度與地區概估
+function payGap(c){if(c.tw)return .14;const r=REGION(c.name);return c.gdp>40000?.12:r=="中東"||r=="南亞"?.3:.2}
+
+// 食衣住行：成年後自己負擔，依國家所得、城鄉、住哪裡、家庭人數與花錢習慣計算
+function livingCost(L){
+ const c=L.c,g=c.gdp,city=L.moved||L.abroad||L.fam?.urban,sp=L===P?spend:1,adult=L.partner?1.6:1;
+ const food=g*.10*adult*(.85+sp*.15)*(c.gdp<5000?1.3:1);              // 窮國吃的佔比高
+ const cloth=g*.02*adult*(.6+sp*.4)*(L.sex=="女"?1.15:1);
+ const live=L.house?g*.12:(L.moved||L.abroad)?g*(city?.14:.09):g*.03;  // 房貸／租屋／住家裡
+ const go=L.car?g*.06:g*(city?.025:.035);
+ const kids=(L.kids||0)*g*.07*(L.age<55?1:0);
+ return {吃:food,穿:cloth,住:live,行:go,養孩子:kids};
+}
+function livingYear(L){
+ if(L.age<18||!L.job&&L.age<22)return;                                  // 學生時期由家裡負擔
+ const cost=livingCost(L);let total=Object.values(cost).reduce((a,b)=>a+b,0);
+ const income=L.job?L.inc:L.age>=65?L.c.gdp*.15:0;                     // 退休後的年金
+ if(income&&total>income*.97&&L.c.gdp<15000)total=income*.97;            // 低所得地區的人會壓低開銷過活
+ L.money+=income-total;if(income)ledger(L,"薪水",income);
+ for(const k in cost)ledger(L,k,-cost[k]*total/Object.values(cost).reduce((a,b)=>a+b,0));
+ if(L===P&&(L.age==22||L.age%10==0)&&income)say(L,`一年的生活開銷：吃 ${moneyShort(cost.吃)}・穿 ${moneyShort(cost.穿)}・住 ${moneyShort(cost.住)}・行 ${moneyShort(cost.行)}${cost.養孩子?`・孩子 ${moneyShort(cost.養孩子)}`:""}`);
+}
+// 孩子出生後的育嬰抉擇：女性比較常被期待離開職場
+async function parentLeave(L){
+ const k=L.kids||0;if(k<=(L.leaveSeen||0)){L.leaveSeen=k;return}L.leaveSeen=k;if(!L.job)return;
+ const she=L.sex=="女";
+ await ask(L,she?"孩子出生了，工作要怎麼安排？":"孩子出生了，伴侶問你能不能幫忙帶",[
+  ["請育嬰假半年",()=>{L.money-=L.inc*.3;L.rel+=3;L.happy+=2;if(!she)say(L,"成了公司少數請育嬰假的爸爸。")},"收入少半年 · 人際↑"],
+  ["辭職專心帶孩子",()=>{L.lostJob=L.job;L.job=null;L.rel+=4;L.happy+=1;say(L,"離開職場，在家照顧孩子。")},"沒有收入 · 人際↑"],
+  ["請爸媽幫忙帶",()=>{L.rel+=1;L.happy-=1},"照常上班"],
+  ["送托嬰中心",()=>{L.money-=L.c.gdp*.15;ledger(L,"托嬰",-L.c.gdp*.15)},"每年一筆開銷"]]);
+}
+async function storyYear(L){livingYear(L);await parentLeave(L);await smallChoice(L);kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L);await spendYear(L)}
