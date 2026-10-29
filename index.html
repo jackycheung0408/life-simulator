@@ -189,6 +189,8 @@ body{font-size:15px;line-height:1.6}
 .yearbar{display:flex;align-items:center;gap:8px;margin:10px 0 6px;font-size:13px;color:var(--fg)}
 .ybtrack{flex:1;height:10px;background:var(--ink);border:2px solid var(--line);position:relative}
 #ybFill{position:absolute;inset:0 auto 0 0;width:0;background:var(--y);transition:width .1s linear}
+#shop{display:flex;flex-wrap:wrap;gap:6px}#shop p{flex-basis:100%}
+.buy{margin:0;padding:6px 10px;font-size:14px;display:flex;flex-direction:column;align-items:flex-start}.buy small{font-size:12px;color:var(--mut)}
 </style></head><body><div class="wrap">
 
 <!-- 首頁 -->
@@ -248,7 +250,7 @@ body{font-size:15px;line-height:1.6}
 <div class="card grid" id="stats"></div>
 
 <div class="card"><b>今年的重心</b><br><span id="focus"></span>
-<p style="margin:8px 0 0"><b>花錢習慣</b> <select id="spend"><option value="0">節省</option><option value="1" selected>普通</option><option value="2">大方</option></select> <span class="mut">聚餐、送禮、孝親費；越大方人際越好，但存不了錢</span></p></div>
+<p style="margin:8px 0 0"><b>花錢習慣</b> <select id="spend"><option value="0">節省</option><option value="1" selected>普通</option><option value="2">大方</option></select> <span class="mut">聚餐、送禮、孝親費；越大方人際越好，但存不了錢</span></p><div id="shop"></div></div>
 <div class="card" id="log"></div>
 <div class="card"><h2>同一秒出生的人</h2><div id="sibs" class="grid"></div></div>
 <div class="card"><h2>人生地圖</h2><div class="mut">一格是一年 · 顏色越深那年越幸福 · 實線格到當地平均壽命</div><div id="lmap"></div></div>
@@ -270,13 +272,13 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=51"></script>
-<script src="events.js?v=51"></script>
-<script src="life.js?v=51"></script>
-<script src="pixel.js?v=51"></script>
-<script src="story.js?v=51"></script>
-<script src="realism.js?v=51"></script>
-<script src="taiwan.js?v=51"></script>
+<script src="countries.js?v=52"></script>
+<script src="events.js?v=52"></script>
+<script src="life.js?v=52"></script>
+<script src="pixel.js?v=52"></script>
+<script src="story.js?v=52"></script>
+<script src="realism.js?v=52"></script>
+<script src="taiwan.js?v=52"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -606,7 +608,7 @@ function monthMoney(t){if(!P||P.age<18||!P.job&&P.age<22)return;const {income,to
  const v=P.money+(P.inv?P.inv.amt:0)+m*mo+(m==12?b*mo:0)-t*total;
  if(m==12&&b&&!P.bonusShown){P.bonusShown=P.age;toast(`領到年終 ${b} 個月：${moneyShort(b*mo)}`)}if(m<12)P.bonusShown=0;setStat("存款",(v<0?"−"+moneyShort(-v):moneyShort(v))+(P.inv&&P.inv.amt>0?"（含投資）":""))}
 (function bar(){if(P){shown+=(prog-shown)*.18;if(Math.abs(prog-shown)<.001)shown=prog;$("lifebar").style.width=Math.min(100,shown/Math.max(P.ex,100)*100)+"%";drawAvatarLCD($("avatar"),P)}requestAnimationFrame(bar)})();
-async function loop(){
+async function loop(){renderShop();
  prog=shown=P.age;
  while(P.alive){
   let w=0,last=performance.now(); // 每次都重算，讓加速與跳到結局立即生效
@@ -614,7 +616,7 @@ async function loop(){
    await new Promise(r=>setTimeout(r,ffwd||mult>999?16:50));const now=performance.now();if(!paused)w+=Math.min(250,now-last);last=now;
    prog=P.age+Math.min(1,w/total);monthMoney(Math.min(1,w/total));tickNow(Math.min(1,w/total))}
   prog=P.age+1;
-  await year(P);for(const s of S)if(s.alive)await year(s);render();saveGame();
+  await year(P);for(const s of S)if(s.alive)await year(s);render();renderShop();saveGame();
  }
  while(S.some(s=>s.alive))for(const s of S)if(s.alive)await year(s);
  setTimeout(finish,1200);

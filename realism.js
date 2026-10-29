@@ -150,3 +150,30 @@ async function realismYear(L){
  await rentYear(L);await insuranceYear(L);await loveYear(L);await kidChoices(L);await healthYear(L);await friendsYear(L);await debtRelief(L);
  if(L.money>-(L.inc||L.c.gdp*.3))L.debtHelped=false;
 }
+
+// ── 自己決定花錢：沒工作前花爸媽的零用錢，有收入後花自己的存款 ──
+// [名稱, 最小年齡, 最大年齡, 花費(人均GDP倍數), 效果, 一年最多幾次]
+const SHOP=[
+ ["零食飲料",4,17,.001,{happy:1},3],["玩具",4,11,.004,{happy:3},1],["漫畫書",8,17,.002,{happy:1,know:1},2],["電動遊戲",8,25,.006,{happy:3,health:-1},1],
+ ["新衣服",12,90,.008,{happy:2,rel:1},2],["智慧型手機",13,90,.03,{happy:3,rel:1},1],["演唱會",15,50,.006,{happy:4,rel:1},1],["和朋友聚餐",15,90,.003,{rel:2,happy:1},3],
+ ["一趟國內旅行",18,85,.02,{happy:4,health:1},1],["出國旅行",20,80,.08,{happy:7,know:1},1],["健身房年費",18,70,.015,{health:4},1],["才藝或語言課",8,70,.02,{know:4},1],
+ ["高級餐廳",20,90,.01,{happy:3},2],["請爸媽吃飯",18,70,.005,{rel:3,happy:1},2],["捐款給公益團體",20,90,.01,{happy:2,rel:1},1],["按摩紓壓",25,90,.004,{health:1,happy:2},2],
+];
+function allowance(L){return L.c.gdp*(.01+L.cls*.008)*(L.age<12?.5:1)} // 一年的零用錢額度，看家境
+function shopWallet(L){return !L.job&&L.age<22?"parents":"self"}
+function renderShop(){
+ const el=$("shop");if(!el||!P)return;const L=P,mode=shopWallet(L),y=L.age;
+ if(L.shopYear!==y){L.shopYear=y;L.shopCnt={};L.pocket=allowance(L)}
+ const left=mode=="parents"?L.pocket:L.money,items=SHOP.filter(s=>y>=s[1]&&y<=s[2]);
+ el.innerHTML=`<p style="margin:10px 0 4px"><b>花錢</b> <span class="mut">${mode=="parents"?`還沒工作，花的是爸媽給的零用錢：今年剩 ${money(Math.max(0,left))}`:`花自己的存款：${money(left)}`}</span></p>`+
+  items.map((s,i)=>{const cost=s[3]*L.c.gdp,used=(L.shopCnt[s[0]]||0)>=s[5],poor=cost>left&&mode=="parents";
+   return `<button class="buy" data-n="${s[0]}" ${used||poor?"disabled":""}>${s[0]}<small>${money(cost)}${used?" · 今年買過了":""}</small></button>`}).join("");
+ el.querySelectorAll(".buy").forEach(b=>b.onclick=()=>buyItem(b.dataset.n));
+}
+function buyItem(n){
+ const L=P,s=SHOP.find(x=>x[0]==n),cost=s[3]*L.c.gdp,before=snap(L),mode=shopWallet(L);
+ if(mode=="parents"){L.pocket-=cost;if(L.pocket<allowance(L)*.2&&R()<.3){L.rel-=1;say(L,"一直跟爸媽要錢，被念了一頓。")}}
+ else{L.money-=cost;ledger(L,"自己花的",-cost)}
+ for(const k in s[4])L[k]+=s[4][k];L.shopCnt[n]=(L.shopCnt[n]||0)+1;
+ say(L,`${mode=="parents"?"用零用錢":"花錢"}買了${n}。`);const d=diffText(before,snap(L));toast(`${n}：${d||"已購買"}`);render();renderShop();
+}
