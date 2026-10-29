@@ -253,12 +253,12 @@ button,select,.tbar,.sw{font-family:"DotGothic16","PingFang TC","Noto Sans TC",s
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=33"></script>
-<script src="events.js?v=33"></script>
-<script src="life.js?v=33"></script>
-<script src="pixel.js?v=33"></script>
-<script src="story.js?v=33"></script>
-<script src="taiwan.js?v=33"></script>
+<script src="countries.js?v=34"></script>
+<script src="events.js?v=34"></script>
+<script src="life.js?v=34"></script>
+<script src="pixel.js?v=34"></script>
+<script src="story.js?v=34"></script>
+<script src="taiwan.js?v=34"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -441,6 +441,7 @@ function render(){
 // 抉擇：玩家會停下等待；同秒嬰兒自動
 // 選項格式：[文字, 動作, 說明?, 需要的存款(USD)?]；存款不夠的選項會反灰並寫出門檻
 function ask(L,q,opts,info){
+ if(opts.length<3&&typeof EXTRA_OPTS!="undefined"&&EXTRA_OPTS[q])opts=opts.concat(EXTRA_OPTS[q].map(([a,fn,h])=>[a,()=>fn(L),h]));
  const ok=o=>!o[3]||L.money>=o[3],avail=opts.filter(ok);
  if(L!==P||auto){const o=pick(avail.length?avail:opts);if(L===P)say(L,q+" → "+o[0]);o[1]();return Promise.resolve()}
  if(ffwd){ffwd=false;$("ffwd").textContent="⏭︎ 下一個抉擇";$("ffwd").classList.remove("on")}render();
@@ -476,6 +477,9 @@ function mortality(L){
  let q=Math.min(.6,m*Math.exp(b*a))+(a>14&&a<40?.0008:.0003);
  q*=1+(60-L.health)/80;if(L.smoke)q*=1.5;return q;
 }
+// 職業特性：[收入倍率, 說明, 選了之後的影響]
+const JOB_INFO={工程師:[1.3,"收入高、常加班",{health:-2}],教師:[1,"穩定、有寒暑假",{happy:2}],會計師:[1.2,"穩定、壓力大",{happy:-1}],醫師:[1.6,"收入最高、非常忙",{health:-3,rel:-2}],公務員:[.9,"最穩定",{happy:1}],設計師:[1,"有創意、收入不穩",{happy:2}],研究員:[.9,"一直在學新東西",{know:4}],律師:[1.4,"收入高、壓力大",{happy:-2}],護理師:[1,"輪班辛苦、照顧人",{health:-2,rel:2}],
+ 農民:[.7,"自由、看天吃飯",{health:2}],工廠作業員:[1,"穩定、單調",{}],店員:[.85,"常和人接觸",{rel:2}],司機:[1,"自由、久坐",{health:-1}],建築工人:[1.15,"收入不錯、體力活",{health:-2}],廚師:[.95,"學一技之長",{know:1}],清潔工:[.75,"好找、辛苦",{}],攤販:[.9,"自己當老闆",{happy:1}],漁夫:[.85,"看海吃飯、危險",{health:-1}]};
 const JOBS_U=["工程師","教師","會計師","醫師","公務員","設計師","研究員","律師","護理師"],JOBS=["農民","工廠作業員","店員","司機","建築工人","廚師","清潔工","攤販","漁夫"];
 
 // 數值基準線：依國家、家境、年齡與學歷算出「同齡同條件的人通常是多少」
@@ -520,7 +524,12 @@ async function year(L){
    ["考大學",()=>{if(R()<c.uni/100+(f=="學業"?.15:0)+L.cls*.05+L.know/300){L.edu=3;L.know+=8;if(L.cls>=3)say(L,"考上大學，學費由家裡負擔。");else{L.money-=fee;say(L,"考上大學，申請了助學貸款付學費。")}}else say(L,"沒考上大學。")},"知識↑ · 家境普通的話要背學貸"],
    ["直接工作",()=>{L.money+=c.gdp*.05},"早點開始賺錢"],
    ["出國讀大學",()=>{L.edu=3;L.know+=12;L.money-=fee*3;L.studiedAbroad=true;say(L,"出國讀大學。");sayHi(L,"曾出國留學。")},"知識↑↑ · 花費很高",fee*3]],`在${c.name}，大學就學率約 ${Math.round(c.uni)}%。`)}
- if(!L.job&&!L.twRetake&&L.age==(L.edu==3?22:L.edu==2?(c.tw?19:18):14)){L.job=pick(L.edu==3?JOBS_U:JOBS);L.inc*=L.edu==3?1.8:L.edu==2?1:.6;say(L,`開始當${L.job}。`)}
+ if(!L.job&&!L.twRetake&&(L.age==(L.edu==3?22:L.edu==2?(c.tw?19:18):14)||L.age===L.jobRetry)){
+  const pool=(L.edu==3?JOBS_U:JOBS).slice().sort(()=>R()-.5).slice(0,3),base=L.edu==3?1.8:L.edu==2?1:.6;
+  const take=j=>{const [pay,,e]=JOB_INFO[j]||[1,"",{}];L.job=j;L.inc*=base*pay;for(const k in e)L[k]+=e[k];say(L,`開始當${j}。`)};
+  await ask(L,"要找什麼樣的工作？",pool.map(j=>[j,()=>take(j),`${(JOB_INFO[j]||[,"" ])[1]} · 年收約 ${money(L.inc*base*(JOB_INFO[j]||[1])[0])}`]).concat(L.jobRetry?[]:[["先不急，再找一年",()=>{L.jobRetry=L.age+1;L.know+=2;L.money-=c.gdp*.1},"知識↑ 晚一年有收入"]]));
+  if(!L.job&&L.jobRetry<L.age)take(pool[0]);
+ }
  if(L.job&&L.age>28&&L.age<55&&R()<.03)await ask(L,"有個換工作的機會，要轉職嗎？",[["轉職",()=>{const j=pick(L.edu==3?JOBS_U.concat(["部門經理","小企業老闆"]):JOBS.concat(["小店老闆"]));L.job=j;L.jobYears=0;L.inc*=.9+R()*.6;say(L,`轉行當${j}。`)}],["留下",()=>{}]]);
  if(L.age>=18&&L.age<=45&&!L.partner&&!L.widowed&&R()<(f=="愛情"?.2:.08)+L.rel/1000){
   const ps=L.sex=="男"?"女":"男",pa=Math.max(18,L.age+Math.round((L.sex=="男"?-3:3)+(R()-.5)*8)),pj=pick(L.edu==3?JOBS_U:JOBS),pm=Math.round(L.c.gdp*(.1+R()*.8)),pn=pick(NAMES[REGION(L.raw)][ps].filter(n=>n!==L.fam?.father.name&&n!==L.fam?.mother.name));
