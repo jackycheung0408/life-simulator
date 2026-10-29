@@ -75,8 +75,8 @@ button.pri{background:var(--ac);color:#fff;border-color:var(--ac);padding:10px 2
 </section>
 </div>
 
-<script src="countries.js"></script>
-<script src="events.js"></script>
+<script src="countries.js?v=3"></script>
+<script src="events.js?v=3"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -91,8 +91,9 @@ const NAMES={
  英:{男:["James","Liam","Noah","Ethan","Oliver","Jack"],女:["Emma","Olivia","Sophie","Grace","Emily","Chloe"]},
  歐:{男:["Jonas","Luca","Pierre","Marco","Lukas","Mikael","Piotr"],女:["Emma","Giulia","Léa","Anna","Sofia","Elena","Zofia"]},
  斯:{男:["Ivan","Dmitri","Taras","Aleksandr","Nikola","Andrei"],女:["Olga","Natalia","Anastasia","Daria","Milena","Irina"]},
+ 越:{男:["明","俊","雄","國寶","德"],女:["玲","秋香","芳","玉蘭","垂"]},
  東南亞:{男:["Minh","Somchai","Budi","Aung","Rizal","Ahmad"],女:["Linh","Siti","Mali","Ei Mon","Maria","Nurul"]}};
-const REGIONS=[["華","中國,台灣,香港,澳門,新加坡"],["日","日本"],["韓","韓國,北韓"],["南亞","印度,巴基斯坦,孟加拉,尼泊爾,斯里蘭卡,不丹,馬爾地夫,阿富汗"],["東南亞","印尼,越南,菲律賓,泰國,緬甸,柬埔寨,寮國,馬來西亞,東帝汶,斐濟,所羅門群島,巴布亞紐幾內亞"],["中東","埃及,伊朗,伊拉克,土耳其,沙烏地阿拉伯,葉門,敘利亞,約旦,黎巴嫩,以色列,巴勒斯坦,科威特,阿曼,阿聯,卡達,巴林,利比亞,突尼西亞,阿爾及利亞,摩洛哥,茅利塔尼亞,蘇丹,亞塞拜然,烏茲別克,哈薩克,塔吉克,土庫曼,吉爾吉斯"],["英","美國,英國,澳洲,加拿大,紐西蘭,愛爾蘭,牙買加,千里達及托巴哥,蓋亞那"],["拉","墨西哥,巴西,哥倫比亞,阿根廷,秘魯,委內瑞拉,智利,厄瓜多,瓜地馬拉,玻利維亞,古巴,多明尼加,宏都拉斯,巴拉圭,薩爾瓦多,尼加拉瓜,哥斯大黎加,巴拿馬,烏拉圭,海地,蘇利南"],["斯","俄羅斯,烏克蘭,白俄羅斯,塞爾維亞,保加利亞,克羅埃西亞,波士尼亞,蒙特內哥羅,北馬其頓,摩爾多瓦"],["歐","德國,法國,義大利,西班牙,波蘭,荷蘭,比利時,瑞典,捷克,希臘,葡萄牙,匈牙利,奧地利,瑞士,丹麥,芬蘭,挪威,羅馬尼亞,斯洛伐克,斯洛維尼亞,立陶宛,拉脫維亞,愛沙尼亞,阿爾巴尼亞,科索沃,塞普勒斯,盧森堡,馬爾他,冰島,喬治亞,亞美尼亞,蒙古"]];
+const REGIONS=[["華","中國,台灣,香港,澳門,新加坡"],["日","日本"],["韓","韓國,北韓"],["南亞","印度,巴基斯坦,孟加拉,尼泊爾,斯里蘭卡,不丹,馬爾地夫,阿富汗"],["越","越南"],["東南亞","印尼,菲律賓,泰國,緬甸,柬埔寨,寮國,馬來西亞,東帝汶,斐濟,所羅門群島,巴布亞紐幾內亞"],["中東","埃及,伊朗,伊拉克,土耳其,沙烏地阿拉伯,葉門,敘利亞,約旦,黎巴嫩,以色列,巴勒斯坦,科威特,阿曼,阿聯,卡達,巴林,利比亞,突尼西亞,阿爾及利亞,摩洛哥,茅利塔尼亞,蘇丹,亞塞拜然,烏茲別克,哈薩克,塔吉克,土庫曼,吉爾吉斯"],["英","美國,英國,澳洲,加拿大,紐西蘭,愛爾蘭,牙買加,千里達及托巴哥,蓋亞那"],["拉","墨西哥,巴西,哥倫比亞,阿根廷,秘魯,委內瑞拉,智利,厄瓜多,瓜地馬拉,玻利維亞,古巴,多明尼加,宏都拉斯,巴拉圭,薩爾瓦多,尼加拉瓜,哥斯大黎加,巴拿馬,烏拉圭,海地,蘇利南"],["斯","俄羅斯,烏克蘭,白俄羅斯,塞爾維亞,保加利亞,克羅埃西亞,波士尼亞,蒙特內哥羅,北馬其頓,摩爾多瓦"],["歐","德國,法國,義大利,西班牙,波蘭,荷蘭,比利時,瑞典,捷克,希臘,葡萄牙,匈牙利,奧地利,瑞士,丹麥,芬蘭,挪威,羅馬尼亞,斯洛伐克,斯洛維尼亞,立陶宛,拉脫維亞,愛沙尼亞,阿爾巴尼亞,科索沃,塞普勒斯,盧森堡,馬爾他,冰島,喬治亞,亞美尼亞,蒙古"]];
 const REGION=n=>REGIONS.find(r=>r[1].split(",").includes(n))?.[0]||"非";
 const THEMES=[["網路","上網"],["戰爭","衝突"],["疫情","傳染病"],["音樂","樂團"],["氣候","極端天氣"],["移民","遷徙"],["運動","比賽"]];
 const R=Math.random,pick=a=>a[Math.floor(R()*a.length)],$=id=>document.getElementById(id);
@@ -123,7 +124,9 @@ renderHalls();
 // 世界修正：過去壽命短、窮、嬰兒死亡高；未來相反
 function world(c,w){
  const k={past:{ex:-18,gdp:.25,im:4,uni:.25,y:1960},now:{ex:0,gdp:1,im:1,uni:1,y:today.getFullYear()},future:{ex:6,gdp:2,im:.4,uni:1.3,y:2060}}[w];
- return {name:c[0],city:c[9],mEx:c[3]+k.ex*(c[3]<70?1:.6),fEx:c[4]+k.ex*(c[4]<70?1:.6),gdp:c[5]*k.gdp,im:Math.min(250,c[6]*k.im),uni:Math.min(100,c[7]*k.uni),gini:c[8],y0:k.y};
+ // 1960 年的壽命：富國約少 9 年，其他國家越窮差距越大（最低 35 歲）
+ const ex=e=>w=="past"?Math.max(35,e-(c[5]>40000?9:12+(85-e)*.8)):e+k.ex*(e<70?1:.6);
+ return {name:c[0],city:c[9],mEx:ex(c[3]),fEx:ex(c[4]),gdp:c[5]*k.gdp,im:Math.min(250,c[6]*k.im),uni:Math.min(100,c[7]*k.uni),gini:c[8],y0:k.y};
 }
 function wpick(arr,w){let t=arr.reduce((a,x)=>a+w(x),0),r=R()*t;for(const x of arr){r-=w(x);if(r<=0)return x}return arr[0]}
 const CLS=["最貧困","貧困","中等","富裕","最富裕"],EDU=["沒上學","小學","中學","大學"];
@@ -228,7 +231,7 @@ async function loop(){
 function story(L){
  const t=[`出生在${L.c.name}${L.c.city}一個${CLS[L.cls]}階層的家庭，是個${L.sex=="男"?"男孩":"女孩"}。`];
  t.push(L.edu==3?"讀完了大學。":L.edu==0?"一生沒有上過學。":`最高讀到${EDU[L.edu]}。`);
- const j=L.job||L.lastJob;if(j)t.push(`當${j}${L.jobYears>5?"多年":""}。`);
+ const j=L.job||L.lastJob||L.lostJob;if(j)t.push(`當${j}${L.jobYears>5?"多年":""}。`);
  if(L.abroad)t.push(`後來移居${L.abroad}。`);
  if(L.widowed)t.push(`與伴侶相伴 ${L.partnerYears} 年後，對方先走了。`);else if(L.partner)t.push(`與伴侶相伴 ${L.partnerYears} 年。`);
  if(L.kids)t.push(`養育了 ${L.kids} 個孩子${L.grand?`，見到 ${L.grand} 個孫子女`:""}。`);

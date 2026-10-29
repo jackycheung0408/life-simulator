@@ -1,6 +1,7 @@
 // 人生事件：天賦、夢想、父母、朋友、日常事件、歷史事件
 const TALENTS=["聰明","運動","藝術","社交","耐心","手巧"];
 const DREAMS={聰明:["科學家","醫師","工程師"],運動:["運動員","教練","警察"],藝術:["畫家","音樂家","作家","演員"],社交:["老師","政治人物","主持人"],耐心:["護理師","研究員","農場主"],手巧:["廚師","木匠","設計師"]};
+const SELF=["農民","攤販","漁夫","老闆","小店老闆","農場主","畫家","作家","音樂家","木匠"]; // 自雇，不會被裁員
 const LOW=c=>c.gdp<8000,RICH=c=>c.gdp>40000;
 
 // 依年份與國家發生的歷史事件（只在對應年份活著時觸發）
@@ -52,12 +53,12 @@ const EVENTS=[
  [6,15,.05,L=>L.talent=="運動",L=>{say(L,"在學校運動會拿到第一名。");L.happy+=5}],
  [6,15,.05,L=>L.talent=="藝術",L=>{say(L,"畫的圖被老師貼在教室後面。");L.happy+=5}],
  [6,15,.05,L=>L.talent=="聰明"&&L.edu>=1,L=>{say(L,"成績總是全班前幾名。");L.smart=true}],
- [8,15,.03,L=>L.cls<=1,L=>{L.happy-=5;say(L,"家裡太窮，曾經餓著肚子去上學。")}],
+ [8,15,.03,L=>L.cls<=1&&L.edu>=1,L=>{L.happy-=5;say(L,"家裡太窮，曾經餓著肚子去上學。")}],
  [10,10,1,L=>true,L=>{L.dream=pick(DREAMS[L.talent]);say(L,`長大後想當${L.dream}。`)}],
  [10,17,.04,L=>LOW(L.c)&&L.sex=="女",L=>ask(L,"家人安排了一門婚事，要怎麼做？",[["聽從家人",()=>{L.partner=true;L.childMarriage=true;L.edu=Math.min(L.edu,1);L.happy-=10;say(L,"年紀很小就結婚了。")}],["拒絕並繼續讀書",()=>{L.happy-=3;if(R()<.5){L.edu=Math.max(L.edu,1);say(L,"說服了家人，繼續上學。")}else say(L,"沒能說服家人，但婚事暫時擱下了。")}]])],
  // 青少年
  [13,19,.06,L=>true,L=>{L.happy+=6;say(L,"第一次心動。")}],
- [13,19,.03,L=>true,L=>{L.happy-=10;say(L,pick(["在學校被霸凌了一段時間。","和家人大吵一架，離家出走了一晚。"]))}],
+ [13,19,.03,L=>true,L=>{L.happy-=10;say(L,pick(L.edu>=1&&L.age<18&&!L.job?["在學校被霸凌了一段時間。","和家人大吵一架，離家出走了一晚。"]:["和家人大吵一架，離家出走了一晚。"]))}],
  [14,19,.04,L=>!$("soft").checked,L=>{L.happy-=12;say(L,"經歷了一段很憂鬱的時期。（台灣安心專線 1925）")}],
  [15,20,.04,L=>true,L=>ask(L,"朋友找你一起喝酒，要去嗎？",[["一起去",()=>{L.drink=(L.drink||0)+1;L.happy+=2}],["不去",()=>{}]])],
  [15,25,.02,L=>(L.drink||0)>=2,L=>{L.health-=6;L.alcohol=true;say(L,"喝酒越喝越多，開始影響身體。")}],
@@ -67,7 +68,7 @@ const EVENTS=[
  [18,30,.03,L=>L.edu==3,L=>ask(L,"有機會出國留學，要去嗎？",[["去",()=>{L.money-=L.inc*.5;L.inc*=1.3;L.studiedAbroad=true;sayHi(L,"曾出國留學。")}],["不去",()=>{}]])],
  [18,40,.02,L=>true,L=>{say(L,"參加了一場改變人生的旅行。");L.happy+=6}],
  [20,60,.03,L=>L.job,L=>{L.inc*=1.15;say(L,"工作表現不錯，升職加薪。")}],
- [20,60,.025,L=>L.job,L=>{const old=L.job;L.job=null;L.happy-=10;say(L,`公司裁員，失去了${old}的工作。`);L.lostJob=old}],
+ [20,60,.025,L=>L.job&&!SELF.includes(L.job),L=>{const old=L.job;L.job=null;L.happy-=10;say(L,`${pick(["公司裁員","景氣不好","工作的地方倒閉"])}，失去了${old}的工作。`);L.lostJob=old}],
  [20,60,.2,L=>!L.job&&L.lostJob&&L.age<65,L=>{L.job=L.lostJob;L.lostJob=null;L.inc*=.9;say(L,`重新找到${L.job}的工作。`)}],
  [22,55,.04,L=>L.dream&&!L.dreamDone&&L.job,L=>ask(L,`想試試看當${L.dream}嗎？`,[["放手一試",()=>{const ok=R()<(L.edu==3?.5:.25)+(L.smart?.15:0);if(ok){L.job=L.dream;L.dreamDone=true;L.happy+=15;say(L,`成為了${L.dream}，那是夢寐以求的工作。`);sayHi(L,`曾當過${L.dream}，那是從小的夢想。`)}else{L.happy-=5;say(L,"試了，但沒有成功。")}}],["算了",()=>{}]])],
  [25,55,.02,L=>L.job&&L.money>L.inc,L=>ask(L,"想自己創業嗎？",[["創業",()=>{if(R()<.4){L.job="老闆";L.inc*=2;say(L,"創業成功，開了自己的店。");sayHi(L,"白手起家開了自己的事業。")}else{L.money-=L.inc;L.happy-=10;say(L,"創業失敗，賠了不少錢。")}}],["不要",()=>{}]])],
