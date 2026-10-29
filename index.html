@@ -87,7 +87,7 @@ button.pri:hover{filter:brightness(1.08)}
 #log p{cursor:pointer}#log p.star::after{content:" ★";color:#d4a017}
 
 /* ===== 復古街機風 ===== */
-:root,:root[data-theme]{--bg:#12122b;--fg:#f4f1de;--mut:#a6a6c8;--card:#22224a;--ac:#ff4d4d;--line:#3d3d75;--y:#ffd23f;--b:#3fa7ff;--g:#4cd964;--ink:#05050f;--px:"Press Start 2P","DotGothic16",monospace}
+:root,:root[data-theme]{--bg:#12122b;--fg:#f4f1de;--mut:#a6a6c8;--card:#22224a;--ac:#ff4d4d;--line:#3d3d75;--y:#ffd23f;--b:#3fa7ff;--g:#4cd964;--ink:#05050f;--px:"Press Start 2P","DotGothic16","PingFang TC","Noto Sans TC",monospace}
 body{background:var(--bg);font-family:"DotGothic16",system-ui,sans-serif;letter-spacing:.02em;
  background-image:radial-gradient(#ffffff0d 1px,transparent 1px);background-size:6px 6px}
 body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:20;background:repeating-linear-gradient(#0000 0 2px,#0000001f 2px 3px)}
@@ -95,7 +95,7 @@ h1{font-family:var(--px);font-size:1.6rem;color:var(--y);text-shadow:3px 3px 0 v
 h2{font-family:var(--px);font-size:.82rem;color:var(--y);text-shadow:2px 2px 0 var(--ink);line-height:1.8;letter-spacing:.04em}
 .card{background:var(--card);border:3px solid var(--ink);border-radius:0;box-shadow:inset 0 0 0 2px var(--line),5px 5px 0 var(--ink);position:relative}
 .card::before{content:"";position:absolute;top:4px;left:4px;width:6px;height:6px;background:var(--y);box-shadow:calc(100% - 0px) 0 0 transparent}
-button,select{border:3px solid var(--ink);border-radius:0;background:#33336b;color:var(--fg);box-shadow:3px 3px 0 var(--ink);font-family:"DotGothic16",sans-serif}
+button,select{border:3px solid var(--ink);border-radius:0;background:#33336b;color:var(--fg);box-shadow:3px 3px 0 var(--ink);font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif}
 button:hover:not([disabled]){border-color:var(--ink);background:#44448a}
 button:active:not([disabled]){transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
 button.pri{background:var(--ac);color:#fff;font-family:var(--px);font-size:.85rem;padding:12px 22px;text-shadow:2px 2px 0 var(--ink)}
@@ -132,16 +132,16 @@ textarea,input,select{border-radius:0}
 /* 字型清晰度：像素字型只在 8 的倍數時清楚 */
 h1,h2,.age,.seg button,.kpi b,.stat b,.big,.mbar .tag,button.pri,.lifebar-wrap .lbl{-webkit-font-smoothing:none;-moz-osx-font-smoothing:grayscale;font-smooth:never}
 h1{font-size:24px;line-height:40px}
-h2{font-family:"DotGothic16",sans-serif;font-size:16px;line-height:24px;letter-spacing:.06em}
+h2{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;font-size:16px;line-height:24px;letter-spacing:.06em}
 .seg button{font-size:8px;line-height:16px}
-.stat b{font-family:"DotGothic16",sans-serif;font-size:16px;line-height:24px}
-.kpi b{font-family:"DotGothic16",sans-serif;font-size:24px;line-height:32px}
+.stat b{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;font-size:16px;line-height:24px}
+.kpi b{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;font-size:24px;line-height:32px}
 .big{font-size:24px;line-height:32px}
-.mbar .tag{font-family:"DotGothic16",sans-serif;font-size:14px;letter-spacing:.04em}
-button.pri{font-family:"DotGothic16",sans-serif;font-size:16px;letter-spacing:.1em}
-.hud .age{font-size:32px;line-height:32px}.hud .age small{font-family:"DotGothic16",sans-serif;font-size:16px}
-.lifebar-wrap .lbl{font-family:"DotGothic16",sans-serif;font-size:13px}
-.blink{font-family:"DotGothic16",sans-serif!important;font-size:16px!important}
+.mbar .tag{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;font-size:14px;letter-spacing:.04em}
+button.pri{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;font-size:16px;letter-spacing:.1em}
+.hud .age{font-size:32px;line-height:32px}.hud .age small{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;font-size:16px}
+.lifebar-wrap .lbl{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;font-size:13px}
+.blink{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif!important;font-size:16px!important}
 /* 頂部：照片、年齡、血條 */
 .tool{padding:12px 14px}
 .hud{display:flex;gap:12px;align-items:center}
@@ -166,11 +166,11 @@ button.pri{font-family:"DotGothic16",sans-serif;font-size:16px;letter-spacing:.1
 .blink{animation:blink 1s steps(2) infinite}@keyframes blink{50%{opacity:0}}
 /* 清晰度：中文一律 DotGothic16 且 ≥14px；Press Start 2P 只留給標題與年齡數字 */
 body{font-size:15px}
-button,select,.tbar,.sw{font-family:"DotGothic16",sans-serif;font-size:15px}
-.seg button{font-family:"DotGothic16",sans-serif!important;font-size:14px!important;line-height:18px;padding:7px 10px}
-.lifebar-wrap .lbl{font-family:"DotGothic16",sans-serif!important;font-size:14px!important}
+button,select,.tbar,.sw{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;font-size:15px}
+.seg button{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif!important;font-size:14px!important;line-height:18px;padding:7px 10px}
+.lifebar-wrap .lbl{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif!important;font-size:14px!important}
 .stages{font-size:14px;height:20px}
-.stat b{font-family:"DotGothic16",sans-serif!important;font-size:18px!important}
+.stat b{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif!important;font-size:18px!important}
 .hud .age small,#who,#yr{font-size:15px!important}
 .mut{font-size:14px}
 </style></head><body><div class="wrap">
@@ -408,7 +408,7 @@ function setStat(n,val,pct,delta){
 let prev={},mapN=0,lastScene="",lastSibs="";
 function buildMap(){mapN=0;lmap.innerHTML='<div class="lmap"></div>';growMap()}
 function growMap(){const g=lmap.firstChild,n=Math.max(Math.ceil(P.ex),P.age+1);for(;mapN<n;mapN++){const i=document.createElement("i");i.title=`${mapN}歲`;if(mapN>=P.ex)i.style.borderStyle="dashed";g.appendChild(i)}}
-function paintMap(a){const i=lmap.firstChild.children[a],v=P.hist[a];if(i&&v!=null){i.style.background=`color-mix(in srgb,var(--ac) ${Math.round(15+v*.85)}%,transparent)`;i.title=`${a}歲 · 幸福 ${Math.round(v)}`}}
+function paintMap(a){const i=lmap.firstChild.children[a],v=P.hist[a]??P.hist.slice(0,a).filter(x=>x!=null).pop()??P.happy;if(i&&!i.dataset.p){if(a<P.age)i.dataset.p=1;{i.style.background=`color-mix(in srgb,var(--ac) ${Math.round(15+v*.85)}%,transparent)`;i.title=`${a}歲 · 幸福 ${Math.round(v)}`}}
 function buildSurv(){surv.innerHTML=survivalSVG(P)+`<div class="mut" id="svtxt"></div>`}
 function render(){
  // 和上一年比較，顯示每年重心帶來的增減
@@ -429,7 +429,7 @@ function render(){
  if(!$("stages").firstChild){const pct=a=>Math.min(100,a/Math.max(P.ex,100)*100);
   $("hp").insertAdjacentHTML("beforeend",[13,20,40,65].map(a=>`<span class="tick" style="left:${pct(a)}%"></span>`).join("")+`<span class="avg" style="left:${pct(P.ex)}%"></span>`);
   $("stages").innerHTML=[[6,"童年"],[16,"青少年"],[30,"青年"],[52,"中年"],[80,"老年"]].map(([a,t])=>`<span style="left:${pct(a)}%">${t}</span>`).join("")}
- if(!lmap.firstChild)buildMap();growMap();for(let a=Math.max(0,P.age-2);a<=P.age;a++)paintMap(a);
+ if(!lmap.firstChild)buildMap();growMap();for(let a=0;a<=P.age;a++)paintMap(a);
  if(!surv.firstChild)buildSurv();
  const sv=P.surv||(P.surv=survival(P)),cx=P.age/100*300,cy=110-sv[Math.min(100,P.age)]*110,dot=surv.querySelector("circle");
  if(dot){dot.setAttribute("cx",cx);dot.setAttribute("cy",cy)}
