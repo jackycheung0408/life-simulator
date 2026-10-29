@@ -54,7 +54,8 @@ button.pri{background:var(--ac);color:#fff;border-color:var(--ac);padding:10px 2
 <!-- 遊戲 -->
 <section id="game" class="hide">
 <div class="card tool"><div class="row"><div><b id="who"></b> <span class="mut" id="yr"></span></div>
-<div><button id="pause">暫停</button><button id="spd">×1</button><button id="auto">自動抉擇：關</button></div></div></div>
+<div><button id="pause">暫停</button><button id="spd">×1</button><button id="auto">自動抉擇：關</button><button id="skip">跳到結局</button></div></div>
+<div class="row" style="border:0"><span class="mut" id="stage"></span><span class="mut" id="pct"></span></div><div class="bar"><i id="lifebar" style="width:0"></i></div></div>
 <div class="card"><div class="mut" id="origin"></div></div>
 <div class="card grid" id="stats"></div>
 <div class="card" id="choice" style="display:none"></div>
@@ -75,6 +76,7 @@ button.pri{background:var(--ac);color:#fff;border-color:var(--ac);padding:10px 2
 </div>
 
 <script src="countries.js"></script>
+<script src="events.js"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -149,12 +151,15 @@ go.onclick=()=>{
 pause.onclick=()=>{paused=!paused;pause.textContent=paused?"繼續":"暫停"};
 spd.onclick=()=>{mult=mult>=16?1:mult*2;spd.textContent="×"+mult};
 $("auto").onclick=e=>{auto=!auto;e.target.textContent="自動抉擇："+(auto?"開":"關")};
+$("skip").onclick=()=>{if(!confirm("剩下的人生會自動抉擇並快速跑完，確定嗎？"))return;auto=true;mult=9999;paused=false;$("auto").textContent="自動抉擇：開";spd.textContent="⏩";pause.textContent="暫停"};
 
 function money(usd){const k=$("cur").value;return Math.round(usd*PPP[k]).toLocaleString()+" "+k}
 function say(L,t){L.events.push(`${L.age}歲：${t}`);if(L===P){const p=document.createElement("p");p.innerHTML=`<span class="y">${L.age}歲</span>${t}`;log.prepend(p)}}
 function stat(n,v,pct){return `<div class="stat">${n}<b>${v}</b>${pct!=null?`<div class="bar"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div>`:""}</div>`}
 function render(){
  yr.textContent=`${P.c.y0+P.age} 年 · ${P.age} 歲`;
+ $("stage").textContent=P.age<13?"童年":P.age<20?"青少年":P.age<40?"青年":P.age<65?"中年":"老年";
+ $("pct").textContent=`當地平均壽命 ${Math.round(P.ex)} 歲`;$("lifebar").style.width=Math.min(100,P.age/P.ex*100)+"%";
  stats.innerHTML=stat("健康",Math.round(P.health),P.health)+stat("幸福",Math.round(P.happy),P.happy)+stat("教育",EDU[P.edu])
  +stat("工作",P.job||"—")+stat("年收入",P.job?money(P.inc):"—")+stat("家庭",(P.partner?"有伴侶":P.widowed?"喪偶":"單身")+(P.kids?` · ${P.kids}子女`:""));
  sibs.innerHTML=S.map(s=>`<div class="sib"><b>${s.name}</b><br><span class="mut">${s.c.name} · ${s.sex}</span><br>${s.alive?s.age+" 歲 · "+(s.job||EDU[s.edu]):"✝ "+s.age+" 歲離世"}</div>`).join("");
@@ -205,7 +210,7 @@ async function year(L){
  if(L.age>30&&R()<.035)await ask(L,"生了一場病，要就醫嗎？",[["就醫",()=>{L.health+=12;L.money-=L.inc*.3}],["撐著",()=>{L.health-=15}]]);
  if(L.smoke&&R()<.05)await ask(L,"要戒菸嗎？",[["戒菸",()=>{L.smoke=false;L.health+=5}],["繼續",()=>{}]]);
  if(!soft&&L.age>15&&R()<.004*(c.gdp<10000?2:1)){L.health-=20;L.happy-=15;say(L,"遭遇了暴力事件，身心受創。（求助：當地緊急電話）")}
- if(R()<.03)say(L,pick(["和老朋友重逢。","經歷了一場天災。","家裡的長輩離世了。","找到新的興趣。","經濟不景氣，日子變得緊。",`這一年，「${THEME[0]}」改變了很多人的生活。`]));
+ await lifeEvents(L,f);
  if(L.age==65&&L.job){say(L,`從${L.job}退休，一共做了 ${L.jobYears} 年。`);L.lastJob=L.job;L.job=null}
  if(isP&&Q[L.age])await reflect();
  if(R()<mortality(L)){L.alive=false;L.cause=pick(CAUSES.find(x=>L.age>=x[0]&&L.age<x[1])[2]);say(L,`因${L.cause}離開了人世。`)}
@@ -227,9 +232,10 @@ function story(L){
  if(L.abroad)t.push(`後來移居${L.abroad}。`);
  if(L.widowed)t.push(`與伴侶相伴 ${L.partnerYears} 年後，對方先走了。`);else if(L.partner)t.push(`與伴侶相伴 ${L.partnerYears} 年。`);
  if(L.kids)t.push(`養育了 ${L.kids} 個孩子${L.grand?`，見到 ${L.grand} 個孫子女`:""}。`);
+ if(L.highlights)t.push(...L.highlights);
  t.push(`${L.age} 歲時因${L.cause}離開了人世。`);return t.join("");
 }
-function title(L){const j=L.lastJob||L.job;return L.abroad?`從${L.c.name}移居${L.abroad}的人生`:j&&L.jobYears>10?`當了 ${L.jobYears} 年${j}的人生`:L.age<5?`在${L.c.name}出生，也在那裡長眠。`:`在${L.c.name}度過的 ${L.age} 年`}
+function title(L){const j=L.lastJob||L.job;return L.dreamDone?`實現夢想成為${L.dream}的人生`:L.politician?`一邊工作，一邊擔任地方議員的人生`:L.abroad?`從${L.c.name}移居${L.abroad}的人生`:j&&L.jobYears>10?`當了 ${L.jobYears} 年${j}的人生`:L.age<5?`在${L.c.name}出生，也在那裡長眠。`:`在${L.c.name}度過的 ${L.age} 年`}
 function finish(){
  game.classList.add("hide");end.classList.remove("hide");scrollTo(0,0);
  summary.innerHTML=`<h2>${P.name}　${P.c.y0} – ${P.c.y0+P.age}</h2><p class="mut">${P.c.name} · ${P.sex} · 享年 ${P.age} 歲（當地平均 ${Math.round(P.ex)} 歲）</p><p>${story(P)}</p>${P.notes.length?"<p><b>你在路上留下的話</b><br>"+P.notes.map(esc).join("<br>")+"</p>":""}`;
