@@ -208,4 +208,6 @@ async function investYear(L){
  opts.push(["維持現狀",()=>{}]);
  await ask(L,`手上有 ${money(idle)} 存款，要怎麼理財？`,opts.slice(0,5),cur);
 }
-async function storyYear(L){await investYear(L);livingYear(L);await wedding(L);await genderYear(L);await parentLeave(L);await smallChoice(L);kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L);await spendYear(L)}
+// 未成年的花費（補習、才藝、看病）由家裡負擔，不會變成自己的負債
+function minorGuard(L){if(L.age<18&&L.money<0){if(L===P&&!L.minorNote){L.minorNote=1;say(L,L.cls<=1?"補習和生活的錢，爸媽咬著牙借錢付了。":"這些開銷都是爸媽幫你付的。")}L.money=0}}
+async function storyYear(L){minorGuard(L);await investYear(L);livingYear(L);await wedding(L);await genderYear(L);await parentLeave(L);await smallChoice(L);kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L);await spendYear(L);minorGuard(L)}
