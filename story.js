@@ -129,7 +129,10 @@ function livingYear(L){
  if(L.age<18||!L.job&&L.age<22)return;                                  // 學生時期由家裡負擔
  const cost=livingCost(L);let total=Object.values(cost).reduce((a,b)=>a+b,0);
  const income=L.job?L.inc:L.age>=65?L.c.gdp*.15:0;                     // 退休後的年金
- if(income&&total>income*.97&&L.c.gdp<15000)total=income*.97;            // 低所得地區的人會壓低開銷過活
+ // 人會依收入調整生活：開銷最多花到收入的 85%～99%（看花錢習慣）；沒收入時靠家人接濟，只算最低開銷
+ const sp=L===P?spend:1,full=total;
+ total=income?Math.min(total,income*(.85+sp*.07)):L.c.gdp*.06;
+ if(L===P&&income&&full>income*1.05&&R()<.3)say(L,pick(["薪水不夠花，只好搬去更便宜的地方住。","每個月都在算錢，能省則省。","外食改成自己煮，衣服也很少買新的。"]));
  L.money+=income-total;if(income)ledger(L,"薪水",income);
  for(const k in cost)ledger(L,k,-cost[k]*total/Object.values(cost).reduce((a,b)=>a+b,0));
  if(L===P&&(L.age==22||L.age%10==0)&&income)say(L,`一年的生活開銷：吃 ${moneyShort(cost.吃)}・穿 ${moneyShort(cost.穿)}・住 ${moneyShort(cost.住)}・行 ${moneyShort(cost.行)}${cost.養孩子?`・孩子 ${moneyShort(cost.養孩子)}`:""}`);
