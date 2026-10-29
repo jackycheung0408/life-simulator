@@ -20,17 +20,18 @@ function makeFamily(L){
  const reg=REGION(L.raw),low=L.c.gdp<8000;
  const surname=()=>"";
  const mAge=Math.round((low?19:25)+R()*10),fAge=mAge+Math.round(1+R()*7);
- const pool=L.cls>=3&&!low?PJOB_HI:L.cls<=1||low?PJOB_LOW:PJOB_MID;
+ const urban=R()<URBAN(L.c.gdp);
+ const pool=(L.cls>=3&&!low?PJOB_HI:L.cls<=1||low?PJOB_LOW:PJOB_MID).filter(j=>!(urban&&["農民","漁夫"].includes(j)));
  const nSib=Math.max(0,Math.round(FERT(L.c.gdp)-1+(R()-.5)*2));
  const sibs=[];let age=0;for(let i=0;i<nSib;i++){age+=2+Math.floor(R()*3);sibs.push({sex:R()<.5?"男":"女",age,married:false})}
  L.fam={mother:{name:pick(NAMES[reg]["女"]),age:mAge,job:pick(pool.concat(["家管"])),alive:true},
   father:{name:pick(NAMES[reg]["男"]),age:fAge,job:pick(pool.filter(j=>j!="家管")),alive:true},
-  sibs,grand:R()<.8,religion:RELIGION(L.raw),urban:R()<URBAN(L.c.gdp)};
+  sibs,grand:R()<.8,religion:RELIGION(L.raw),urban};
  L.parentAlive=true;
 }
 const sibName=s=>`${s.age>0?(s.sex=="男"?"哥哥":"姊姊"):""}`;
 function familyLine(L){
- const f=L.fam,s=f.sibs.length?`上面有${f.sibs.map(x=>`${x.age}歲的${sibName(x)}`).join("、")}。`:"是家裡第一個孩子。";
+ const f=L.fam,s=f.sibs.length?`上面有${[...f.sibs].reverse().map(x=>`${x.age}歲的${sibName(x)}`).join("、")}。`:"是家裡第一個孩子。";
  return `${s}家人信仰${f.religion}。`;
 }
 
@@ -104,9 +105,9 @@ function birthCard(L,home){
 
 // 幼年性格抉擇：2～4 歲，四選一，累積成個性
 const TEMPER=[
- [2,"兩歲，路邊有一隻小狗朝你走過來",[["抱緊大人，不敢看",{know:1,rel:-1,t:"謹慎"}],["學狗叫，逗得旁邊的人都笑了",{rel:3,t:"外向"}],["蹲下來輕輕摸牠的頭",{rel:2,happy:1,t:"體貼"}],["被舔了一臉還是一直跟著牠走",{health:2,t:"堅毅"}]]],
- [3,"三歲，拿到一個沒看過的玩具",[["拆開來看裡面是什麼",{know:3,t:"好奇"}],["拿去和別人一起玩",{rel:3,t:"外向"}],["自己安靜地玩很久",{know:1,happy:2,t:"專注"}],["玩不出來也不肯放手",{health:1,know:1,t:"堅毅"}]]],
- [4,"四歲，家裡來了客人",[["主動打招呼、表演唱歌",{rel:3,happy:1,t:"外向"}],["躲進房間",{happy:-1,know:1,t:"謹慎"}],["幫忙端點心",{rel:2,t:"體貼"}],["問客人一大堆問題",{know:2,rel:1,t:"好奇"}]]]];
+ [2,"路邊有一隻小狗朝你走過來",[["抱緊大人，不敢看",{know:1,rel:-1,t:"謹慎"}],["學狗叫，逗得旁邊的人都笑了",{rel:3,t:"外向"}],["蹲下來輕輕摸牠的頭",{rel:2,happy:1,t:"體貼"}],["被舔了一臉還是一直跟著牠走",{health:2,t:"堅毅"}]]],
+ [3,"拿到一個沒看過的玩具",[["拆開來看裡面是什麼",{know:3,t:"好奇"}],["拿去和別人一起玩",{rel:3,t:"外向"}],["自己安靜地玩很久",{know:1,happy:2,t:"專注"}],["玩不出來也不肯放手",{health:1,know:1,t:"堅毅"}]]],
+ [4,"家裡來了客人",[["主動打招呼、表演唱歌",{rel:3,happy:1,t:"外向"}],["躲進房間",{happy:-1,know:1,t:"謹慎"}],["幫忙端點心",{rel:2,t:"體貼"}],["問客人一大堆問題",{know:2,rel:1,t:"好奇"}]]]];
 async function temperament(L){
  const t=TEMPER.find(x=>x[0]==L.age);if(!t)return;
  await ask(L,t[1],t[2].map(([label,e])=>[label,()=>{L.know+=e.know||0;L.rel+=e.rel||0;L.happy+=e.happy||0;L.health+=e.health||0;(L.traits=L.traits||[]).push(e.t)}]));
@@ -130,7 +131,7 @@ async function familyEvents(L){
 // 統計小知識（由資料計算，不另外編造數字）
 function survivalNote(L){
  if(![15,30,50,70].includes(L.age))return;
- say(L,`${L.age} 歲。同一年在${L.c.name}出生的${L.sex=="男"?"男生":"女生"}，大約 ${survivePct(L)}% 還活著。`);
+ say(L,`同一年在${L.c.name}出生的${L.sex=="男"?"男生":"女生"}，大約 ${survivePct(L)}% 還活著。`);
 }
 
 // 存檔：每年存一次，關掉頁面後可以接著玩

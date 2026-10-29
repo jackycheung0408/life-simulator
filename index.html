@@ -95,9 +95,9 @@ button.pri{background:var(--ac);color:#fff;border-color:var(--ac);padding:10px 2
 </section>
 </div>
 
-<script src="countries.js?v=7"></script>
-<script src="events.js?v=7"></script>
-<script src="life.js?v=7"></script>
+<script src="countries.js?v=8"></script>
+<script src="events.js?v=8"></script>
+<script src="life.js?v=8"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -280,7 +280,7 @@ async function year(L){
  if(!L.job&&L.age==(L.edu==3?22:L.edu==2?18:14)){L.job=pick(L.edu==3?JOBS_U:JOBS);L.inc*=L.edu==3?1.8:L.edu==2?1:.6;say(L,`開始當${L.job}。`)}
  if(L.job&&L.age>28&&L.age<55&&R()<.03)await ask(L,"有個換工作的機會，要轉職嗎？",[["轉職",()=>{const j=pick(L.edu==3?JOBS_U.concat(["部門經理","小企業老闆"]):JOBS.concat(["小店老闆"]));L.job=j;L.jobYears=0;L.inc*=.9+R()*.6;say(L,`轉行當${j}。`)}],["留下",()=>{}]]);
  if(L.age>=18&&L.age<=45&&!L.partner&&!L.widowed&&R()<(f=="愛情"?.2:.08)+L.rel/1000){
-  const ps=L.sex=="男"?"女":"男",pa=Math.max(18,L.age+Math.round((L.sex=="男"?-3:3)+(R()-.5)*8)),pj=pick(L.edu==3?JOBS_U:JOBS),pm=Math.round(L.c.gdp*(.1+R()*.8)),pn=pick(NAMES[REGION(L.raw)][ps]);
+  const ps=L.sex=="男"?"女":"男",pa=Math.max(18,L.age+Math.round((L.sex=="男"?-3:3)+(R()-.5)*8)),pj=pick(L.edu==3?JOBS_U:JOBS),pm=Math.round(L.c.gdp*(.1+R()*.8)),pn=pick(NAMES[REGION(L.raw)][ps].filter(n=>n!==L.fam?.father.name&&n!==L.fam?.mother.name));
   const arranged=L.c.gdp<15000&&R()<.5;
   await ask(L,arranged?"家裡長輩介紹了一個對象":"你遇見了一個人",[
    ["在一起",()=>{L.partner=true;L.partnerName=pn;L.happy+=10;L.rel+=5;L.money+=pm*.5;say(L,`和${pn}結為伴侶。`)},"人際↑ 幸福↑"],
@@ -334,7 +334,7 @@ function finish(){
  game.classList.add("hide");end.classList.remove("hide");scrollTo(0,0);
  summary.innerHTML=`<h2>${P.name}　${P.c.y0} – ${P.c.y0+P.age}</h2><p class="mut">${P.c.name} · ${P.sex} · 享年 ${P.age} 歲（當地平均 ${Math.round(P.ex)} 歲）</p><div class="grid" style="margin:12px 0">${[["享年",P.age+" 歲"],["教育",EDU[P.edu]],["孩子",P.kids+" 人"],["孫子女",P.grand+" 人"],["住過的國家",P.abroad?2:1]].map(k=>`<div class="kpi mut">${k[0]}<b style="color:var(--fg)">${k[1]}</b></div>`).join("")}</div>
  <p>${story(P)}</p>
- <h2>人生地圖</h2>${lifeMap(P)}
+ <h2>人生地圖</h2><div class="mut">一格是一年 · 顏色越深那年越幸福</div>${lifeMap(P)}
  <h2 style="margin-top:12px">人生時間軸</h2><div class="tl">${P.events.filter(e=>MILESTONE.test(e)&&!/→|沒考上/.test(e)).map(e=>{const i=e.indexOf("：");return `<div><b>${e.slice(0,i)}</b>${e.slice(i+1)}</div>`}).join("")}</div>
  ${P.notes.length?"<p><b>你在路上留下的話</b><br>"+P.notes.map(esc).join("<br>")+"</p>":""}`;
  const h=$("homeC").value;
