@@ -173,6 +173,13 @@ button,select,.tbar,.sw{font-family:"DotGothic16","PingFang TC","Noto Sans TC",s
 .stat b{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif!important;font-size:18px!important}
 .hud .age small,#who,#yr{font-size:15px!important}
 .mut{font-size:14px}
+.saverow{display:flex;gap:6px;margin:6px 0}.saverow .resume{flex:1;text-align:left;margin:0}.saverow .del{margin:0;padding:8px 12px}
+button.pri{font-family:"DotGothic16","PingFang TC",sans-serif!important;font-size:18px!important}
+.stat .v{font-size:16px!important;white-space:nowrap}
+/* 易讀性：內文、按鈕、數值卡改用一般黑體；像素字只留標題與年齡 */
+body,button,select,textarea,.stat,.stat b,.seg button,.lifebar-wrap .lbl,.stages,.mbar .tag,button.pri,.opt,#log p,.mut,.blink,h2{font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif!important;-webkit-font-smoothing:antialiased!important;letter-spacing:.02em}
+h2{font-weight:700}.stat b{font-weight:700;font-size:20px!important}.seg button{font-weight:600}
+body{font-size:15px;line-height:1.6}
 </style></head><body><div class="wrap">
 
 <!-- 首頁 -->
@@ -194,7 +201,7 @@ button,select,.tbar,.sw{font-family:"DotGothic16","PingFang TC","Noto Sans TC",s
 <p><b>你實際出生的國家或地區（選填）</b><br><select id="homeC"></select><span class="mut"> 用來把這一生和你的人生並排比較</span></p>
 <p><b>金額顯示</b><br><select id="cur"></select></p>
 <p><label><input type="checkbox" id="soft" style="width:auto"> 略過沉重情節</label></p>
-<button class="pri" id="go">出生</button><button id="resume" class="hide">繼續上次的人生</button>
+<button class="pri" id="go">出生</button><div id="saves"></div>
 <p class="mut">死亡、暴力、自殺等沉重的事也會照統計發生，不描寫畫面，並附上求助資訊（台灣安心專線 1925）。</p>
 </div>
 
@@ -253,12 +260,12 @@ button,select,.tbar,.sw{font-family:"DotGothic16","PingFang TC","Noto Sans TC",s
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=36"></script>
-<script src="events.js?v=36"></script>
-<script src="life.js?v=36"></script>
-<script src="pixel.js?v=36"></script>
-<script src="story.js?v=36"></script>
-<script src="taiwan.js?v=36"></script>
+<script src="countries.js?v=37"></script>
+<script src="events.js?v=37"></script>
+<script src="life.js?v=37"></script>
+<script src="pixel.js?v=37"></script>
+<script src="story.js?v=37"></script>
+<script src="taiwan.js?v=37"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -355,9 +362,12 @@ function setupGame(){
  log.onclick=e=>{const p=e.target.closest("p");if(p){p.classList.toggle("star");toast(p.classList.contains("star")?"已加星號":"已取消星號")}};render();
 }
 // 存檔接續
-const saved=loadGame();
-if(saved&&saved.P&&saved.P.alive){resume.classList.remove("hide");resume.textContent=`繼續上次的人生（${saved.P.name}，${saved.P.age} 歲）`}
-resume.onclick=()=>{
+function listSaves(){const o=allSaves(),rows=Object.entries(o).filter(([,v])=>v.P&&v.P.alive).sort((a,b)=>b[1].t-a[1].t);
+ $("saves").innerHTML=rows.length?`<p><b>存檔中的人生（可續玩）</b></p>`+rows.map(([id,v])=>`<div class="saverow"><button class="resume" data-id="${id}">▶ ${v.P.name}・${v.P.c.tw?"台灣 "+v.P.c.tw.county:v.P.c.name}・${v.P.age} 歲${v.P.job?"・"+v.P.job:""}</button><button class="del" data-id="${id}" aria-label="刪除存檔">✕</button></div>`).join(""):"";
+ $("saves").querySelectorAll(".resume").forEach(b=>b.onclick=()=>resumeSave(o[b.dataset.id]));
+ $("saves").querySelectorAll(".del").forEach(b=>b.onclick=()=>{if(confirm("刪除這段人生的存檔？")){deleteSave(b.dataset.id);listSaves()}});}
+listSaves();
+function resumeSave(saved){
  ({P,S,focusSel,spend}=saved);Object.assign(cfg,saved.cfg);
  home.classList.add("hide");game.classList.remove("hide");
  who.textContent=`${P.name}（${P.sex}）`;
@@ -383,6 +393,8 @@ function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");cle
 // 抉擇前後比較數值，產生「健康 +12 · 存款 −3,000」之類的回饋
 const snap=L=>({健康:L.health,幸福:L.happy,知識:L.know,人際:L.rel,存款:L.money});
 function diffText(a,b){return Object.keys(a).map(k=>{const d=b[k]-a[k];if(k=="存款")return Math.abs(d)>=1?`存款 ${d>0?"+":"−"}${money(Math.abs(d))}`:"";const r=Math.round(d);return r?`${k} ${r>0?"+":""}${r}`:""}).filter(Boolean).join(" · ")}
+// 卡片用的短格式：超過一萬用「萬」表示
+function moneyShort(usd){const k=$("cur").value,v=Math.round(usd*PPP[k]);return (v>=1e8?(v/1e8).toFixed(1)+" 億":v>=1e4?(v/1e4).toFixed(v>=1e6?0:1)+" 萬":v.toLocaleString())+" "+k}
 function money(usd){const k=$("cur").value;return Math.round(usd*PPP[k]).toLocaleString()+" "+k}
 // 人生大事：紀錄中加粗標示，結局時列入時間軸
 const MILESTONE=/誕生了|上小學|升上中學|考上大學|開始當|轉行|結為伴侶|孩子出生|收養|移居|逃到|難民|公民|夢寐|當選|創業成功|買下|出版|退休|先離開|分開了|離開了人世|戰爭|革命|饑荒|改革開放|解體|圍牆|屠殺|內戰|海嘯|地震|疫情|金融|登陸月球|動盪|獨立|政變|核電廠|恐怖攻擊|伊波拉|洪水|火山|通膨|劇變|圍城|背上一筆債|退休生活|拮据|夜校|蓋好了/;
@@ -420,7 +432,7 @@ function render(){
  if(!stats.firstChild)buildStats();
  setStat("健康",h,P.health,newYear?dh:undefined);setStat("幸福",hp,P.happy,newYear?dp:undefined);
  setStat("知識",Math.round(P.know),P.know);setStat("人際",Math.round(P.rel),P.rel);setStat("教育",EDU[P.edu]);
- setStat("工作",P.job||"—");setStat("年收入",P.job?money(P.inc):"—");setStat("存款",P.money<0?"負債 "+money(-P.money):money(P.money));
+ setStat("工作",P.job||"—");setStat("年收入",P.job?moneyShort(P.inc):"—");setStat("存款",P.money<0?"−"+moneyShort(-P.money):moneyShort(P.money));
  setStat("家庭",(P.partner?"有伴侶":P.widowed?"喪偶":"單身")+(P.kids?` · ${P.kids}子女`:""));
  // 場景：有變才換，新出現的人物彈出來
  // 場景：家人組成或住所有變才重畫

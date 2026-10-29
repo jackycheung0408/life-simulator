@@ -146,7 +146,10 @@ function survivalNote(L){
 }
 
 // 存檔：每年存一次，關掉頁面後可以接著玩
-const SAVE_KEY="life-save-v1";
-function saveGame(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({P,S,cfg,focusSel,spend,log:log.innerHTML}))}catch{}}
-function loadGame(){try{return JSON.parse(localStorage.getItem(SAVE_KEY))}catch{return null}}
-function clearSave(){try{localStorage.removeItem(SAVE_KEY)}catch{}}
+// 多個存檔：每段人生用自己的 id 存，可同時保留好幾段
+const SAVE_KEY="life-saves-v2";
+function allSaves(){try{const o=JSON.parse(localStorage.getItem(SAVE_KEY))||{};const old=JSON.parse(localStorage.getItem("life-save-v1"));if(old&&old.P&&old.P.alive){old.P.id=old.P.id||"v1";o[old.P.id]={...old,t:0};localStorage.removeItem("life-save-v1");localStorage.setItem(SAVE_KEY,JSON.stringify(o))}return o}catch{return {}}}
+function saveGame(){try{P.id=P.id||String(Date.now());const o=allSaves();o[P.id]={P,S,cfg,focusSel,spend,log:log.innerHTML,t:Date.now()};
+ const keep=Object.entries(o).sort((a,b)=>b[1].t-a[1].t).slice(0,8);localStorage.setItem(SAVE_KEY,JSON.stringify(Object.fromEntries(keep)))}catch{}}
+function deleteSave(id){try{const o=allSaves();delete o[id];localStorage.setItem(SAVE_KEY,JSON.stringify(o))}catch{}}
+function clearSave(){if(P&&P.id)deleteSave(P.id)}
