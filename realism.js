@@ -11,8 +11,8 @@ function socialRate(L){const g=L.c.gdp;return L.c.tw?.035:g>40000?.08:g>15000?.0
 function netPay(L){return L.inc*(1-taxRate(L)-socialRate(L))}
 function pension(L){
  const g=L.c.gdp,last=L.lastInc||g*.4,yrs=L.workYears||0;
- if(L.c.tw)return Math.min(last*.0155*yrs,last*.7);                     // 勞保年金：每年資 1.55%
- return g>15000?last*Math.min(.6,yrs*.015):g*.06;
+ if(L.c.tw)return Math.min(last,g*.5)*.0155*Math.min(yrs,45);           // 勞保年金：投保薪資有上限，每年資 1.55%
+ return g>15000?Math.min(last,g*.8)*Math.min(.5,yrs*.012):g*.06;
 }
 
 // ── 通膨：現金每年被物價吃掉一點；台灣每隔幾年報一次便當價格 ──
@@ -133,9 +133,20 @@ async function friendsYear(L){
   ["跳過去",()=>{L.inc*=1.12;L.rel+=1;say(L,`靠${f.name}的介紹換了工作，薪水多了一成多。`)},"收入↑"],["謝謝他，但留在原公司",()=>{},""],["介紹別的朋友過去",()=>{L.rel+=3},"人際↑"]])}
 }
 
+// 債務太重：可以協商、求助或聲請更生
+async function debtRelief(L){
+ const base=Math.max(L.inc||0,L.c.gdp*.3);if(L.money>-base*2.5||L.debtHelped)return;L.debtHelped=true;
+ await ask(L,`欠了 ${money(-L.money)}，利息越滾越多`,[
+  ["和銀行協商分期、降息",()=>{L.money*=.85;L.happy-=2;say(L,"和銀行談成分期，利息降低了一些。")},"債務減少一點"],
+  ["向家人求助",()=>{const h=Math.min(-L.money*.5,L.c.gdp*(L.cls+1)*.3);L.money+=h;L.rel-=2;say(L,`家人湊了 ${money(h)} 幫你還債。`)},"人際↓"],
+  ["聲請更生（法院協助減債）",()=>{L.money*=.3;L.happy-=6;L.rel-=1;say(L,"聲請更生，之後幾年生活被嚴格限制。")},"債務大減 · 信用受損"],
+  ["多兼一份工還債",()=>{L.inc*=1.15;L.health-=5;say(L,"白天上班，晚上再兼一份差。")},"收入↑ 健康↓"]]);
+}
+
 // 每年依序執行（在 storyYear 裡呼叫）
 async function realismYear(L){
  if(L.job){L.lastInc=L.inc;L.workYears=(L.workYears||0)+1}
  inflationYear(L);mortgageYear(L);partnerSetup(L);
- await rentYear(L);await insuranceYear(L);await loveYear(L);await kidChoices(L);await healthYear(L);await friendsYear(L);
+ await rentYear(L);await insuranceYear(L);await loveYear(L);await kidChoices(L);await healthYear(L);await friendsYear(L);await debtRelief(L);
+ if(L.money>-(L.inc||L.c.gdp*.3))L.debtHelped=false;
 }
