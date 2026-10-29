@@ -93,7 +93,9 @@ function birthCard(L,home){
   <div class="row"><span>5 歲前離世機率</span><span>${Math.min(60,h.im*1.3/10).toFixed(1)}%</span><span>${u5}%</span></div>
   <div class="row"><span>人均所得</span><span>${money(h.gdp)}</span><span>${money(L.c.gdp)}</span></div>`:"";
  return `<div class="cert"><div class="row" style="border:0"><b>出生登記</b><span class="mut">No. ${L.raw.slice(0,2)}-${L.c.y0}-${Math.floor(1e6+R()*9e6)}</span></div>
- <div class="mut">名字</div><h1 style="font-size:1.9rem">${L.name}</h1>
+ <div class="cert-seal">已登記</div>
+ <div class="cert-head"><canvas id="certAvatar" width="80" height="80"></canvas><div><div class="mut">名字</div><h1 style="font-size:1.9rem;margin:0">${L.name}</h1><div class="mut">${L.sex=="男"?"男孩":"女孩"} · ${L.c.y0} 年</div></div></div>
+ <div class="kpis"><div><span class="mut">平均壽命</span><b>${ex} 歲</b></div><div><span class="mut">5 歲前離世</span><b>${u5}%</b></div><div><span class="mut">家境</span><b>${["貧困","偏低","中等","小康","富裕"][L.cls]}</b></div></div>
  <p>${L.c.y0} 年，你出生在${L.c.tw?"台灣"+L.c.tw.county+(f.urban?"":"的鄉下"):L.c.name+(f.urban?L.c.city:"的鄉村")}，一個所得${pct}的家庭，是個${L.sex=="男"?"男孩":"女孩"}。${familyLine(L)}</p>
  <div class="grid">${[["性別",L.sex=="男"?"男性":"女性"],["出生地",L.c.tw?L.c.tw.county+(f.urban?"":"（鄉下）"):f.urban?L.c.city+"（城市）":"鄉村"],["家境",`${"●".repeat(L.cls+1)}${"○".repeat(4-L.cls)} ${pct}`],
   ["母親",`${f.mother.name}・${f.mother.age}歲・${f.mother.job}`],["父親",`${f.father.name}・${f.father.age}歲・${f.father.job}`],["宗教",f.religion],
@@ -153,3 +155,27 @@ function saveGame(){try{P.id=P.id||String(Date.now());const o=allSaves();o[P.id]
  const keep=Object.entries(o).sort((a,b)=>b[1].t-a[1].t).slice(0,8);localStorage.setItem(SAVE_KEY,JSON.stringify(Object.fromEntries(keep)))}catch{}}
 function deleteSave(id){try{const o=allSaves();delete o[id];localStorage.setItem(SAVE_KEY,JSON.stringify(o))}catch{}}
 function clearSave(){if(P&&P.id)deleteSave(P.id)}
+
+// ── 出生揭曉：像抽籤一樣轉動地名，慢慢停下，再一項項蓋章 ──
+function revealBirth(L){
+ return new Promise(res=>{
+  const ov=document.createElement("div");ov.id="reveal";
+  ov.innerHTML=`<div class="rv-box"><div class="rv-tag">— 正在決定你的出生地 —</div><div class="rv-slot"><span id="rvName">？？？</span></div><div class="rv-sub" id="rvSub">全世界每秒約有 4 個嬰兒出生</div><div id="rvStamps"></div><button class="pri hide" id="rvGo">查看出生登記 ▶</button><button class="rv-skip" id="rvSkip">跳過</button></div>`;
+  document.body.appendChild(ov);
+  const pool=L.c.tw?TW_COUNTY.map(x=>"台灣 · "+x[0]):C.map(x=>x[0]),final=L.c.tw?"台灣 · "+L.c.tw.county:L.c.name,name=ov.querySelector("#rvName");
+  let t=0,delay=40,done=false;
+  const finish=()=>{if(done)return;done=true;name.textContent=final;name.classList.add("rv-hit");stamps()};
+  const spin=()=>{if(done)return;name.textContent=pick(pool);t+=delay;delay*=1.09;if(t>2600)return finish();setTimeout(spin,delay)};
+  spin();
+  const share=L.c.tw?null:(()=>{const tot=C.reduce((a,x)=>a+x[1],0),me=C.find(x=>x[0]==L.c.name);return me?(me[1]/tot*100):null})();
+  function stamps(){
+   ov.querySelector("#rvSub").textContent=share!=null?`每 100 個新生兒中，約有 ${share<1?share.toFixed(2):share.toFixed(1)} 個出生在這裡`:`${L.c.y0} 年出生的台灣寶寶`;
+   const items=[["年份",L.c.y0+" 年"],["性別",L.sex=="男"?"男孩":"女孩"],["家境",["貧困","偏低","中等","小康","富裕"][L.cls]],["城鄉",L.fam.urban?"城市":"鄉村"],["平均壽命",Math.round(L.ex)+" 歲"]];
+   const box=ov.querySelector("#rvStamps");
+   items.forEach(([k,v],i)=>setTimeout(()=>{const d=document.createElement("div");d.className="rv-stamp";d.innerHTML=`<span>${k}</span><b>${v}</b>`;box.appendChild(d);if(i==items.length-1)ov.querySelector("#rvGo").classList.remove("hide")},500+i*380));
+  }
+  const close=()=>{ov.classList.add("rv-out");setTimeout(()=>{ov.remove();res()},350)};
+  ov.querySelector("#rvGo").onclick=close;
+  ov.querySelector("#rvSkip").onclick=()=>{done=true;close()};
+ });
+}

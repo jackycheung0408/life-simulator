@@ -195,6 +195,21 @@ body{font-size:15px;line-height:1.6}
 .board{background:var(--bg);border:2px solid var(--line);padding:10px 12px}.board h3{margin:0 0 8px;font-size:15px;color:var(--y)}
 .br{display:flex;justify-content:space-between;gap:8px;font-size:14px;padding:3px 0}.br b{font-weight:600;text-align:right}.br small{font-size:12px}
 .bb{height:5px;background:var(--ink);margin:0 0 4px}.bb i{display:block;height:100%}
+#reveal{position:fixed;inset:0;z-index:999;background:rgba(5,5,15,.94);display:flex;align-items:center;justify-content:center;padding:16px;animation:rvIn .3s}
+#reveal.rv-out{opacity:0;transition:opacity .35s}@keyframes rvIn{from{opacity:0}}
+.rv-box{text-align:center;max-width:440px;width:100%}
+.rv-tag{color:var(--mut);font-size:14px;margin-bottom:14px}
+.rv-slot{border:3px solid var(--y);box-shadow:6px 6px 0 var(--ac);background:var(--card);padding:22px 10px;font-size:30px;font-weight:700;color:var(--fg);min-height:40px}
+.rv-hit{color:var(--y);display:inline-block;animation:rvHit .5s cubic-bezier(.2,1.6,.4,1)}@keyframes rvHit{0%{transform:scale(2.2);opacity:0}100%{transform:scale(1)}}
+.rv-sub{margin:14px 0;color:var(--fg);font-size:15px;min-height:22px}
+#rvStamps{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:10px 0 16px}
+.rv-stamp{border:2px solid var(--ac);color:var(--ac);padding:6px 10px;transform:rotate(-4deg);animation:rvStamp .3s ease-out;background:rgba(255,77,77,.08)}
+.rv-stamp span{display:block;font-size:11px;opacity:.8}.rv-stamp b{font-size:16px}
+@keyframes rvStamp{0%{transform:scale(2.4) rotate(-12deg);opacity:0}100%{transform:scale(1) rotate(-4deg);opacity:1}}
+.rv-skip{display:block;margin:14px auto 0;background:none;border:0;box-shadow:none;color:var(--mut);font-size:13px;text-decoration:underline}
+.cert-head{display:flex;gap:14px;align-items:center}.cert-head canvas{width:84px;height:84px;image-rendering:pixelated;border:3px solid var(--ink);background:#9aa66a}
+.cert{position:relative}.cert-seal{position:absolute;right:14px;top:44px;border:3px solid var(--ac);color:var(--ac);padding:4px 10px;transform:rotate(12deg);font-weight:700;opacity:.85;animation:rvStamp .4s .3s both}
+.cert .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.cert .kpis div{background:var(--bg);border:2px solid var(--line);padding:8px;text-align:center}.cert .kpis b{display:block;font-size:20px;color:var(--y)}
 </style></head><body><div class="wrap">
 
 <!-- 首頁 -->
@@ -277,13 +292,13 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=56"></script>
-<script src="events.js?v=56"></script>
-<script src="life.js?v=56"></script>
-<script src="pixel.js?v=56"></script>
-<script src="story.js?v=56"></script>
-<script src="realism.js?v=56"></script>
-<script src="taiwan.js?v=56"></script>
+<script src="countries.js?v=57"></script>
+<script src="events.js?v=57"></script>
+<script src="life.js?v=57"></script>
+<script src="pixel.js?v=57"></script>
+<script src="story.js?v=57"></script>
+<script src="realism.js?v=57"></script>
+<script src="taiwan.js?v=57"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -358,13 +373,14 @@ function newLife(w){
 
 let P,S=[],paused=false,auto=false,mult=1,focusSel="健康",busy=false,spend=1,ffwd=false;
 const FOCI=["健康","學業","工作","家人","愛情","享受"];
-go.onclick=()=>{
+go.onclick=async()=>{
  if(cfg.w=="tw"){const y=$("twYear").value=="r"?1950+Math.floor(R()*76):+$("twYear").value;
   // 同一秒出生的另外四個人還是來自世界各地，用同年代的世界
   P=twLife(y);S=[0,1,2,3].map(()=>{const s=newLife(y<1990?"past":"now");s.c.y0=y;return s});}
  else{const w=cfg.w=="any"?pick(["past","now","future"]):cfg.w;P=newLife(w);S=[0,1,2,3].map(()=>newLife(w));}
+ await revealBirth(P);
  home.classList.add("hide");birth.classList.remove("hide");scrollTo(0,0);
- cert.innerHTML=birthCard(P,$("homeC").value);
+ cert.innerHTML=birthCard(P,$("homeC").value);const cv=$("certAvatar");if(cv)drawAvatarLCD(cv,P);
 };
 start.onclick=()=>{start.disabled=true;
  birth.classList.add("hide");game.classList.remove("hide");scrollTo(0,0);
