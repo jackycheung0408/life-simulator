@@ -61,6 +61,8 @@ function twLife(year){
 // 台灣才有的人生抉擇與事件（每年檢查）
 async function twYear(L,f){
  const c=L.c,yr=c.y0+L.age,t=c.tw;if(!t)return;
+ const r=twAt(Math.min(yr,2025)),county=TW_COUNTY.find(x=>x[0]==t.county),g=r[3]*county[2];
+ if(c.gdp>0){L.inc*=g/c.gdp;L.money*=1}c.gdp=g;c.uni=r[5];c.im=r[4];t.tfr=r[6];
  L.twSeen=L.twSeen||{};
  for(const h of TW_HISTORY){if(h[0]!==yr||L.age<h[1]||L.twSeen[h[0]+h[2]])continue;L.twSeen[h[0]+h[2]]=1;
   const e=h[3];say(L,h[2],h[4]);L.happy+=e.happy||0;L.health+=e.health||0;if(e.inc)L.inc*=e.inc;if(e.edu&&L.age<=15&&L.edu>=1&&L.edu<2)L.twFreeJunior=true}

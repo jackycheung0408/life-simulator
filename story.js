@@ -55,7 +55,7 @@ function moneyYear(L){
  // 欠太多會失眠
  if(L.money<-c.gdp*.5&&R()<.35){L.happy-=4;L.health-=1;if(L===P)say(L,`還欠著 ${money(-L.money)} 的債，晚上常常睡不著。`)}
  // 年底報告：只在有大筆變化時說
- if(L===P&&L.led){const items=Object.entries(L.led).filter(([,v])=>Math.abs(v)>c.gdp*.02).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,3);
+ if(L===P&&L.led){const ROUTINE=["房租","養孩子"],items=Object.entries(L.led).filter(([k,v])=>Math.abs(v)>c.gdp*.02&&(!ROUTINE.includes(k)||Object.keys(L.led).some(x=>!ROUTINE.includes(x)&&Math.abs(L.led[x])>c.gdp*.02))).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,3);
   if(items.length&&R()<.6)say(L,`今年的大筆收支：${items.map(([k,v])=>`${k} ${v>0?"+":"−"}${money(Math.abs(v))}`).join("・")}`)}
  L.led={};
 }

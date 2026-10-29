@@ -88,14 +88,14 @@ function countryPanel(L){
 function birthCard(L,home){
  const f=L.fam,u5=Math.min(60,L.c.im*1.3/10).toFixed(1),pct=["後 20%","後 20～40%","中間 40～60%","前 20～40%","前 20%"][L.cls];
  const h=home!==""?world(C[home],"now"):null,ex=Math.round(L.ex);
- const cmp=h?`<h2 style="margin-top:14px">和你的出生地比一比</h2><div class="row"><span></span><b>你的${h.name}</b><b>這個孩子的${L.c.name}</b></div>
+ const cmp=h?`<h2 style="margin-top:14px">和你的出生地比一比</h2><div class="row"><span></span><b>你的${h.name}（現在）</b><b>這個孩子的${L.c.name}（${L.c.y0}）</b></div>
   <div class="row"><span>平均壽命</span><span>${Math.round(L.sex=="男"?h.mEx:h.fEx)} 歲</span><span>${ex} 歲</span></div>
   <div class="row"><span>5 歲前離世機率</span><span>${Math.min(60,h.im*1.3/10).toFixed(1)}%</span><span>${u5}%</span></div>
   <div class="row"><span>人均所得</span><span>${money(h.gdp)}</span><span>${money(L.c.gdp)}</span></div>`:"";
  return `<div class="cert"><div class="row" style="border:0"><b>出生登記</b><span class="mut">No. ${L.raw.slice(0,2)}-${L.c.y0}-${Math.floor(1e6+R()*9e6)}</span></div>
  <div class="mut">名字</div><h1 style="font-size:1.9rem">${L.name}</h1>
- <p>${L.c.y0} 年，你出生在${L.c.name}${f.urban?L.c.city:"的鄉村"}，一個所得${pct}的家庭，是個${L.sex=="男"?"男孩":"女孩"}。${familyLine(L)}</p>
- <div class="grid">${[["性別",L.sex=="男"?"男性":"女性"],["出生地",f.urban?L.c.city+"（城市）":"鄉村"],["家境",`${"●".repeat(L.cls+1)}${"○".repeat(4-L.cls)} ${pct}`],
+ <p>${L.c.y0} 年，你出生在${L.c.tw?"台灣"+L.c.tw.county+(f.urban?"":"的鄉下"):L.c.name+(f.urban?L.c.city:"的鄉村")}，一個所得${pct}的家庭，是個${L.sex=="男"?"男孩":"女孩"}。${familyLine(L)}</p>
+ <div class="grid">${[["性別",L.sex=="男"?"男性":"女性"],["出生地",L.c.tw?L.c.tw.county+(f.urban?"":"（鄉下）"):f.urban?L.c.city+"（城市）":"鄉村"],["家境",`${"●".repeat(L.cls+1)}${"○".repeat(4-L.cls)} ${pct}`],
   ["母親",`${f.mother.name}・${f.mother.age}歲・${f.mother.job}`],["父親",`${f.father.name}・${f.father.age}歲・${f.father.job}`],["宗教",f.religion],
   ["平均壽命",ex+" 歲"],["5 歲前離世機率",u5+"%"],["人均所得",money(L.c.gdp)]].map(k=>`<div><div class="mut">${k[0]}</div><b>${k[1]}</b></div>`).join("")}</div>
  ${cmp}

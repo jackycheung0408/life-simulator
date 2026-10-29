@@ -221,12 +221,12 @@ textarea,input,select{border-radius:0}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=14"></script>
-<script src="events.js?v=14"></script>
-<script src="life.js?v=14"></script>
-<script src="pixel.js?v=14"></script>
-<script src="story.js?v=14"></script>
-<script src="taiwan.js?v=14"></script>
+<script src="countries.js?v=15"></script>
+<script src="events.js?v=15"></script>
+<script src="life.js?v=15"></script>
+<script src="pixel.js?v=15"></script>
+<script src="story.js?v=15"></script>
+<script src="taiwan.js?v=15"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -462,7 +462,7 @@ async function year(L){
    ["考大學",()=>{if(R()<c.uni/100+(f=="學業"?.15:0)+L.cls*.05+L.know/300){L.edu=3;L.know+=8;if(L.cls>=3)say(L,"考上大學，學費由家裡負擔。");else{L.money-=fee;say(L,"考上大學，申請了助學貸款付學費。")}}else say(L,"沒考上大學。")},"知識↑ · 家境普通的話要背學貸"],
    ["直接工作",()=>{L.money+=c.gdp*.05},"早點開始賺錢"],
    ["出國讀大學",()=>{L.edu=3;L.know+=12;L.money-=fee*3;L.studiedAbroad=true;say(L,"出國讀大學。");sayHi(L,"曾出國留學。")},"知識↑↑ · 花費很高",fee*3]],`在${c.name}，大學就學率約 ${Math.round(c.uni)}%。`)}
- if(!L.job&&L.age==(L.edu==3?22:L.edu==2?18:14)){L.job=pick(L.edu==3?JOBS_U:JOBS);L.inc*=L.edu==3?1.8:L.edu==2?1:.6;say(L,`開始當${L.job}。`)}
+ if(!L.job&&!L.twRetake&&L.age==(L.edu==3?22:L.edu==2?(c.tw?19:18):14)){L.job=pick(L.edu==3?JOBS_U:JOBS);L.inc*=L.edu==3?1.8:L.edu==2?1:.6;say(L,`開始當${L.job}。`)}
  if(L.job&&L.age>28&&L.age<55&&R()<.03)await ask(L,"有個換工作的機會，要轉職嗎？",[["轉職",()=>{const j=pick(L.edu==3?JOBS_U.concat(["部門經理","小企業老闆"]):JOBS.concat(["小店老闆"]));L.job=j;L.jobYears=0;L.inc*=.9+R()*.6;say(L,`轉行當${j}。`)}],["留下",()=>{}]]);
  if(L.age>=18&&L.age<=45&&!L.partner&&!L.widowed&&R()<(f=="愛情"?.2:.08)+L.rel/1000){
   const ps=L.sex=="男"?"女":"男",pa=Math.max(18,L.age+Math.round((L.sex=="男"?-3:3)+(R()-.5)*8)),pj=pick(L.edu==3?JOBS_U:JOBS),pm=Math.round(L.c.gdp*(.1+R()*.8)),pn=pick(NAMES[REGION(L.raw)][ps].filter(n=>n!==L.fam?.father.name&&n!==L.fam?.mother.name));
