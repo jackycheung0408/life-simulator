@@ -155,7 +155,7 @@ async function lifeEvents(L,f){
  // 父母老去
  if(L.parentAlive&&L.age>20&&R()<(L.age-15)/700){L.parentAlive=false;L.happy-=10;say(L,"父母離開了人世。")}
  // 歷史
- if(cfg.w!="now"||yr<=today.getFullYear()+5)for(const h of HISTORY){
+ if(!L.c.tw&&(cfg.w!="now"||yr<=today.getFullYear()+5))for(const h of HISTORY){
   if(yr<h[0]||yr>h[1]||(h[2]&&!h[2].includes(L.raw))||L.abroad)continue;
   const key=h[3];L.seen=L.seen||{};if(L.seen[key])continue;L.seen[key]=1;
   const e=h[4];if(e.war&&$("soft").checked){say(L,"國家經歷了一段動盪的時期。");continue}
