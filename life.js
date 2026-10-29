@@ -49,7 +49,7 @@ function survivalSVG(L){
   ${[0,.5,1].map(v=>`<line x1="0" x2="${W}" y1="${H-v*H}" y2="${H-v*H}" stroke="var(--line)"/><text x="-4" y="${H-v*H+4}" font-size="9" text-anchor="end" fill="var(--mut)">${v*100}%</text>`).join("")}
   ${[0,20,40,60,80,100].map(a=>`<text x="${a/100*W}" y="${H+14}" font-size="9" text-anchor="middle" fill="var(--mut)">${a}</text>`).join("")}
   <polyline points="${pts}" fill="none" stroke="var(--ac)" stroke-width="2"/>
-  <circle cx="${x}" cy="${y}" r="4" fill="var(--ac)"/></svg>`;
+  <circle class="svpulse" cx="${x}" cy="${y}" r="4" fill="none" stroke="var(--y)" stroke-width="2"/><circle class="svdot" cx="${x}" cy="${y}" r="4" fill="var(--ac)"/></svg>`;
 }
 const survivePct=L=>{const v=(L.surv||(L.surv=survival(L)))[Math.min(100,L.age)]*100;return v>=99?Math.min(99.9,v).toFixed(1):Math.round(v)};
 

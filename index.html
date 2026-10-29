@@ -183,6 +183,12 @@ body{font-size:15px;line-height:1.6}
 .lmap i.now{outline:2px solid var(--y);outline-offset:1px;background:linear-gradient(to top,color-mix(in srgb,var(--y) 55%,transparent) var(--fill,0%),transparent var(--fill,0%))!important;animation:nowblink 1s steps(2) infinite}
 @keyframes nowblink{50%{outline-color:transparent}}
 #yr{color:var(--y);font-weight:700}
+.svpulse{animation:svp 1.2s ease-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes svp{0%{transform:scale(1);opacity:1}100%{transform:scale(3.2);opacity:0}}
+.svdot{animation:nowblink 1s steps(2) infinite}
+.yearbar{display:flex;align-items:center;gap:8px;margin:10px 0 6px;font-size:13px;color:var(--fg)}
+.ybtrack{flex:1;height:10px;background:var(--ink);border:2px solid var(--line);position:relative}
+#ybFill{position:absolute;inset:0 auto 0 0;width:0;background:var(--y);transition:width .1s linear}
 </style></head><body><div class="wrap">
 
 <!-- 首頁 -->
@@ -235,6 +241,7 @@ body{font-size:15px;line-height:1.6}
  <button id="skip" class="chip" title="剩下的人生自動跑完">⏩︎ 跳到結局</button>
  <label class="sw"><input type="checkbox" id="auto"><i></i>自動抉擇</label>
 </div>
+<div class="yearbar"><span id="ybL"></span><div class="ybtrack"><i id="ybFill"></i></div><span id="ybR"></span></div>
 <div class="lifebar-wrap"><div class="lbl"><span>人生 <b id="stage"></b></span><span id="pct"></span></div>
  <div class="hp" id="hp"><i id="lifebar" style="width:0"></i></div><div class="stages" id="stages"></div></div></div>
 <div class="card"><canvas id="scenecv" width="240" height="96"></canvas><div class="mut" id="sceneTxt" style="margin-top:6px"></div><div class="mut" id="origin" style="margin-top:4px"></div></div>
@@ -263,13 +270,13 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=50"></script>
-<script src="events.js?v=50"></script>
-<script src="life.js?v=50"></script>
-<script src="pixel.js?v=50"></script>
-<script src="story.js?v=50"></script>
-<script src="realism.js?v=50"></script>
-<script src="taiwan.js?v=50"></script>
+<script src="countries.js?v=51"></script>
+<script src="events.js?v=51"></script>
+<script src="life.js?v=51"></script>
+<script src="pixel.js?v=51"></script>
+<script src="story.js?v=51"></script>
+<script src="realism.js?v=51"></script>
+<script src="taiwan.js?v=51"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -447,8 +454,7 @@ function render(){
   $("stages").innerHTML=[[6,"童年"],[16,"青少年"],[30,"青年"],[52,"中年"],[80,"老年"]].map(([a,t])=>`<span style="left:${pct(a)}%">${t}</span>`).join("")}
  if(!lmap.firstChild)buildMap();growMap();for(let a=0;a<=P.age;a++)paintMap(a);
  if(!surv.firstChild)buildSurv();
- const sv=P.surv||(P.surv=survival(P)),cx=P.age/100*300,cy=110-sv[Math.min(100,P.age)]*110,dot=surv.querySelector("circle");
- if(dot){dot.setAttribute("cx",cx);dot.setAttribute("cy",cy)}
+ const sv=P.surv||(P.surv=survival(P)),cx=P.age/100*300,cy=110-sv[Math.min(100,P.age)]*110,dot=null;
  $("svtxt").textContent=`現在 ${P.age} 歲 · 同年出生的人約 ${survivePct(P)}% 還活著`;
  const sb=S.map(s=>`<div class="sib"><b>${s.name}</b><br><span class="mut">${s.c.name} · ${s.sex}</span><br>${s.alive?s.age+" 歲 · "+(s.job||EDU[s.edu]):"✝ "+s.age+" 歲離世"}</div>`).join("");
  if(sb!==lastSibs){sibs.innerHTML=sb;lastSibs=sb}
@@ -588,7 +594,12 @@ let prog=0,shown=0;
 function tickNow(t){if(!P)return;const m=Math.min(11,Math.floor(t*12));
  yr.textContent=`${P.c.y0+P.age} 年 ${m+1} 月 · ${P.age} 歲${m?` ${m} 個月`:""}`;
  const g=lmap.firstChild;if(!g)return;const cell=g.children[P.age+1];g.querySelectorAll("i.now").forEach(x=>{if(x!==cell)x.classList.remove("now")});
- if(cell){cell.classList.add("now");cell.style.setProperty("--fill",Math.round(t*100)+"%")}}
+ if(cell){cell.classList.add("now");cell.style.setProperty("--fill",Math.round(t*100)+"%")}
+ // 當歲進度條
+ $("ybL").textContent=`${P.age} 歲`;$("ybR").textContent=`${P.age+1} 歲`;$("ybFill").style.width=(t*100).toFixed(1)+"%";
+ // 存活曲線上的點：在今年與明年之間平滑移動
+ const sv=P.surv||(P.surv=survival(P)),a=P.age+t,s0=sv[Math.min(100,P.age)],s1=sv[Math.min(100,P.age+1)],cx=a/100*300,cy=110-(s0+(s1-s0)*t)*110;
+ surv.querySelectorAll(".svdot,.svpulse").forEach(c=>{c.setAttribute("cx",cx);c.setAttribute("cy",cy)})}
 // 年中存款的逐月變化（只是顯示；真正的結算在 year() 年底進行）
 function monthMoney(t){if(!P||P.age<18||!P.job&&P.age<22)return;const {income,total}=yearFlow(P),m=Math.min(12,Math.floor(t*12)+1),b=bonusMonths(P),mo=income/(12+b);
  // 每月 5 號發薪；第 12 個月加發年終
