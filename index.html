@@ -11,7 +11,7 @@ h1{font-size:2.4rem;margin:.1em 0}h2{font-size:1.2rem;margin:.2em 0}.mut{color:v
 button,select{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:7px 13px;border-radius:8px;cursor:pointer;margin:4px 4px 0 0}
 button.pri{background:var(--ac);color:#fff;border-color:var(--ac);padding:10px 26px;font-size:1.1rem}.on{outline:2px solid var(--ac)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
-.stat b{display:block;font-size:1.15rem}.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
+.stat b{display:block;font-size:1.15rem}.up{color:#2e8b57;font-size:.8rem}.down{color:var(--ac);font-size:.8rem}.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
 .row{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding:4px 0}
 #log{max-height:42vh;overflow:auto;font-size:.95rem}#log p{margin:4px 0}.y{color:var(--mut);margin-right:6px}
 #log p.hi{font-weight:600;border-left:3px solid var(--ac);padding-left:8px}
@@ -81,8 +81,8 @@ button.pri{background:var(--ac);color:#fff;border-color:var(--ac);padding:10px 2
 </section>
 </div>
 
-<script src="countries.js?v=4"></script>
-<script src="events.js?v=4"></script>
+<script src="countries.js?v=5"></script>
+<script src="events.js?v=5"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -92,7 +92,11 @@ const NAMES={
  韓:{男:["敏俊","志勳","賢宇","在元"],女:["瑞妍","智恩","秀彬","敏智"]},
  南亞:{男:["Arjun","Rahul","Imran","Rohan","Amit","Bilal","Sanjay"],女:["Priya","Ananya","Ayesha","Sneha","Pooja","Nusrat"]},
  中東:{男:["Ahmed","Omar","Ali","Yusuf","Hassan","Mehmet","Reza"],女:["Fatima","Aisha","Layla","Zeynep","Mariam","Noor","Sara"]},
- 非:{男:["Chinedu","Kofi","Juma","Tesfaye","Moussa","Thabo","Emmanuel","Abdoulaye"],女:["Amara","Wanjiru","Nokuthula","Aminata","Grace","Chipo","Fatoumata","Abebech"]},
+ 西非:{男:["Chinedu","Kofi","Moussa","Abdoulaye","Emeka","Kwame","Ousmane","Ibrahim"],女:["Amara","Aminata","Fatoumata","Ngozi","Adwoa","Awa","Chiamaka","Mariama"]},
+ 東非:{男:["Juma","Baraka","Otieno","Mugisha","Kato","Hamisi"],女:["Wanjiru","Achieng","Neema","Aisha","Nakato","Uwase"]},
+ 非洲之角:{男:["Tesfaye","Abdi","Dawit","Mohamed","Yonas","Liban"],女:["Abebech","Hodan","Selam","Amina","Hiwot","Halima"]},
+ 南非:{男:["Thabo","Tendai","Sipho","Chisomo","Tiago","Mandla"],女:["Nokuthula","Chipo","Thandiwe","Lindiwe","Nádia","Tsitsi"]},
+ 中非:{男:["Jean","Patrice","Emmanuel","Joseph","Mahamat","Didier"],女:["Grace","Deborah","Esther","Christelle","Zara","Mireille"]},
  拉:{男:["Juan","Lucas","Mateo","Diego","Carlos","João","Gabriel"],女:["María","Ana","Camila","Valentina","Lucía","Beatriz","Sofía"]},
  英:{男:["James","Liam","Noah","Ethan","Oliver","Jack"],女:["Emma","Olivia","Sophie","Grace","Emily","Chloe"]},
  歐:{男:["Jonas","Luca","Pierre","Marco","Lukas","Mikael","Piotr"],女:["Emma","Giulia","Léa","Anna","Sofia","Elena","Zofia"]},
@@ -100,7 +104,8 @@ const NAMES={
  越:{男:["明","俊","雄","國寶","德"],女:["玲","秋香","芳","玉蘭","垂"]},
  東南亞:{男:["Minh","Somchai","Budi","Aung","Rizal","Ahmad"],女:["Linh","Siti","Mali","Ei Mon","Maria","Nurul"]}};
 const REGIONS=[["華","中國,台灣,香港,澳門,新加坡"],["日","日本"],["韓","韓國,北韓"],["南亞","印度,巴基斯坦,孟加拉,尼泊爾,斯里蘭卡,不丹,馬爾地夫,阿富汗"],["越","越南"],["東南亞","印尼,菲律賓,泰國,緬甸,柬埔寨,寮國,馬來西亞,東帝汶,斐濟,所羅門群島,巴布亞紐幾內亞"],["中東","埃及,伊朗,伊拉克,土耳其,沙烏地阿拉伯,葉門,敘利亞,約旦,黎巴嫩,以色列,巴勒斯坦,科威特,阿曼,阿聯,卡達,巴林,利比亞,突尼西亞,阿爾及利亞,摩洛哥,茅利塔尼亞,蘇丹,亞塞拜然,烏茲別克,哈薩克,塔吉克,土庫曼,吉爾吉斯"],["英","美國,英國,澳洲,加拿大,紐西蘭,愛爾蘭,牙買加,千里達及托巴哥,蓋亞那"],["拉","墨西哥,巴西,哥倫比亞,阿根廷,秘魯,委內瑞拉,智利,厄瓜多,瓜地馬拉,玻利維亞,古巴,多明尼加,宏都拉斯,巴拉圭,薩爾瓦多,尼加拉瓜,哥斯大黎加,巴拿馬,烏拉圭,海地,蘇利南"],["斯","俄羅斯,烏克蘭,白俄羅斯,塞爾維亞,保加利亞,克羅埃西亞,波士尼亞,蒙特內哥羅,北馬其頓,摩爾多瓦"],["歐","德國,法國,義大利,西班牙,波蘭,荷蘭,比利時,瑞典,捷克,希臘,葡萄牙,匈牙利,奧地利,瑞士,丹麥,芬蘭,挪威,羅馬尼亞,斯洛伐克,斯洛維尼亞,立陶宛,拉脫維亞,愛沙尼亞,阿爾巴尼亞,科索沃,塞普勒斯,盧森堡,馬爾他,冰島,喬治亞,亞美尼亞,蒙古"]];
-const REGION=n=>REGIONS.find(r=>r[1].split(",").includes(n))?.[0]||"非";
+REGIONS.push(["西非","奈及利亞,迦納,象牙海岸,馬利,布吉納法索,塞內加爾,幾內亞,貝南,多哥,獅子山,賴比瑞亞,甘比亞,幾內亞比索,尼日,維德角"],["東非","肯亞,坦尚尼亞,烏干達,盧安達,蒲隆地,南蘇丹,葛摩,馬達加斯加,模里西斯"],["非洲之角","衣索比亞,厄利垂亞,索馬利亞,吉布地"],["南非","南非,辛巴威,尚比亞,馬拉威,莫三比克,波札那,納米比亞,賴索托,史瓦帝尼,安哥拉"],["中非","剛果民主共和國,剛果共和國,喀麥隆,加彭,中非共和國,赤道幾內亞,查德"]);
+const REGION=n=>REGIONS.find(r=>r[1].split(",").includes(n))?.[0]||"中非";
 const THEMES=[["網路","上網"],["戰爭","衝突"],["疫情","傳染病"],["音樂","樂團"],["氣候","極端天氣"],["移民","遷徙"],["運動","比賽"]];
 const R=Math.random,pick=a=>a[Math.floor(R()*a.length)],$=id=>document.getElementById(id);
 const store={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
@@ -164,15 +169,19 @@ $("skip").onclick=()=>{if(!confirm("剩下的人生會自動抉擇並快速跑�
 
 function money(usd){const k=$("cur").value;return Math.round(usd*PPP[k]).toLocaleString()+" "+k}
 // 人生大事：紀錄中加粗標示，結局時列入時間軸
-const MILESTONE=/誕生了|上小學|升上中學|考上大學|開始當|轉行|結為伴侶|孩子出生|收養|移居|逃到|難民|公民|夢寐|當選|創業成功|買下|出版|退休|先離開|分開了|離開了人世|戰爭|革命|饑荒|改革開放|解體|圍牆|屠殺|內戰|海嘯|地震|疫情|金融|登陸月球|動盪/;
+const MILESTONE=/誕生了|上小學|升上中學|考上大學|開始當|轉行|結為伴侶|孩子出生|收養|移居|逃到|難民|公民|夢寐|當選|創業成功|買下|出版|退休|先離開|分開了|離開了人世|戰爭|革命|饑荒|改革開放|解體|圍牆|屠殺|內戰|海嘯|地震|疫情|金融|登陸月球|動盪|獨立|政變|核電廠|恐怖攻擊|伊波拉|洪水|火山|通膨|劇變|圍城|背上一筆債|退休生活|拮据|夜校|蓋好了/;
 function say(L,t){L.events.push(`${L.age}歲：${t}`);if(L===P){const p=document.createElement("p");if(MILESTONE.test(t)&&!t.includes("沒考上"))p.className="hi";p.innerHTML=`<span class="y">${L.age}歲</span>${t}`;log.prepend(p)}}
-function stat(n,v,pct){return `<div class="stat">${n}<b>${v}</b>${pct!=null?`<div class="bar"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div>`:""}</div>`}
+function stat(n,v,pct,d){return `<div class="stat">${n}${d?`<span class="${d>0?"up":"down"}"> ${d>0?"▲":"▼"}${Math.abs(d)}</span>`:""}<b>${v}</b>${pct!=null?`<div class="bar"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div>`:""}</div>`}
+let prev={};
 function render(){
+ // 和上一年比較，顯示每年重心帶來的增減
+ const h=Math.round(P.health),hp=Math.round(P.happy),dh=prev.age<P.age?h-prev.h:0,dp=prev.age<P.age?hp-prev.hp:0;
+ if(prev.age!==P.age)prev={age:P.age,h,hp};
  yr.textContent=`${P.c.y0+P.age} 年 · ${P.age} 歲`;
  $("stage").textContent=P.age<13?"童年":P.age<20?"青少年":P.age<40?"青年":P.age<65?"中年":"老年";
  $("pct").textContent=`當地平均壽命 ${Math.round(P.ex)} 歲`;$("lifebar").style.width=Math.min(100,P.age/P.ex*100)+"%";
- stats.innerHTML=stat("健康",Math.round(P.health),P.health)+stat("幸福",Math.round(P.happy),P.happy)+stat("教育",EDU[P.edu])
- +stat("工作",P.job||"—")+stat("年收入",P.job?money(P.inc):"—")+stat("家庭",(P.partner?"有伴侶":P.widowed?"喪偶":"單身")+(P.kids?` · ${P.kids}子女`:""));
+ stats.innerHTML=stat("健康",h,P.health,dh)+stat("幸福",hp,P.happy,dp)+stat("教育",EDU[P.edu])
+ +stat("工作",P.job||"—")+stat("年收入",P.job?money(P.inc):"—")+stat("存款",P.money<0?"負債 "+money(-P.money):money(P.money))+stat("家庭",(P.partner?"有伴侶":P.widowed?"喪偶":"單身")+(P.kids?` · ${P.kids}子女`:""));
  sibs.innerHTML=S.map(s=>`<div class="sib"><b>${s.name}</b><br><span class="mut">${s.c.name} · ${s.sex}</span><br>${s.alive?s.age+" 歲 · "+(s.job||EDU[s.edu]):"✝ "+s.age+" 歲離世"}</div>`).join("");
 }
 
@@ -198,7 +207,6 @@ function mortality(L){
  let q=Math.min(.6,m*Math.exp(b*a))+(a>14&&a<40?.0008:.0003);
  q*=1+(60-L.health)/80;if(L.smoke)q*=1.5;return q;
 }
-const CAUSES=[[0,5,["新生兒併發症","肺炎","腹瀉疾病","瘧疾"]],[5,15,["溺水","交通事故","感染症"]],[15,45,["交通事故","結核病","愛滋病","意外","暴力"]],[45,70,["心臟病","癌症","中風","糖尿病"]],[70,200,["缺血性心臟病","中風","癌症","慢性肺病","失智症"]]];
 const JOBS_U=["工程師","教師","會計師","醫師","公務員","設計師","研究員","律師","護理師"],JOBS=["農民","工廠作業員","店員","司機","建築工人","廚師","清潔工","攤販","漁夫"];
 
 async function year(L){
@@ -220,13 +228,19 @@ async function year(L){
  if(L.kids&&L.age>48&&R()<.05*L.kids){L.grand++;say(L,`第 ${L.grand} 個孫子女出生。`)}
  if(L.partner&&L.age>55&&R()<.025){L.partner=false;L.widowed=true;L.happy-=15;say(L,`與伴侶相伴 ${L.partnerYears} 年後，對方先離開了人世。`)}
  if(!L.abroad&&L.age>=22&&L.age<=45&&c.gdp<30000&&R()<.02)await ask(L,"有機會移居到更富裕的國家，要去嗎？",[["移居",()=>{L.abroad=pick(["美國","德國","加拿大","澳洲","英國","日本"]);L.inc*=2.2;L.happy-=4;say(L,`移居到${L.abroad}，重新開始。`)}],["留下",()=>{L.happy+=2}]]);
- if(L.age>30&&R()<.035)await ask(L,"生了一場病，要就醫嗎？",[["就醫",()=>{L.health+=12;L.money-=L.inc*.3}],["撐著",()=>{L.health-=15}]]);
+ if(L.age>30&&R()<.035){
+  // 醫療費依當地所得計；存款不夠時只能借錢或硬撐
+  const cost=c.gdp*(c.gdp>40000?.05:.25),broke=L.money<cost;
+  await ask(L,broke?"生了一場病，但存款不夠付醫藥費，要怎麼做？":"生了一場病，要就醫嗎？",[[broke?"借錢就醫":"就醫",()=>{L.health+=12;L.money-=cost;if(broke)say(L,"為了看病背上一筆債。")}],["撐著",()=>{L.health-=15}]]);
+ }
  if(L.smoke&&R()<.05)await ask(L,"要戒菸嗎？",[["戒菸",()=>{L.smoke=false;L.health+=5}],["繼續",()=>{}]]);
  if(!soft&&L.age>15&&R()<.004*(c.gdp<10000?2:1)){L.health-=20;L.happy-=15;say(L,"遭遇了暴力事件，身心受創。（求助：當地緊急電話）")}
  await lifeEvents(L,f);
- if(L.age==65&&L.job){say(L,`從${L.job}退休，一共做了 ${L.jobYears} 年。`);L.lastJob=L.job;L.job=null}
+ if(L.age==65&&L.job){say(L,`從${L.job}退休，一共做了 ${L.jobYears} 年。`);L.lastJob=L.job;L.job=null;
+  if(L.money>L.inc*3){L.happy+=6;say(L,"存款足夠，退休生活過得安穩。")}else if(L.kids){say(L,"存款不多，退休後靠孩子接濟。")}else{L.happy-=10;L.health-=5;say(L,"存款不夠，退休後生活拮据，還得打零工。")}}
+ if(L.kids&&L.age<55)L.money-=L.inc*.02*L.kids; // 養孩子的開銷
  if(isP&&Q[L.age])await reflect();
- if(R()<mortality(L)){L.alive=false;L.cause=pick(CAUSES.find(x=>L.age>=x[0]&&L.age<x[1])[2]);say(L,`因${L.cause}離開了人世。`)}
+ if(R()<mortality(L)){L.alive=false;L.cause=causeOf(L);say(L,`因${L.cause}離開了人世。`)}
 }
 
 async function loop(){
