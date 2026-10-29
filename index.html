@@ -272,13 +272,13 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=52"></script>
-<script src="events.js?v=52"></script>
-<script src="life.js?v=52"></script>
-<script src="pixel.js?v=52"></script>
-<script src="story.js?v=52"></script>
-<script src="realism.js?v=52"></script>
-<script src="taiwan.js?v=52"></script>
+<script src="countries.js?v=53"></script>
+<script src="events.js?v=53"></script>
+<script src="life.js?v=53"></script>
+<script src="pixel.js?v=53"></script>
+<script src="story.js?v=53"></script>
+<script src="realism.js?v=53"></script>
+<script src="taiwan.js?v=53"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -555,7 +555,7 @@ async function year(L){
  if(!L.job&&!L.twRetake&&(L.age==(L.edu==3?22:L.edu==2?(c.tw?19:18):14)||L.age===L.jobRetry)){
   const pool=(L.edu==3?JOBS_U:JOBS).slice().sort(()=>R()-.5).slice(0,3),start=c.gdp*.45*(L.edu==3?1.25:L.edu==2?.9:.6)*(1+(L.cls-2)*.06)*.8;
   const take=j=>{const [pay,,e]=JOB_INFO[j]||[1,"",{}];L.job=j;L.inc=start*pay*(L.sex=="女"?1-payGap(L.c):1);for(const k in e)L[k]+=e[k];say(L,`開始當${j}。`)};
-  await ask(L,"要找什麼樣的工作？",pool.map(j=>[j,()=>take(j),`${(JOB_INFO[j]||[,"" ])[1]} · 年收約 ${money(start*(JOB_INFO[j]||[1])[0])}`]).concat(L.jobRetry?[]:[["先不急，再找一年",()=>{L.jobRetry=L.age+1;L.know+=2;L.money-=c.gdp*.1},"知識↑ 晚一年有收入"]]));
+  await ask(L,"要找什麼樣的工作？",pool.map(j=>[j,()=>take(j),`${(JOB_INFO[j]||[,"" ])[1]} · 起薪月薪約 ${money(start*(JOB_INFO[j]||[1])[0]*(L.sex=="女"?1-payGap(L.c):1)/13.5)}（年薪約 ${moneyShort(start*(JOB_INFO[j]||[1])[0]*(L.sex=="女"?1-payGap(L.c):1))}）`]).concat(L.jobRetry?[]:[["先不急，再找一年",()=>{L.jobRetry=L.age+1;L.know+=2;L.money-=c.gdp*.1},"知識↑ 晚一年有收入"]]));
   if(!L.job&&L.jobRetry<L.age)take(pool[0]);
  }
  if(L.job&&L.age>28&&L.age<55&&R()<.03)await ask(L,"有個換工作的機會，要轉職嗎？",[["轉職",()=>{const j=pick(L.edu==3?JOBS_U.concat(["部門經理","小企業老闆"]):JOBS.concat(["小店老闆"]));L.job=j;L.jobYears=0;L.inc*=.9+R()*.6;say(L,`轉行當${j}。`)}],["留下",()=>{}]]);
