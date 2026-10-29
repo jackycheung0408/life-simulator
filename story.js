@@ -147,4 +147,43 @@ async function parentLeave(L){
   ["請爸媽幫忙帶",()=>{L.rel+=1;L.happy-=1},"照常上班"],
   ["送托嬰中心",()=>{L.money-=L.c.gdp*.15;ledger(L,"托嬰",-L.c.gdp*.15)},"每年一筆開銷"]]);
 }
-async function storyYear(L){livingYear(L);await parentLeave(L);await smallChoice(L);kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L);await spendYear(L)}
+
+// 女孩受教育的機會：低所得的部分地區明顯較少（概估自 UNESCO 性別差距）
+function girlSchool(L){if(L.sex!="女"||L.c.tw||L.c.gdp>15000)return 1;const r=REGION(L.c.name);return ["南亞","中東","非洲之角","西非","中非"].includes(r)?.72:["東非"].includes(r)?.85:.95}
+
+// 婚禮習俗：依地區不同，誰出錢、花多少都不一樣
+function weddingCustom(L){
+ const r=L.c.tw?"華":REGION(L.c.name),g=L.c.gdp,he=L.sex=="男";
+ if(r=="南亞")return {q:he?"要結婚了，女方家準備了嫁妝":"要結婚了，男方家期待一筆嫁妝",gift:he?g*.8:-g*1.2,note:"南亞部分地區仍有嫁妝習俗"};
+ if(["西非","東非","中非","非洲之角","南非","中東"].includes(r))return {q:he?"要結婚了，得準備給女方家的聘禮":"要結婚了，男方家送來聘禮",gift:he?-g*1:g*.6,note:"許多地區有男方給聘禮的習俗"};
+ if(r=="華"||r=="韓")return {q:"要結婚了，婚禮怎麼辦？",gift:he?-g*.3:g*.1,note:"男方通常負擔聘金，女方準備嫁妝"};
+ return {q:"要結婚了，婚禮怎麼辦？",gift:0,note:""};
+}
+async function wedding(L){
+ if(!L.partner||L.wedDone)return;L.wedDone=true;
+ const w=weddingCustom(L),g=L.c.gdp;
+ if(w.gift){L.money+=w.gift;ledger(L,w.gift>0?"嫁妝聘禮收入":"嫁妝聘禮",w.gift)}
+ await ask(L,w.q,[
+  ["大宴親友",()=>{L.money-=g*.4;ledger(L,"婚宴",-g*.4);L.rel+=5;L.happy+=4;L.money+=g*.25},"人際↑ 收紅包回收一部分",g*.15],
+  ["簡單請幾桌",()=>{L.money-=g*.15;L.rel+=2;L.happy+=2;L.money+=g*.1},"花費適中"],
+  ["只登記，不辦婚禮",()=>{L.happy+=1;L.rel-=1},"省錢 · 長輩可能不高興"],
+  ["拿這筆錢去旅行",()=>{L.money-=g*.12;L.happy+=5},"幸福↑"]],w.note);
+}
+
+// 依性別與地區才會遇到的事
+async function genderYear(L){
+ const c=L.c,r=c.tw?"華":REGION(c.name),he=L.sex=="男",g=c.gdp;
+ // 韓國男性兵役約一年半
+ if(he&&r=="韓"&&L.age==20&&!L.served){L.served=true;await ask(L,"到了要服兵役的年紀",[["馬上入伍",()=>{L.health+=2;L.rel+=2;say(L,"入伍服役約一年半。")},"早點結束"],["讀完書再去",()=>{L.know+=2;L.happy-=2;say(L,"延後入伍，先把書讀完。")},"知識↑"],["申請替代役",()=>{L.rel+=1;say(L,"在公家機關服替代役。")},"較輕鬆"]])}
+ // 職場：女性懷孕或婚後被暗示離職
+ if(!he&&L.job&&L.partner&&L.age>=25&&L.age<=40&&!L.biasSeen&&R()<.08){L.biasSeen=true;await ask(L,"主管暗示你，結婚了應該會想辭職回家吧",[["據理力爭",()=>{L.happy-=2;L.rel-=1;if(R()<.5){L.inc*=1.05;say(L,"你證明了自己，還升了職。")}},"可能升職 · 氣氛差"],["默默做好自己的事",()=>{L.happy-=3},"幸福↓"],["換一間公司",()=>{L.inc*=.95;L.happy+=2;say(L,"換到一間比較友善的公司。")},"收入小降 · 幸福↑"],["向勞工局申訴",()=>{L.rel-=2;L.happy+=1;if(R()<.4)L.money+=L.inc*.3},"可能拿到賠償"]],"性別工作平等法禁止這類對待，但職場上仍常發生")}
+ // 夜歸安全：女性在治安較差的地區更要小心
+ if(!he&&L.age>=16&&L.age<=40&&!L.nightSeen&&R()<(g<15000?.05:.02)){L.nightSeen=true;await ask(L,"加班到很晚，回家的路很暗",[["叫車回家",()=>{L.money-=g*.002},"安全"],["請朋友來接",()=>{L.rel+=1},"人際↑"],["走大路快步回家",()=>{if(R()<.15){L.happy-=6;say(L,"路上被陌生人跟了一段，嚇得好幾天不敢晚歸。")}},"有點風險"]])}
+ // 男性：被期待扛家計
+ if(he&&L.partner&&L.kids&&L.job&&!L.breadSeen&&R()<.06){L.breadSeen=true;await ask(L,"長輩說男人要多賺錢養家",[["多兼一份差",()=>{L.inc*=1.1;L.health-=3;L.rel-=1},"收入↑ 健康↓"],["跟伴侶一起分擔",()=>{L.rel+=2},"人際↑"],["不理會，照自己的步調",()=>{L.happy+=1},""]])}
+ // 女性 45～55 歲更年期
+ if(!he&&L.age==50&&R()<.6){L.health-=3;L.happy-=2;say(L,"進入更年期，常常熱潮紅、睡不好。")}
+ // 照顧父母：女兒常被期待放下工作
+ if(!he&&L.parentAlive&&L.age>=45&&L.age<=60&&L.job&&!L.careSeen&&R()<.05){L.careSeen=true;await ask(L,"家人覺得照顧爸媽應該由女兒來",[["辭職照顧",()=>{L.lostJob=L.job;L.job=null;L.rel+=3;L.happy-=3},"沒收入"],["和兄弟輪流",()=>{L.rel+=1;L.happy-=1},"公平分擔"],["出錢請人照顧",()=>{L.money-=g*.2;ledger(L,"照顧費",-g*.2)},"每年開銷"]])}
+}
+async function storyYear(L){livingYear(L);await wedding(L);await genderYear(L);await parentLeave(L);await smallChoice(L);kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L);await spendYear(L)}

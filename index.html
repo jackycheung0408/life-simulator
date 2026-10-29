@@ -260,12 +260,12 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=41"></script>
-<script src="events.js?v=41"></script>
-<script src="life.js?v=41"></script>
-<script src="pixel.js?v=41"></script>
-<script src="story.js?v=41"></script>
-<script src="taiwan.js?v=41"></script>
+<script src="countries.js?v=42"></script>
+<script src="events.js?v=42"></script>
+<script src="life.js?v=42"></script>
+<script src="pixel.js?v=42"></script>
+<script src="story.js?v=42"></script>
+<script src="taiwan.js?v=42"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -526,11 +526,12 @@ async function year(L){
  if(L.partner)L.partnerYears++;
  if(L.age<=4)await temperament(L);
  await familyEvents(L);
- if(L.age==6){if(R()<(c.tw?.98:.55+c.gdp/150000+L.cls*.07)){L.edu=1;say(L,"開始上小學。")}else say(L,"沒有機會上學，開始幫忙家裡。")}
+ if(L.age==6){if(R()<(c.tw?.98:(.55+c.gdp/150000+L.cls*.07)*girlSchool(L))){L.edu=1;say(L,"開始上小學。")}else say(L,L.sex=="女"&&girlSchool(L)<1?"家裡說女孩子不用讀書，留在家幫忙做家事。":"沒有機會上學，開始幫忙家裡。")}
  if(L.age==12&&L.edu>=1&&c.tw&&c.y0+12>=1968){L.edu=2;say(L,"升上國中。")}
- if(L.age==12&&L.edu>=1&&!c.tw&&R()<.25+c.uni/150+L.cls*.08+L.know/400+(f=="學業"?.15:0)){L.edu=2;say(L,"升上中學。")}
+ if(L.age==12&&L.edu>=1&&!c.tw&&R()<(.25+c.uni/150+L.cls*.08+L.know/400+(f=="學業"?.15:0))*girlSchool(L)){L.edu=2;say(L,"升上中學。")}
+ if(L.age==12&&L.edu==1&&!c.tw&&L.sex=="女"&&girlSchool(L)<1)say(L,"小學畢業後，家裡讓哥哥弟弟繼續讀書，你留在家裡。");
  if(L.age==15&&R()<.03)say(L,`第一次接觸「${THEME[1]}」，留下深刻的印象。`);
- if(L.age==16&&R()<.08+L.cls*.02){L.smoke=true;say(L,"開始抽菸。")}
+ if(L.age==16&&R()<(.08+L.cls*.02)*(L.sex=="男"?(["華","韓","東南亞","中東","斯"].includes(REGION(c.name))||c.tw?2.5:1.5):.5)){L.smoke=true;say(L,"開始抽菸。")}
  if(L.age==18&&L.edu==2&&!c.tw){const fee=c.gdp*.3;
   await ask(L,"高中畢業了，接下來呢？",[
    ["考大學",()=>{if(R()<c.uni/100+(f=="學業"?.15:0)+L.cls*.05+L.know/300){L.edu=3;L.know+=8;if(L.cls>=3)say(L,"考上大學，學費由家裡負擔。");else{L.money-=fee;say(L,"考上大學，申請了助學貸款付學費。")}}else say(L,"沒考上大學。")},"知識↑ · 家境普通的話要背學貸"],
