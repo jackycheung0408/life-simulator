@@ -23,6 +23,13 @@ button.pri{background:var(--ac);color:#fff;border-color:var(--ac);padding:10px 2
 .hide{display:none}textarea,input{width:100%;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
 .big{font-size:1.6rem;font-weight:700}.tool{position:sticky;top:0;z-index:2}
 .sib{font-size:.85rem}.sib b{font-size:.95rem}
+.scene{display:flex;align-items:flex-end;gap:14px;font-size:2.2rem;line-height:1.1;padding:14px;border-radius:10px;background:linear-gradient(var(--line),transparent)}
+.scene .ppl{letter-spacing:2px}
+.lmap{display:grid;grid-template-columns:repeat(20,1fr);gap:3px}.lmap i{aspect-ratio:1;border:1px solid var(--line);border-radius:3px}
+.cert{border-top:6px solid var(--ac)}.cert .grid>div{border-bottom:1px dashed var(--line);padding:4px 0}
+.opt{display:block;width:100%;text-align:left;padding:10px 12px}.opt small{display:block;color:var(--mut)}
+.opt[disabled]{opacity:.45;cursor:not-allowed}
+#log p{cursor:pointer}#log p.star::after{content:" ★";color:#d4a017}
 </style></head><body><div class="wrap">
 
 <!-- 首頁 -->
@@ -43,7 +50,7 @@ button.pri{background:var(--ac);color:#fff;border-color:var(--ac);padding:10px 2
 <p><b>你實際出生的國家或地區（選填）</b><br><select id="homeC"></select><span class="mut"> 用來把這一生和你的人生並排比較</span></p>
 <p><b>金額顯示</b><br><select id="cur"></select></p>
 <p><label><input type="checkbox" id="soft" style="width:auto"> 略過沉重情節</label></p>
-<button class="pri" id="go">出生</button>
+<button class="pri" id="go">出生</button><button id="resume" class="hide">繼續上次的人生</button>
 <p class="mut">死亡、暴力、自殺等沉重的事也會照統計發生，不描寫畫面，並附上求助資訊（台灣安心專線 1925）。</p>
 </div>
 
@@ -57,17 +64,24 @@ button.pri{background:var(--ac);color:#fff;border-color:var(--ac);padding:10px 2
 </div>
 </section>
 
+<!-- 出生登記 -->
+<section id="birth" class="hide"><div class="card" id="cert"></div><button class="pri" id="start">開始這一生</button></section>
+
 <!-- 遊戲 -->
 <section id="game" class="hide">
 <div class="card tool"><div class="row"><div><b id="who"></b> <span class="mut" id="yr"></span></div>
-<div><button id="pause">暫停</button><button id="spd">×1</button><button id="auto">自動抉擇：關</button><button id="skip">跳到結局</button></div></div>
+<div><button id="pause">暫停</button><button id="spd">×1</button><button id="auto">自動抉擇：關</button><button id="ffwd">快轉到下一個抉擇</button><button id="skip">跳到結局</button></div></div>
 <div class="row" style="border:0"><span class="mut" id="stage"></span><span class="mut" id="pct"></span></div><div class="bar"><i id="lifebar" style="width:0"></i></div></div>
-<div class="card"><div class="mut" id="origin"></div></div>
+<div class="card"><div id="scene"></div><div class="mut" id="origin" style="margin-top:6px"></div></div>
 <div class="card grid" id="stats"></div>
 <div class="card" id="choice" style="display:none"></div>
-<div class="card"><b>今年的重心</b><br><span id="focus"></span></div>
+<div class="card"><b>今年的重心</b><br><span id="focus"></span>
+<p style="margin:8px 0 0"><b>花錢習慣</b> <select id="spend"><option value="0">節省</option><option value="1" selected>普通</option><option value="2">大方</option></select> <span class="mut">聚餐、送禮、孝親費；越大方人際越好，但存不了錢</span></p></div>
 <div class="card" id="log"></div>
 <div class="card"><h2>同一秒出生的人</h2><div id="sibs" class="grid"></div></div>
+<div class="card"><h2>人生地圖</h2><div class="mut">一格是一年 · 顏色越深那年越幸福 · 實線格到當地平均壽命</div><div id="lmap"></div></div>
+<div class="card"><h2>存活曲線</h2><div class="mut">同一年出生的人，活到各年齡的比例</div><div id="surv"></div></div>
+<div class="card"><h2 id="cname"></h2><div id="cpanel"></div></div>
 </section>
 
 <!-- 結局 -->
@@ -81,8 +95,9 @@ button.pri{background:var(--ac);color:#fff;border-color:var(--ac);padding:10px 2
 </section>
 </div>
 
-<script src="countries.js?v=6"></script>
-<script src="events.js?v=6"></script>
+<script src="countries.js?v=7"></script>
+<script src="events.js?v=7"></script>
+<script src="life.js?v=7"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -147,26 +162,49 @@ const CLS=["最貧困","貧困","中等","富裕","最富裕"],EDU=["沒上學",
 function newLife(w){
  const raw=wpick(C,x=>cfg.m=="birth"?x[1]:x[2]),c=world(raw,w);
  const sex=R()<.51?"男":"女",cls=Math.floor(R()*5);
- return {c,sex,name:pick(NAMES[REGION(raw[0])][sex]),age:0,cls,inc:c.gdp*Math.exp((cls-2)*c.gini*1.4),health:70+R()*20+cls*2,happy:60,edu:0,
+ const L={c,raw:raw[0],sex,name:pick(NAMES[REGION(raw[0])][sex]),age:0,cls,know:45+R()*10+cls*2,rel:55+R()*10,hist:[],inc:c.gdp*Math.exp((cls-2)*c.gini*1.4),health:70+R()*20+cls*2,happy:60,edu:0,
   money:0,partner:null,partnerYears:0,widowed:false,kids:0,grand:0,job:null,jobYears:0,smoke:false,abroad:null,alive:true,events:[],notes:[],
   ex:sex=="男"?c.mEx:c.fEx,cause:null};
+ makeFamily(L);return L;
 }
 
-let P,S=[],paused=false,auto=false,mult=1,focusSel="健康",busy=false;
+let P,S=[],paused=false,auto=false,mult=1,focusSel="健康",busy=false,spend=1,ffwd=false;
 const FOCI=["健康","學業","工作","家人","愛情","享受"];
 go.onclick=()=>{
  const w=cfg.w=="any"?pick(["past","now","future"]):cfg.w;
  P=newLife(w);S=[0,1,2,3].map(()=>newLife(w));
- home.classList.add("hide");game.classList.remove("hide");scrollTo(0,0);
+ home.classList.add("hide");birth.classList.remove("hide");scrollTo(0,0);
+ cert.innerHTML=birthCard(P,$("homeC").value);
+};
+start.onclick=()=>{
+ birth.classList.add("hide");game.classList.remove("hide");scrollTo(0,0);
  who.textContent=`${P.name}（${P.sex}）`;
- $("origin").textContent=`${P.c.y0} 年，出生在${P.c.name}${P.c.city}一個${CLS[P.cls]}階層的家庭，是個${P.sex=="男"?"男孩":"女孩"}。當地平均壽命 ${Math.round(P.ex)} 歲。`;
+ $("origin").textContent=`${P.c.y0} 年，出生在${P.c.name}${P.fam.urban?P.c.city:"的鄉村"}一個${CLS[P.cls]}階層的家庭，是個${P.sex=="男"?"男孩":"女孩"}。當地平均壽命 ${Math.round(P.ex)} 歲。`;
  $("focus").innerHTML=FOCI.map(f=>`<button class="f${f==focusSel?' on':''}">${f}</button>`).join("");
  document.querySelectorAll(".f").forEach(b=>b.onclick=()=>{focusSel=b.textContent;document.querySelectorAll(".f").forEach(x=>x.classList.toggle("on",x==b))});
- log.innerHTML="";say(P,`${P.name}誕生了。`);render();loop();
+ log.innerHTML="";say(P,`${P.name}誕生了。${familyLine(P)}`);setupGame();loop();
+};
+function setupGame(){
+ $("spend").value=spend;$("spend").onchange=e=>spend=+e.target.value;
+ $("cname").textContent=P.c.name;cpanel.innerHTML=countryPanel(P);
+ log.onclick=e=>{const p=e.target.closest("p");if(p)p.classList.toggle("star")};render();
+}
+// 存檔接續
+const saved=loadGame();
+if(saved&&saved.P&&saved.P.alive){resume.classList.remove("hide");resume.textContent=`繼續上次的人生（${saved.P.name}，${saved.P.age} 歲）`}
+resume.onclick=()=>{
+ ({P,S,focusSel,spend}=saved);Object.assign(cfg,saved.cfg);
+ home.classList.add("hide");game.classList.remove("hide");
+ who.textContent=`${P.name}（${P.sex}）`;
+ $("origin").textContent=`${P.c.y0} 年，出生在${P.c.name}${P.fam.urban?P.c.city:"的鄉村"}一個${CLS[P.cls]}階層的家庭。當地平均壽命 ${Math.round(P.ex)} 歲。`;
+ $("focus").innerHTML=FOCI.map(f=>`<button class="f${f==focusSel?' on':''}">${f}</button>`).join("");
+ document.querySelectorAll(".f").forEach(b=>b.onclick=()=>{focusSel=b.textContent;document.querySelectorAll(".f").forEach(x=>x.classList.toggle("on",x==b))});
+ log.innerHTML=saved.log||"";setupGame();loop();
 };
 pause.onclick=()=>{paused=!paused;pause.textContent=paused?"繼續":"暫停"};
 spd.onclick=()=>{mult=mult>=16?1:mult*2;spd.textContent="×"+mult};
 $("auto").onclick=e=>{auto=!auto;e.target.textContent="自動抉擇："+(auto?"開":"關")};
+$("ffwd").onclick=()=>{ffwd=true;paused=false;pause.textContent="暫停"};
 $("skip").onclick=()=>{if(!confirm("剩下的人生會自動抉擇並快速跑完，確定嗎？"))return;auto=true;mult=9999;paused=false;$("auto").textContent="自動抉擇：開";spd.textContent="⏩";pause.textContent="暫停"};
 
 function money(usd){const k=$("cur").value;return Math.round(usd*PPP[k]).toLocaleString()+" "+k}
@@ -182,23 +220,27 @@ function render(){
  yr.textContent=`${P.c.y0+P.age} 年 · ${P.age} 歲`;
  $("stage").textContent=P.age<13?"童年":P.age<20?"青少年":P.age<40?"青年":P.age<65?"中年":"老年";
  $("pct").textContent=`當地平均壽命 ${Math.round(P.ex)} 歲`;$("lifebar").style.width=Math.min(100,P.age/P.ex*100)+"%";
- stats.innerHTML=stat("健康",h,P.health,dh)+stat("幸福",hp,P.happy,dp)+stat("教育",EDU[P.edu])
+ stats.innerHTML=stat("健康",h,P.health,dh)+stat("幸福",hp,P.happy,dp)+stat("知識",Math.round(P.know),P.know)+stat("人際",Math.round(P.rel),P.rel)+stat("教育",EDU[P.edu])
  +stat("工作",P.job||"—")+stat("年收入",P.job?money(P.inc):"—")+stat("存款",P.money<0?"負債 "+money(-P.money):money(P.money))+stat("家庭",(P.partner?"有伴侶":P.widowed?"喪偶":"單身")+(P.kids?` · ${P.kids}子女`:""));
+ $("scene").innerHTML=scene(P);lmap.innerHTML=lifeMap(P);surv.innerHTML=survivalSVG(P)+`<div class="mut">現在 ${P.age} 歲 · 同年出生的人約 ${survivePct(P)}% 還活著</div>`;
  sibs.innerHTML=S.map(s=>`<div class="sib"><b>${s.name}</b><br><span class="mut">${s.c.name} · ${s.sex}</span><br>${s.alive?s.age+" 歲 · "+(s.job||EDU[s.edu]):"✝ "+s.age+" 歲離世"}</div>`).join("");
 }
 
 // 抉擇：玩家會停下等待；同秒嬰兒自動
-function ask(L,q,opts){
- if(L!==P||auto){const o=pick(opts);if(L===P)say(L,q+" → "+o[0]);o[1]();return Promise.resolve()}
- render();
- return new Promise(res=>{choice.style.display="block";choice.innerHTML=`<b>${q}</b><br>`+opts.map((o,i)=>`<button data-i="${i}">${o[0]}</button>`).join("");
+// 選項格式：[文字, 動作, 說明?, 需要的存款(USD)?]；存款不夠的選項會反灰並寫出門檻
+function ask(L,q,opts,info){
+ const ok=o=>!o[3]||L.money>=o[3],avail=opts.filter(ok);
+ if(L!==P||auto){const o=pick(avail.length?avail:opts);if(L===P)say(L,q+" → "+o[0]);o[1]();return Promise.resolve()}
+ ffwd=false;render();
+ return new Promise(res=>{choice.style.display="block";
+  choice.innerHTML=`<div class="mut">重大抉擇 · ${L.age} 歲 · ${L.c.y0+L.age} 年</div><h2>${q}</h2>${info?`<p class="mut">${info}</p>`:""}`+opts.map((o,i)=>`<button class="opt" data-i="${i}" ${ok(o)?"":"disabled"}>${o[0]}${o[2]?`<small>${o[2]}</small>`:""}${ok(o)?"":`<small>存款不夠 · 需要約 ${money(o[3])}</small>`}</button>`).join("");
   choice.querySelectorAll("button").forEach(b=>b.onclick=()=>{const o=opts[b.dataset.i];say(L,q+" → "+o[0]);o[1]();choice.style.display="none";render();res()})});
 }
 const Q={5:"你五歲時，最記得的是什麼？",15:"十五歲的你，在煩惱什麼？",30:"三十歲時，你覺得人生走到哪裡了？",50:"如果你也活到五十歲，最想守住的是什麼？",70:"走到七十歲，你希望身邊有誰？"};
 function reflect(){
  if(auto)return Promise.resolve();
- render();
- return new Promise(res=>{choice.style.display="block";choice.innerHTML=`<b>暫停片刻</b><p>${P.name}現在 ${P.age} 歲。${Q[P.age]}</p><textarea rows="2" id="rf" placeholder="想寫就寫，不寫也可以"></textarea><button>繼續</button>`;
+ ffwd=false;render();
+ return new Promise(res=>{choice.style.display="block";choice.innerHTML=`<b>暫停片刻</b><p>${P.name}現在 ${P.age} 歲。同年在${P.c.name}出生的人，約 ${survivePct(P)}% 還活著。</p><p class="mut">同一秒出生的人：${S.map(s=>`${s.name}（${s.c.name}）${s.alive?s.age+"歲・"+(s.job||EDU[s.edu]):"已離世"}`).join("、")}</p><p>${Q[P.age]}</p><textarea rows="2" id="rf" placeholder="想寫就寫，不寫也可以"></textarea><button>繼續</button>`;
   choice.querySelector("button").onclick=()=>{const v=$("rf").value.trim();if(v)P.notes.push(`${P.age}歲：${v}`);choice.style.display="none";res()}});
 }
 function mortality(L){
@@ -215,17 +257,36 @@ async function year(L){
  L.age++;const c=L.c,isP=L===P,f=isP&&!auto?focusSel:pick(FOCI),soft=$("soft").checked;
  L.health+=(f=="健康"?1.5:0)-(L.age>45?.9:0)+(L.cls-2)*.3+(R()-.5)*3;
  L.happy+=(["家人","愛情","享受"].includes(f)?1.5:0)+(R()-.5)*4+(L.job||L.age<18?.3:-1);
+ L.know+=(f=="學業"?2:0)+(L.age<22&&L.edu>0?.6:0)-(L.age>70?.5:0);L.rel+=(f=="家人"||f=="愛情"?1.5:0)+(R()-.5)*2;
+ // 花錢習慣：節省多存錢但人際變差，大方反之
+ const sp=isP?spend:1;
+ if(L.job){L.jobYears++;L.money+=L.inc*(.14-sp*.05);L.rel+=(sp-1)*.8;L.happy+=(sp-1)*.5;if(f=="工作")L.inc*=1.025}
+ // 沒收入又欠債，只能縮衣節食
+ if(!L.job&&L.age>=18&&L.money<-L.c.gdp*.3){L.health-=3;L.happy-=3;if(R()<.3)say(L,"已經借不到錢了，只能少吃幾餐撐下去。")}
+ L.know=Math.max(0,Math.min(100,L.know));L.rel=Math.max(0,Math.min(100,L.rel));
  L.health=Math.min(100,L.health);L.happy=Math.max(0,Math.min(100,L.happy));
- if(L.job){L.jobYears++;L.money+=L.inc*.1;if(f=="工作")L.inc*=1.025}
  if(L.partner)L.partnerYears++;
+ if(L.age<=4)await temperament(L);
+ await familyEvents(L);
  if(L.age==6){if(R()<.55+c.gdp/150000+L.cls*.07){L.edu=1;say(L,"開始上小學。")}else say(L,"沒有機會上學，開始幫忙家裡。")}
- if(L.age==12&&L.edu>=1&&R()<.35+c.uni/150+L.cls*.08+(f=="學業"?.15:0)){L.edu=2;say(L,"升上中學。")}
+ if(L.age==12&&L.edu>=1&&R()<.25+c.uni/150+L.cls*.08+L.know/400+(f=="學業"?.15:0)){L.edu=2;say(L,"升上中學。")}
  if(L.age==15&&R()<.03)say(L,`第一次接觸「${THEME[1]}」，留下深刻的印象。`);
  if(L.age==16&&R()<.08+L.cls*.02){L.smoke=true;say(L,"開始抽菸。")}
- if(L.age==18&&L.edu==2)await ask(L,"要繼續升大學嗎？",[["升學",()=>{if(R()<c.uni/100+(f=="學業"?.2:0)+L.cls*.05){L.edu=3;say(L,"考上大學。")}else say(L,"沒考上大學。")}],["直接工作",()=>{}]]);
+ if(L.age==18&&L.edu==2){const fee=c.gdp*.6;
+  await ask(L,"高中畢業了，接下來呢？",[
+   ["考大學",()=>{if(R()<c.uni/100+(f=="學業"?.15:0)+L.cls*.05+L.know/300){L.edu=3;L.know+=8;if(L.cls>=3)say(L,"考上大學，學費由家裡負擔。");else{L.money-=fee;say(L,"考上大學，申請了助學貸款付學費。")}}else say(L,"沒考上大學。")},"知識↑ · 家境普通的話要背學貸"],
+   ["直接工作",()=>{L.money+=c.gdp*.05},"早點開始賺錢"],
+   ["出國讀大學",()=>{L.edu=3;L.know+=12;L.money-=fee*3;L.studiedAbroad=true;say(L,"出國讀大學。");sayHi(L,"曾出國留學。")},"知識↑↑ · 花費很高",fee*3]],`在${c.name}，大學就學率約 ${Math.round(c.uni)}%。`)}
  if(!L.job&&L.age==(L.edu==3?22:L.edu==2?18:14)){L.job=pick(L.edu==3?JOBS_U:JOBS);L.inc*=L.edu==3?1.8:L.edu==2?1:.6;say(L,`開始當${L.job}。`)}
  if(L.job&&L.age>28&&L.age<55&&R()<.03)await ask(L,"有個換工作的機會，要轉職嗎？",[["轉職",()=>{const j=pick(L.edu==3?JOBS_U.concat(["部門經理","小企業老闆"]):JOBS.concat(["小店老闆"]));L.job=j;L.jobYears=0;L.inc*=.9+R()*.6;say(L,`轉行當${j}。`)}],["留下",()=>{}]]);
- if(L.age>=18&&L.age<=45&&!L.partner&&!L.widowed&&R()<(f=="愛情"?.2:.08))await ask(L,"遇見了一個人，要在一起嗎？",[["在一起",()=>{L.partner=true;L.happy+=10;say(L,"和對方結為伴侶。")}],["先不要",()=>{}]]);
+ if(L.age>=18&&L.age<=45&&!L.partner&&!L.widowed&&R()<(f=="愛情"?.2:.08)+L.rel/1000){
+  const ps=L.sex=="男"?"女":"男",pa=Math.max(18,L.age+Math.round((L.sex=="男"?-3:3)+(R()-.5)*8)),pj=pick(L.edu==3?JOBS_U:JOBS),pm=Math.round(L.c.gdp*(.1+R()*.8)),pn=pick(NAMES[REGION(L.raw)][ps]);
+  const arranged=L.c.gdp<15000&&R()<.5;
+  await ask(L,arranged?"家裡長輩介紹了一個對象":"你遇見了一個人",[
+   ["在一起",()=>{L.partner=true;L.partnerName=pn;L.happy+=10;L.rel+=5;L.money+=pm*.5;say(L,`和${pn}結為伴侶。`)},"人際↑ 幸福↑"],
+   ["再相處看看",()=>{L.rel+=1},"先不決定"],
+   ["拒絕",()=>{if(arranged){L.rel-=4;say(L,"拒絕了這門親事，家裡氣氛僵了一陣子。")}},arranged?"可能和家人起衝突":"維持單身"]],
+   `${pn}，${pa} 歲${ps=="女"?"女性":"男性"}，職業：${pj}，存款約 ${money(pm)}。`)}
  if(L.partner&&L.age<44&&R()<.06+(f=="家人"?.05:0)+(c.gdp<5000?.06:0)){L.kids++;L.happy+=5;say(L,`第 ${L.kids} 個孩子出生了。`)}
  if(L.kids&&L.age>48&&R()<.05*L.kids){L.grand++;say(L,`第 ${L.grand} 個孫子女出生。`)}
  if(L.partner&&L.age>55&&R()<.025){L.partner=false;L.widowed=true;L.happy-=15;say(L,`與伴侶相伴 ${L.partnerYears} 年後，對方先離開了人世。`)}
@@ -233,7 +294,7 @@ async function year(L){
  if(L.age>30&&R()<.035){
   // 醫療費依當地所得計；存款不夠時只能借錢或硬撐
   const cost=c.gdp*(c.gdp>40000?.05:.25),broke=L.money<cost;
-  await ask(L,broke?"生了一場病，但存款不夠付醫藥費，要怎麼做？":"生了一場病，要就醫嗎？",[[broke?"借錢就醫":"就醫",()=>{L.health+=12;L.money-=cost;if(broke)say(L,"為了看病背上一筆債。")}],["撐著",()=>{L.health-=15}]]);
+  await ask(L,"生了一場病",[["自己付錢就醫",()=>{L.health+=12;L.money-=cost},"健康↑",cost],["借錢就醫",()=>{L.health+=12;L.money-=cost*1.2;say(L,"為了看病背上一筆債。")},"健康↑ · 背上債務（含利息）"],["撐著",()=>{L.health-=15},"健康↓↓"]],`醫藥費大約 ${money(cost)}。`)
  }
  if(L.smoke&&R()<.05)await ask(L,"要戒菸嗎？",[["戒菸",()=>{L.smoke=false;L.health+=5}],["繼續",()=>{}]]);
  if(!soft&&L.age>15&&R()<.004*(c.gdp<10000?2:1)){L.health-=20;L.happy-=15;say(L,"遭遇了暴力事件，身心受創。（求助：當地緊急電話）")}
@@ -241,15 +302,18 @@ async function year(L){
  if(L.age==65&&L.job){say(L,`從${L.job}退休，一共做了 ${L.jobYears} 年。`);L.lastJob=L.job;L.job=null;
   if(L.money>L.inc*3){L.happy+=6;say(L,"存款足夠，退休生活過得安穩。")}else if(L.kids){say(L,"存款不多，退休後靠孩子接濟。")}else{L.happy-=10;L.health-=5;say(L,"存款不夠，退休後生活拮据，還得打零工。")}}
  if(L.kids&&L.age<55)L.money-=L.inc*.02*L.kids; // 養孩子的開銷
+ survivalNote(L);
  if(isP&&Q[L.age])await reflect();
+ L.hist[L.age]=L.happy;
  if(R()<mortality(L)){L.alive=false;L.cause=causeOf(L);say(L,`因${L.cause}離開了人世。`)}
 }
 
 async function loop(){
  while(P.alive){
   let w=0; // 每次都重算，讓加速與跳到結局立即生效
-  while(w<cfg.l*60000/P.ex/mult){await new Promise(r=>setTimeout(r,mult>999?20:100));if(!paused)w+=100}
-  await year(P);for(const s of S)if(s.alive)await year(s);render();
+  const m=ffwd?9999:mult;
+  while(w<cfg.l*60000/P.ex/(ffwd?9999:mult)){await new Promise(r=>setTimeout(r,ffwd||mult>999?20:100));if(!paused)w+=100}
+  await year(P);for(const s of S)if(s.alive)await year(s);render();saveGame();
  }
  while(S.some(s=>s.alive))for(const s of S)if(s.alive)await year(s);
  setTimeout(finish,1200);
@@ -266,10 +330,12 @@ function story(L){
 }
 function title(L){const j=L.lastJob||L.job;return L.dreamDone?`實現夢想成為${L.dream}的人生`:L.politician?`一邊工作，一邊擔任地方議員的人生`:L.abroad?`從${L.c.name}移居${L.abroad}的人生`:j&&L.jobYears>10?`當了 ${L.jobYears} 年${j}的人生`:L.age<5?`在${L.c.name}出生，也在那裡長眠。`:`在${L.c.name}度過的 ${L.age} 年`}
 function finish(){
+ clearSave();
  game.classList.add("hide");end.classList.remove("hide");scrollTo(0,0);
  summary.innerHTML=`<h2>${P.name}　${P.c.y0} – ${P.c.y0+P.age}</h2><p class="mut">${P.c.name} · ${P.sex} · 享年 ${P.age} 歲（當地平均 ${Math.round(P.ex)} 歲）</p><div class="grid" style="margin:12px 0">${[["享年",P.age+" 歲"],["教育",EDU[P.edu]],["孩子",P.kids+" 人"],["孫子女",P.grand+" 人"],["住過的國家",P.abroad?2:1]].map(k=>`<div class="kpi mut">${k[0]}<b style="color:var(--fg)">${k[1]}</b></div>`).join("")}</div>
  <p>${story(P)}</p>
- <h2>人生時間軸</h2><div class="tl">${P.events.filter(e=>MILESTONE.test(e)&&!/→|沒考上/.test(e)).map(e=>{const i=e.indexOf("：");return `<div><b>${e.slice(0,i)}</b>${e.slice(i+1)}</div>`}).join("")}</div>
+ <h2>人生地圖</h2>${lifeMap(P)}
+ <h2 style="margin-top:12px">人生時間軸</h2><div class="tl">${P.events.filter(e=>MILESTONE.test(e)&&!/→|沒考上/.test(e)).map(e=>{const i=e.indexOf("：");return `<div><b>${e.slice(0,i)}</b>${e.slice(i+1)}</div>`}).join("")}</div>
  ${P.notes.length?"<p><b>你在路上留下的話</b><br>"+P.notes.map(esc).join("<br>")+"</p>":""}`;
  const h=$("homeC").value;
  if(h!==""){const m=world(C[h],"now");compare.innerHTML=`<h2>和你的出生地並排看</h2>
