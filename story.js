@@ -125,13 +125,24 @@ function livingCost(L){
  const etc=g*.07*adult*(.6+sp*.4);                                       // 手機、保險、娛樂、紅白包
  return {吃:food,穿:cloth,住:live,行:go,其他:etc,養孩子:kids};
 }
-function livingYear(L){
- if(L.age<18||!L.job&&L.age<22)return;                                  // 學生時期由家裡負擔
- const cost=livingCost(L);let total=Object.values(cost).reduce((a,b)=>a+b,0);
+// 一年的收入與開銷（存款卡片的逐月動畫也用這個）
+// 年終獎金月數：依地區習慣與當年景氣（台灣約 1～2 個月，很多地區有第 13 個月薪水）
+function bonusMonths(L){
+ if(!L.job)return 0;if(L.bonusAge===L.age)return L.bonusM;
+ const r=L.c.tw?"華":REGION(L.c.name),base=L.c.tw?1.5:["華","韓"].includes(r)?1.5:["拉","歐"].includes(r)?1:L.c.gdp<8000?0:.5;
+ L.bonusAge=L.age;L.bonusM=Math.max(0,Math.round((base+(R()-.5)*(L.focus=="工作"?2:1.4))*2)/2);return L.bonusM;
+}
+function yearFlow(L){
+ const cost=livingCost(L),full=Object.values(cost).reduce((a,b)=>a+b,0);
  const income=L.job?L.inc:L.age>=65?L.c.gdp*.15:0;                     // 退休後的年金
  // 人會依收入調整生活：開銷最多花到收入的 85%～99%（看花錢習慣）；沒收入時靠家人接濟，只算最低開銷
- const sp=L===P?spend:1,full=total;
- total=income?Math.min(total,income*(.85+sp*.07)):L.c.gdp*.06;
+ const sp=L===P?spend:1,total=income?Math.min(full,income*(.85+sp*.07)):L.c.gdp*.06;
+ return {cost,income,total,full};
+}
+function livingYear(L){
+ if(L.age<18||!L.job&&L.age<22)return;                                  // 學生時期由家裡負擔
+ const {cost,income,total,full}=yearFlow(L),b=bonusMonths(L);
+ if(L===P&&b>=2.5&&R()<.7)say(L,`公司今年業績好，年終領了 ${b} 個月！`);else if(L===P&&L.job&&b==0&&L.c.gdp>8000&&R()<.5)say(L,"今年公司說景氣不好，沒有年終。");
  if(L===P&&income&&full>income*1.05&&R()<.3)say(L,pick(["薪水不夠花，只好搬去更便宜的地方住。","每個月都在算錢，能省則省。","外食改成自己煮，衣服也很少買新的。"]));
  L.money+=income-total;if(income)ledger(L,"薪水",income);
  for(const k in cost)ledger(L,k,-cost[k]*total/Object.values(cost).reduce((a,b)=>a+b,0));
@@ -210,4 +221,21 @@ async function investYear(L){
 }
 // 未成年的花費（補習、才藝、看病）由家裡負擔，不會變成自己的負債
 function minorGuard(L){if(L.age<18&&L.money<0){if(L===P&&!L.minorNote){L.minorNote=1;say(L,L.cls<=1?"補習和生活的錢，爸媽咬著牙借錢付了。":"這些開銷都是爸媽幫你付的。")}L.money=0}}
-async function storyYear(L){minorGuard(L);await investYear(L);livingYear(L);await wedding(L);await genderYear(L);await parentLeave(L);await smallChoice(L);kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L);await spendYear(L);minorGuard(L)}
+
+// 工作後的「今年重心」：學業＝進修，工作＝拚職涯，各自會帶出抉擇
+async function careerFocus(L){
+ if(L.backAt===L.age){L.backAt=0;L.job=L.studyJob||L.job||"工程師";L.inc*=1.3;L.studyJob=null;say(L,`留學回國，重新當${L.job}，薪水比出國前高。`)}
+ if(!L.job||L.age>=65)return;const f=L.focus,g=L.c.gdp;
+ if(f=="學業"&&R()<.3)await ask(L,"想利用下班時間進修",[
+  ["考專業證照",()=>{L.money-=g*.03;L.know+=4;if(R()<.6){L.inc*=1.06;say(L,"考到證照，公司幫你調薪。")}else say(L,"證照沒考過，明年再拚。")},"可能加薪"],
+  ["讀在職碩士（兩年）",()=>{L.money-=g*.3;L.know+=8;L.health-=2;L.lockUntil=L.age+2;L.mbaAt=L.age+2},"知識↑↑ 兩年內很忙"],
+  ["上免費線上課程",()=>{L.know+=2},"知識↑"],
+  ["學第二外語",()=>{L.money-=g*.02;L.know+=3;if(R()<.3)L.abroadOk=true},"以後可能有外派機會"]]);
+ if(L.mbaAt===L.age){L.mbaAt=0;L.edu=Math.max(L.edu,3);L.inc*=1.12;say(L,"拿到在職碩士學位，薪水也跟著往上調。")}
+ if(f=="工作"&&R()<.3)await ask(L,"今年想在工作上拚什麼？",[
+  ["爭取升遷",()=>{if(R()<.35+L.know/300){L.inc*=1.15;L.happy+=3;say(L,"升上主管，責任和薪水都變多了。")}else{L.happy-=3;say(L,"升遷名單上沒有你。")}},"成功機率看能力"],
+  ["接下一個大案子",()=>{L.health-=3;if(R()<.55){L.inc*=1.08;say(L,"大案子做得漂亮，年終多領不少。")}else{L.happy-=2;say(L,"案子出了狀況，被主管念了好幾次。")}},"健康↓ 可能加薪"],
+  ["跳槽到薪水更高的公司",()=>{if(R()<.6){L.inc*=1.18;L.rel-=1;say(L,"跳槽成功，薪水多了快兩成。")}else{L.happy-=2;say(L,"面試了好幾家，都沒有下文。")}},"有機會大幅加薪"],
+  ["把工作做好就好",()=>{L.happy+=2},"幸福↑"]]);
+}
+async function storyYear(L){minorGuard(L);await careerFocus(L);await investYear(L);livingYear(L);await wedding(L);await genderYear(L);await parentLeave(L);await smallChoice(L);kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L);await spendYear(L);minorGuard(L)}

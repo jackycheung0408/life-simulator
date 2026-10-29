@@ -260,12 +260,12 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=44"></script>
-<script src="events.js?v=44"></script>
-<script src="life.js?v=44"></script>
-<script src="pixel.js?v=44"></script>
-<script src="story.js?v=44"></script>
-<script src="taiwan.js?v=44"></script>
+<script src="countries.js?v=46"></script>
+<script src="events.js?v=46"></script>
+<script src="life.js?v=46"></script>
+<script src="pixel.js?v=46"></script>
+<script src="story.js?v=46"></script>
+<script src="taiwan.js?v=46"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -406,7 +406,7 @@ function tween(el,to,fmt=x=>Math.round(x)){
  const step=t=>{const k=Math.min(1,(t-t0)/d),e=1-Math.pow(1-k,3);el.textContent=fmt(from+(to-from)*e);if(k<1&&el._v===to)requestAnimationFrame(step)};
  requestAnimationFrame(step);setTimeout(()=>{if(el._v===to)el.textContent=fmt(to)},d+50); // 分頁在背景時 rAF 不會跑
 }
-const STATS=[["健康","health",1],["幸福","happy",1],["知識","know",1],["人際","rel",1],["教育"],["工作"],["年收入"],["存款"],["家庭"]];
+const STATS=[["健康","health",1],["幸福","happy",1],["知識","know",1],["人際","rel",1],["教育"],["工作"],["薪水"],["存款"],["家庭"]];
 function buildStats(){
  stats.innerHTML=STATS.map(([n,k,bar])=>`<div class="stat" data-n="${n}">${n}<span class="dl"></span><b></b>${bar?`<div class="bar"><i></i></div>`:""}</div>`).join("");
 }
@@ -432,7 +432,7 @@ function render(){
  if(!stats.firstChild)buildStats();
  setStat("健康",h,P.health,newYear?dh:undefined);setStat("幸福",hp,P.happy,newYear?dp:undefined);
  setStat("知識",Math.round(P.know),P.know);setStat("人際",Math.round(P.rel),P.rel);setStat("教育",EDU[P.edu]);
- setStat("工作",P.job||"—");setStat("年收入",P.job?moneyShort(P.inc):"—");{const m=P.money+(P.inv?P.inv.amt:0);setStat("存款",(m<0?"−"+moneyShort(-m):moneyShort(m))+(P.inv&&P.inv.amt>0?"（含投資）":""))}
+ setStat("工作",P.job||"—");setStat("薪水",P.job?`月薪 ${moneyShort(P.inc/(12+bonusMonths(P)))}`:"—");{const m=P.money+(P.inv?P.inv.amt:0);setStat("存款",(m<0?"−"+moneyShort(-m):moneyShort(m))+(P.inv&&P.inv.amt>0?"（含投資）":""))}
  setStat("家庭",(P.partner?"有伴侶":P.widowed?"喪偶":"單身")+(P.kids?` · ${P.kids}子女`:""));
  // 場景：有變才換，新出現的人物彈出來
  // 場景：家人組成或住所有變才重畫
@@ -452,7 +452,10 @@ function render(){
 
 // 抉擇：玩家會停下等待；同秒嬰兒自動
 // 選項格式：[文字, 動作, 說明?, 需要的存款(USD)?]；存款不夠的選項會反灰並寫出門檻
+// 剛做了重大決定（留學、北漂、外派、創業……）的這段期間，不會再冒出其他機會型的抉擇
+const MUST_ASK=/要找什麼樣的工作|生了一場病|癌症|兵役|孩子出生|結婚|嫁妝|聘禮|父母|爸媽|畢業|要考|暫停/;
 function ask(L,q,opts,info){
+ if(L.lockUntil>L.age&&!MUST_ASK.test(q))return Promise.resolve();
  if(opts.length<3&&typeof EXTRA_OPTS!="undefined"&&EXTRA_OPTS[q])opts=opts.concat(EXTRA_OPTS[q].map(([a,fn,h])=>[a,()=>fn(L),h]));
  const ok=o=>!o[3]||L.money>=o[3],avail=opts.filter(ok);
  if(L!==P||auto){const o=pick(avail.length?avail:opts);if(L===P)say(L,q+" → "+o[0]);o[1]();return Promise.resolve()}
@@ -511,14 +514,14 @@ function statBase(L){
  return {health,know,rel,happy};
 }
 async function year(L){
- L.age++;const c=L.c,isP=L===P,f=isP&&!auto?focusSel:pick(FOCI),soft=$("soft").checked;
+ L.age++;const c=L.c,isP=L===P,f=isP&&!auto?focusSel:pick(FOCI),soft=$("soft").checked;L.focus=f;
  {const b=statBase(L),k=.25;for(const s of ["health","know","rel","happy"])L[s]+=(b[s]+(L.bias?.[s]||0)-L[s])*k}
  L.health+=(f=="健康"?1.5:0)+(R()-.5)*2;
  L.happy+=(["家人","愛情","享受"].includes(f)?1.5:0)+(R()-.5)*3+(L.job||L.age<22?0:-1);
  L.know+=(f=="學業"?1.5:0);L.rel+=(f=="家人"||f=="愛情"?1.5:0)+(R()-.5)*1.5;
  // 花錢習慣：節省多存錢但人際變差，大方反之
  const sp=isP?spend:1;
- if(L.job){L.jobYears++;if(L.jobYears<=20)L.inc*=1.02;L.rel+=(sp-1)*.8;L.happy+=(sp-1)*.5;if(f=="工作")L.inc*=1.025}
+ if(L.job){L.jobYears++;if(L.jobYears<=20)L.inc*=1.02;L.rel+=(sp-1)*.8;L.happy+=(sp-1)*.5;if(f=="工作")L.inc*=1.005}
  // 沒收入又欠債，只能縮衣節食
  if(!L.job&&L.age>=18&&L.money<-L.c.gdp*.3){L.health-=3;L.happy-=3;if(R()<.3)say(L,"已經借不到錢了，只能少吃幾餐撐下去。")}
  L.know=Math.max(0,Math.min(100,L.know));L.rel=Math.max(0,Math.min(100,L.rel));
@@ -555,7 +558,7 @@ async function year(L){
  if(L.partner&&L.age<44&&R()<.06+(f=="家人"?.05:0)+(c.gdp<5000?.06:0)){L.kids++;L.happy+=5;say(L,`第 ${L.kids} 個孩子出生了。`)}
  if(L.kids&&L.age>48&&R()<.05*L.kids){L.grand++;say(L,`第 ${L.grand} 個孫子女出生。`)}
  if(L.partner&&L.age>55&&R()<.025){L.partner=false;L.widowed=true;L.happy-=15;say(L,`與伴侶相伴 ${L.partnerYears} 年後，對方先離開了人世。`)}
- if(!L.abroad&&L.age>=22&&L.age<=45&&c.gdp<30000&&R()<.02)await ask(L,"有機會移居到更富裕的國家，要去嗎？",[["移居",()=>{L.abroad=pick(["美國","德國","加拿大","澳洲","英國","日本"]);L.inc*=2.2;L.happy-=4;say(L,`移居到${L.abroad}，重新開始。`)}],["留下",()=>{L.happy+=2}]]);
+ if(!L.abroad&&L.age>=22&&L.age<=45&&c.gdp<30000&&R()<.02)await ask(L,"有機會移居到更富裕的國家，要去嗎？",[["移居",()=>{L.lockUntil=L.age+2;L.abroad=pick(["美國","德國","加拿大","澳洲","英國","日本"]);L.inc*=2.2;L.happy-=4;say(L,`移居到${L.abroad}，重新開始。`)}],["留下",()=>{L.happy+=2}]]);
  if(L.age>30&&R()<.035){
   // 醫療費依當地所得計；存款不夠時只能借錢或硬撐
   const cost=c.gdp*(c.gdp>40000?.05:.25),broke=L.money<cost;
@@ -577,6 +580,11 @@ async function year(L){
 
 // 進度條：每一幀往目標值靠近，看起來是連續滑動
 let prog=0,shown=0;
+// 年中存款的逐月變化（只是顯示；真正的結算在 year() 年底進行）
+function monthMoney(t){if(!P||P.age<18||!P.job&&P.age<22)return;const {income,total}=yearFlow(P),m=Math.min(12,Math.floor(t*12)+1),b=bonusMonths(P),mo=income/(12+b);
+ // 每月 5 號發薪；第 12 個月加發年終
+ const v=P.money+(P.inv?P.inv.amt:0)+m*mo+(m==12?b*mo:0)-t*total;
+ if(m==12&&b&&!P.bonusShown){P.bonusShown=P.age;toast(`領到年終 ${b} 個月：${moneyShort(b*mo)}`)}if(m<12)P.bonusShown=0;setStat("存款",(v<0?"−"+moneyShort(-v):moneyShort(v))+(P.inv&&P.inv.amt>0?"（含投資）":""))}
 (function bar(){if(P){shown+=(prog-shown)*.18;if(Math.abs(prog-shown)<.001)shown=prog;$("lifebar").style.width=Math.min(100,shown/Math.max(P.ex,100)*100)+"%";drawAvatarLCD($("avatar"),P)}requestAnimationFrame(bar)})();
 async function loop(){
  prog=shown=P.age;
@@ -584,7 +592,7 @@ async function loop(){
   let w=0,last=performance.now(); // 每次都重算，讓加速與跳到結局立即生效
   for(;;){const total=cfg.l*60000/P.ex/(ffwd?9999:mult);if(w>=total)break;
    await new Promise(r=>setTimeout(r,ffwd||mult>999?16:50));const now=performance.now();if(!paused)w+=Math.min(250,now-last);last=now;
-   prog=P.age+Math.min(1,w/total)}
+   prog=P.age+Math.min(1,w/total);monthMoney(Math.min(1,w/total))}
   prog=P.age+1;
   await year(P);for(const s of S)if(s.alive)await year(s);render();saveGame();
  }
