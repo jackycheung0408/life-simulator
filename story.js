@@ -79,7 +79,7 @@ const SPEND=[
  {id:"pet",once:1,min:10,max:70,cost:L=>L.c.gdp*.05,q:"路邊有隻小狗一直跟著你",yes:"帶回家養",y:L=>{L.happy+=7;L.pet=true},no:"送到收容所",n:()=>{}},
  {id:"checkup",min:40,max:85,cost:L=>L.c.gdp*.04,q:"醫院推出自費健康檢查",yes:"去做",y:L=>{L.health+=4},no:"身體還好，不用",n:()=>{}},
  {id:"lend",min:25,max:70,cost:L=>L.inc*.15,q:"老朋友手頭緊，開口跟你借錢",yes:"借他",y:L=>{L.rel+=3;L.lent=L.inc*.15;L.lentAt=L.age},no:"婉拒",n:L=>{L.rel-=3}},
- {id:"invest",min:25,max:65,cost:L=>L.inc*.2,q:"同事說有一檔股票很有潛力",yes:"投一筆",y:L=>{const r=R()<.45?2:R()<.6?.3:1.2;L.money+=L.inc*.2*r;ledger(L,"投資",L.inc*.2*(r-1));say(L,r>1.5?"那檔股票真的漲了一倍！":r<.5?"股票套牢，賠了七成。":"股票小賺一點。")},no:"不碰",n:()=>{}},
+ {id:"invest",min:25,max:65,cost:L=>L.inc*.2,q:"同事說有一檔股票很有潛力",yes:"投一筆",y:L=>{const r=R()<.22?2:R()<.55?.3:1.05;L.money+=L.inc*.2*r;ledger(L,"投資",L.inc*.2*(r-1));say(L,r>1.5?"那檔股票真的漲了一倍！":r<.5?"股票套牢，賠了七成。":"股票小賺一點。")},no:"不碰",n:()=>{}},
 ];
 async function spendYear(L){
  if(L.lent&&L.age-L.lentAt>=2&&R()<.3){if(R()<.6){L.money+=L.lent;say(L,`朋友把之前借的 ${money(L.lent)} 還給你了。`)}else{L.rel-=2;say(L,"借出去的錢，朋友一直沒還，也不好意思開口。")}L.lent=0}
@@ -117,12 +117,12 @@ function payGap(c){if(c.tw)return .14;const r=REGION(c.name);return c.gdp>40000?
 // 食衣住行：成年後自己負擔，依國家所得、城鄉、住哪裡、家庭人數與花錢習慣計算
 function livingCost(L){
  const c=L.c,g=c.gdp,city=L.moved||L.abroad||L.fam?.urban,sp=L===P?spend:1,adult=L.partner?1.6:1;
- const food=g*.14*adult*(.85+sp*.15)*(c.gdp<5000?1.3:1);              // 窮國吃的佔比高
- const cloth=g*.03*adult*(.6+sp*.4)*(L.sex=="女"?1.15:1);
- const live=L.house?(L.mortPay||g*.03):(L.moved||L.abroad)?g*Math.max(.04,(city?.14:.09)+(L.rentAdj||0)):g*.05;  // 房貸／租屋／住家裡（給家裡的孝親費）
- const go=L.car?g*.06:g*(city?.025:.035);
- const kids=(L.kids||0)*g*.07*(L.age<55?1:0);
- const etc=g*.07*adult*(.6+sp*.4);                                       // 手機、保險、娛樂、紅白包
+ const food=g*.17*adult*(.85+sp*.15)*(c.gdp<5000?1.3:1);              // 窮國吃的佔比高
+ const cloth=g*.035*adult*(.6+sp*.4)*(L.sex=="女"?1.15:1);
+ const live=L.house?(L.mortPay||g*.03):(L.moved||L.abroad)?g*Math.max(.06,(city?.19:.12)+(L.rentAdj||0)):g*.08;  // 房貸／租屋／住家裡（給家裡的孝親費）
+ const go=L.car?g*.08:g*(city?.035:.05);
+ const kids=(L.kids||0)*g*.2*(L.age<55?1:0);                            // 台灣養一個孩子一年約 20～30 萬
+ const etc=(g*.08*adult+(L.inc||0)*.15)*(.6+sp*.4);                      // 手機、娛樂、紅白包；收入越高花越多（生活水準跟著提高）
  return {吃:food,穿:cloth,住:live,行:go,其他:etc,養孩子:kids};
 }
 // 一年的收入與開銷（存款卡片的逐月動畫也用這個）

@@ -272,13 +272,13 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=53"></script>
-<script src="events.js?v=53"></script>
-<script src="life.js?v=53"></script>
-<script src="pixel.js?v=53"></script>
-<script src="story.js?v=53"></script>
-<script src="realism.js?v=53"></script>
-<script src="taiwan.js?v=53"></script>
+<script src="countries.js?v=54"></script>
+<script src="events.js?v=54"></script>
+<script src="life.js?v=54"></script>
+<script src="pixel.js?v=54"></script>
+<script src="story.js?v=54"></script>
+<script src="realism.js?v=54"></script>
+<script src="taiwan.js?v=54"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -533,7 +533,7 @@ async function year(L){
  L.know+=(f=="學業"?1.5:0);L.rel+=(f=="家人"||f=="愛情"?1.5:0)+(R()-.5)*1.5;
  // 花錢習慣：節省多存錢但人際變差，大方反之
  const sp=isP?spend:1;
- if(L.job){L.jobYears++;if(L.jobYears<=20)L.inc*=1.02;L.rel+=(sp-1)*.8;L.happy+=(sp-1)*.5;if(f=="工作")L.inc*=1.005}
+ if(L.job){L.jobYears++;if(L.jobYears<=15)L.inc*=1.012;L.rel+=(sp-1)*.8;L.happy+=(sp-1)*.5;if(f=="工作")L.inc*=1.005}
  // 沒收入又欠債，只能縮衣節食
  if(!L.job&&L.age>=18&&L.money<-L.c.gdp*.3){L.health-=3;L.happy-=3;if(R()<.3)say(L,"已經借不到錢了，只能少吃幾餐撐下去。")}
  L.know=Math.max(0,Math.min(100,L.know));L.rel=Math.max(0,Math.min(100,L.rel));

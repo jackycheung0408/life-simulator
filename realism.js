@@ -147,7 +147,7 @@ async function debtRelief(L){
 async function realismYear(L){
  if(L.job){L.lastInc=L.inc;L.workYears=(L.workYears||0)+1}
  inflationYear(L);mortgageYear(L);partnerSetup(L);
- await rentYear(L);await insuranceYear(L);await loveYear(L);await kidChoices(L);await healthYear(L);await friendsYear(L);await debtRelief(L);
+ await rentYear(L);await insuranceYear(L);await loveYear(L);await kidChoices(L);await healthYear(L);await friendsYear(L);await mishapYear(L);await debtRelief(L);
  if(L.money>-(L.inc||L.c.gdp*.3))L.debtHelped=false;
 }
 
@@ -176,4 +176,23 @@ function buyItem(n){
  else{L.money-=cost;ledger(L,"自己花的",-cost)}
  for(const k in s[4])L[k]+=s[4][k];L.shopCnt[n]=(L.shopCnt[n]||0)+1;
  say(L,`${mode=="parents"?"用零用錢":"花錢"}買了${n}。`);const d=diffText(before,snap(L));toast(`${n}：${d||"已購買"}`);render();renderShop();
+}
+
+// ── 意外與突發開銷：人生不會一路順遂，每年約三到四成機率遇到一件 ──
+// [最小年齡, 最大年齡, 條件, 事件]
+const MISHAPS=[
+ [18,90,L=>true,async L=>{const c=L.c.gdp*.04;await ask(L,"接到自稱銀行客服的電話，說你的帳戶被盜用",[["照指示去 ATM 操作",()=>{L.money-=c*3;L.happy-=6;say(L,`被詐騙集團騙走 ${money(c*3)}。`)},"可能是詐騙"],["掛掉，打 165 反詐騙專線查證",()=>{L.know+=1},"安全"],["先打給家人商量",()=>{L.rel+=1},"安全"]])}],
+ [20,85,L=>L.car||L.age<60,async L=>{const c=L.c.gdp*(L.car?.04:.015);L.money-=c;ledger(L,"交通工具維修",-c);say(L,`${L.car?"車子":"機車"}突然故障，修理花了 ${money(c)}。`)}],
+ [18,90,L=>true,async L=>{const c=L.c.gdp*.012;L.money-=c;L.happy-=2;say(L,pick(["手機摔壞了，只好買一支新的。","在路上被偷了錢包，證件也要重辦。","家裡的冷氣壞了，整台換新。"])+`（−${money(c)}）`)}],
+ [25,70,L=>L.parentAlive,async L=>{const c=L.c.gdp*.1;await ask(L,"爸媽突然住院，需要一筆醫藥費和看護",[["你全額負擔",()=>{L.money-=c;L.rel+=3},"人際↑",c],["和兄弟姊妹分攤",()=>{L.money-=c*.4;L.rel+=1},""],["請假自己照顧",()=>{L.money-=L.inc/12;L.health-=2;L.rel+=3},"少一個月薪水"]])}],
+ [22,64,L=>L.job,async L=>{const old=L.job;await ask(L,"公司宣布組織調整，你的部門要被裁撤",[["接受資遣，領一筆資遣費",()=>{L.money+=L.inc*.25;L.lostJob=old;L.job=null;L.happy-=6;say(L,`失去了${old}的工作，開始找下一份。`)},"有資遣費 · 暫時沒工作"],["接受調職到外縣市",()=>{L.moved=true;L.happy-=4;L.rel-=2},"保住工作 · 離家遠"],["接受減薪兩成留下來",()=>{L.inc*=.8;L.happy-=3},"收入↓"]])}],
+ [20,90,L=>L.house||L.moved,async L=>{const c=L.c.gdp*.05;L.money-=c;L.happy-=3;say(L,pick(["颱風把屋頂掀了一角，家裡漏水嚴重。","樓上漏水滲到你家，牆壁發霉要重新整修。","家裡遭小偷，值錢的東西被搬走不少。"])+`（−${money(c)}）`)}],
+ [30,85,L=>true,async L=>{const c=L.c.gdp*.025;L.money-=c;L.health-=4;say(L,pick(["牙齒痛到睡不著，做了根管治療和假牙。","腰椎突出，做了好幾個月的復健。","眼睛看不清楚，動了白內障手術。"])+`（自費 −${money(c)}）`)}],
+ [25,70,L=>L.money>L.c.gdp*.3,async L=>{const c=L.c.gdp*.15;await ask(L,"親戚開口跟你借一筆不小的錢",[["借他",()=>{L.money-=c;L.rel+=2;if(R()<.5)say(L,"親戚後來說還不出來，這筆錢就這樣沒了。");else{L.money+=c;say(L,"親戚過了兩年把錢還清了。")}},"可能拿不回來"],["借一半",()=>{L.money-=c*.5;L.rel+=1},""],["婉拒",()=>{L.rel-=3},"人際↓"]])}],
+ [20,60,L=>L.job,async L=>{L.happy-=4;L.health-=2;say(L,pick(["碰到很難搞的主管，每天上班都很痛苦。","同事把錯推到你身上，被記了一支警告。","公司連續好幾個月要求無償加班。"]))}],
+ [18,90,L=>L.c.gdp>8000,async L=>{const c=L.c.gdp*.03;L.money-=c;say(L,pick(["收到一張超速罰單和違規停車罰單。","補繳了一筆以前漏報的稅。","房東要求負擔修繕費用。"])+`（−${money(c)}）`)}],
+];
+async function mishapYear(L){
+ if(L.age<18||R()>.35)return;
+ const ok=MISHAPS.filter(m=>L.age>=m[0]&&L.age<=m[1]&&m[2](L));if(ok.length)await pick(ok)[3](L);
 }
