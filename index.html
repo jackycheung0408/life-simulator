@@ -180,6 +180,9 @@ button.pri{font-family:"DotGothic16","PingFang TC",sans-serif!important;font-siz
 body,button,select,textarea,.stat,.stat b,.seg button,.lifebar-wrap .lbl,.stages,.mbar .tag,button.pri,.opt,#log p,.mut,.blink,h2{font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif!important;-webkit-font-smoothing:antialiased!important;letter-spacing:.02em}
 h2{font-weight:700}.stat b{font-weight:700;font-size:20px!important}.seg button{font-weight:600}
 body{font-size:15px;line-height:1.6}
+.lmap i.now{outline:2px solid var(--y);outline-offset:1px;background:linear-gradient(to top,color-mix(in srgb,var(--y) 55%,transparent) var(--fill,0%),transparent var(--fill,0%))!important;animation:nowblink 1s steps(2) infinite}
+@keyframes nowblink{50%{outline-color:transparent}}
+#yr{color:var(--y);font-weight:700}
 </style></head><body><div class="wrap">
 
 <!-- 首頁 -->
@@ -260,13 +263,13 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=49"></script>
-<script src="events.js?v=49"></script>
-<script src="life.js?v=49"></script>
-<script src="pixel.js?v=49"></script>
-<script src="story.js?v=49"></script>
-<script src="realism.js?v=49"></script>
-<script src="taiwan.js?v=49"></script>
+<script src="countries.js?v=50"></script>
+<script src="events.js?v=50"></script>
+<script src="life.js?v=50"></script>
+<script src="pixel.js?v=50"></script>
+<script src="story.js?v=50"></script>
+<script src="realism.js?v=50"></script>
+<script src="taiwan.js?v=50"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -581,6 +584,11 @@ async function year(L){
 
 // 進度條：每一幀往目標值靠近，看起來是連續滑動
 let prog=0,shown=0;
+// 當下進度：年齡顯示到「幾歲幾個月」，人生地圖上正在過的那一格會逐漸填滿並閃爍
+function tickNow(t){if(!P)return;const m=Math.min(11,Math.floor(t*12));
+ yr.textContent=`${P.c.y0+P.age} 年 ${m+1} 月 · ${P.age} 歲${m?` ${m} 個月`:""}`;
+ const g=lmap.firstChild;if(!g)return;const cell=g.children[P.age+1];g.querySelectorAll("i.now").forEach(x=>{if(x!==cell)x.classList.remove("now")});
+ if(cell){cell.classList.add("now");cell.style.setProperty("--fill",Math.round(t*100)+"%")}}
 // 年中存款的逐月變化（只是顯示；真正的結算在 year() 年底進行）
 function monthMoney(t){if(!P||P.age<18||!P.job&&P.age<22)return;const {income,total}=yearFlow(P),m=Math.min(12,Math.floor(t*12)+1),b=bonusMonths(P),mo=income/(12+b);
  // 每月 5 號發薪；第 12 個月加發年終
@@ -593,7 +601,7 @@ async function loop(){
   let w=0,last=performance.now(); // 每次都重算，讓加速與跳到結局立即生效
   for(;;){const total=cfg.l*60000/P.ex/(ffwd?9999:mult);if(w>=total)break;
    await new Promise(r=>setTimeout(r,ffwd||mult>999?16:50));const now=performance.now();if(!paused)w+=Math.min(250,now-last);last=now;
-   prog=P.age+Math.min(1,w/total);monthMoney(Math.min(1,w/total))}
+   prog=P.age+Math.min(1,w/total);monthMoney(Math.min(1,w/total));tickNow(Math.min(1,w/total))}
   prog=P.age+1;
   await year(P);for(const s of S)if(s.alive)await year(s);render();saveGame();
  }
