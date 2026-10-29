@@ -253,12 +253,12 @@ button,select,.tbar,.sw{font-family:"DotGothic16","PingFang TC","Noto Sans TC",s
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=31"></script>
-<script src="events.js?v=31"></script>
-<script src="life.js?v=31"></script>
-<script src="pixel.js?v=31"></script>
-<script src="story.js?v=31"></script>
-<script src="taiwan.js?v=31"></script>
+<script src="countries.js?v=32"></script>
+<script src="events.js?v=32"></script>
+<script src="life.js?v=32"></script>
+<script src="pixel.js?v=32"></script>
+<script src="story.js?v=32"></script>
+<script src="taiwan.js?v=32"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -328,7 +328,7 @@ function newLife(w){
  const L={c,raw:raw[0],sex,name:pick(NAMES[REGION(raw[0])][sex]),age:0,cls,know:45+R()*10+cls*2,rel:55+R()*10,hist:[],inc:c.gdp*Math.exp((cls-2)*c.gini*1.4),health:70+R()*20+cls*2,happy:60,edu:0,
   money:0,partner:null,partnerYears:0,widowed:false,kids:0,grand:0,job:null,jobYears:0,smoke:false,abroad:null,alive:true,events:[],notes:[],
   ex:sex=="男"?c.mEx:c.fEx,cause:null};
- L.hist[0]=L.happy;makeFamily(L);return L;
+ {L.bias={health:(R()-.5)*12,know:(R()-.5)*10,rel:(R()-.5)*10,happy:(R()-.5)*10};const b=statBase(L);for(const k in b)L[k]=b[k]+L.bias[k]}L.hist[0]=L.happy;makeFamily(L);return L;
 }
 
 let P,S=[],paused=false,auto=false,mult=1,focusSel="健康",busy=false,spend=1,ffwd=false;
@@ -469,11 +469,28 @@ function mortality(L){
 }
 const JOBS_U=["工程師","教師","會計師","醫師","公務員","設計師","研究員","律師","護理師"],JOBS=["農民","工廠作業員","店員","司機","建築工人","廚師","清潔工","攤販","漁夫"];
 
+// 數值基準線：依國家、家境、年齡與學歷算出「同齡同條件的人通常是多少」
+// 每年數值會往基準線靠近，再加上自己的選擇與事件
+function statBase(L){
+ const c=L.c,a=L.age,cls=L.cls-2,ex=L.ex||70,rich=Math.log10(Math.max(c.gdp,500))-4; // rich：-1.3 窮國 ～ +0.9 富國
+ // 健康：嬰兒期較脆弱、20～30 歲最好，之後依當地壽命逐漸下降
+ const peak=82+rich*6+cls*2-c.im*.08;
+ const health=a<5?peak-12+a*2.4:a<=30?peak:Math.max(15,peak-Math.pow(Math.max(0,a-30)/Math.max(20,ex-30),1.6)*50);
+ // 知識：隨年紀與學歷累積；沒上學的人上限低，老年慢慢退
+ const cap=[30,45,62,80][L.edu||0]+rich*4+cls*2;
+ const know=Math.min(cap,8+cap*(1-Math.exp(-a/9)))-(a>72?(a-72)*.6:0);
+ // 人際：童年在家人身邊，青年最廣，老年朋友漸少
+ const rel=(a<6?40+a*2:a<=40?52+Math.min(a,25)*.4:60-(a-40)*.25)+cls;
+ // 幸福：富裕程度只帶來小幅差異
+ const happy=58+rich*4+cls*1.5;
+ return {health,know,rel,happy};
+}
 async function year(L){
  L.age++;const c=L.c,isP=L===P,f=isP&&!auto?focusSel:pick(FOCI),soft=$("soft").checked;
- L.health+=(f=="健康"?1.5:0)-(L.age>45?.9:0)+(L.cls-2)*.3+(R()-.5)*3;
- L.happy+=(["家人","愛情","享受"].includes(f)?1.5:0)+(R()-.5)*4+(L.job||L.age<18?.3:-1);
- L.know+=(f=="學業"?2:0)+(L.age<22&&L.edu>0?.6:0)-(L.age>70?.5:0);L.rel+=(f=="家人"||f=="愛情"?1.5:0)+(R()-.5)*2;
+ {const b=statBase(L),k=.25;for(const s of ["health","know","rel","happy"])L[s]+=(b[s]+(L.bias?.[s]||0)-L[s])*k}
+ L.health+=(f=="健康"?1.5:0)+(R()-.5)*2;
+ L.happy+=(["家人","愛情","享受"].includes(f)?1.5:0)+(R()-.5)*3+(L.job||L.age<22?0:-1);
+ L.know+=(f=="學業"?1.5:0);L.rel+=(f=="家人"||f=="愛情"?1.5:0)+(R()-.5)*1.5;
  // 花錢習慣：節省多存錢但人際變差，大方反之
  const sp=isP?spend:1;
  if(L.job){L.jobYears++;L.money+=L.inc*(.14-sp*.05);L.rel+=(sp-1)*.8;L.happy+=(sp-1)*.5;if(f=="工作")L.inc*=1.025}

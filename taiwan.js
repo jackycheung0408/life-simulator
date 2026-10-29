@@ -83,7 +83,7 @@ function twLife(year){
  const county=wpick(TW_COUNTY,x=>x[1]),c=twWorld(year,county),sex=R()<.51?"男":"女",cls=Math.floor(R()*5);
  const L={c,raw:"台灣",sex,name:pick(NAMES["華"][sex]),age:0,cls,know:45+R()*10+cls*2,rel:55+R()*10,hist:[],inc:c.gdp*Math.exp((cls-2)*c.gini*1.4),health:70+R()*20+cls*2,happy:60,edu:0,
   money:0,partner:null,partnerYears:0,widowed:false,kids:0,grand:0,job:null,jobYears:0,smoke:false,abroad:null,alive:true,events:[],notes:[],ex:sex=="男"?c.mEx:c.fEx,cause:null};
- L.hist[0]=L.happy;makeFamily(L);L.fam.urban=R()<county[3];return L;
+ {L.bias={health:(R()-.5)*12,know:(R()-.5)*10,rel:(R()-.5)*10,happy:(R()-.5)*10};const b=statBase(L);for(const k in b)L[k]=b[k]+L.bias[k]}L.hist[0]=L.happy;makeFamily(L);L.fam.urban=R()<county[3];return L;
 }
 
 // 台灣才有的人生抉擇與事件（每年檢查）
