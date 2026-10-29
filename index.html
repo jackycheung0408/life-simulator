@@ -81,8 +81,8 @@ button.pri{background:var(--ac);color:#fff;border-color:var(--ac);padding:10px 2
 </section>
 </div>
 
-<script src="countries.js?v=5"></script>
-<script src="events.js?v=5"></script>
+<script src="countries.js?v=6"></script>
+<script src="events.js?v=6"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -136,8 +136,10 @@ renderHalls();
 function world(c,w){
  const k={past:{ex:-18,gdp:.25,im:4,uni:.25,y:1960},now:{ex:0,gdp:1,im:1,uni:1,y:today.getFullYear()},future:{ex:6,gdp:2,im:.4,uni:1.3,y:2060}}[w];
  // 1960 年的壽命：富國約少 9 年，其他國家越窮差距越大（最低 35 歲）
- const ex=e=>w=="past"?Math.max(35,e-(c[5]>40000?9:12+(85-e)*.8)):e+k.ex*(e<70?1:.6);
- return {name:c[0],city:c[9],mEx:ex(c[3]),fEx:ex(c[4]),gdp:c[5]*k.gdp,im:Math.min(250,c[6]*k.im),uni:Math.min(100,c[7]*k.uni),gini:c[8],y0:k.y};
+ // 過去的世界用世界銀行 1960 年代平均值；沒有資料時才用公式推估
+ const ex=(e,e60)=>w=="past"?(e60||Math.max(35,e-(c[5]>40000?9:12+(85-e)*.8))):e+k.ex*(e<70?1:.6);
+ const im=w=="past"&&c[12]?c[12]:Math.min(250,c[6]*k.im);
+ return {name:c[0],city:c[9],mEx:ex(c[3],c[10]),fEx:ex(c[4],c[11]),gdp:c[5]*k.gdp,im,uni:Math.min(100,c[7]*k.uni),gini:c[8],y0:k.y};
 }
 function wpick(arr,w){let t=arr.reduce((a,x)=>a+w(x),0),r=R()*t;for(const x of arr){r-=w(x);if(r<=0)return x}return arr[0]}
 const CLS=["最貧困","貧困","中等","富裕","最富裕"],EDU=["沒上學","小學","中學","大學"];

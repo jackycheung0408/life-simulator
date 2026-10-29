@@ -46,7 +46,7 @@ const HISTORY=[
  [1975,1990,["黎巴嫩"],"內戰爆發，貝魯特被分成兩半。",{happy:-15,war:true}],
  [1975,1992,["莫三比克","安哥拉"],"獨立後內戰爆發，鄉村陷入戰火。",{happy:-15,war:true}],
  [1980,1980,["辛巴威"],"國家獨立，改名辛巴威。",{happy:8}],
- [2000,2009,["辛巴威"],"惡性通膨，存款一夕化為烏有。",{inc:.5,happy:-12}],
+ [2000,2009,["辛巴威"],"惡性通膨，存款一夕化為烏有。",{inc:.5,happy:-12,wipe:true}],
  [1985,2005,["南非","波札那","史瓦帝尼","賴索托","辛巴威","尚比亞","馬拉威","納米比亞"],"愛滋病大流行，身邊很多人病倒。",{health:-4,happy:-10}],
  [2014,2016,["幾內亞","獅子山","賴比瑞亞"],"伊波拉疫情爆發，村莊被封鎖。",{health:-5,happy:-10}],
  [2010,2010,["海地"],"大地震摧毀了太子港。",{health:-8,happy:-15}],
@@ -159,7 +159,7 @@ async function lifeEvents(L,f){
   if(yr<h[0]||yr>h[1]||(h[2]&&!h[2].includes(L.raw))||L.abroad)continue;
   const key=h[3];L.seen=L.seen||{};if(L.seen[key])continue;L.seen[key]=1;
   const e=h[4];if(e.war&&$("soft").checked){say(L,"國家經歷了一段動盪的時期。");continue}
-  say(L,key);L.health+=e.health||0;L.happy+=e.happy||0;if(e.inc)L.inc*=e.inc;if(e.edu&&L.age<20&&L.edu>1)L.edu=1;
+  say(L,key);L.health+=e.health||0;L.happy+=e.happy||0;if(e.inc)L.inc*=e.inc;if(e.wipe)L.money=Math.min(L.money,0);if(e.edu&&L.age<20&&L.edu>1)L.edu=1;
   if(e.war)sayHi(L,"經歷過戰爭。");
   if(e.flee&&L.age>=18)await ask(L,`要逃到${e.flee}嗎？`,[["逃難",()=>{L.abroad=e.flee;L.inc*=.6;L.happy-=5;say(L,`成為難民，逃到${e.flee}。`);sayHi(L,`曾以難民身分逃到${e.flee}。`)}],["留下",()=>{L.health-=8}]]);
  }

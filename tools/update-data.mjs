@@ -15,7 +15,15 @@ async function fetchInd(id){
  return out;
 }
 
+// 1960 年代平均值，給「過去的世界」用（避開單一年份的饑荒或戰爭）
+async function fetch60s(id){
+ const [,rows]=await (await fetch(`https://api.worldbank.org/v2/country/all/indicator/${id}?format=json&date=1960:1969&per_page=20000`)).json();
+ const sum={};for(const r of rows||[])if(r.value!=null){const s=sum[r.countryiso3code]||=[0,0];s[0]+=r.value;s[1]++}
+ return Object.fromEntries(Object.entries(sum).map(([k,[t,n]])=>[k,t/n]));
+}
+
 const data={};for(const [k,id] of Object.entries(IND)){data[k]=await fetchInd(id);console.log(k,Object.keys(data[k]).length)}
+for(const [k,id] of Object.entries({m60:IND.mEx,f60:IND.fEx,im60:IND.im})){data[k]=await fetch60s(id);console.log(k,Object.keys(data[k]).length)}
 
 const src=fs.readFileSync("countries.js","utf8");
 const body=src.match(/`([\s\S]*?)`/)[1].trim().split("\n");
@@ -32,6 +40,8 @@ const lines=body.map(l=>{
  if(g("im"))a[6]=Math.round(g("im"));
  if(g("uni"))a[7]=Math.round(g("uni"));
  if(g("gini"))a[8]=+(g("gini")/100).toFixed(2);
+ // 第 11～13 欄：1960 年代男壽、女壽、嬰兒死亡率（沒有資料就留空）
+ a.length=10;a.push(...["m60","f60","im60"].map(k=>g(k)?Math.round(g(k)):""));
  return a.join("|");
 });
 console.log("沒有世界銀行資料、保留原值：",missing.join("、")||"無");
