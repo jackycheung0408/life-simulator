@@ -196,3 +196,31 @@ async function mishapYear(L){
  if(L.age<18||R()>.35)return;
  const ok=MISHAPS.filter(m=>L.age>=m[0]&&L.age<=m[1]&&m[2](L));if(ok.length)await pick(ok)[3](L);
 }
+
+// ── 看板：收支、資產、人際、職涯與健康 ──
+function bbar(v,max,color){const w=Math.max(0,Math.min(100,v/max*100));return `<div class="bb"><i style="width:${w}%;background:${color||"var(--y)"}"></i></div>`}
+function brow(k,v){return `<div class="br"><span>${k}</span><b>${v}</b></div>`}
+function renderBoards(){
+ const el=$("boards");if(!el||!P)return;const L=P,g=L.c.gdp;
+ // 收支（每月）
+ let money1="";
+ if(L.age>=18&&(L.job||L.age>=22)){const {cost,income,total,full}=yearFlow(L),k=total/Math.max(1,full),mx=Math.max(income,full)/12;
+  money1=brow("每月收入",moneyShort(income/12))+Object.entries(cost).filter(([,v])=>v>0).map(([n,v])=>`<div class="br"><span>${n}</span><b>${moneyShort(v*k/12)}</b></div>${bbar(v*k/12,mx,"var(--ac)")}`).join("")+
+   (L.ins?brow("保費",moneyShort(L.ins.prem/12)):"")+(L.mortPay?brow("房貸（含在住）",moneyShort(L.mortPay/12)):"")+brow("每月結餘",`<span style="color:${income-total>=0?"var(--g)":"var(--ac)"}">${income-total>=0?"+":"−"}${moneyShort(Math.abs(income-total)/12)}</span>`);
+ }else money1=`<p class="mut">${L.age<18?"還未成年，生活開銷由家裡負擔。":"還在讀書，靠家裡和打工過活。"}${L.pocket!=null?`<br>今年零用錢剩 ${money(Math.max(0,L.pocket))}`:""}</p>`;
+ // 資產
+ const inv=L.inv&&L.inv.amt>0?L.inv.amt:0,house=L.house?housePrice(L):0,loan=L.mort?L.mort.left:0,net=L.money+inv+house-loan;
+ const assets=brow("現金存款",(L.money<0?"−":"")+moneyShort(Math.abs(L.money)))+(inv?brow(`投資（${L.inv.type}）`,`${moneyShort(inv)} <small style="color:${inv>=L.inv.base?"var(--g)":"var(--ac)"}">${inv>=L.inv.base?"+":""}${Math.round((inv/L.inv.base-1)*100)}%</small>`):"")+
+  (house?brow("房子市值",moneyShort(house)):"")+(loan?brow("房貸未還",`−${moneyShort(loan)}`):"")+brow("淨資產",`<span style="color:${net>=0?"var(--g)":"var(--ac)"}">${net<0?"−":""}${moneyShort(Math.abs(net))}</span>`)+
+  brow("保險",L.ins?[L.ins.med&&"醫療",L.ins.acc&&"意外",L.ins.life&&"壽險"].filter(Boolean).join("、"):"沒有");
+ // 人際關係
+ const fam=[];if(L.fam){if(L.fam.fatherAlive!==false&&L.parentAlive!==false)fam.push("爸媽");}
+ const ppl=(L.partner?`<div class="br"><span>❤ ${L.partnerName||"伴侶"}</span><b>${L.loveDmg>=2?"關係緊張":"感情穩定"}</b></div>`:L.divorced?brow("感情","離婚"):L.widowed?brow("感情","伴侶已過世"):brow("感情","單身"))+
+  (L.kidList||[]).map(k=>brow(`${k.sex=="男"?"👦":"👧"} ${k.name}`,`${L.age-k.born} 歲`)).join("")+
+  (L.pals||[]).map(f=>`<div class="br"><span>${f.name}</span><b>${f.gone?"已過世":f.faded?"很少聯絡":f.close>70?"摯友":"朋友"}</b></div>${f.gone?"":bbar(f.close,100,"var(--b)")}`).join("")+
+  brow("父母",L.parentAlive===false?"已離世":"健在");
+ // 職涯與健康
+ const career=brow("工作",L.job||(L.age>=65&&L.workYears?"已退休":L.lostJob?"待業中":"—"))+(L.job?brow("年資",`${L.jobYears||0} 年`):"")+(L.workYears?brow("總工作年數",`${L.workYears} 年`):"")+
+  (L.age>=50&&L.workYears?brow("預估勞保年金",`${moneyShort(pension(L)/12)}／月`):"")+brow("慢性病",L.chronic?`${L.chronic}${L.chronicCare?"（控制中）":"（未治療）"}`:"無")+(L.dementia?brow("失智","輕度"):"")+brow("吸菸",L.smoke?"有":"無");
+ el.innerHTML=[["收支（每月）",money1],["資產",assets],["人際關係",ppl],["職涯與健康",career]].map(([t,b])=>`<div class="board"><h3>${t}</h3>${b}</div>`).join("");
+}

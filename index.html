@@ -191,6 +191,10 @@ body{font-size:15px;line-height:1.6}
 #ybFill{position:absolute;inset:0 auto 0 0;width:0;background:var(--y);transition:width .1s linear}
 #shop{display:flex;flex-wrap:wrap;gap:6px}#shop p{flex-basis:100%}
 .buy{margin:0;padding:6px 10px;font-size:14px;display:flex;flex-direction:column;align-items:flex-start}.buy small{font-size:12px;color:var(--mut)}
+.boards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.board{background:var(--bg);border:2px solid var(--line);padding:10px 12px}.board h3{margin:0 0 8px;font-size:15px;color:var(--y)}
+.br{display:flex;justify-content:space-between;gap:8px;font-size:14px;padding:3px 0}.br b{font-weight:600;text-align:right}.br small{font-size:12px}
+.bb{height:5px;background:var(--ink);margin:0 0 4px}.bb i{display:block;height:100%}
 </style></head><body><div class="wrap">
 
 <!-- 首頁 -->
@@ -248,6 +252,7 @@ body{font-size:15px;line-height:1.6}
  <div class="hp" id="hp"><i id="lifebar" style="width:0"></i></div><div class="stages" id="stages"></div></div></div>
 <div class="card"><canvas id="scenecv" width="240" height="96"></canvas><div class="mut" id="sceneTxt" style="margin-top:6px"></div><div class="mut" id="origin" style="margin-top:4px"></div></div>
 <div class="card grid" id="stats"></div>
+<div class="card boards" id="boards"></div>
 
 <div class="card"><b>今年的重心</b><br><span id="focus"></span>
 <p style="margin:8px 0 0"><b>花錢習慣</b> <select id="spend"><option value="0">節省</option><option value="1" selected>普通</option><option value="2">大方</option></select> <span class="mut">聚餐、送禮、孝親費；越大方人際越好，但存不了錢</span></p><div id="shop"></div></div>
@@ -272,13 +277,13 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=55"></script>
-<script src="events.js?v=55"></script>
-<script src="life.js?v=55"></script>
-<script src="pixel.js?v=55"></script>
-<script src="story.js?v=55"></script>
-<script src="realism.js?v=55"></script>
-<script src="taiwan.js?v=55"></script>
+<script src="countries.js?v=56"></script>
+<script src="events.js?v=56"></script>
+<script src="life.js?v=56"></script>
+<script src="pixel.js?v=56"></script>
+<script src="story.js?v=56"></script>
+<script src="realism.js?v=56"></script>
+<script src="taiwan.js?v=56"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -435,7 +440,7 @@ function buildMap(){mapN=0;lmap.innerHTML='<div class="lmap"></div>';growMap()}
 function growMap(){const g=lmap.firstChild,n=Math.max(Math.ceil(P.ex),P.age+1);for(;mapN<n;mapN++){const i=document.createElement("i");i.title=`${mapN}歲`;if(mapN>=P.ex)i.style.borderStyle="dashed";g.appendChild(i)}}
 function paintMap(a){const i=lmap.firstChild.children[a],v=P.hist[a]??P.hist.slice(0,a).filter(x=>x!=null).pop()??P.happy;if(i&&!i.dataset.p){if(a<P.age)i.dataset.p=1};if(i){i.style.background=`color-mix(in srgb,var(--ac) ${Math.round(15+v*.85)}%,transparent)`;i.title=`${a}歲 · 幸福 ${Math.round(v)}`}}
 function buildSurv(){surv.innerHTML=survivalSVG(P)+`<div class="mut" id="svtxt"></div>`}
-function render(){
+function render(){try{renderBoards()}catch(e){}
  // 和上一年比較，顯示每年重心帶來的增減
  const h=Math.round(P.health),hp=Math.round(P.happy),newYear=prev.age!==P.age,dh=prev.age<P.age?h-prev.h:0,dp=prev.age<P.age?hp-prev.hp:0;
  if(newYear)prev={age:P.age,h,hp};
