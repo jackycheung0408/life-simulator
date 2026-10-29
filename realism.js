@@ -257,3 +257,43 @@ function playReview(L){
   document.body.appendChild(ov);ov.querySelector("#lrGo").onclick=()=>{ov.classList.add("rv-out");setTimeout(()=>{ov.remove();res()},350)};
  });
 }
+
+// ── 人生證書（結局）：和出生登記成對的黑底版本 ──
+function deathCard(L){
+ const c=L.c,place=c.tw?"台灣 "+c.tw.county:c.name,net=(L.mhist||[]).filter(x=>x!=null).pop()??L.money,diff=L.age-Math.round(L.ex);
+ const cells=[["享年",L.age+" 歲"],["教育",EDU[L.edu]],["工作",L.lastJob||L.job||L.lostJob||"—"],["伴侶",L.partner?(L.partnerName||"有"):L.widowed?"已先離開":L.divorced?"離婚":"單身"],["孩子",(L.kids||0)+" 人"],["孫子女",(L.grand||0)+" 人"],["淨資產",(net<0?"−":"")+moneyShort(Math.abs(net))],["做過的抉擇",L.events.filter(e=>/→/.test(e)).length+" 次"]];
+ return `<div class="dc">
+  <div class="dc-top"><div><div class="dc-title">人生證書</div><div class="dc-mut">CERTIFICATE OF A LIFE</div></div><div class="dc-seal">圓滿</div></div>
+  <div class="bc-id"><canvas id="endAvatar" width="80" height="80"></canvas><div><div class="dc-mut">姓名</div><div class="bc-name">${L.name}</div><div class="dc-years">${c.y0} — ${c.y0+L.age}</div><div class="bc-tags dc-tags"><span>${L.sex=="男"?"♂":"♀"} ${place}</span><span>${title(L)}</span></div></div></div>
+  <p class="dc-line">${L.age} 歲時因${L.cause||"衰老"}離開人世，${diff>=0?`比當地平均壽命多活了 ${diff} 年`:`比當地平均壽命早了 ${-diff} 年`}。</p>
+  <div class="dc-grid">${cells.map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join("")}</div>
+  <div class="dc-epi" id="dcEpi">${L.notes&&L.notes.length?"「"+esc(L.notes[L.notes.length-1].replace(/^\d+歲：/,""))+"」":"在下方留一句話給這個人，會刻在這裡。"}</div>
+ </div>`;
+}
+
+// ── 追思館牆：墓碑卡片、蠟燭火光、最新／最多蠟燭排序、點開看完整人生 ──
+let HALL=[],hallSort="new";
+function hallCard(m,i){
+ const mine=lit().includes(m.id),y1=m.born+m.age,glow=Math.min(1,m.candles/20);
+ return `<div class="tomb" data-i="${i}" style="--glow:${glow}"><div class="flames">${"🕯".repeat(Math.min(5,Math.max(1,Math.ceil(m.candles/3))))}</div>
+  <b>${esc(m.name)}</b><span class="ty">${m.born}–${y1}</span><span class="tp">${esc(m.country)}</span><span class="tt">${esc(m.data?.title||"")}</span>
+  <button class="candle${mine?" on":""}" data-id="${m.id}" ${mine?"disabled":""}>🕯 <b>${m.candles}</b></button></div>`;
+}
+function drawHall(){
+ const list=[...HALL].sort((a,b)=>hallSort=="new"?new Date(b.created_at)-new Date(a.created_at):b.candles-a.candles);
+ $("memorial").innerHTML=`<div class="hall-tabs"><button data-s="new" class="${hallSort=="new"?"on":""}">最新</button><button data-s="hot" class="${hallSort=="hot"?"on":""}">最多蠟燭</button><span class="mut">共 ${HALL.length} 段人生 · 已點亮 ${HALL.reduce((a,x)=>a+x.candles,0)} 支蠟燭</span></div><div class="hall">${list.map((m)=>hallCard(m,HALL.indexOf(m))).join("")}</div>`;
+ $("memorial").querySelectorAll(".hall-tabs button").forEach(b=>b.onclick=()=>{hallSort=b.dataset.s;drawHall()});
+ $("memorial").querySelectorAll(".candle").forEach(b=>b.onclick=ev=>{ev.stopPropagation();b.disabled=true;
+  sb("rpc/light_candle",{method:"POST",body:JSON.stringify({life_id:+b.dataset.id})}).then(n=>{const m=HALL.find(x=>x.id==b.dataset.id);m.candles=n;try{localStorage.setItem("candles-lit",JSON.stringify([...lit(),m.id]))}catch{}toast(`為 ${m.name} 點了一支蠟燭`);drawHall()}).catch(()=>{b.disabled=false;toast("暫時無法點蠟燭")})});
+ $("memorial").querySelectorAll(".tomb").forEach(t=>t.onclick=()=>openTomb(HALL[t.dataset.i]));
+}
+function openTomb(m){
+ const ov=document.createElement("div");ov.id="reveal";const mine=lit().includes(m.id);
+ ov.innerHTML=`<div class="rv-box tomb-big"><div class="dc"><div class="dc-top"><div><div class="dc-title">${esc(m.name)}</div><div class="dc-mut">${m.born} — ${m.born+m.age} · ${esc(m.country)} · ${esc(m.data?.sex||"")} · 享年 ${m.age} 歲</div></div><div class="dc-seal">追思</div></div>
+  <p class="dc-tt">${esc(m.data?.title||"")}</p><p class="dc-line" style="text-align:left">${esc(m.data?.story||"")}</p>${m.words?`<div class="dc-epi">「${esc(m.words)}」</div>`:""}
+  <p class="dc-mut">${new Date(m.created_at).toLocaleDateString()} 留在追思館</p></div>
+  <button class="pri" id="tbCandle" ${mine?"disabled":""}>🕯 ${mine?"你已點過蠟燭":"點一支蠟燭"}（${m.candles}）</button><button class="rv-skip" id="tbClose">關閉</button></div>`;
+ document.body.appendChild(ov);const close=()=>{ov.remove();drawHall()};
+ ov.onclick=e=>{if(e.target===ov)close()};ov.querySelector("#tbClose").onclick=close;
+ ov.querySelector("#tbCandle").onclick=e=>{e.target.disabled=true;sb("rpc/light_candle",{method:"POST",body:JSON.stringify({life_id:m.id})}).then(n=>{m.candles=n;try{localStorage.setItem("candles-lit",JSON.stringify([...lit(),m.id]))}catch{}e.target.textContent=`🕯 已點亮（${n}）`;toast("點了一支蠟燭")}).catch(()=>{e.target.disabled=false})};
+}

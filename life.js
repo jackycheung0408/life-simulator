@@ -98,6 +98,8 @@ function birthCard(L,home){
  <div class="bc-top"><div><div class="bc-title">出生登記證明</div><div class="mut">CERTIFICATE OF BIRTH · No. ${L.raw.slice(0,2)}-${c.y0}-${Math.floor(1e6+R()*9e6)}</div></div><div class="cert-seal">已登記</div></div>
  <div class="bc-id"><canvas id="certAvatar" width="80" height="80"></canvas><div><div class="mut">姓名</div><div class="bc-name">${L.name}</div><div class="bc-tags"><span>${L.sex=="男"?"♂ 男孩":"♀ 女孩"}</span><span>${c.y0} 年</span><span>${place}</span></div></div></div>
  <p class="bc-line">你出生在一個所得${pct}的家庭。${familyLine(L)}</p>
+ ${(()=>{const me=C.find(x=>x[0]==L.raw),born=me?me[1]:0,day=born?Math.round(born*1e4/365):0;
+  return `<div class="bc-facts"><div><b>${day?day.toLocaleString():"—"}</b><span>${c.tw?"台灣":c.name}每天出生的寶寶</span></div><div><b>${c.tw?bento(c.y0)+" 元":Math.round(L.ex)+" 歲"}</b><span>${c.tw?"這一年一個便當":"這裡的人平均活到"}</span></div><div><b>${S.filter(s=>s.cls<L.cls).length}／4</b><span>同一秒出生的人裡，家境比你差的</span></div></div>`})()}
  <div class="bc-sec">家人</div><div class="bc-fam">${person(f.mother,"母親")}${person(f.father,"父親")}${sibs}<div class="bc-p"><span class="mut">宗教</span><b>${f.religion}</b></div></div>
  <div class="bc-sec">起跑點 <span class="mut">｜虛線是世界平均</span></div>
  ${cmpBar("平均壽命",ex,73,90,v=>v+" 歲","high")}

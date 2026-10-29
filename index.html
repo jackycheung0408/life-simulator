@@ -231,6 +231,22 @@ body{font-size:15px;line-height:1.6}
 .lr-play p{opacity:0;animation:lrIn .8s forwards;font-size:16px;color:var(--fg);margin:8px 0}.lr-play .lr-name{font-size:34px;font-weight:800;color:var(--y)}.lr-play .lr-sub{color:var(--mut)}.lr-play button{opacity:0;animation:lrIn .6s forwards;margin-top:16px}
 @keyframes lrIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .candle.on{background:var(--y);color:var(--ink)}
+.dc{position:relative;background:#14142c;color:#f4f1de;padding:18px;border:4px solid var(--y);box-shadow:8px 8px 0 var(--ink);text-align:left}
+.dc-top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px double var(--y);padding-bottom:10px;margin-bottom:12px}
+.dc-title{font-size:22px;font-weight:800;letter-spacing:.2em;color:var(--y)}.dc-mut{color:#a6a6c8;font-size:13px}
+.dc-seal{border:3px solid var(--y);color:var(--y);padding:4px 10px;transform:rotate(12deg);font-weight:800;animation:rvStamp .4s .3s both;white-space:nowrap}
+.dc .bc-id canvas{border-color:var(--y)}.dc-years{font-size:18px;color:var(--y);font-weight:700}.dc-tags span{background:var(--y);color:var(--ink)}
+.dc-line{margin:12px 0}.dc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px}.dc-grid div{border:2px solid #3d3d75;padding:6px 8px}.dc-grid span{display:block;font-size:12px;color:#a6a6c8}.dc-grid b{font-size:15px}
+.dc-epi{margin-top:14px;padding:12px;border-top:2px dashed #3d3d75;text-align:center;font-size:17px;color:var(--y);font-style:italic}.dc-tt{color:var(--y);font-weight:700}
+.bc{animation:paperIn .5s cubic-bezier(.2,1.2,.4,1)}@keyframes paperIn{from{transform:translateY(30px) rotate(-2deg);opacity:0}}
+.hall-tabs{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}.hall-tabs button{margin:0;padding:6px 12px}.hall-tabs button.on{background:var(--y);color:var(--ink)}
+.hall{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.tomb{cursor:pointer;background:linear-gradient(#2a2a55,#1a1a38);border:3px solid #4a4a85;border-radius:40px 40px 0 0;padding:14px 10px 10px;text-align:center;display:flex;flex-direction:column;gap:2px;box-shadow:0 0 calc(var(--glow)*24px) rgba(255,210,63,calc(var(--glow)*.6));transition:transform .15s}
+.tomb:hover{transform:translateY(-3px)}.tomb b{font-size:16px;color:var(--fg)}.tomb .ty{color:var(--y);font-size:13px}.tomb .tp{font-size:12px;color:var(--mut)}.tomb .tt{font-size:12px;color:var(--mut);min-height:32px;overflow:hidden}
+.tomb .candle{margin:6px auto 0;padding:4px 10px;font-size:13px}.flames{font-size:14px;letter-spacing:-2px;animation:flick 1.6s infinite alternate}@keyframes flick{0%{opacity:.75;filter:brightness(1)}100%{opacity:1;filter:brightness(1.4)}}
+.tomb-big{max-width:520px;max-height:90vh;overflow:auto}
+.bc-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}.bc-facts div{background:#22223a;color:#f4f1de;padding:8px;text-align:center}.bc-facts b{display:block;font-size:18px;color:var(--y)}.bc-facts span{font-size:11px;opacity:.85}
+@media(max-width:480px){.bc-vs{grid-template-columns:1fr}.bc-vs .vs{text-align:center}}
 </style></head><body><div class="wrap">
 
 <!-- 首頁 -->
@@ -313,13 +329,13 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=63"></script>
-<script src="events.js?v=63"></script>
-<script src="life.js?v=63"></script>
-<script src="pixel.js?v=63"></script>
-<script src="story.js?v=63"></script>
-<script src="realism.js?v=63"></script>
-<script src="taiwan.js?v=63"></script>
+<script src="countries.js?v=65"></script>
+<script src="events.js?v=65"></script>
+<script src="life.js?v=65"></script>
+<script src="pixel.js?v=65"></script>
+<script src="story.js?v=65"></script>
+<script src="realism.js?v=65"></script>
+<script src="taiwan.js?v=65"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -366,9 +382,7 @@ function lit(){try{return JSON.parse(localStorage.getItem("candles-lit")||"[]")}
 function renderHalls(){
  sb("lives?select=id,created_at,name,country,age,born,words,data,candles&order=created_at.desc&limit=30").then(list=>{
   list=(list||[]).filter(x=>x.name!=="測試");if(!list.length){$("memorial").textContent="還沒有人生。走完一生後，可以把它留在這裡。";$("shared").textContent="還沒有分享。";return}
-  const mine=lit();
-  $("memorial").innerHTML=list.slice(0,12).map(m=>`<div class="row"><span><b>${esc(m.name)}</b> ${m.born}–${m.born+m.age} · ${esc(m.country)}<br><span class="mut">${esc(m.data?.title||"")}</span></span><span><button class="candle${mine.includes(m.id)?" on":""}" data-id="${m.id}" ${mine.includes(m.id)?"disabled":""}>🕯 <b>${m.candles}</b></button></span></div>`).join("");
-  $("memorial").querySelectorAll(".candle").forEach(b=>b.onclick=()=>{b.disabled=true;sb("rpc/light_candle",{method:"POST",body:JSON.stringify({life_id:+b.dataset.id})}).then(n=>{b.querySelector("b").textContent=n;b.classList.add("on");try{localStorage.setItem("candles-lit",JSON.stringify([...lit(),+b.dataset.id]))}catch{}toast("點了一支蠟燭")}).catch(()=>{b.disabled=false;toast("暫時無法點蠟燭")})});
+  HALL=list;drawHall();
   $("shared").innerHTML=list.slice(0,6).map(s=>`<div class="card"><b>${esc(s.name)}</b> <span class="mut">${esc(s.country)} · ${esc(s.data?.sex||"")} · ${s.age}歲 · ${new Date(s.created_at).toLocaleDateString()}</span><p>${esc(s.data?.story||"")}</p>${s.words?`<p>「${esc(s.words)}」</p>`:""}</div>`).join("");
  }).catch(()=>{$("memorial").textContent="暫時讀不到追思館。"});
 }
@@ -684,8 +698,9 @@ function title(L){const j=L.lastJob||L.job;return L.dreamDone?`實現夢想成�
 async function finish(){
  clearSave();try{await playReview(P)}catch(e){}
  game.classList.add("hide");end.classList.remove("hide");scrollTo(0,0);
- summary.innerHTML=`<h2>${P.name}　${P.c.y0} – ${P.c.y0+P.age}</h2><p class="mut">${P.c.name} · ${P.sex} · 享年 ${P.age} 歲（當地平均 ${Math.round(P.ex)} 歲）</p><div class="grid" style="margin:12px 0">${[["享年",P.age+" 歲"],["教育",EDU[P.edu]],["孩子",P.kids+" 人"],["孫子女",P.grand+" 人"],["住過的國家",P.abroad?2:1]].map(k=>`<div class="kpi mut">${k[0]}<b style="color:var(--fg)">${k[1]}</b></div>`).join("")}</div>
- <p>${story(P)}</p>${lifeReview(P)}
+ setTimeout(()=>{const cv=$("endAvatar");if(cv)drawAvatarLCD(cv,P);$("msg").oninput=e=>{$("dcEpi").textContent=e.target.value.trim()?"「"+e.target.value.trim()+"」":"在下方留一句話給這個人，會刻在這裡。"}},0);
+ summary.innerHTML=`${deathCard(P)}
+ <p style="margin-top:14px">${story(P)}</p>${lifeReview(P)}
  <h2>人生地圖</h2><div class="mut">一格是一年 · 顏色越深那年越幸福</div>${lifeMap(P)}
  <h2 style="margin-top:12px">人生時間軸</h2><div class="tl">${P.events.filter(e=>MILESTONE.test(e)&&!/→|沒考上/.test(e)).map(e=>{const i=e.indexOf("：");return `<div><b>${e.slice(0,i)}</b>${e.slice(i+1)}</div>`}).join("")}</div>
  ${P.notes.length?"<p><b>你在路上留下的話</b><br>"+P.notes.map(esc).join("<br>")+"</p>":""}`;
