@@ -253,12 +253,12 @@ button,select,.tbar,.sw{font-family:"DotGothic16","PingFang TC","Noto Sans TC",s
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=32"></script>
-<script src="events.js?v=32"></script>
-<script src="life.js?v=32"></script>
-<script src="pixel.js?v=32"></script>
-<script src="story.js?v=32"></script>
-<script src="taiwan.js?v=32"></script>
+<script src="countries.js?v=33"></script>
+<script src="events.js?v=33"></script>
+<script src="life.js?v=33"></script>
+<script src="pixel.js?v=33"></script>
+<script src="story.js?v=33"></script>
+<script src="taiwan.js?v=33"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -452,12 +452,21 @@ function ask(L,q,opts,info){
    say(L,q+" → "+o[0]);o[1]();const d=diffText(before,snap(L));
    setTimeout(async()=>{await closeModal();render();toast(d?`${o[0]}：${d}`:`選擇了「${o[0]}」`);res()},420)})});
 }
+const QA={
+ 5:[["和爸媽出去玩的那天",L=>{L.rel+=3;L.happy+=2},"人際↑"],["第一次交到好朋友",L=>{L.rel+=4},"人際↑"],["一本翻到爛的圖畫書",L=>{L.know+=4},"知識↑"],["生病時被照顧",L=>{L.health+=2;L.rel+=2},"健康↑"],["一直想要卻沒買到的玩具",L=>{L.happy-=1;L.know+=1},"幸福↓"]],
+ 15:[["功課和考試",L=>{L.know+=4;L.happy-=2},"知識↑ 幸福↓"],["喜歡的人",L=>{L.happy+=2;L.rel+=2},"幸福↑"],["家裡的經濟",L=>{L.happy-=3;L.know+=2},"幸福↓"],["和朋友的關係",L=>{L.rel+=4},"人際↑"],["將來要做什麼",L=>{L.know+=3},"知識↑"]],
+ 30:[["工作剛上軌道",L=>{L.inc*=1.03;L.happy+=1},"收入↑"],["還在找方向",L=>{L.happy-=2;L.know+=3},"知識↑ 幸福↓"],["忙著照顧家庭",L=>{L.rel+=4},"人際↑"],["身體開始發出警訊",L=>{L.health+=3},"健康↑"],["過得挺滿足",L=>{L.happy+=4},"幸福↑"]],
+ 50:[["家人",L=>{L.rel+=4;L.happy+=2},"人際↑"],["健康",L=>{L.health+=4},"健康↑"],["存款",L=>{L.money+=L.inc*.05;L.happy-=1},"存款↑"],["工作和名聲",L=>{L.inc*=1.03;L.rel-=1},"收入↑"],["內心的平靜",L=>{L.happy+=4},"幸福↑"]],
+ 70:[["伴侶",L=>{L.happy+=3},"幸福↑"],["孩子和孫子",L=>{L.rel+=4},"人際↑"],["老朋友",L=>{L.rel+=3;L.happy+=1},"人際↑"],["一個人也很好",L=>{L.happy+=2;L.rel-=2},"幸福↑ 人際↓"]],
+};
 const Q={5:"你五歲時，最記得的是什麼？",15:"十五歲的你，在煩惱什麼？",30:"三十歲時，你覺得人生走到哪裡了？",50:"如果你也活到五十歲，最想守住的是什麼？",70:"走到七十歲，你希望身邊有誰？"};
 function reflect(){
  if(auto)return Promise.resolve();
  if(ffwd){ffwd=false;$("ffwd").textContent="⏭︎ 下一個抉擇";$("ffwd").classList.remove("on")}render();
- return new Promise(res=>{openModal(`暫停片刻 · ${P.age} 歲`);choice.innerHTML=`<h2>${P.name}，${P.age} 歲</h2><p>同年在${P.c.name}出生的人，約 ${survivePct(P)}% 還活著。</p><p class="mut">同一秒出生的人：${S.map(s=>`${s.name}（${s.c.name}）${s.alive?P.age+"歲・"+(s.job||EDU[s.edu]):"已離世"}`).join("、")}</p><p>${Q[P.age]}</p><textarea rows="2" id="rf" placeholder="想寫就寫，不寫也可以"></textarea><button class="pri" style="margin-top:10px">繼續</button>`;
-  choice.querySelector("button").onclick=async()=>{const v=$("rf").value.trim();if(v)P.notes.push(`${P.age}歲：${v}`);await closeModal();toast(v?"已記下這句話，結局時會再看到":"繼續往下走");res()}});
+ return new Promise(res=>{openModal(`暫停片刻 · ${P.age} 歲`);choice.innerHTML=`<h2>${P.name}，${P.age} 歲</h2><p>同年在${P.c.name}出生的人，約 ${survivePct(P)}% 還活著。</p><p class="mut">同一秒出生的人：${S.map(s=>`${s.name}（${s.c.name}）${s.alive?P.age+"歲・"+(s.job||EDU[s.edu]):"已離世"}`).join("、")}</p><p>${Q[P.age]}</p>`+(QA[P.age]||[]).map((o,i)=>`<button class="opt" data-i="${i}">${o[0]}<small>${o[2]}</small></button>`).join("");
+  choice.querySelectorAll("button.opt").forEach(btn=>btn.onclick=async()=>{const o=QA[P.age][btn.dataset.i],before=snap(P);o[1](P);P.notes.push(`${P.age}歲：${Q[P.age]} → ${o[0]}`);say(P,`${Q[P.age]} → ${o[0]}`);
+   choice.querySelectorAll("button").forEach(x=>{x.disabled=true;x.classList.add(x===btn?"picked":"dim")});const d=diffText(before,snap(P));
+   setTimeout(async()=>{await closeModal();render();toast(d?`${o[0]}：${d}`:`選擇了「${o[0]}」`);res()},420)})});
 }
 function mortality(L){
  const c=L.c,a=L.age;

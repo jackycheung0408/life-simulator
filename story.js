@@ -89,7 +89,7 @@ async function spendYear(L){
  L.spent=L.spent||{};
  const ok=SPEND.filter(e=>L.age>=e.min&&L.age<=e.max&&!(e.once&&L.spent[e.id]));if(!ok.length)return;
  const e=pick(ok),cost=Math.max(e.cost(L),1);
- await ask(L,e.q,[[e.yes,()=>{L.spent[e.id]=1;L.money-=cost;ledger(L,"花費",-cost);e.y(L)},`約 ${money(cost)}`,cost],[e.no,()=>{e.n(L)}]]);
+ await ask(L,e.q,[[e.yes,()=>{L.spent[e.id]=1;L.money-=cost;ledger(L,"花費",-cost);e.y(L)},`約 ${money(cost)}`,cost],["花少一點，挑便宜的",()=>{L.money-=cost*.4;ledger(L,"花費",-cost*.4);L.happy+=2},`約 ${money(cost*.4)}`,cost*.4],[e.no,()=>{e.n(L)},"省下來"]]);
 }
 
 async function storyYear(L){kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L);await spendYear(L)}
