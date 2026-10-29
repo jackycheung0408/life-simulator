@@ -78,7 +78,20 @@ button.pri{background:var(--ac);color:#fff;border-color:var(--ac);padding:10px 2
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
-const FN={男:["志明","建宏","Arjun","偉","Chinedu","Ahmed","Lucas","Hiroshi","Jonas","Minh","Ivan","Kofi","Omar","Juan","Somchai"],女:["淑芬","雅婷","Priya","美玲","Amara","Fatima","Ana","Yuki","Emma","Linh","Olga","Wanjiru","Aisha","María","Siti"]};
+const NAMES={
+ 華:{男:["志明","建宏","浩宇","子軒","偉","俊傑","家豪","宇航"],女:["淑芬","雅婷","雨涵","欣怡","美玲","詩涵","佳穎","曉彤"]},
+ 日:{男:["翔太","大輝","健一","陽斗","拓海"],女:["結衣","陽菜","美咲","優子","葵"]},
+ 韓:{男:["敏俊","志勳","賢宇","在元"],女:["瑞妍","智恩","秀彬","敏智"]},
+ 南亞:{男:["Arjun","Rahul","Imran","Rohan","Amit","Bilal","Sanjay"],女:["Priya","Ananya","Ayesha","Sneha","Pooja","Nusrat"]},
+ 中東:{男:["Ahmed","Omar","Ali","Yusuf","Hassan","Mehmet","Reza"],女:["Fatima","Aisha","Layla","Zeynep","Mariam","Noor","Sara"]},
+ 非:{男:["Chinedu","Kofi","Juma","Tesfaye","Moussa","Thabo","Emmanuel","Abdoulaye"],女:["Amara","Wanjiru","Nokuthula","Aminata","Grace","Chipo","Fatoumata","Abebech"]},
+ 拉:{男:["Juan","Lucas","Mateo","Diego","Carlos","João","Gabriel"],女:["María","Ana","Camila","Valentina","Lucía","Beatriz","Sofía"]},
+ 英:{男:["James","Liam","Noah","Ethan","Oliver","Jack"],女:["Emma","Olivia","Sophie","Grace","Emily","Chloe"]},
+ 歐:{男:["Jonas","Luca","Pierre","Marco","Lukas","Mikael","Piotr"],女:["Emma","Giulia","Léa","Anna","Sofia","Elena","Zofia"]},
+ 斯:{男:["Ivan","Dmitri","Taras","Aleksandr","Nikola","Andrei"],女:["Olga","Natalia","Anastasia","Daria","Milena","Irina"]},
+ 東南亞:{男:["Minh","Somchai","Budi","Aung","Rizal","Ahmad"],女:["Linh","Siti","Mali","Ei Mon","Maria","Nurul"]}};
+const REGIONS=[["華","中國,台灣,香港,澳門,新加坡"],["日","日本"],["韓","韓國,北韓"],["南亞","印度,巴基斯坦,孟加拉,尼泊爾,斯里蘭卡,不丹,馬爾地夫,阿富汗"],["東南亞","印尼,越南,菲律賓,泰國,緬甸,柬埔寨,寮國,馬來西亞,東帝汶,斐濟,所羅門群島,巴布亞紐幾內亞"],["中東","埃及,伊朗,伊拉克,土耳其,沙烏地阿拉伯,葉門,敘利亞,約旦,黎巴嫩,以色列,巴勒斯坦,科威特,阿曼,阿聯,卡達,巴林,利比亞,突尼西亞,阿爾及利亞,摩洛哥,茅利塔尼亞,蘇丹,亞塞拜然,烏茲別克,哈薩克,塔吉克,土庫曼,吉爾吉斯"],["英","美國,英國,澳洲,加拿大,紐西蘭,愛爾蘭,牙買加,千里達及托巴哥,蓋亞那"],["拉","墨西哥,巴西,哥倫比亞,阿根廷,秘魯,委內瑞拉,智利,厄瓜多,瓜地馬拉,玻利維亞,古巴,多明尼加,宏都拉斯,巴拉圭,薩爾瓦多,尼加拉瓜,哥斯大黎加,巴拿馬,烏拉圭,海地,蘇利南"],["斯","俄羅斯,烏克蘭,白俄羅斯,塞爾維亞,保加利亞,克羅埃西亞,波士尼亞,蒙特內哥羅,北馬其頓,摩爾多瓦"],["歐","德國,法國,義大利,西班牙,波蘭,荷蘭,比利時,瑞典,捷克,希臘,葡萄牙,匈牙利,奧地利,瑞士,丹麥,芬蘭,挪威,羅馬尼亞,斯洛伐克,斯洛維尼亞,立陶宛,拉脫維亞,愛沙尼亞,阿爾巴尼亞,科索沃,塞普勒斯,盧森堡,馬爾他,冰島,喬治亞,亞美尼亞,蒙古"]];
+const REGION=n=>REGIONS.find(r=>r[1].split(",").includes(n))?.[0]||"非";
 const THEMES=[["網路","上網"],["戰爭","衝突"],["疫情","傳染病"],["音樂","樂團"],["氣候","極端天氣"],["移民","遷徙"],["運動","比賽"]];
 const R=Math.random,pick=a=>a[Math.floor(R()*a.length)],$=id=>document.getElementById(id);
 const store={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
@@ -116,7 +129,7 @@ const CLS=["最貧困","貧困","中等","富裕","最富裕"],EDU=["沒上學",
 function newLife(w){
  const raw=wpick(C,x=>cfg.m=="birth"?x[1]:x[2]),c=world(raw,w);
  const sex=R()<.51?"男":"女",cls=Math.floor(R()*5);
- return {c,sex,name:pick(FN[sex]),age:0,cls,inc:c.gdp*Math.exp((cls-2)*c.gini*1.4),health:70+R()*20+cls*2,happy:60,edu:0,
+ return {c,sex,name:pick(NAMES[REGION(raw[0])][sex]),age:0,cls,inc:c.gdp*Math.exp((cls-2)*c.gini*1.4),health:70+R()*20+cls*2,happy:60,edu:0,
   money:0,partner:null,partnerYears:0,widowed:false,kids:0,grand:0,job:null,jobYears:0,smoke:false,abroad:null,alive:true,events:[],notes:[],
   ex:sex=="男"?c.mEx:c.fEx,cause:null};
 }
@@ -128,7 +141,7 @@ go.onclick=()=>{
  P=newLife(w);S=[0,1,2,3].map(()=>newLife(w));
  home.classList.add("hide");game.classList.remove("hide");scrollTo(0,0);
  who.textContent=`${P.name}（${P.sex}）`;
- origin.textContent=`${P.c.y0} 年，出生在${P.c.name}${P.c.city}一個${CLS[P.cls]}階層的家庭，是個${P.sex=="男"?"男孩":"女孩"}。當地平均壽命 ${Math.round(P.ex)} 歲。`;
+ $("origin").textContent=`${P.c.y0} 年，出生在${P.c.name}${P.c.city}一個${CLS[P.cls]}階層的家庭，是個${P.sex=="男"?"男孩":"女孩"}。當地平均壽命 ${Math.round(P.ex)} 歲。`;
  $("focus").innerHTML=FOCI.map(f=>`<button class="f${f==focusSel?' on':''}">${f}</button>`).join("");
  document.querySelectorAll(".f").forEach(b=>b.onclick=()=>{focusSel=b.textContent;document.querySelectorAll(".f").forEach(x=>x.classList.toggle("on",x==b))});
  log.innerHTML="";say(P,`${P.name}誕生了。`);render();loop();
@@ -195,7 +208,7 @@ async function year(L){
  if(R()<.03)say(L,pick(["和老朋友重逢。","經歷了一場天災。","家裡的長輩離世了。","找到新的興趣。","經濟不景氣，日子變得緊。",`這一年，「${THEME[0]}」改變了很多人的生活。`]));
  if(L.age==65&&L.job){say(L,`從${L.job}退休，一共做了 ${L.jobYears} 年。`);L.lastJob=L.job;L.job=null}
  if(isP&&Q[L.age])await reflect();
- if(R()<mortality(L)){L.alive=false;L.cause=pick(CAUSES.find(x=>L.age>=x[0]&&L.age<x[1])[2]);say(L,`${L.age} 歲時因${L.cause}離開了人世。`)}
+ if(R()<mortality(L)){L.alive=false;L.cause=pick(CAUSES.find(x=>L.age>=x[0]&&L.age<x[1])[2]);say(L,`因${L.cause}離開了人世。`)}
 }
 
 async function loop(){
