@@ -14,6 +14,12 @@ button.pri{background:var(--ac);color:#fff;border-color:var(--ac);padding:10px 2
 .stat b{display:block;font-size:1.15rem}.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
 .row{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding:4px 0}
 #log{max-height:42vh;overflow:auto;font-size:.95rem}#log p{margin:4px 0}.y{color:var(--mut);margin-right:6px}
+#log p.hi{font-weight:600;border-left:3px solid var(--ac);padding-left:8px}
+#log p:first-child{animation:fade .5s}@keyframes fade{from{opacity:0;transform:translateY(-4px)}}
+.tl{position:relative;margin:8px 0 0 6px;padding-left:18px;border-left:2px solid var(--line)}
+.tl div{position:relative;margin:0 0 10px}.tl div::before{content:"";position:absolute;left:-24px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--ac)}
+.tl b{display:inline-block;min-width:44px;color:var(--mut);font-weight:500}
+.kpi{text-align:center}.kpi b{display:block;font-size:1.5rem}
 .hide{display:none}textarea,input{width:100%;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
 .big{font-size:1.6rem;font-weight:700}.tool{position:sticky;top:0;z-index:2}
 .sib{font-size:.85rem}.sib b{font-size:.95rem}
@@ -75,8 +81,8 @@ button.pri{background:var(--ac);color:#fff;border-color:var(--ac);padding:10px 2
 </section>
 </div>
 
-<script src="countries.js?v=3"></script>
-<script src="events.js?v=3"></script>
+<script src="countries.js?v=4"></script>
+<script src="events.js?v=4"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -157,7 +163,9 @@ $("auto").onclick=e=>{auto=!auto;e.target.textContent="自動抉擇："+(auto?"�
 $("skip").onclick=()=>{if(!confirm("剩下的人生會自動抉擇並快速跑完，確定嗎？"))return;auto=true;mult=9999;paused=false;$("auto").textContent="自動抉擇：開";spd.textContent="⏩";pause.textContent="暫停"};
 
 function money(usd){const k=$("cur").value;return Math.round(usd*PPP[k]).toLocaleString()+" "+k}
-function say(L,t){L.events.push(`${L.age}歲：${t}`);if(L===P){const p=document.createElement("p");p.innerHTML=`<span class="y">${L.age}歲</span>${t}`;log.prepend(p)}}
+// 人生大事：紀錄中加粗標示，結局時列入時間軸
+const MILESTONE=/誕生了|上小學|升上中學|考上大學|開始當|轉行|結為伴侶|孩子出生|收養|移居|逃到|難民|公民|夢寐|當選|創業成功|買下|出版|退休|先離開|分開了|離開了人世|戰爭|革命|饑荒|改革開放|解體|圍牆|屠殺|內戰|海嘯|地震|疫情|金融|登陸月球|動盪/;
+function say(L,t){L.events.push(`${L.age}歲：${t}`);if(L===P){const p=document.createElement("p");if(MILESTONE.test(t))p.className="hi";p.innerHTML=`<span class="y">${L.age}歲</span>${t}`;log.prepend(p)}}
 function stat(n,v,pct){return `<div class="stat">${n}<b>${v}</b>${pct!=null?`<div class="bar"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div>`:""}</div>`}
 function render(){
  yr.textContent=`${P.c.y0+P.age} 年 · ${P.age} 歲`;
@@ -171,12 +179,14 @@ function render(){
 // 抉擇：玩家會停下等待；同秒嬰兒自動
 function ask(L,q,opts){
  if(L!==P||auto){const o=pick(opts);if(L===P)say(L,q+" → "+o[0]);o[1]();return Promise.resolve()}
+ render();
  return new Promise(res=>{choice.style.display="block";choice.innerHTML=`<b>${q}</b><br>`+opts.map((o,i)=>`<button data-i="${i}">${o[0]}</button>`).join("");
   choice.querySelectorAll("button").forEach(b=>b.onclick=()=>{const o=opts[b.dataset.i];say(L,q+" → "+o[0]);o[1]();choice.style.display="none";render();res()})});
 }
 const Q={5:"你五歲時，最記得的是什麼？",15:"十五歲的你，在煩惱什麼？",30:"三十歲時，你覺得人生走到哪裡了？",50:"如果你也活到五十歲，最想守住的是什麼？",70:"走到七十歲，你希望身邊有誰？"};
 function reflect(){
  if(auto)return Promise.resolve();
+ render();
  return new Promise(res=>{choice.style.display="block";choice.innerHTML=`<b>暫停片刻</b><p>${P.name}現在 ${P.age} 歲。${Q[P.age]}</p><textarea rows="2" id="rf" placeholder="想寫就寫，不寫也可以"></textarea><button>繼續</button>`;
   choice.querySelector("button").onclick=()=>{const v=$("rf").value.trim();if(v)P.notes.push(`${P.age}歲：${v}`);choice.style.display="none";res()}});
 }
@@ -241,7 +251,10 @@ function story(L){
 function title(L){const j=L.lastJob||L.job;return L.dreamDone?`實現夢想成為${L.dream}的人生`:L.politician?`一邊工作，一邊擔任地方議員的人生`:L.abroad?`從${L.c.name}移居${L.abroad}的人生`:j&&L.jobYears>10?`當了 ${L.jobYears} 年${j}的人生`:L.age<5?`在${L.c.name}出生，也在那裡長眠。`:`在${L.c.name}度過的 ${L.age} 年`}
 function finish(){
  game.classList.add("hide");end.classList.remove("hide");scrollTo(0,0);
- summary.innerHTML=`<h2>${P.name}　${P.c.y0} – ${P.c.y0+P.age}</h2><p class="mut">${P.c.name} · ${P.sex} · 享年 ${P.age} 歲（當地平均 ${Math.round(P.ex)} 歲）</p><p>${story(P)}</p>${P.notes.length?"<p><b>你在路上留下的話</b><br>"+P.notes.map(esc).join("<br>")+"</p>":""}`;
+ summary.innerHTML=`<h2>${P.name}　${P.c.y0} – ${P.c.y0+P.age}</h2><p class="mut">${P.c.name} · ${P.sex} · 享年 ${P.age} 歲（當地平均 ${Math.round(P.ex)} 歲）</p><div class="grid" style="margin:12px 0">${[["享年",P.age+" 歲"],["教育",EDU[P.edu]],["孩子",P.kids+" 人"],["孫子女",P.grand+" 人"],["住過的國家",P.abroad?2:1]].map(k=>`<div class="kpi mut">${k[0]}<b style="color:var(--fg)">${k[1]}</b></div>`).join("")}</div>
+ <p>${story(P)}</p>
+ <h2>人生時間軸</h2><div class="tl">${P.events.filter(e=>MILESTONE.test(e)&&!e.includes("→")).map(e=>{const i=e.indexOf("：");return `<div><b>${e.slice(0,i)}</b>${e.slice(i+1)}</div>`}).join("")}</div>
+ ${P.notes.length?"<p><b>你在路上留下的話</b><br>"+P.notes.map(esc).join("<br>")+"</p>":""}`;
  const h=$("homeC").value;
  if(h!==""){const m=world(C[h],"now");compare.innerHTML=`<h2>和你的出生地並排看</h2>
   <div class="row"><span></span><b>${P.c.name}</b><b>${m.name}</b></div>

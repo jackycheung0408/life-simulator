@@ -55,7 +55,7 @@ const EVENTS=[
  [6,15,.05,L=>L.talent=="聰明"&&L.edu>=1,L=>{say(L,"成績總是全班前幾名。");L.smart=true}],
  [8,15,.03,L=>L.cls<=1&&L.edu>=1,L=>{L.happy-=5;say(L,"家裡太窮，曾經餓著肚子去上學。")}],
  [10,10,1,L=>true,L=>{L.dream=pick(DREAMS[L.talent]);say(L,`長大後想當${L.dream}。`)}],
- [10,17,.04,L=>LOW(L.c)&&L.sex=="女",L=>ask(L,"家人安排了一門婚事，要怎麼做？",[["聽從家人",()=>{L.partner=true;L.childMarriage=true;L.edu=Math.min(L.edu,1);L.happy-=10;say(L,"年紀很小就結婚了。")}],["拒絕並繼續讀書",()=>{L.happy-=3;if(R()<.5){L.edu=Math.max(L.edu,1);say(L,"說服了家人，繼續上學。")}else say(L,"沒能說服家人，但婚事暫時擱下了。")}]])],
+ [13,17,.04,L=>LOW(L.c)&&L.sex=="女",L=>ask(L,"家人安排了一門婚事，要怎麼做？",[["聽從家人",()=>{L.partner=true;L.childMarriage=true;L.edu=Math.min(L.edu,1);L.happy-=10;say(L,"年紀很小就結婚了。")}],["拒絕並繼續讀書",()=>{L.happy-=3;if(R()<.5){L.edu=Math.max(L.edu,1);say(L,"說服了家人，繼續上學。")}else say(L,"沒能說服家人，但婚事暫時擱下了。")}]])],
  // 青少年
  [13,19,.06,L=>true,L=>{L.happy+=6;say(L,"第一次心動。")}],
  [13,19,.03,L=>true,L=>{L.happy-=10;say(L,pick(L.edu>=1&&L.age<18&&!L.job?["在學校被霸凌了一段時間。","和家人大吵一架，離家出走了一晚。"]:["和家人大吵一架，離家出走了一晚。"]))}],
