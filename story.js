@@ -69,4 +69,27 @@ async function kindness(L){
  if(L.kindAt&&!L.kindBack&&L.age-L.kindAt>=4&&R()<.25){L.kindBack=true;L.happy+=8;say(L,"幾年前你幫忙提東西的那位老人家，家人輾轉找到你，送來一箱自家種的水果。")}
 }
 
-async function storyYear(L){kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L)}
+
+// 花錢的機會：每年有機會遇到一件想花錢的事（once 只會遇到一次）
+const SPEND=[
+ {id:"trip",min:18,max:75,cost:L=>L.inc*.08,q:"朋友揪你出國玩一趟",yes:"跟著去",y:L=>{L.happy+=6;L.rel+=2},no:"這次先不去",n:L=>{L.rel-=1}},
+ {id:"phone",min:14,max:80,cost:L=>L.c.gdp*.03,q:"新手機出了，你的舊手機越來越卡",yes:"換新的",y:L=>{L.happy+=3},no:"再撐一年",n:()=>{}},
+ {id:"car",once:1,min:22,max:60,cost:L=>L.c.gdp*.6,q:"想買一台車，通勤和帶家人出門都方便",yes:"買車",y:L=>{L.happy+=5;L.car=true},no:"繼續搭車騎車",n:()=>{}},
+ {id:"class",min:18,max:60,cost:L=>L.c.gdp*.05,q:"看到一門想上的課程（語言、證照、才藝）",yes:"報名",y:L=>{L.know+=5;if(L.job)L.inc*=1.02},no:"算了",n:()=>{}},
+ {id:"parents",min:22,max:65,cost:L=>L.inc*.06,q:"爸媽年紀大了，想帶他們好好吃一頓、包個紅包",yes:"包大一點",y:L=>{L.rel+=4;L.happy+=3},no:"意思一下就好",n:L=>{L.rel+=1}},
+ {id:"reno",once:1,min:30,max:70,cost:L=>L.c.gdp*.4,q:"家裡老舊，想整修一下",yes:"整修",y:L=>{L.happy+=5;L.health+=1},no:"住得下去就好",n:()=>{}},
+ {id:"pet",once:1,min:10,max:70,cost:L=>L.c.gdp*.05,q:"路邊有隻小狗一直跟著你",yes:"帶回家養",y:L=>{L.happy+=7;L.pet=true},no:"送到收容所",n:()=>{}},
+ {id:"checkup",min:40,max:85,cost:L=>L.c.gdp*.04,q:"醫院推出自費健康檢查",yes:"去做",y:L=>{L.health+=4},no:"身體還好，不用",n:()=>{}},
+ {id:"lend",min:25,max:70,cost:L=>L.inc*.15,q:"老朋友手頭緊，開口跟你借錢",yes:"借他",y:L=>{L.rel+=3;L.lent=L.inc*.15;L.lentAt=L.age},no:"婉拒",n:L=>{L.rel-=3}},
+ {id:"invest",min:25,max:65,cost:L=>L.inc*.2,q:"同事說有一檔股票很有潛力",yes:"投一筆",y:L=>{const r=R()<.45?2:R()<.6?.3:1.2;L.money+=L.inc*.2*r;ledger(L,"投資",L.inc*.2*(r-1));say(L,r>1.5?"那檔股票真的漲了一倍！":r<.5?"股票套牢，賠了七成。":"股票小賺一點。")},no:"不碰",n:()=>{}},
+];
+async function spendYear(L){
+ if(L.lent&&L.age-L.lentAt>=2&&R()<.3){if(R()<.6){L.money+=L.lent;say(L,`朋友把之前借的 ${money(L.lent)} 還給你了。`)}else{L.rel-=2;say(L,"借出去的錢，朋友一直沒還，也不好意思開口。")}L.lent=0}
+ if(L.age<14||R()>.3||L.money<=0&&L.age<22)return;
+ L.spent=L.spent||{};
+ const ok=SPEND.filter(e=>L.age>=e.min&&L.age<=e.max&&!(e.once&&L.spent[e.id]));if(!ok.length)return;
+ const e=pick(ok),cost=Math.max(e.cost(L),1);
+ await ask(L,e.q,[[e.yes,()=>{L.spent[e.id]=1;L.money-=cost;ledger(L,"花費",-cost);e.y(L)},`約 ${money(cost)}`,cost],[e.no,()=>{e.n(L)}]]);
+}
+
+async function storyYear(L){kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L);await spendYear(L)}
