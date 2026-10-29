@@ -49,8 +49,9 @@ function moneyYear(L){
  // 欠債要付利息
  if(L.money<0){const it=-L.money*.06;L.money-=it;ledger(L,"債務利息",-it)}
  // 房租或房貸（成年、沒和父母住）
- if(L.age>=20&&!L.house&&(L.job||L.partner)){const rent=c.gdp*(L.moved?.12:.07);L.money-=rent;ledger(L,"房租",-rent);
-  if(R()<.04){const up=c.gdp*.03;L.money-=up;ledger(L,"房租上漲",-up);if(L===P)say(L,`房東通知要漲房租，生活更緊了。（−${money(up)}）`)}}
+ // 一般生活費已含在每年的儲蓄裡；離鄉打拚或出國的人另外多付一筆房租
+ if(L.age>=20&&!L.house&&(L.moved||L.abroad)&&L.job){const rent=L.inc*.08;L.money-=rent;ledger(L,"房租",-rent)}
+ if(L.age>=20&&!L.house&&L.job&&R()<.04){const up=L.inc*.03;L.money-=up;ledger(L,"房租上漲",-up);if(L===P)say(L,`房東通知要漲房租，生活更緊了。（−${money(up)}）`)}
  if(L.kids&&L.age<55)ledger(L,"養孩子",-L.inc*.02*L.kids);
  // 欠太多會失眠
  if(L.money<-c.gdp*.5&&R()<.35){L.happy-=4;L.health-=1;if(L===P)say(L,`還欠著 ${money(-L.money)} 的債，晚上常常睡不著。`)}
