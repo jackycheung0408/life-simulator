@@ -408,7 +408,7 @@ function setStat(n,val,pct,delta){
 let prev={},mapN=0,lastScene="",lastSibs="";
 function buildMap(){mapN=0;lmap.innerHTML='<div class="lmap"></div>';growMap()}
 function growMap(){const g=lmap.firstChild,n=Math.max(Math.ceil(P.ex),P.age+1);for(;mapN<n;mapN++){const i=document.createElement("i");i.title=`${mapN}歲`;if(mapN>=P.ex)i.style.borderStyle="dashed";g.appendChild(i)}}
-function paintMap(a){const i=lmap.firstChild.children[a],v=P.hist[a]??P.hist.slice(0,a).filter(x=>x!=null).pop()??P.happy;if(i&&!i.dataset.p){if(a<P.age)i.dataset.p=1;{i.style.background=`color-mix(in srgb,var(--ac) ${Math.round(15+v*.85)}%,transparent)`;i.title=`${a}歲 · 幸福 ${Math.round(v)}`}}
+function paintMap(a){const i=lmap.firstChild.children[a],v=P.hist[a]??P.hist.slice(0,a).filter(x=>x!=null).pop()??P.happy;if(i&&!i.dataset.p){if(a<P.age)i.dataset.p=1};if(i){i.style.background=`color-mix(in srgb,var(--ac) ${Math.round(15+v*.85)}%,transparent)`;i.title=`${a}歲 · 幸福 ${Math.round(v)}`}}
 function buildSurv(){surv.innerHTML=survivalSVG(P)+`<div class="mut" id="svtxt"></div>`}
 function render(){
  // 和上一年比較，顯示每年重心帶來的增減
