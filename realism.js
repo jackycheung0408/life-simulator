@@ -4,10 +4,13 @@
 // ── 稅與勞健保：薪水先扣稅與社會保險，退休後領年金 ──
 function taxRate(L){
  const c=L.c,g=c.gdp,inc=L.inc||0;
+// 自營、非正式工作（攤販、農漁民等）在中低所得國家多半不用繳所得稅與社會保險
+ if(informal(L))return .01;
  if(c.tw)return .05+(inc>g*1.5?.07:inc>g*.8?.03:0);                    // 綜所稅級距概估
  return g>40000?.18+(inc>g*1.5?.1:0):g>15000?.1:g>5000?.05:.02;
 }
-function socialRate(L){const g=L.c.gdp;return L.c.tw?.035:g>40000?.08:g>15000?.05:g>5000?.02:0} // 勞保＋健保自付
+function informal(L){return !L.c.tw&&L.c.gdp<20000&&["農民","攤販","漁夫","清潔工","小店老闆","建築工人"].includes(L.job)}
+function socialRate(L){const g=L.c.gdp;if(informal(L))return 0;return L.c.tw?.035:g>40000?.08:g>15000?.05:g>5000?.02:0} // 勞保＋健保自付
 function netPay(L){return L.inc*(1-taxRate(L)-socialRate(L))}
 function pension(L){
  const g=L.c.gdp,last=L.lastInc||g*.4,yrs=L.workYears||0;

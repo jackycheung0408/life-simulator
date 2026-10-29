@@ -230,6 +230,7 @@ body{font-size:15px;line-height:1.6}
 .lr-chs{display:grid;gap:8px;margin-top:10px}.lr-ch{border-left:4px solid var(--y);padding:6px 10px;background:var(--bg)}.lr-ch-h{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.lr-ch-h b{color:var(--y);font-size:16px}.lr-ch-h span,.lr-ch-h em{font-size:12px;color:var(--mut);font-style:normal}.lr-ch p{margin:4px 0;font-size:14px}
 .lr-play p{opacity:0;animation:lrIn .8s forwards;font-size:16px;color:var(--fg);margin:8px 0}.lr-play .lr-name{font-size:34px;font-weight:800;color:var(--y)}.lr-play .lr-sub{color:var(--mut)}.lr-play button{opacity:0;animation:lrIn .6s forwards;margin-top:16px}
 @keyframes lrIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.candle.on{background:var(--y);color:var(--ink)}
 </style></head><body><div class="wrap">
 
 <!-- 首頁 -->
@@ -255,8 +256,8 @@ body{font-size:15px;line-height:1.6}
 <p class="mut">死亡、暴力、自殺等沉重的事也會照統計發生，不描寫畫面，並附上求助資訊（台灣安心專線 1925）。</p>
 </div>
 
-<div class="card"><div class="row"><h2>追思館</h2><span class="mut">大家走完的人生 · 按 🕯 到 GitHub 點一支蠟燭（按任一表情）</span></div><div id="memorial" class="mut">還沒有人生。</div></div>
-<div class="card"><h2>大家分享的人生</h2><div class="mut">沒有聯絡方式，只留下人生。分享需要 GitHub 帳號。</div><div id="shared" class="mut">還沒有分享。</div></div>
+<div class="card"><div class="row"><h2>追思館</h2><span class="mut">大家走完的人生 · 按 🕯 點一支蠟燭</span></div><div id="memorial" class="mut">還沒有人生。</div></div>
+<div class="card"><h2>大家分享的人生</h2><div class="mut">沒有聯絡方式，只留下人生。</div><div id="shared" class="mut">還沒有分享。</div></div>
 <div class="card mut">
 <b>暫停片刻</b>：5、15、30、50、70 歲時時間會停下，問你一個問題。<br>
 <b>同一秒出生的人</b>：你出生的那一秒，世界各地還有四個嬰兒誕生，他們的人生會並列在你旁邊。<br>
@@ -304,7 +305,7 @@ body{font-size:15px;line-height:1.6}
 <div class="card" id="compare"></div>
 <div class="card"><h2>同一秒出生的人，後來</h2><div id="sibEnd"></div></div>
 <div class="card"><b>最後，對這個人說一句話</b><textarea id="msg" rows="2"></textarea>
-<p><label><input type="checkbox" id="share" style="width:auto" checked> 分享到追思館（會開啟 GitHub，按 Submit 送出）</label></p>
+<p><label><input type="checkbox" id="share" style="width:auto" checked> 分享到追思館（不需要帳號）</label></p>
 <button class="pri" id="save">送出並再活一次</button> <button id="shareBtn">📣 分享給朋友</button></div>
 </section>
 </div>
@@ -312,13 +313,13 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=61"></script>
-<script src="events.js?v=61"></script>
-<script src="life.js?v=61"></script>
-<script src="pixel.js?v=61"></script>
-<script src="story.js?v=61"></script>
-<script src="realism.js?v=61"></script>
-<script src="taiwan.js?v=61"></script>
+<script src="countries.js?v=62"></script>
+<script src="events.js?v=62"></script>
+<script src="life.js?v=62"></script>
+<script src="pixel.js?v=62"></script>
+<script src="story.js?v=62"></script>
+<script src="realism.js?v=62"></script>
+<script src="taiwan.js?v=62"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -358,12 +359,17 @@ const cfg={w:"now",m:"birth",l:60};
 $("twYear").innerHTML=`<option value="r">隨機（1950～2025）</option>`+Array.from({length:76},(_,i)=>2025-i).map(y=>`<option>${y}</option>`).join("");
 document.querySelectorAll(".w").forEach(b=>b.addEventListener("click",()=>$("twopt").classList.toggle("hide",b.dataset.v!=="tw")));
 ["w","m","l"].forEach(k=>document.querySelectorAll("."+k).forEach(b=>b.onclick=()=>{document.querySelectorAll("."+k).forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg[k]=k=="l"?+b.dataset.v:b.dataset.v}));
+// 追思館：存在 Supabase（公開金鑰只能讀、新增和點蠟燭，不能改或刪別人的資料）
+const SB="https://gerqdagicybtyilihvvm.supabase.co",SBK="sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y";
+const sb=(path,opt={})=>fetch(SB+"/rest/v1/"+path,{...opt,headers:{apikey:SBK,"Content-Type":"application/json",...(opt.headers||{})}}).then(r=>r.ok?r.json().catch(()=>null):Promise.reject(r.status));
+function lit(){try{return JSON.parse(localStorage.getItem("candles-lit")||"[]")}catch{return []}}
 function renderHalls(){
- fetch(`https://api.github.com/repos/${REPO}/issues?state=open&per_page=50`).then(r=>r.json()).then(list=>{
-  const L=list.filter(i=>!i.pull_request&&i.title.startsWith("[人生]")).map(i=>{const m=i.body&&i.body.match(/```json\n([\s\S]*?)\n```/);if(!m)return null;try{return {...JSON.parse(m[1]),url:i.html_url,candles:i.reactions?.total_count||0,at:i.created_at}}catch{return null}}).filter(Boolean);
-  if(!L.length)return;
-  $("memorial").innerHTML=L.slice(0,12).map(m=>`<div class="row"><span><b>${esc(m.name)}</b> ${m.y0}–${m.y1} · ${esc(m.c)}<br><span class="mut">${esc(m.title)}</span></span><span><a href="${m.url}" target="_blank"><button>🕯 ${m.candles}</button></a></span></div>`).join("");
-  $("shared").innerHTML=L.slice(0,6).map(s=>`<div class="card"><b>${esc(s.name)}</b> <span class="mut">${esc(s.c)} · ${s.sex} · ${s.age}歲 · ${new Date(s.at).toLocaleDateString()}</span><p>${esc(s.story)}</p>${s.msg?`<p>「${esc(s.msg)}」</p>`:""}</div>`).join("");
+ sb("lives?select=id,created_at,name,country,age,born,words,data,candles&order=created_at.desc&limit=30").then(list=>{
+  list=(list||[]).filter(x=>x.name!=="測試");if(!list.length){$("memorial").textContent="還沒有人生。走完一生後，可以把它留在這裡。";$("shared").textContent="還沒有分享。";return}
+  const mine=lit();
+  $("memorial").innerHTML=list.slice(0,12).map(m=>`<div class="row"><span><b>${esc(m.name)}</b> ${m.born}–${m.born+m.age} · ${esc(m.country)}<br><span class="mut">${esc(m.data?.title||"")}</span></span><span><button class="candle${mine.includes(m.id)?" on":""}" data-id="${m.id}" ${mine.includes(m.id)?"disabled":""}>🕯 <b>${m.candles}</b></button></span></div>`).join("");
+  $("memorial").querySelectorAll(".candle").forEach(b=>b.onclick=()=>{b.disabled=true;sb("rpc/light_candle",{method:"POST",body:JSON.stringify({life_id:+b.dataset.id})}).then(n=>{b.querySelector("b").textContent=n;b.classList.add("on");try{localStorage.setItem("candles-lit",JSON.stringify([...lit(),+b.dataset.id]))}catch{}toast("點了一支蠟燭")}).catch(()=>{b.disabled=false;toast("暫時無法點蠟燭")})});
+  $("shared").innerHTML=list.slice(0,6).map(s=>`<div class="card"><b>${esc(s.name)}</b> <span class="mut">${esc(s.country)} · ${esc(s.data?.sex||"")} · ${s.age}歲 · ${new Date(s.created_at).toLocaleDateString()}</span><p>${esc(s.data?.story||"")}</p>${s.words?`<p>「${esc(s.words)}」</p>`:""}</div>`).join("");
  }).catch(()=>{$("memorial").textContent="暫時讀不到追思館。"});
 }
 const REPO="jackycheung0408/life-simulator";
@@ -594,7 +600,7 @@ async function year(L){
    ["直接工作",()=>{L.money+=c.gdp*.05},"早點開始賺錢"],
    ["出國讀大學",()=>{L.edu=3;L.know+=12;L.money-=fee*3;L.studiedAbroad=true;say(L,"出國讀大學。");sayHi(L,"曾出國留學。")},"知識↑↑ · 花費很高",fee*3]],`在${c.name}，大學就學率約 ${Math.round(c.uni)}%。`)}
  if(!L.job&&!L.twRetake&&(L.age==(L.edu==3?22:L.edu==2?(c.tw?19:18):14)||L.age===L.jobRetry)){
-  const pool=(L.edu==3?JOBS_U:JOBS).slice().sort(()=>R()-.5).slice(0,3),start=c.gdp*.45*(L.edu==3?1.25:L.edu==2?.9:.6)*(1+(L.cls-2)*.06)*.8;
+  const pool=(L.edu==3?JOBS_U:JOBS).slice().sort(()=>R()-.5).slice(0,3),start=c.gdp*.5*(L.edu==3?1.25:L.edu==2?.95:.7)*(1+(L.cls-2)*.04)*.85;
   const take=j=>{const [pay,,e]=JOB_INFO[j]||[1,"",{}];L.job=j;L.inc=start*pay*(L.sex=="女"?1-payGap(L.c):1);for(const k in e)L[k]+=e[k];say(L,`開始當${j}。`)};
   await ask(L,"要找什麼樣的工作？",pool.map(j=>[j,()=>take(j),`${(JOB_INFO[j]||[,"" ])[1]} · 起薪月薪約 ${money(start*(JOB_INFO[j]||[1])[0]*(L.sex=="女"?1-payGap(L.c):1)/13.5)}（年薪約 ${moneyShort(start*(JOB_INFO[j]||[1])[0]*(L.sex=="女"?1-payGap(L.c):1))}）`]).concat(L.jobRetry?[]:[["先不急，再找一年",()=>{L.jobRetry=L.age+1;L.know+=2;L.money-=c.gdp*.1},"知識↑ 晚一年有收入"]]));
   if(!L.job&&L.jobRetry<L.age)take(pool[0]);
@@ -697,8 +703,10 @@ $("shareBtn").onclick=async()=>{
 save.onclick=()=>{
  if($("share").checked){
   const d={name:P.name,y0:P.c.y0,y1:P.c.y0+P.age,c:P.c.name,sex:P.sex,age:P.age,title:title(P),story:story(P),msg:$("msg").value.trim().slice(0,200)};
-  const body=`${d.story}\n\n${d.msg?"「"+d.msg+"」\n\n":""}<!-- 請勿修改下面這段 -->\n\`\`\`json\n${JSON.stringify(d)}\n\`\`\``;
-  window.open(`https://github.com/${REPO}/issues/new?title=${encodeURIComponent("[人生] "+d.name+" · "+d.c+" · "+d.age+"歲")}&body=${encodeURIComponent(body)}`,"_blank");
+  save.disabled=true;save.textContent="送出中…";
+  sb("lives",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({name:d.name.slice(0,40),country:(P.c.tw?"台灣"+P.c.tw.county:d.c).slice(0,40),age:d.age,born:d.y0,words:d.msg||null,data:{title:d.title,story:d.story.slice(0,1500),sex:d.sex}})})
+   .then(()=>{toast("已留在追思館");setTimeout(()=>location.reload(),900)}).catch(()=>{toast("送出失敗，請稍後再試");save.disabled=false;save.textContent="送出並再活一次"});
+  return;
  }
  location.reload();
 };
