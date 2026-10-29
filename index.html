@@ -167,9 +167,9 @@ function render(){
 
 // 抉擇：玩家會停下等待；同秒嬰兒自動
 function ask(L,q,opts){
- if(L!==P||auto){const o=pick(opts);o[1]();if(L===P)say(L,q+" → "+o[0]);return Promise.resolve()}
+ if(L!==P||auto){const o=pick(opts);if(L===P)say(L,q+" → "+o[0]);o[1]();return Promise.resolve()}
  return new Promise(res=>{choice.style.display="block";choice.innerHTML=`<b>${q}</b><br>`+opts.map((o,i)=>`<button data-i="${i}">${o[0]}</button>`).join("");
-  choice.querySelectorAll("button").forEach(b=>b.onclick=()=>{const o=opts[b.dataset.i];o[1]();say(L,q+" → "+o[0]);choice.style.display="none";render();res()})});
+  choice.querySelectorAll("button").forEach(b=>b.onclick=()=>{const o=opts[b.dataset.i];say(L,q+" → "+o[0]);o[1]();choice.style.display="none";render();res()})});
 }
 const Q={5:"你五歲時，最記得的是什麼？",15:"十五歲的你，在煩惱什麼？",30:"三十歲時，你覺得人生走到哪裡了？",50:"如果你也活到五十歲，最想守住的是什麼？",70:"走到七十歲，你希望身邊有誰？"};
 function reflect(){

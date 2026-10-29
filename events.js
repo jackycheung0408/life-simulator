@@ -92,6 +92,9 @@ const EVENTS=[
  [70,100,.02,L=>L.grand,L=>{L.happy+=6;say(L,"孫子女來家裡住了一段時間。")}],
 ];
 
+// 可重複發生的事件（依 EVENTS 索引）；其餘一生只發生一次
+const REPEAT=new Set([1,2,4,15,20,21,22,23,24,25,26,29,34,36,38,41,42,44]);
+
 async function lifeEvents(L,f){
  const c=L.c,yr=c.y0+L.age;
  if(!L.init){L.init=true;L.raw=L.c.name;L.talent=pick(TALENTS);L.parentAlive=true;say(L,`從小就特別${L.talent=="聰明"?"聰明":L.talent=="社交"?"會和人相處":L.talent=="耐心"?"有耐心":L.talent=="手巧"?"手巧":"有"+L.talent+"天分"}。`)}
@@ -109,6 +112,8 @@ async function lifeEvents(L,f){
  // 今日主題事件
  if(L.age>=10&&R()<.02)say(L,`這一年，「${THEME[0]}」在身邊引起很大的話題。`);
  // 一般事件：每年最多兩件
- let n=0;for(const e of EVENTS){if(n>=2)break;if(L.age<e[0]||L.age>e[1])continue;if(R()<e[2]*(f=="享受"?1.1:1)&&e[3](L)){await e[4](L);n++}}
+ L.done=L.done||{};let n=0;
+ for(let i=0;i<EVENTS.length;i++){const e=EVENTS[i];if(n>=2)break;if(L.age<e[0]||L.age>e[1]||(L.done[i]&&!REPEAT.has(i)))continue;
+  if(R()<e[2]*(f=="享受"?1.1:1)&&e[3](L)){L.done[i]=1;await e[4](L);n++}}
  clamp(L);
 }
