@@ -136,8 +136,8 @@ function yearFlow(L){
  const cost=livingCost(L),full=Object.values(cost).reduce((a,b)=>a+b,0);
  // 實領＝薪水扣掉稅與勞健保；退休後領年金；再加上伴侶的收入
  const income=(L.job?netPay(L):L.age>=65?pension(L):0)+(L.pInc||0);
- // 人會依收入調整生活：開銷最多花到收入的 85%～99%（看花錢習慣）；沒收入時靠家人接濟，只算最低開銷
- const sp=L===P?spend:1,total=income?Math.min(full,income*(.85+sp*.07)):L.c.gdp*.06;
+ // 人會依收入調整生活：開銷最多花到收入的 76%～92%（看花錢習慣）；沒收入時靠家人接濟，只算最低開銷
+ const sp=L===P?spend:1,total=income?Math.min(full,income*(.76+sp*.08)):L.c.gdp*.06;
  return {cost,income,total,full};
 }
 function livingYear(L){
