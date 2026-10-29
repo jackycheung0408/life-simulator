@@ -86,23 +86,27 @@ function countryPanel(L){
 
 // 出生登記
 function birthCard(L,home){
- const f=L.fam,u5=Math.min(60,L.c.im*1.3/10).toFixed(1),pct=["後 20%","後 20～40%","中間 40～60%","前 20～40%","前 20%"][L.cls];
- const h=home!==""?world(C[home],"now"):null,ex=Math.round(L.ex);
- const cmp=h?`<h2 style="margin-top:14px">和你的出生地比一比</h2><div class="row"><span></span><b>你的${h.name}（現在）</b><b>這個孩子的${L.c.name}（${L.c.y0}）</b></div>
-  <div class="row"><span>平均壽命</span><span>${Math.round(L.sex=="男"?h.mEx:h.fEx)} 歲</span><span>${ex} 歲</span></div>
-  <div class="row"><span>5 歲前離世機率</span><span>${Math.min(60,h.im*1.3/10).toFixed(1)}%</span><span>${u5}%</span></div>
-  <div class="row"><span>人均所得</span><span>${money(h.gdp)}</span><span>${money(L.c.gdp)}</span></div>`:"";
- return `<div class="cert"><div class="row" style="border:0"><b>出生登記</b><span class="mut">No. ${L.raw.slice(0,2)}-${L.c.y0}-${Math.floor(1e6+R()*9e6)}</span></div>
- <div class="cert-seal">已登記</div>
- <div class="cert-head"><canvas id="certAvatar" width="80" height="80"></canvas><div><div class="mut">名字</div><h1 style="font-size:1.9rem;margin:0">${L.name}</h1><div class="mut">${L.sex=="男"?"男孩":"女孩"} · ${L.c.y0} 年</div></div></div>
- <div class="kpis"><div><span class="mut">平均壽命</span><b>${ex} 歲</b></div><div><span class="mut">5 歲前離世</span><b>${u5}%</b></div><div><span class="mut">家境</span><b>${["貧困","偏低","中等","小康","富裕"][L.cls]}</b></div></div>
- <p>${L.c.y0} 年，你出生在${L.c.tw?"台灣"+L.c.tw.county+(f.urban?"":"的鄉下"):L.c.name+(f.urban?L.c.city:"的鄉村")}，一個所得${pct}的家庭，是個${L.sex=="男"?"男孩":"女孩"}。${familyLine(L)}</p>
- <div class="grid">${[["性別",L.sex=="男"?"男性":"女性"],["出生地",L.c.tw?L.c.tw.county+(f.urban?"":"（鄉下）"):f.urban?L.c.city+"（城市）":"鄉村"],["家境",`${"●".repeat(L.cls+1)}${"○".repeat(4-L.cls)} ${pct}`],
-  ["母親",`${f.mother.name}・${f.mother.age}歲・${f.mother.job}`],["父親",`${f.father.name}・${f.father.age}歲・${f.father.job}`],["宗教",f.religion],
-  ["平均壽命",ex+" 歲"],["5 歲前離世機率",u5+"%"],["人均所得",money(L.c.gdp)]].map(k=>`<div><div class="mut">${k[0]}</div><b>${k[1]}</b></div>`).join("")}</div>
- ${cmp}
- <h2 style="margin-top:14px">同一秒出生的另外四個人</h2>${S.map(s=>`<div class="row"><b>${s.name}</b><span class="mut">${s.c.name}${s.fam.urban?s.c.city:"鄉村"} · ${s.sex} · ${CLS[s.cls]}家庭</span></div>`).join("")}
- <p class="mut">活到平均壽命約需 ${cfg.l} 分鐘（1 年 ≈ ${Math.round(cfg.l*60/L.ex)} 秒）。中途關掉會存在這個瀏覽器，下次可以接著過。</p></div>`;
+ const f=L.fam,c=L.c,u5=Math.min(60,c.im*1.3/10),ex=Math.round(L.ex),CL=["貧困","偏低","中等","小康","富裕"][L.cls],pct=["後 20%","後 20～40%","中間 40～60%","前 20～40%","前 20%"][L.cls];
+ const place=c.tw?"台灣 "+c.tw.county+(f.urban?"":"（鄉下）"):c.name+" "+(f.urban?c.city:"鄉村");
+ // 和世界平均比：壽命 73 歲、5 歲前離世 3.7%、人均所得約 US$21,000
+ const cmpBar=(label,v,avg,max,fmt,good)=>{const w=Math.min(100,v/max*100),aw=Math.min(100,avg/max*100),better=good=="high"?v>=avg:v<=avg;
+  return `<div class="bc-cmp"><div class="bc-cl"><span>${label}</span><b style="color:${better?"var(--g)":"var(--ac)"}">${fmt(v)}</b></div><div class="bc-track"><i style="width:${w}%;background:${better?"var(--g)":"var(--ac)"}"></i><em style="left:${aw}%" title="世界平均"></em></div></div>`};
+ const h=home!==""?world(C[home],"now"):null;
+ const person=(p,role)=>`<div class="bc-p"><span class="mut">${role}</span><b>${p.name}</b><small>${p.age} 歲 · ${p.job}</small></div>`;
+ const sibs=f.sibs.length?[...f.sibs].reverse().map(x=>`<div class="bc-p"><span class="mut">${sibName(x)}</span><b>${x.age} 歲</b></div>`).join(""):`<div class="bc-p"><span class="mut">兄弟姊妹</span><b>你是老大</b></div>`;
+ return `<div class="bc">
+ <div class="bc-top"><div><div class="bc-title">出生登記證明</div><div class="mut">CERTIFICATE OF BIRTH · No. ${L.raw.slice(0,2)}-${c.y0}-${Math.floor(1e6+R()*9e6)}</div></div><div class="cert-seal">已登記</div></div>
+ <div class="bc-id"><canvas id="certAvatar" width="80" height="80"></canvas><div><div class="mut">姓名</div><div class="bc-name">${L.name}</div><div class="bc-tags"><span>${L.sex=="男"?"♂ 男孩":"♀ 女孩"}</span><span>${c.y0} 年</span><span>${place}</span></div></div></div>
+ <p class="bc-line">你出生在一個所得${pct}的家庭。${familyLine(L)}</p>
+ <div class="bc-sec">家人</div><div class="bc-fam">${person(f.mother,"母親")}${person(f.father,"父親")}${sibs}<div class="bc-p"><span class="mut">宗教</span><b>${f.religion}</b></div></div>
+ <div class="bc-sec">起跑點 <span class="mut">｜虛線是世界平均</span></div>
+ ${cmpBar("平均壽命",ex,73,90,v=>v+" 歲","high")}
+ ${cmpBar("5 歲前離世機率",u5,3.7,20,v=>v.toFixed(1)+"%","low")}
+ ${cmpBar("人均所得",c.gdp,21000,80000,v=>money(v),"high")}
+ <div class="bc-cmp"><div class="bc-cl"><span>家境</span><b>${CL}</b></div><div class="bc-dots">${[0,1,2,3,4].map(i=>`<i class="${i<=L.cls?"on":""}"></i>`).join("")}</div></div>
+ ${h?`<div class="bc-sec">和你的出生地比</div><div class="bc-vs"><div><span class="mut">你的${h.name}（現在）</span><b>${Math.round(L.sex=="男"?h.mEx:h.fEx)} 歲</b><small>5 歲前離世 ${Math.min(60,h.im*1.3/10).toFixed(1)}% · ${money(h.gdp)}</small></div><div class="vs">VS</div><div><span class="mut">這個孩子的${c.name}（${c.y0}）</span><b>${ex} 歲</b><small>5 歲前離世 ${u5.toFixed(1)}% · ${money(c.gdp)}</small></div></div>`:""}
+ <div class="bc-sec">同一秒出生的另外四個人</div><div class="bc-others">${S.map(s=>`<div><b>${s.name}</b><span>${s.c.name}</span><small>${s.sex=="男"?"♂":"♀"} · ${["貧困","偏低","中等","小康","富裕"][s.cls]} · 壽命 ${Math.round(s.ex)}</small></div>`).join("")}</div>
+ <p class="mut" style="margin-top:12px">活到平均壽命約需 ${cfg.l} 分鐘（1 年 ≈ ${Math.round(cfg.l*60/L.ex)} 秒）。中途關掉會自動存檔，下次可以接著過。</p></div>`;
 }
 
 // 幼年性格抉擇：2～4 歲，四選一，累積成個性
@@ -156,27 +160,46 @@ function saveGame(){try{P.id=P.id||String(Date.now());const o=allSaves();o[P.id]
 function deleteSave(id){try{const o=allSaves();delete o[id];localStorage.setItem(SAVE_KEY,JSON.stringify(o))}catch{}}
 function clearSave(){if(P&&P.id)deleteSave(P.id)}
 
-// ── 出生揭曉：像抽籤一樣轉動地名，慢慢停下，再一項項蓋章 ──
+// ── 出生揭曉：兩段式轉盤（先洲別、再國家），照真實機率轉動，停下時閃光並蓋章 ──
+const CONTINENT={"華":"東亞","日":"東亞","韓":"東亞","南亞":"南亞","東南亞":"東南亞","中東":"中東與北非","英":"歐美","歐":"歐洲","斯":"歐洲","拉":"拉丁美洲","西非":"非洲","東非":"非洲","非洲之角":"非洲","南非":"非洲","中非":"非洲"};
+function beep(f,d){try{const a=beep.ctx||(beep.ctx=new (window.AudioContext||window.webkitAudioContext)()),o=a.createOscillator(),g=a.createGain();o.type="square";o.frequency.value=f;g.gain.value=.03;o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+(d||.03))}catch{}}
 function revealBirth(L){
  return new Promise(res=>{
   const ov=document.createElement("div");ov.id="reveal";
-  ov.innerHTML=`<div class="rv-box"><div class="rv-tag">— 正在決定你的出生地 —</div><div class="rv-slot"><span id="rvName">？？？</span></div><div class="rv-sub" id="rvSub">全世界每秒約有 4 個嬰兒出生</div><div id="rvStamps"></div><button class="pri hide" id="rvGo">查看出生登記 ▶</button><button class="rv-skip" id="rvSkip">跳過</button></div>`;
+  ov.innerHTML=`<div class="rv-box"><div class="rv-tag" id="rvTag">STAGE 1 · 哪一個區域？</div>
+   <div class="rv-reel"><div class="rv-win"><div class="rv-strip" id="rvStrip"></div></div><div class="rv-arrow l">▶</div><div class="rv-arrow r">◀</div></div>
+   <div class="rv-crumb" id="rvCrumb"></div><div class="rv-sub" id="rvSub">全世界每秒約有 4 個嬰兒出生</div><div id="rvStamps"></div>
+   <button class="pri hide" id="rvGo">查看出生登記 ▶</button><button class="rv-skip" id="rvSkip">跳過動畫</button></div>`;
   document.body.appendChild(ov);
-  // 轉盤上閃過的地名也照真實機率出現（人口或出生數越多，越常閃過）
-  const wt=x=>cfg.m=="birth"?x[1]:x[2],roll=()=>L.c.tw?"台灣 · "+wpick(TW_COUNTY,x=>x[1])[0]:wpick(C,wt)[0],final=L.c.tw?"台灣 · "+L.c.tw.county:L.c.name,name=ov.querySelector("#rvName");
-  let t=0,delay=40,done=false;
-  const finish=()=>{if(done)return;done=true;name.textContent=final;name.classList.add("rv-hit");stamps()};
-  const spin=()=>{if(done)return;name.textContent=roll();t+=delay;delay*=1.09;if(t>2600)return finish();setTimeout(spin,delay)};
-  spin();
-  const share=L.c.tw?null:(()=>{const tot=C.reduce((a,x)=>a+wt(x),0),me=C.find(x=>x[0]==L.raw);return me?(wt(me)/tot*100):null})();
+  const wt=x=>cfg.m=="birth"?x[1]:x[2],tot=C.reduce((a,x)=>a+wt(x),0);
+  const regionOf=n=>L.c.tw?"台灣":CONTINENT[REGION(n)]||"其他";
+  const strip=ov.querySelector("#rvStrip"),tag=ov.querySelector("#rvTag"),crumb=ov.querySelector("#rvCrumb");
+  let done=false,timer=null;
+  // 轉一段：roll() 依機率給下一個字，停在 final
+  function spin(roll,final,ms,next){
+   let t=0,delay=35;strip.classList.add("fast");
+   const step=()=>{if(done)return;const items=[roll(),roll(),roll()];strip.innerHTML=items.map((x,i)=>`<div class="${i==1?"mid":""}">${x}</div>`).join("");beep(i0++%2?660:520);
+    t+=delay;delay*=1.1;if(delay>180)strip.classList.remove("fast");
+    if(t>ms){strip.innerHTML=`<div>${roll()}</div><div class="mid hit">${final}</div><div>${roll()}</div>`;beep(880,.12);ov.querySelector(".rv-win").classList.add("flash");setTimeout(()=>ov.querySelector(".rv-win").classList.remove("flash"),400);timer=setTimeout(next,700);return}
+    timer=setTimeout(step,delay)};
+   let i0=0;step();
+  }
+  const reg=regionOf(L.raw),final=L.c.tw?L.c.tw.county:L.c.name;
+  const regRoll=()=>L.c.tw?pick(["北部","中部","南部","東部"]):regionOf(wpick(C,wt)[0]);
+  const twArea=c=>["台北市","新北市","基隆市","桃園市","新竹市","新竹縣","宜蘭縣"].includes(c)?"北部":["台中市","苗栗縣","彰化縣","南投縣","雲林縣"].includes(c)?"中部":["花蓮縣","台東縣"].includes(c)?"東部":["澎湖縣","金門縣","連江縣"].includes(c)?"離島":"南部";
+  const stage1=L.c.tw?twArea(final):reg;
+  const inStage=L.c.tw?TW_COUNTY.filter(x=>twArea(x[0])==stage1):C.filter(x=>regionOf(x[0])==reg);
+  const cRoll=()=>L.c.tw?wpick(inStage,x=>x[1])[0]:wpick(inStage.length?inStage:C,wt)[0];
+  spin(regRoll,stage1,1300,()=>{crumb.innerHTML=`<span>${L.c.tw?"台灣":"地球"}</span> › <b>${stage1}</b>`;tag.textContent=`STAGE 2 · ${stage1}的哪裡？`;
+   spin(cRoll,final,1800,()=>{crumb.innerHTML=`<span>${L.c.tw?"台灣":"地球"}</span> › <span>${stage1}</span> › <b>${final}</b>`;tag.textContent="出生地決定了";stamps()})});
   function stamps(){
-   ov.querySelector("#rvSub").textContent=share!=null?`${cfg.m=="birth"?"每 100 個新生兒中":"每 100 個人中"}，約有 ${share<1?share.toFixed(2):share.toFixed(1)} 個${cfg.m=="birth"?"出生":"住"}在這裡（抽中機率 ${share<1?share.toFixed(2):share.toFixed(1)}%）`:`依各縣市人口抽選：${L.c.tw.county}約佔全台 ${(TW_COUNTY.find(x=>x[0]==L.c.tw.county)[1]/TW_COUNTY.reduce((a,x)=>a+x[1],0)*100).toFixed(1)}%`;
+   const me=C.find(x=>x[0]==L.raw),p=L.c.tw?TW_COUNTY.find(x=>x[0]==final)[1]/TW_COUNTY.reduce((a,x)=>a+x[1],0)*100:me?wt(me)/tot*100:0,ps=p<1?p.toFixed(2):p.toFixed(1);
+   ov.querySelector("#rvSub").innerHTML=L.c.tw?`依縣市人口抽選，抽中機率 <b>${ps}%</b>`:`${cfg.m=="birth"?"依各國出生人數":"依各國人口"}抽選，抽中機率 <b>${ps}%</b>　·　約每 ${Math.max(1,Math.round(100/p))} 人有 1 人`;
    const items=[["年份",L.c.y0+" 年"],["性別",L.sex=="男"?"男孩":"女孩"],["家境",["貧困","偏低","中等","小康","富裕"][L.cls]],["城鄉",L.fam.urban?"城市":"鄉村"],["平均壽命",Math.round(L.ex)+" 歲"]];
    const box=ov.querySelector("#rvStamps");
-   items.forEach(([k,v],i)=>setTimeout(()=>{const d=document.createElement("div");d.className="rv-stamp";d.innerHTML=`<span>${k}</span><b>${v}</b>`;box.appendChild(d);if(i==items.length-1)ov.querySelector("#rvGo").classList.remove("hide")},500+i*380));
+   items.forEach(([k,v],i)=>setTimeout(()=>{if(!ov.isConnected)return;const d=document.createElement("div");d.className="rv-stamp";d.innerHTML=`<span>${k}</span><b>${v}</b>`;box.appendChild(d);beep(300,.08);if(i==items.length-1)ov.querySelector("#rvGo").classList.remove("hide")},350+i*330));
   }
-  const close=()=>{ov.classList.add("rv-out");setTimeout(()=>{ov.remove();res()},350)};
-  ov.querySelector("#rvGo").onclick=close;
-  ov.querySelector("#rvSkip").onclick=()=>{done=true;close()};
+  const close=()=>{done=true;clearTimeout(timer);ov.classList.add("rv-out");setTimeout(()=>{ov.remove();res()},350)};
+  ov.querySelector("#rvGo").onclick=close;ov.querySelector("#rvSkip").onclick=close;
  });
 }
