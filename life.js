@@ -162,14 +162,15 @@ function revealBirth(L){
   const ov=document.createElement("div");ov.id="reveal";
   ov.innerHTML=`<div class="rv-box"><div class="rv-tag">— 正在決定你的出生地 —</div><div class="rv-slot"><span id="rvName">？？？</span></div><div class="rv-sub" id="rvSub">全世界每秒約有 4 個嬰兒出生</div><div id="rvStamps"></div><button class="pri hide" id="rvGo">查看出生登記 ▶</button><button class="rv-skip" id="rvSkip">跳過</button></div>`;
   document.body.appendChild(ov);
-  const pool=L.c.tw?TW_COUNTY.map(x=>"台灣 · "+x[0]):C.map(x=>x[0]),final=L.c.tw?"台灣 · "+L.c.tw.county:L.c.name,name=ov.querySelector("#rvName");
+  // 轉盤上閃過的地名也照真實機率出現（人口或出生數越多，越常閃過）
+  const wt=x=>cfg.m=="birth"?x[1]:x[2],roll=()=>L.c.tw?"台灣 · "+wpick(TW_COUNTY,x=>x[1])[0]:wpick(C,wt)[0],final=L.c.tw?"台灣 · "+L.c.tw.county:L.c.name,name=ov.querySelector("#rvName");
   let t=0,delay=40,done=false;
   const finish=()=>{if(done)return;done=true;name.textContent=final;name.classList.add("rv-hit");stamps()};
-  const spin=()=>{if(done)return;name.textContent=pick(pool);t+=delay;delay*=1.09;if(t>2600)return finish();setTimeout(spin,delay)};
+  const spin=()=>{if(done)return;name.textContent=roll();t+=delay;delay*=1.09;if(t>2600)return finish();setTimeout(spin,delay)};
   spin();
-  const share=L.c.tw?null:(()=>{const tot=C.reduce((a,x)=>a+x[1],0),me=C.find(x=>x[0]==L.c.name);return me?(me[1]/tot*100):null})();
+  const share=L.c.tw?null:(()=>{const tot=C.reduce((a,x)=>a+wt(x),0),me=C.find(x=>x[0]==L.raw);return me?(wt(me)/tot*100):null})();
   function stamps(){
-   ov.querySelector("#rvSub").textContent=share!=null?`每 100 個新生兒中，約有 ${share<1?share.toFixed(2):share.toFixed(1)} 個出生在這裡`:`${L.c.y0} 年出生的台灣寶寶`;
+   ov.querySelector("#rvSub").textContent=share!=null?`${cfg.m=="birth"?"每 100 個新生兒中":"每 100 個人中"}，約有 ${share<1?share.toFixed(2):share.toFixed(1)} 個${cfg.m=="birth"?"出生":"住"}在這裡（抽中機率 ${share<1?share.toFixed(2):share.toFixed(1)}%）`:`依各縣市人口抽選：${L.c.tw.county}約佔全台 ${(TW_COUNTY.find(x=>x[0]==L.c.tw.county)[1]/TW_COUNTY.reduce((a,x)=>a+x[1],0)*100).toFixed(1)}%`;
    const items=[["年份",L.c.y0+" 年"],["性別",L.sex=="男"?"男孩":"女孩"],["家境",["貧困","偏低","中等","小康","富裕"][L.cls]],["城鄉",L.fam.urban?"城市":"鄉村"],["平均壽命",Math.round(L.ex)+" 歲"]];
    const box=ov.querySelector("#rvStamps");
    items.forEach(([k,v],i)=>setTimeout(()=>{const d=document.createElement("div");d.className="rv-stamp";d.innerHTML=`<span>${k}</span><b>${v}</b>`;box.appendChild(d);if(i==items.length-1)ov.querySelector("#rvGo").classList.remove("hide")},500+i*380));
