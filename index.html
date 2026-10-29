@@ -37,7 +37,7 @@ button.pri:hover{filter:brightness(1.08)}
 .on{background:color-mix(in srgb,var(--ac) 14%,var(--card))}
 .opt.picked{background:var(--ac);color:#fff;border-color:var(--ac)}.opt.picked small{color:#fff}
 .opt.dim{opacity:.35}
-#lifebar{transition:width .12s linear}
+#lifebar{transition:none}
 .bar.live{height:8px}
 .tbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}
 .tbar button{margin:0}
@@ -52,9 +52,25 @@ button.pri:hover{filter:brightness(1.08)}
 .sw input{display:none}.sw i{width:38px;height:22px;border-radius:999px;background:var(--line);position:relative;transition:background .2s}
 .sw i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 2px #0003}
 .sw input:checked+i{background:var(--ac)}.sw input:checked+i::after{transform:translateX(16px)}
+#modal{position:fixed;inset:0;z-index:8;display:flex;align-items:flex-end;justify-content:center;background:rgb(0 0 0/.45);animation:fadein .2s}
+#modal.hide{display:none}
+#modal .sheet{background:var(--card);width:100%;max-width:640px;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;padding:14px 18px 26px;box-shadow:0 -8px 30px #0004;animation:sheetup .3s cubic-bezier(.2,.8,.2,1)}
+#modal.closing{animation:fadeout .2s forwards}#modal.closing .sheet{animation:sheetdown .2s forwards}
+@media (min-width:700px){#modal{align-items:center}#modal .sheet{border-radius:18px}}
+.mbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.mbar .tag{font-size:.82rem;color:var(--ac);font-weight:600;letter-spacing:.05em}
+#mpill{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:7;border-radius:999px;box-shadow:0 6px 20px #0004;animation:sheetup .3s}
+@keyframes fadein{from{opacity:0}}@keyframes fadeout{to{opacity:0}}
+@keyframes sheetup{from{transform:translateY(40px);opacity:0}}@keyframes sheetdown{to{transform:translateY(40px);opacity:0}}
+.stat .bar i{transition:width .45s cubic-bezier(.2,.8,.2,1)}
+.lmap i{transition:background .5s}
+#svg-dot{transition:cx .4s,cy .4s}
+.stat.flash b{animation:flash .6s}@keyframes flash{30%{color:var(--ac)}}
+#scene .ppl span{display:inline-block;animation:popin .35s}@keyframes popin{from{transform:scale(.4);opacity:0}}
+#log p:first-child{animation:grow .35s ease-out}@keyframes grow{from{opacity:0;max-height:0;transform:translateY(-6px)}to{max-height:8em}}
 #toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.92rem;max-width:calc(100% - 32px);pointer-events:none;transition:opacity .2s,transform .2s;z-index:9}
 #toast.show{opacity:1;transform:translate(-50%,0)}
-.stat b{transition:color .3s}.stat.flash b{color:var(--ac)}
+.stat b{font-variant-numeric:tabular-nums}
 #choice{animation:pop .25s ease-out}@keyframes pop{from{opacity:0;transform:translateY(8px)}}
 #log p{cursor:pointer}#log p.star::after{content:" ★";color:#d4a017}
 </style></head><body><div class="wrap">
@@ -108,7 +124,7 @@ button.pri:hover{filter:brightness(1.08)}
 <div class="row" style="border:0"><span class="mut" id="stage"></span><span class="mut" id="pct"></span></div><div class="bar live"><i id="lifebar" style="width:0"></i></div></div>
 <div class="card"><div id="scene"></div><div class="mut" id="origin" style="margin-top:6px"></div></div>
 <div class="card grid" id="stats"></div>
-<div class="card" id="choice" style="display:none"></div>
+
 <div class="card"><b>今年的重心</b><br><span id="focus"></span>
 <p style="margin:8px 0 0"><b>花錢習慣</b> <select id="spend"><option value="0">節省</option><option value="1" selected>普通</option><option value="2">大方</option></select> <span class="mut">聚餐、送禮、孝親費；越大方人際越好，但存不了錢</span></p></div>
 <div class="card" id="log"></div>
@@ -129,10 +145,12 @@ button.pri:hover{filter:brightness(1.08)}
 </section>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
+<button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=10"></script>
-<script src="events.js?v=10"></script>
-<script src="life.js?v=10"></script>
+<script src="countries.js?v=11"></script>
+<script src="events.js?v=11"></script>
+<script src="life.js?v=11"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -244,6 +262,10 @@ $("auto").onchange=e=>{auto=e.target.checked;toast(auto?"之後的抉擇會自�
 $("ffwd").onclick=e=>{ffwd=true;setPaused(false);e.target.textContent="⏭︎ 快轉中…";e.target.classList.add("on")};
 $("skip").onclick=e=>{if(!confirm("剩下的人生會自動抉擇並快速跑完，確定嗎？"))return;auto=true;$("auto").checked=true;mult=9999;document.querySelectorAll("#speeds button").forEach(b=>b.classList.remove("on"));setPaused(false);e.target.classList.add("on");e.target.textContent="⏩︎ 快速跑完中…"};
 
+function openModal(tag){$("mtag").textContent=tag;modal.classList.remove("hide","closing");mpill.classList.add("hide");document.body.style.overflow="hidden";modal.querySelector(".sheet").scrollTop=0}
+function closeModal(){return new Promise(r=>{modal.classList.add("closing");setTimeout(()=>{modal.classList.add("hide");modal.classList.remove("closing");mpill.classList.add("hide");document.body.style.overflow="";r()},200)})}
+$("mmin").onclick=()=>{modal.classList.add("hide");mpill.classList.remove("hide");document.body.style.overflow=""};
+mpill.onclick=()=>{modal.classList.remove("hide");mpill.classList.add("hide");document.body.style.overflow="hidden"};
 let toastT;
 function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove("show"),2200);try{navigator.vibrate&&navigator.vibrate(12)}catch{}}
 // 抉擇前後比較數值，產生「健康 +12 · 存款 −3,000」之類的回饋
@@ -253,19 +275,50 @@ function money(usd){const k=$("cur").value;return Math.round(usd*PPP[k]).toLocal
 // 人生大事：紀錄中加粗標示，結局時列入時間軸
 const MILESTONE=/誕生了|上小學|升上中學|考上大學|開始當|轉行|結為伴侶|孩子出生|收養|移居|逃到|難民|公民|夢寐|當選|創業成功|買下|出版|退休|先離開|分開了|離開了人世|戰爭|革命|饑荒|改革開放|解體|圍牆|屠殺|內戰|海嘯|地震|疫情|金融|登陸月球|動盪|獨立|政變|核電廠|恐怖攻擊|伊波拉|洪水|火山|通膨|劇變|圍城|背上一筆債|退休生活|拮据|夜校|蓋好了/;
 function say(L,t){L.events.push(`${L.age}歲：${t}`);if(L===P){const p=document.createElement("p");if(MILESTONE.test(t)&&!t.includes("沒考上"))p.className="hi";p.innerHTML=`<span class="y">${L.age}歲</span>${t}`;log.prepend(p)}}
-function stat(n,v,pct,d){return `<div class="stat${d?" flash":""}">${n}${d?`<span class="${d>0?"up":"down"}"> ${d>0?"▲":"▼"}${Math.abs(d)}</span>`:""}<b>${v}</b>${pct!=null?`<div class="bar"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div>`:""}</div>`}
-let prev={};
+// 數字滾動：在 0.4 秒內從舊值滾到新值
+function tween(el,to,fmt=x=>Math.round(x)){
+ const from=el._v??to;el._v=to;if(from===to){el.textContent=fmt(to);return}
+ const t0=performance.now(),d=400;
+ const step=t=>{const k=Math.min(1,(t-t0)/d),e=1-Math.pow(1-k,3);el.textContent=fmt(from+(to-from)*e);if(k<1&&el._v===to)requestAnimationFrame(step)};
+ requestAnimationFrame(step);setTimeout(()=>{if(el._v===to)el.textContent=fmt(to)},d+50); // 分頁在背景時 rAF 不會跑
+}
+const STATS=[["健康","health",1],["幸福","happy",1],["知識","know",1],["人際","rel",1],["教育"],["工作"],["年收入"],["存款"],["家庭"]];
+function buildStats(){
+ stats.innerHTML=STATS.map(([n,k,bar])=>`<div class="stat" data-n="${n}">${n}<span class="dl"></span><b></b>${bar?`<div class="bar"><i></i></div>`:""}</div>`).join("");
+}
+function setStat(n,val,pct,delta){
+ const el=stats.querySelector(`[data-n="${n}"]`);if(!el)return;const b=el.querySelector("b");
+ if(typeof val=="number")tween(b,val);else if(b.textContent!==val)b.textContent=val;
+ if(pct!=null)el.querySelector(".bar i").style.width=Math.max(0,Math.min(100,pct))+"%";
+ if(delta!==undefined){const dl=el.querySelector(".dl");dl.className="dl "+(delta>0?"up":delta<0?"down":"");dl.textContent=delta?` ${delta>0?"▲":"▼"}${Math.abs(delta)}`:"";
+  if(delta){el.classList.remove("flash");void el.offsetWidth;el.classList.add("flash")}}
+}
+let prev={},mapN=0,lastScene="",lastSibs="";
+function buildMap(){mapN=0;lmap.innerHTML='<div class="lmap"></div>';growMap()}
+function growMap(){const g=lmap.firstChild,n=Math.max(Math.ceil(P.ex),P.age+1);for(;mapN<n;mapN++){const i=document.createElement("i");i.title=`${mapN}歲`;if(mapN>=P.ex)i.style.borderStyle="dashed";g.appendChild(i)}}
+function paintMap(a){const i=lmap.firstChild.children[a],v=P.hist[a];if(i&&v!=null){i.style.background=`color-mix(in srgb,var(--ac) ${Math.round(15+v*.85)}%,transparent)`;i.title=`${a}歲 · 幸福 ${Math.round(v)}`}}
+function buildSurv(){surv.innerHTML=survivalSVG(P)+`<div class="mut" id="svtxt"></div>`}
 function render(){
  // 和上一年比較，顯示每年重心帶來的增減
- const h=Math.round(P.health),hp=Math.round(P.happy),dh=prev.age<P.age?h-prev.h:0,dp=prev.age<P.age?hp-prev.hp:0;
- if(prev.age!==P.age)prev={age:P.age,h,hp};
+ const h=Math.round(P.health),hp=Math.round(P.happy),newYear=prev.age!==P.age,dh=prev.age<P.age?h-prev.h:0,dp=prev.age<P.age?hp-prev.hp:0;
+ if(newYear)prev={age:P.age,h,hp};
  yr.textContent=`${P.c.y0+P.age} 年 · ${P.age} 歲`;
  $("stage").textContent=P.age<13?"童年":P.age<20?"青少年":P.age<40?"青年":P.age<65?"中年":"老年";
- $("pct").textContent=`當地平均壽命 ${Math.round(P.ex)} 歲`;$("lifebar").style.width=Math.min(100,P.age/P.ex*100)+"%";
- stats.innerHTML=stat("健康",h,P.health,dh)+stat("幸福",hp,P.happy,dp)+stat("知識",Math.round(P.know),P.know)+stat("人際",Math.round(P.rel),P.rel)+stat("教育",EDU[P.edu])
- +stat("工作",P.job||"—")+stat("年收入",P.job?money(P.inc):"—")+stat("存款",P.money<0?"負債 "+money(-P.money):money(P.money))+stat("家庭",(P.partner?"有伴侶":P.widowed?"喪偶":"單身")+(P.kids?` · ${P.kids}子女`:""));
- $("scene").innerHTML=scene(P);lmap.innerHTML=lifeMap(P);surv.innerHTML=survivalSVG(P)+`<div class="mut">現在 ${P.age} 歲 · 同年出生的人約 ${survivePct(P)}% 還活著</div>`;
- sibs.innerHTML=S.map(s=>`<div class="sib"><b>${s.name}</b><br><span class="mut">${s.c.name} · ${s.sex}</span><br>${s.alive?s.age+" 歲 · "+(s.job||EDU[s.edu]):"✝ "+s.age+" 歲離世"}</div>`).join("");
+ $("pct").textContent=`當地平均壽命 ${Math.round(P.ex)} 歲`;
+ if(!stats.firstChild)buildStats();
+ setStat("健康",h,P.health,newYear?dh:undefined);setStat("幸福",hp,P.happy,newYear?dp:undefined);
+ setStat("知識",Math.round(P.know),P.know);setStat("人際",Math.round(P.rel),P.rel);setStat("教育",EDU[P.edu]);
+ setStat("工作",P.job||"—");setStat("年收入",P.job?money(P.inc):"—");setStat("存款",P.money<0?"負債 "+money(-P.money):money(P.money));
+ setStat("家庭",(P.partner?"有伴侶":P.widowed?"喪偶":"單身")+(P.kids?` · ${P.kids}子女`:""));
+ // 場景：有變才換，新出現的人物彈出來
+ const sc=scene(P);if(sc!==lastScene){$("scene").innerHTML=sc.replace(/<span class="ppl">(.*?)<\/span>/,(m,x)=>`<span class="ppl">${[...x].filter(ch=>ch.trim()).reduce((a,ch)=>{if(/\p{Emoji_Presentation}|\p{Extended_Pictographic}/u.test(ch)||!a.length)a.push(ch);else a[a.length-1]+=ch;return a},[]).map(e=>`<span>${e}</span>`).join("")}</span>`);lastScene=sc}
+ if(!lmap.firstChild)buildMap();growMap();for(let a=Math.max(0,P.age-2);a<=P.age;a++)paintMap(a);
+ if(!surv.firstChild)buildSurv();
+ const sv=P.surv||(P.surv=survival(P)),cx=P.age/100*300,cy=110-sv[Math.min(100,P.age)]*110,dot=surv.querySelector("circle");
+ if(dot){dot.setAttribute("cx",cx);dot.setAttribute("cy",cy)}
+ $("svtxt").textContent=`現在 ${P.age} 歲 · 同年出生的人約 ${survivePct(P)}% 還活著`;
+ const sb=S.map(s=>`<div class="sib"><b>${s.name}</b><br><span class="mut">${s.c.name} · ${s.sex}</span><br>${s.alive?s.age+" 歲 · "+(s.job||EDU[s.edu]):"✝ "+s.age+" 歲離世"}</div>`).join("");
+ if(sb!==lastSibs){sibs.innerHTML=sb;lastSibs=sb}
 }
 
 // 抉擇：玩家會停下等待；同秒嬰兒自動
@@ -274,20 +327,20 @@ function ask(L,q,opts,info){
  const ok=o=>!o[3]||L.money>=o[3],avail=opts.filter(ok);
  if(L!==P||auto){const o=pick(avail.length?avail:opts);if(L===P)say(L,q+" → "+o[0]);o[1]();return Promise.resolve()}
  if(ffwd){ffwd=false;$("ffwd").textContent="⏭︎ 下一個抉擇";$("ffwd").classList.remove("on")}render();
- return new Promise(res=>{choice.style.display="block";
-  choice.innerHTML=`<div class="mut">重大抉擇 · ${L.age} 歲 · ${L.c.y0+L.age} 年</div><h2>${q}</h2>${info?`<p class="mut">${info}</p>`:""}`+opts.map((o,i)=>`<button class="opt" data-i="${i}" ${ok(o)?"":"disabled"}>${o[0]}${o[2]?`<small>${o[2]}</small>`:""}${ok(o)?"":`<small>存款不夠 · 需要約 ${money(o[3])}</small>`}</button>`).join("");
+ return new Promise(res=>{openModal(`重大抉擇 · ${L.age} 歲 · ${L.c.y0+L.age} 年`);
+  choice.innerHTML=`<h2>${q}</h2>${info?`<p class="mut">${info}</p>`:""}`+opts.map((o,i)=>`<button class="opt" data-i="${i}" ${ok(o)?"":"disabled"}>${o[0]}${o[2]?`<small>${o[2]}</small>`:""}${ok(o)?"":`<small>存款不夠 · 需要約 ${money(o[3])}</small>`}</button>`).join("");
   choice.querySelectorAll("button").forEach(b=>b.onclick=()=>{
    const o=opts[b.dataset.i],before=snap(L);
    choice.querySelectorAll("button").forEach(x=>{x.disabled=true;x.classList.add(x===b?"picked":"dim")});
    say(L,q+" → "+o[0]);o[1]();const d=diffText(before,snap(L));
-   setTimeout(()=>{choice.style.display="none";render();toast(d?`${o[0]}：${d}`:`選擇了「${o[0]}」`);res()},450)})});
+   setTimeout(async()=>{await closeModal();render();toast(d?`${o[0]}：${d}`:`選擇了「${o[0]}」`);res()},420)})});
 }
 const Q={5:"你五歲時，最記得的是什麼？",15:"十五歲的你，在煩惱什麼？",30:"三十歲時，你覺得人生走到哪裡了？",50:"如果你也活到五十歲，最想守住的是什麼？",70:"走到七十歲，你希望身邊有誰？"};
 function reflect(){
  if(auto)return Promise.resolve();
  if(ffwd){ffwd=false;$("ffwd").textContent="⏭︎ 下一個抉擇";$("ffwd").classList.remove("on")}render();
- return new Promise(res=>{choice.style.display="block";choice.innerHTML=`<b>暫停片刻</b><p>${P.name}現在 ${P.age} 歲。同年在${P.c.name}出生的人，約 ${survivePct(P)}% 還活著。</p><p class="mut">同一秒出生的人：${S.map(s=>`${s.name}（${s.c.name}）${s.alive?s.age+"歲・"+(s.job||EDU[s.edu]):"已離世"}`).join("、")}</p><p>${Q[P.age]}</p><textarea rows="2" id="rf" placeholder="想寫就寫，不寫也可以"></textarea><button>繼續</button>`;
-  choice.querySelector("button").onclick=()=>{const v=$("rf").value.trim();if(v)P.notes.push(`${P.age}歲：${v}`);choice.style.display="none";toast(v?"已記下這句話，結局時會再看到":"繼續往下走");res()}});
+ return new Promise(res=>{openModal(`暫停片刻 · ${P.age} 歲`);choice.innerHTML=`<h2>${P.name}，${P.age} 歲</h2><p>${P.name}現在 ${P.age} 歲。同年在${P.c.name}出生的人，約 ${survivePct(P)}% 還活著。</p><p class="mut">同一秒出生的人：${S.map(s=>`${s.name}（${s.c.name}）${s.alive?s.age+"歲・"+(s.job||EDU[s.edu]):"已離世"}`).join("、")}</p><p>${Q[P.age]}</p><textarea rows="2" id="rf" placeholder="想寫就寫，不寫也可以"></textarea><button class="pri" style="margin-top:10px">繼續</button>`;
+  choice.querySelector("button").onclick=async()=>{const v=$("rf").value.trim();if(v)P.notes.push(`${P.age}歲：${v}`);await closeModal();toast(v?"已記下這句話，結局時會再看到":"繼續往下走");res()}});
 }
 function mortality(L){
  const c=L.c,a=L.age;
@@ -354,13 +407,17 @@ async function year(L){
  if(R()<mortality(L)){L.alive=false;L.cause=causeOf(L);say(L,`因${L.cause}離開了人世。`)}
 }
 
+// 進度條：每一幀往目標值靠近，看起來是連續滑動
+let prog=0,shown=0;
+(function bar(){if(P){shown+=(prog-shown)*.18;if(Math.abs(prog-shown)<.001)shown=prog;$("lifebar").style.width=Math.min(100,shown/P.ex*100)+"%"}requestAnimationFrame(bar)})();
 async function loop(){
+ prog=shown=P.age;
  while(P.alive){
-  let w=0; // 每次都重算，讓加速與跳到結局立即生效
-  const m=ffwd?9999:mult;
+  let w=0,last=performance.now(); // 每次都重算，讓加速與跳到結局立即生效
   for(;;){const total=cfg.l*60000/P.ex/(ffwd?9999:mult);if(w>=total)break;
-   await new Promise(r=>setTimeout(r,ffwd||mult>999?20:100));if(!paused)w+=100;
-   $("lifebar").style.width=Math.min(100,(P.age+Math.min(1,w/total))/P.ex*100)+"%"}
+   await new Promise(r=>setTimeout(r,ffwd||mult>999?16:50));const now=performance.now();if(!paused)w+=Math.min(250,now-last);last=now;
+   prog=P.age+Math.min(1,w/total)}
+  prog=P.age+1;
   await year(P);for(const s of S)if(s.alive)await year(s);render();saveGame();
  }
  while(S.some(s=>s.alive))for(const s of S)if(s.alive)await year(s);
