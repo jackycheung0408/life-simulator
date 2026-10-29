@@ -54,7 +54,7 @@ function moneyYear(L){
  // 欠太多會失眠
  if(L.money<-c.gdp*.5&&R()<.35){L.happy-=4;L.health-=1;if(L===P)say(L,`還欠著 ${money(-L.money)} 的債，晚上常常睡不著。`)}
  // 年底報告：只在有大筆變化時說
- if(L===P&&L.led){const ROUTINE=["吃","穿","住","行","養孩子","薪水"],items=Object.entries(L.led).filter(([k,v])=>Math.abs(v)>c.gdp*.02&&(!ROUTINE.includes(k)||Object.keys(L.led).some(x=>!ROUTINE.includes(x)&&Math.abs(L.led[x])>c.gdp*.02))).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,3);
+ if(L===P&&L.led){const ROUTINE=["吃","穿","住","行","其他","養孩子","薪水"],items=Object.entries(L.led).filter(([k,v])=>Math.abs(v)>c.gdp*.02&&(!ROUTINE.includes(k)||Object.keys(L.led).some(x=>!ROUTINE.includes(x)&&Math.abs(L.led[x])>c.gdp*.02))).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,3);
   if(items.length&&R()<.6)say(L,`今年的大筆收支：${items.map(([k,v])=>`${k} ${v>0?"+":"−"}${money(Math.abs(v))}`).join("・")}`)}
  L.led={};
 }
@@ -117,12 +117,13 @@ function payGap(c){if(c.tw)return .14;const r=REGION(c.name);return c.gdp>40000?
 // 食衣住行：成年後自己負擔，依國家所得、城鄉、住哪裡、家庭人數與花錢習慣計算
 function livingCost(L){
  const c=L.c,g=c.gdp,city=L.moved||L.abroad||L.fam?.urban,sp=L===P?spend:1,adult=L.partner?1.6:1;
- const food=g*.10*adult*(.85+sp*.15)*(c.gdp<5000?1.3:1);              // 窮國吃的佔比高
- const cloth=g*.02*adult*(.6+sp*.4)*(L.sex=="女"?1.15:1);
- const live=L.house?g*.12:(L.moved||L.abroad)?g*(city?.14:.09):g*.03;  // 房貸／租屋／住家裡
+ const food=g*.14*adult*(.85+sp*.15)*(c.gdp<5000?1.3:1);              // 窮國吃的佔比高
+ const cloth=g*.03*adult*(.6+sp*.4)*(L.sex=="女"?1.15:1);
+ const live=L.house?g*.12:(L.moved||L.abroad)?g*(city?.14:.09):g*.05;  // 房貸／租屋／住家裡（給家裡的孝親費）
  const go=L.car?g*.06:g*(city?.025:.035);
  const kids=(L.kids||0)*g*.07*(L.age<55?1:0);
- return {吃:food,穿:cloth,住:live,行:go,養孩子:kids};
+ const etc=g*.07*adult*(.6+sp*.4);                                       // 手機、保險、娛樂、紅白包
+ return {吃:food,穿:cloth,住:live,行:go,其他:etc,養孩子:kids};
 }
 function livingYear(L){
  if(L.age<18||!L.job&&L.age<22)return;                                  // 學生時期由家裡負擔
