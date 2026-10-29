@@ -186,4 +186,26 @@ async function genderYear(L){
  // 照顧父母：女兒常被期待放下工作
  if(!he&&L.parentAlive&&L.age>=45&&L.age<=60&&L.job&&!L.careSeen&&R()<.05){L.careSeen=true;await ask(L,"家人覺得照顧爸媽應該由女兒來",[["辭職照顧",()=>{L.lostJob=L.job;L.job=null;L.rel+=3;L.happy-=3},"沒收入"],["和兄弟輪流",()=>{L.rel+=1;L.happy-=1},"公平分擔"],["出錢請人照顧",()=>{L.money-=g*.2;ledger(L,"照顧費",-g*.2)},"每年開銷"]])}
 }
-async function storyYear(L){livingYear(L);await wedding(L);await genderYear(L);await parentLeave(L);await smallChoice(L);kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L);await spendYear(L)}
+
+// 理財：每隔幾年可以決定閒錢怎麼放，有賺有賠
+// [名稱, 年報酬平均, 波動, 說明]
+const INVEST={定存:[.015,.0,"穩穩的，但跟不上物價"],指數基金:[.06,.15,"長期多半會漲，偶爾大跌"],個股:[.07,.35,"可能翻倍，也可能腰斬"],加密貨幣:[.1,.8,"一年翻好幾倍或歸零都有可能"],買房收租:[.04,.08,"租金穩定，房價看景氣"]};
+function gauss(){return Math.sqrt(-2*Math.log(R()||1e-9))*Math.cos(2*Math.PI*R())}
+async function investYear(L){
+ // 已投資的部分：每年結算
+ if(L.inv&&L.inv.amt>0){const [mu,sd]=INVEST[L.inv.type];let r=mu+sd*gauss();if(L.inv.type=="加密貨幣"&&R()<.04)r=-.95;r=Math.max(-.95,r);
+  const d=L.inv.amt*r;L.inv.amt+=d;ledger(L,"投資"+(d>=0?"獲利":"虧損"),0);
+  if(L===P&&Math.abs(r)>.25)say(L,r>0?`${L.inv.type}今年大漲 ${Math.round(r*100)}%，帳面多了 ${money(d)}。`:`${L.inv.type}今年大跌 ${Math.round(-r*100)}%，帳面少了 ${money(-d)}。`);
+  L.inv.years++;}
+ // 每 3～5 年有機會調整一次
+ if(L.age<22||!L.job||L.age>70)return;
+ const idle=L.money,next=L.invNext||25;if(L.age<next||idle<L.inc*.3)return;
+ L.invNext=L.age+3+Math.floor(R()*3);
+ const cur=L.inv&&L.inv.amt>0?`目前放在${L.inv.type}：${money(L.inv.amt)}（本金 ${money(L.inv.base)}）`:"";
+ const put=t=>()=>{const a=idle*.6;L.money-=a;if(L.inv&&L.inv.type==t){L.inv.amt+=a;L.inv.base+=a}else{if(L.inv&&L.inv.amt>0)L.money+=L.inv.amt;L.inv={type:t,amt:a,base:a,years:0}}};
+ const opts=Object.keys(INVEST).filter(t=>t!="加密貨幣"||L.c.y0+L.age>=2013).filter(t=>t!="買房收租"||idle>L.c.gdp*1.5).sort(()=>R()-.5).slice(0,3).map(t=>[`把存款的六成放進${t}`,put(t),INVEST[t][2]]);
+ if(L.inv&&L.inv.amt>0)opts.push(["全部賣掉，錢放回存款",()=>{const g=L.inv.amt-L.inv.base;L.money+=L.inv.amt;say(L,`賣掉${L.inv.type}，${g>=0?"賺了 "+money(g):"賠了 "+money(-g)}。`);if(g>0)L.happy+=3;else L.happy-=3;L.inv=null}]);
+ opts.push(["維持現狀",()=>{}]);
+ await ask(L,`手上有 ${money(idle)} 存款，要怎麼理財？`,opts.slice(0,5),cur);
+}
+async function storyYear(L){await investYear(L);livingYear(L);await wedding(L);await genderYear(L);await parentLeave(L);await smallChoice(L);kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L);await spendYear(L)}
