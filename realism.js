@@ -146,7 +146,7 @@ async function debtRelief(L){
 // 每年依序執行（在 storyYear 裡呼叫）
 async function realismYear(L){
  if(L.job){L.lastInc=L.inc;L.workYears=(L.workYears||0)+1}
- inflationYear(L);mortgageYear(L);partnerSetup(L);
+ inflationYear(L);mortgageYear(L);partnerSetup(L);trackLife(L);
  await rentYear(L);await insuranceYear(L);await loveYear(L);await kidChoices(L);await healthYear(L);await friendsYear(L);await mishapYear(L);await debtRelief(L);
  if(L.money>-(L.inc||L.c.gdp*.3))L.debtHelped=false;
 }
@@ -223,4 +223,34 @@ function renderBoards(){
  const career=brow("工作",L.job||(L.age>=65&&L.workYears?"已退休":L.lostJob?"待業中":"—"))+(L.job?brow("年資",`${L.jobYears||0} 年`):"")+(L.workYears?brow("總工作年數",`${L.workYears} 年`):"")+
   (L.age>=50&&L.workYears?brow("預估勞保年金",`${moneyShort(pension(L)/12)}／月`):"")+brow("慢性病",L.chronic?`${L.chronic}${L.chronicCare?"（控制中）":"（未治療）"}`:"無")+(L.dementia?brow("失智","輕度"):"")+brow("吸菸",L.smoke?"有":"無");
  el.innerHTML=[["收支（每月）",money1],["資產",assets],["人際關係",ppl],["職涯與健康",career]].map(([t,b])=>`<div class="board"><h3>${t}</h3>${b}</div>`).join("");
+}
+
+// ── 一生回顧：結局時逐段播放，再留下一張總結卡 ──
+function trackLife(L){(L.mhist=L.mhist||[])[L.age]=L.money+(L.inv&&L.inv.amt>0?L.inv.amt:0)-(L.mort?L.mort.left:0)+(L.house?housePrice(L):0)}
+function spark(arr,color,label,fmt){
+ const v=arr.map((x,i)=>[i,x]).filter(([,x])=>x!=null);if(v.length<2)return"";
+ const mn=Math.min(0,...v.map(x=>x[1])),mx=Math.max(...v.map(x=>x[1]),1),W=300,H=70,n=Math.max(...v.map(x=>x[0]))||1;
+ const pts=v.map(([i,x])=>`${(i/n*W).toFixed(1)},${(H-(x-mn)/(mx-mn||1)*H).toFixed(1)}`).join(" "),pk=v.reduce((a,b)=>b[1]>a[1]?b:a);
+ return `<div class="lr-chart"><div class="lr-cl"><span>${label}</span><small>最高 ${fmt(pk[1])}（${pk[0]} 歲）</small></div><svg viewBox="-4 -4 ${W+8} ${H+8}" preserveAspectRatio="none"><line x1="0" x2="${W}" y1="${H-(0-mn)/(mx-mn||1)*H}" y2="${H-(0-mn)/(mx-mn||1)*H}" stroke="var(--line)" stroke-dasharray="3 3"/><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.5"/><circle cx="${pk[0]/n*W}" cy="${H-(pk[1]-mn)/(mx-mn||1)*H}" r="4" fill="${color}"/></svg></div>`;
+}
+function lifeReview(L){
+ const ev=L.events,stages=[["童年",0,12],["青少年",13,19],["青年",20,39],["中年",40,64],["老年",65,130]];
+ const ageOf=e=>+e.slice(0,e.indexOf("歲"));
+ const pickIn=(a,b)=>{const xs=ev.filter(e=>{const g=ageOf(e);return g>=a&&g<=b});const hi=xs.filter(e=>MILESTONE.test(e)&&!/→/.test(e));const ch=xs.filter(e=>/→/.test(e));return [...hi.slice(0,3),...ch.slice(0,2)].slice(0,4)};
+ const chapters=stages.filter(([,a])=>L.age>=a).map(([n,a,b])=>{const xs=pickIn(a,Math.min(b,L.age));const hp=(L.hist||[]).slice(a,Math.min(b,L.age)+1).filter(x=>x!=null);const avg=hp.length?Math.round(hp.reduce((p,q)=>p+q,0)/hp.length):null;
+  return `<div class="lr-ch"><div class="lr-ch-h"><b>${n}</b><span>${a}～${Math.min(b,L.age)} 歲</span>${avg!=null?`<em>平均幸福 ${avg}</em>`:""}</div>${xs.length?xs.map(e=>`<p>${e.slice(e.indexOf("：")+1)}</p>`).join(""):`<p class="mut">平靜地過去了。</p>`}</div>`}).join("");
+ const choices=ev.filter(e=>/→/.test(e)).length,hp=L.hist||[],best=hp.reduce((a,x,i)=>x!=null&&x>(hp[a]??-1)?i:a,0),worst=hp.reduce((a,x,i)=>x!=null&&x<(hp[a]??999)?i:a,0);
+ const net=(L.mhist||[]).filter(x=>x!=null).pop()||L.money;
+ const facts=[["做過的抉擇",choices+" 次"],["最快樂的一年",best+" 歲"],["最低潮的一年",worst+" 歲"],["最後的淨資產",(net<0?"−":"")+moneyShort(Math.abs(net))],["好朋友",(L.pals||[]).filter(f=>!f.faded&&!f.gone).length+" 位還保持聯絡"],["工作",L.lastJob||L.job||L.lostJob||"沒有"]];
+ return `<div class="lr"><h2>一生回顧</h2><div class="lr-facts">${facts.map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join("")}</div>
+  ${spark(hp,"var(--ac)","幸福",x=>Math.round(x))}${spark(L.mhist||[],"var(--g)","淨資產",x=>(x<0?"−":"")+moneyShort(Math.abs(x)))}
+  <div class="lr-chs">${chapters}</div></div>`;
+}
+// 結局前的回顧播放：一段一段淡入
+function playReview(L){
+ return new Promise(res=>{const ov=document.createElement("div");ov.id="reveal";
+  const lines=[`${L.name}`,`${L.c.y0} – ${L.c.y0+L.age}`,`在${L.c.tw?"台灣"+L.c.tw.county:L.c.name}度過了 ${L.age} 年`,...[["童年",0,12],["青少年",13,19],["青年",20,39],["中年",40,64],["老年",65,130]].filter(([,a])=>L.age>=a).map(([n,a,b])=>{const e=L.events.filter(x=>{const g=+x.slice(0,x.indexOf("歲"));return g>=a&&g<=b&&MILESTONE.test(x)&&!/→/.test(x)})[0];return e?`${n}・${e.slice(e.indexOf("：")+1)}`:`${n}・平靜地過去了`})];
+  ov.innerHTML=`<div class="rv-box lr-play">${lines.map((t,i)=>`<p style="animation-delay:${i*.9}s" class="${i==0?"lr-name":i<3?"lr-sub":""}">${t}</p>`).join("")}<button class="pri" id="lrGo" style="animation-delay:${lines.length*.9}s">看完整回顧 ▶</button></div>`;
+  document.body.appendChild(ov);ov.querySelector("#lrGo").onclick=()=>{ov.classList.add("rv-out");setTimeout(()=>{ov.remove();res()},350)};
+ });
 }
