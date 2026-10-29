@@ -119,7 +119,7 @@ function livingCost(L){
  const c=L.c,g=c.gdp,city=L.moved||L.abroad||L.fam?.urban,sp=L===P?spend:1,adult=L.partner?1.6:1;
  const food=g*.14*adult*(.85+sp*.15)*(c.gdp<5000?1.3:1);              // 窮國吃的佔比高
  const cloth=g*.03*adult*(.6+sp*.4)*(L.sex=="女"?1.15:1);
- const live=L.house?g*.12:(L.moved||L.abroad)?g*(city?.14:.09):g*.05;  // 房貸／租屋／住家裡（給家裡的孝親費）
+ const live=L.house?(L.mortPay||g*.03):(L.moved||L.abroad)?g*Math.max(.04,(city?.14:.09)+(L.rentAdj||0)):g*.05;  // 房貸／租屋／住家裡（給家裡的孝親費）
  const go=L.car?g*.06:g*(city?.025:.035);
  const kids=(L.kids||0)*g*.07*(L.age<55?1:0);
  const etc=g*.07*adult*(.6+sp*.4);                                       // 手機、保險、娛樂、紅白包
@@ -134,7 +134,8 @@ function bonusMonths(L){
 }
 function yearFlow(L){
  const cost=livingCost(L),full=Object.values(cost).reduce((a,b)=>a+b,0);
- const income=L.job?L.inc:L.age>=65?L.c.gdp*.15:0;                     // 退休後的年金
+ // 實領＝薪水扣掉稅與勞健保；退休後領年金；再加上伴侶的收入
+ const income=(L.job?netPay(L):L.age>=65?pension(L):0)+(L.pInc||0);
  // 人會依收入調整生活：開銷最多花到收入的 85%～99%（看花錢習慣）；沒收入時靠家人接濟，只算最低開銷
  const sp=L===P?spend:1,total=income?Math.min(full,income*(.85+sp*.07)):L.c.gdp*.06;
  return {cost,income,total,full};
@@ -238,4 +239,4 @@ async function careerFocus(L){
   ["跳槽到薪水更高的公司",()=>{if(R()<.6){L.inc*=1.18;L.rel-=1;say(L,"跳槽成功，薪水多了快兩成。")}else{L.happy-=2;say(L,"面試了好幾家，都沒有下文。")}},"有機會大幅加薪"],
   ["把工作做好就好",()=>{L.happy+=2},"幸福↑"]]);
 }
-async function storyYear(L){minorGuard(L);await careerFocus(L);await investYear(L);livingYear(L);await wedding(L);await genderYear(L);await parentLeave(L);await smallChoice(L);kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L);await spendYear(L);minorGuard(L)}
+async function storyYear(L){minorGuard(L);await realismYear(L);await careerFocus(L);await investYear(L);livingYear(L);await wedding(L);await genderYear(L);await parentLeave(L);await smallChoice(L);kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L);await spendYear(L);minorGuard(L)}
