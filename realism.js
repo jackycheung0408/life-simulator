@@ -117,14 +117,14 @@ async function healthYear(L){
 
 // ── 朋友圈：有名字的朋友，會疏遠、重逢、介紹工作 ──
 function friendsSetup(L){
- if(L.friends||L.age<8)return;const reg=REGION(L.raw||"台灣"),pool=[...(NAMES[reg]||NAMES["華"]).男,...(NAMES[reg]||NAMES["華"]).女].filter(n=>n!==L.name&&n!==L.partnerName);
- L.friends=[0,1,2].map(()=>({name:pick(pool),close:60+R()*30,from:L.age}));
- if(L===P)say(L,`在學校交到好朋友：${L.friends.map(f=>f.name).join("、")}。`);
+ if(L.pals||L.age<8)return;const reg=REGION(L.raw||"台灣"),pool=[...(NAMES[reg]||NAMES["華"]).男,...(NAMES[reg]||NAMES["華"]).女].filter(n=>n!==L.name&&n!==L.partnerName);
+ L.pals=[0,1,2].map(()=>({name:pick(pool),close:60+R()*30,from:L.age}));
+ if(L===P)say(L,`在學校交到好朋友：${L.pals.map(f=>f.name).join("、")}。`);
 }
 async function friendsYear(L){
- friendsSetup(L);if(!L.friends)return;
- for(const f of L.friends){if(f.gone)continue;f.close-=L.focus=="家人"||L.focus=="愛情"?1:2.5;if(L.age>70&&R()<.03){f.gone=1;L.happy-=6;if(L===P)say(L,`老朋友${f.name}過世了，你去送了最後一程。`)}}
- const live=L.friends.filter(f=>!f.gone);if(!live.length)return;const f=pick(live);
+ friendsSetup(L);if(!L.pals)return;
+ for(const f of L.pals){if(f.gone)continue;f.close-=L.focus=="家人"||L.focus=="愛情"?1:2.5;if(L.age>70&&R()<.03){f.gone=1;L.happy-=6;if(L===P)say(L,`老朋友${f.name}過世了，你去送了最後一程。`)}}
+ const live=L.pals.filter(f=>!f.gone);if(!live.length)return;const f=pick(live);
  if(f.close<35&&!f.faded&&R()<.3){f.faded=1;if(L===P)say(L,`和${f.name}越來越少聯絡，上次見面已經是好幾年前。`)}
  else if(f.faded&&R()<.05){f.faded=0;f.close=60;L.happy+=4;if(L===P)say(L,`在路上巧遇多年不見的${f.name}，約了吃飯聊到很晚。`)}
  else if(L.age>=24&&L.age<=40&&!f.wed&&R()<.08){f.wed=1;await ask(L,`${f.name}要結婚了，邀請你參加婚禮`,[
