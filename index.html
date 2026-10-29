@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>人生模擬器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f6f3ee;--fg:#222;--mut:#777;--card:#fff;--ac:#c0392b;--line:#e3ddd3}
 @media (prefers-color-scheme:dark){:root{--bg:#16151a;--fg:#eee;--mut:#999;--card:#222128;--ac:#e8705f;--line:#333}}
@@ -73,12 +75,77 @@ button.pri:hover{filter:brightness(1.08)}
 .stat b{font-variant-numeric:tabular-nums}
 #choice{animation:pop .25s ease-out}@keyframes pop{from{opacity:0;transform:translateY(8px)}}
 #log p{cursor:pointer}#log p.star::after{content:" ★";color:#d4a017}
+
+/* ===== 復古街機風 ===== */
+:root,:root[data-theme]{--bg:#12122b;--fg:#f4f1de;--mut:#a6a6c8;--card:#22224a;--ac:#ff4d4d;--line:#3d3d75;--y:#ffd23f;--b:#3fa7ff;--g:#4cd964;--ink:#05050f;--px:"Press Start 2P","DotGothic16",monospace}
+body{background:var(--bg);font-family:"DotGothic16",system-ui,sans-serif;letter-spacing:.02em;
+ background-image:radial-gradient(#ffffff0d 1px,transparent 1px);background-size:6px 6px}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:20;background:repeating-linear-gradient(#0000 0 2px,#0000001f 2px 3px)}
+h1{font-family:var(--px);font-size:1.6rem;color:var(--y);text-shadow:3px 3px 0 var(--ac),6px 6px 0 var(--ink);line-height:1.5}
+h2{font-family:var(--px);font-size:.82rem;color:var(--y);text-shadow:2px 2px 0 var(--ink);line-height:1.8;letter-spacing:.04em}
+.card{background:var(--card);border:3px solid var(--ink);border-radius:0;box-shadow:inset 0 0 0 2px var(--line),5px 5px 0 var(--ink);position:relative}
+.card::before{content:"";position:absolute;top:4px;left:4px;width:6px;height:6px;background:var(--y);box-shadow:calc(100% - 0px) 0 0 transparent}
+button,select{border:3px solid var(--ink);border-radius:0;background:#33336b;color:var(--fg);box-shadow:3px 3px 0 var(--ink);font-family:"DotGothic16",sans-serif}
+button:hover:not([disabled]){border-color:var(--ink);background:#44448a}
+button:active:not([disabled]){transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+button.pri{background:var(--ac);color:#fff;font-family:var(--px);font-size:.85rem;padding:12px 22px;text-shadow:2px 2px 0 var(--ink)}
+.on{background:var(--b)!important;color:#fff!important}
+.seg,.chip,.ib,.sw i{border-radius:0!important}
+.seg{border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);background:#33336b}
+.seg button{box-shadow:none;border:0;font-family:var(--px);font-size:.62rem;padding:9px 9px}
+.seg button+button{border-left:2px solid var(--ink)}
+.seg button.on{background:var(--y)!important;color:var(--ink)!important}
+.ib{width:42px;height:38px}
+.sw i{border:2px solid var(--ink);background:#33336b}.sw i::after{border-radius:0;background:var(--fg)}.sw input:checked+i{background:var(--g)}
+.mut{color:var(--mut)}
+.row{border-bottom:2px dotted var(--line)}
+.bar{border-radius:0;background:var(--ink);height:8px}.bar i{background:linear-gradient(90deg,var(--g),var(--y))}
+.stat{background:#1a1a3a;border:2px solid var(--ink);padding:6px 8px}
+.stat b{font-family:var(--px);font-size:.8rem;margin:4px 0;color:var(--fg)}
+.up{color:var(--g)}.down{color:var(--ac)}
+#log{background:#0b0b1e;border:3px solid var(--ink);box-shadow:inset 0 0 0 2px var(--line)}
+#log p.hi{border-left:4px solid var(--y);color:var(--y)}
+.opt{border:3px solid var(--ink);background:#2b2b5c;margin:8px 0 0}
+.opt:hover:not([disabled]){background:#3a3a7a}
+.opt::before{content:"▶ ";color:var(--y);opacity:0}.opt:hover::before,.opt.picked::before{opacity:1}
+.opt.picked{background:var(--y);color:var(--ink)}.opt.picked small{color:var(--ink)}
+#modal .sheet{border:4px solid var(--ink);border-radius:0;box-shadow:inset 0 0 0 3px var(--y),8px 8px 0 var(--ink);background:var(--card)}
+.mbar .tag{font-family:var(--px);font-size:.6rem;color:var(--ink);background:var(--y);padding:6px 8px}
+#mpill{border-radius:0}
+#toast{border-radius:0;border:3px solid var(--ink);background:var(--y);color:var(--ink);box-shadow:4px 4px 0 var(--ink)}
+.lmap i{border-radius:0;border-color:var(--ink)}
+.cert{border-top:0}.cert::after{content:"";position:absolute;inset:0 0 auto;height:8px;background:repeating-linear-gradient(90deg,var(--ac) 0 12px,var(--y) 12px 24px)}
+.tl{border-left:3px dotted var(--y)}.tl div::before{border-radius:0;background:var(--y)}
+.kpi b{font-family:var(--px);font-size:1rem}
+.big{font-family:var(--px);color:var(--y)}
+textarea,input,select{border-radius:0}
+/* 頂部：照片、年齡、血條 */
+.tool{padding:12px 14px}
+.hud{display:flex;gap:12px;align-items:center}
+.lcd{flex:none;width:92px;height:92px;padding:8px;background:#d7d2c3;border:3px solid var(--ink);box-shadow:inset 0 0 0 3px #a9a493,3px 3px 0 var(--ink);border-radius:18px 18px 18px 40px}
+.lcd canvas{width:100%;height:100%;display:block;image-rendering:pixelated;border:2px solid #5c6146;background:#9aa66a}
+.hud .age{font-family:var(--px);font-size:2rem;color:var(--y);text-shadow:3px 3px 0 var(--ac),5px 5px 0 var(--ink);line-height:1}
+.hud .age small{font-size:.7rem;margin-left:4px;text-shadow:none;color:var(--fg)}
+.hud .meta{font-size:.85rem;color:var(--mut);margin-top:6px}
+.lifebar-wrap{margin-top:10px}
+.lifebar-wrap .lbl{display:flex;justify-content:space-between;font-family:var(--px);font-size:.55rem;color:var(--fg);margin-bottom:4px}
+.lifebar-wrap .lbl b{color:var(--y)}
+.hp{position:relative;height:22px;background:var(--ink);border:3px solid var(--ink);box-shadow:inset 0 0 0 2px #4a4a8a,3px 3px 0 var(--ink)}
+.hp #lifebar{position:absolute;inset:2px auto 2px 2px;height:auto;max-width:calc(100% - 4px);background:linear-gradient(180deg,#fff6 0 30%,transparent 30%),linear-gradient(90deg,var(--g),var(--y) 60%,var(--ac));
+ -webkit-mask:repeating-linear-gradient(90deg,#000 0 7px,#0000 7px 9px);mask:repeating-linear-gradient(90deg,#000 0 7px,#0000 7px 9px)}
+.hp .tick{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--fg);opacity:.5}
+.hp .avg{position:absolute;top:-8px;bottom:-8px;width:3px;background:var(--y);box-shadow:0 0 0 1px var(--ink)}
+.hp .avg::after{content:"平均";position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:.65rem;color:var(--y);white-space:nowrap}
+.stages{display:flex;font-size:.7rem;color:var(--mut);margin-top:4px;position:relative;height:14px}
+.stages span{position:absolute;transform:translateX(-50%)}
+#scenecv{width:100%;display:block;image-rendering:pixelated;border:3px solid var(--ink);background:#8ecae6}
+.blink{animation:blink 1s steps(2) infinite}@keyframes blink{50%{opacity:0}}
 </style></head><body><div class="wrap">
 
 <!-- 首頁 -->
 <section id="home">
 <p class="mut">v1.0 · 免費人生模擬 · 依 170 個國家與地區的公開統計概估 · 15 歲以上</p>
-<h1>人生模擬器</h1>
+<h1>人生模擬器</h1><p class="blink" style="font-family:var(--px);font-size:.7rem;color:var(--y)">— 按下「出生」開始 —</p>
 <p>此刻每秒約有四個嬰兒誕生，你會是其中一個，一路活到最後。出生在哪、父母是誰，你沒得選——當初的你也一樣。</p>
 <div class="grid card"><div><span class="big" id="born">0</span><div class="mut">你打開本頁後出生的嬰兒</div></div><div><span class="big" id="died">0</span><div class="mut">同一段時間離世的人</div></div></div>
 <div class="card"><b>今日主題：</b><span id="theme"></span><div class="mut">今天出生的人生都會遇到和這個主題有關的事件。</div></div>
@@ -112,7 +179,10 @@ button.pri:hover{filter:brightness(1.08)}
 
 <!-- 遊戲 -->
 <section id="game" class="hide">
-<div class="card tool"><div class="row"><div><b id="who"></b> <span class="mut" id="yr"></span></div>
+<div class="card tool"><div class="hud">
+ <div class="lcd" title="本人"><canvas id="avatar" width="16" height="16"></canvas></div>
+ <div style="flex:1;min-width:0"><div class="age"><span id="agebig">0</span><small>歲</small></div>
+ <div class="meta"><b id="who" style="color:var(--fg)"></b> · <span id="yr"></span></div></div>
 </div>
 <div class="tbar">
  <button id="pause" class="ib" title="暫停" aria-label="暫停">⏸︎</button>
@@ -121,8 +191,9 @@ button.pri:hover{filter:brightness(1.08)}
  <button id="skip" class="chip" title="剩下的人生自動跑完">⏩︎ 跳到結局</button>
  <label class="sw"><input type="checkbox" id="auto"><i></i>自動抉擇</label>
 </div>
-<div class="row" style="border:0"><span class="mut" id="stage"></span><span class="mut" id="pct"></span></div><div class="bar live"><i id="lifebar" style="width:0"></i></div></div>
-<div class="card"><div id="scene"></div><div class="mut" id="origin" style="margin-top:6px"></div></div>
+<div class="lifebar-wrap"><div class="lbl"><span>人生 <b id="stage"></b></span><span id="pct"></span></div>
+ <div class="hp" id="hp"><i id="lifebar" style="width:0"></i></div><div class="stages" id="stages"></div></div></div>
+<div class="card"><canvas id="scenecv" width="240" height="96"></canvas><div class="mut" id="sceneTxt" style="margin-top:6px"></div><div class="mut" id="origin" style="margin-top:4px"></div></div>
 <div class="card grid" id="stats"></div>
 
 <div class="card"><b>今年的重心</b><br><span id="focus"></span>
@@ -148,9 +219,10 @@ button.pri:hover{filter:brightness(1.08)}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=12"></script>
-<script src="events.js?v=12"></script>
-<script src="life.js?v=12"></script>
+<script src="countries.js?v=13"></script>
+<script src="events.js?v=13"></script>
+<script src="life.js?v=13"></script>
+<script src="pixel.js?v=13"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -311,7 +383,12 @@ function render(){
  setStat("工作",P.job||"—");setStat("年收入",P.job?money(P.inc):"—");setStat("存款",P.money<0?"負債 "+money(-P.money):money(P.money));
  setStat("家庭",(P.partner?"有伴侶":P.widowed?"喪偶":"單身")+(P.kids?` · ${P.kids}子女`:""));
  // 場景：有變才換，新出現的人物彈出來
- const sc=scene(P);if(sc!==lastScene){$("scene").innerHTML=sc.replace(/<span class="ppl">(.*?)<\/span>/,(m,x)=>`<span class="ppl">${[...x].filter(ch=>ch.trim()).reduce((a,ch)=>{if(/\p{Emoji_Presentation}|\p{Extended_Pictographic}/u.test(ch)||!a.length)a.push(ch);else a[a.length-1]+=ch;return a},[]).map(e=>`<span>${e}</span>`).join("")}</span>`);lastScene=sc}
+ // 場景：家人組成或住所有變才重畫
+ const sc=scene(P);if(sc!==lastScene){drawScene($("scenecv"),P);$("sceneTxt").textContent=(sc.match(/<div class="mut">(.*?)<\/div>/)||[])[1]||"";lastScene=sc}
+ $("agebig").textContent=P.age;
+ if(!$("stages").firstChild){const pct=a=>Math.min(100,a/Math.max(P.ex,100)*100);
+  $("hp").insertAdjacentHTML("beforeend",[13,20,40,65].map(a=>`<span class="tick" style="left:${pct(a)}%"></span>`).join("")+`<span class="avg" style="left:${pct(P.ex)}%"></span>`);
+  $("stages").innerHTML=[[6,"童年"],[16,"青少年"],[30,"青年"],[52,"中年"],[80,"老年"]].map(([a,t])=>`<span style="left:${pct(a)}%">${t}</span>`).join("")}
  if(!lmap.firstChild)buildMap();growMap();for(let a=Math.max(0,P.age-2);a<=P.age;a++)paintMap(a);
  if(!surv.firstChild)buildSurv();
  const sv=P.surv||(P.surv=survival(P)),cx=P.age/100*300,cy=110-sv[Math.min(100,P.age)]*110,dot=surv.querySelector("circle");
@@ -409,7 +486,7 @@ async function year(L){
 
 // 進度條：每一幀往目標值靠近，看起來是連續滑動
 let prog=0,shown=0;
-(function bar(){if(P){shown+=(prog-shown)*.18;if(Math.abs(prog-shown)<.001)shown=prog;$("lifebar").style.width=Math.min(100,shown/P.ex*100)+"%"}requestAnimationFrame(bar)})();
+(function bar(){if(P){shown+=(prog-shown)*.18;if(Math.abs(prog-shown)<.001)shown=prog;$("lifebar").style.width=Math.min(100,shown/Math.max(P.ex,100)*100)+"%";drawAvatarLCD($("avatar"),P)}requestAnimationFrame(bar)})();
 async function loop(){
  prog=shown=P.age;
  while(P.alive){
