@@ -206,7 +206,7 @@ function renderBoards(){
  let money1="";
  if(L.age>=18&&(L.job||L.age>=22)){const {cost,income,total,full}=yearFlow(L),k=total/Math.max(1,full),mx=Math.max(income,full)/12;
   money1=brow("每月收入",moneyShort(income/12))+Object.entries(cost).filter(([,v])=>v>0).map(([n,v])=>`<div class="br"><span>${n}</span><b>${moneyShort(v*k/12)}</b></div>${bbar(v*k/12,mx,"var(--ac)")}`).join("")+
-   (L.ins?brow("保費",moneyShort(L.ins.prem/12)):"")+(L.mortPay?brow("房貸（含在住）",moneyShort(L.mortPay/12)):"")+brow("每月結餘",`<span style="color:${income-total>=0?"var(--g)":"var(--ac)"}">${income-total>=0?"+":"−"}${moneyShort(Math.abs(income-total)/12)}</span>`);
+   (L.ins?brow("保費",moneyShort(L.ins.prem/12)):"")+(L.mortPay?brow("房貸（含在住）",moneyShort(L.mortPay/12)):"")+(()=>{const bal=income-total-(L.ins?L.ins.prem:0);return brow("每月結餘",`<span style="color:${bal>=0?"var(--g)":"var(--ac)"}">${bal>=0?"+":"−"}${moneyShort(Math.abs(bal)/12)}</span>`)})();
  }else money1=`<p class="mut">${L.age<18?"還未成年，生活開銷由家裡負擔。":"還在讀書，靠家裡和打工過活。"}${L.pocket!=null?`<br>今年零用錢剩 ${money(Math.max(0,L.pocket))}`:""}</p>`;
  // 資產
  const inv=L.inv&&L.inv.amt>0?L.inv.amt:0,house=L.house?housePrice(L):0,loan=L.mort?L.mort.left:0,net=L.money+inv+house-loan;
