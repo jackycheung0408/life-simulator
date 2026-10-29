@@ -313,13 +313,13 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=62"></script>
-<script src="events.js?v=62"></script>
-<script src="life.js?v=62"></script>
-<script src="pixel.js?v=62"></script>
-<script src="story.js?v=62"></script>
-<script src="realism.js?v=62"></script>
-<script src="taiwan.js?v=62"></script>
+<script src="countries.js?v=63"></script>
+<script src="events.js?v=63"></script>
+<script src="life.js?v=63"></script>
+<script src="pixel.js?v=63"></script>
+<script src="story.js?v=63"></script>
+<script src="realism.js?v=63"></script>
+<script src="taiwan.js?v=63"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -442,7 +442,9 @@ pause.onclick=()=>{setPaused(!paused);toast(paused?"已暫停":"繼續")};
 document.querySelectorAll("#speeds button").forEach(b=>b.onclick=()=>{setSpeed(+b.dataset.m);toast(`速度 ${b.dataset.m}×`)});
 $("auto").onchange=e=>{auto=e.target.checked;toast(auto?"之後的抉擇會自動決定":"之後的抉擇由你決定")};
 $("ffwd").onclick=e=>{ffwd=true;setPaused(false);e.target.textContent="⏭︎ 快轉中…";e.target.classList.add("on")};
-$("skip").onclick=e=>{if(!confirm("剩下的人生會自動抉擇並快速跑完，確定嗎？"))return;auto=true;$("auto").checked=true;mult=9999;document.querySelectorAll("#speeds button").forEach(b=>b.classList.remove("on"));setPaused(false);e.target.classList.add("on");e.target.textContent="⏩︎ 快速跑完中…"};
+// 跳到結局：不用瀏覽器的 confirm（有些環境會被擋），改成按兩次確認；正在等的抉擇也自動選
+$("skip").onclick=e=>{const b=e.currentTarget;if(!b.dataset.arm){b.dataset.arm=1;b.textContent="再按一次確認跳到結局";toast("剩下的人生會自動抉擇並快速跑完");setTimeout(()=>{if(b.dataset.arm&&!b.classList.contains("on")){delete b.dataset.arm;b.textContent="⏩︎ 跳到結局"}},3000);return}
+ const open=!$("modal").classList.contains("hide")&&[...choice.querySelectorAll("button.opt:not([disabled])")];if(open&&open.length)pick(open).click();auto=true;$("auto").checked=true;mult=9999;document.querySelectorAll("#speeds button").forEach(b=>b.classList.remove("on"));setPaused(false);e.target.classList.add("on");e.target.textContent="⏩︎ 快速跑完中…"};
 
 function openModal(tag){$("mtag").textContent=tag;modal.classList.remove("hide","closing");mpill.classList.add("hide");document.body.style.overflow="hidden";modal.querySelector(".sheet").scrollTop=0}
 function closeModal(){return new Promise(r=>{modal.classList.add("closing");setTimeout(()=>{modal.classList.add("hide");modal.classList.remove("closing");mpill.classList.add("hide");document.body.style.overflow="";r()},200)})}
