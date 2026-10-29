@@ -148,9 +148,9 @@ button.pri:hover{filter:brightness(1.08)}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=11"></script>
-<script src="events.js?v=11"></script>
-<script src="life.js?v=11"></script>
+<script src="countries.js?v=12"></script>
+<script src="events.js?v=12"></script>
+<script src="life.js?v=12"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -218,7 +218,7 @@ function newLife(w){
  const L={c,raw:raw[0],sex,name:pick(NAMES[REGION(raw[0])][sex]),age:0,cls,know:45+R()*10+cls*2,rel:55+R()*10,hist:[],inc:c.gdp*Math.exp((cls-2)*c.gini*1.4),health:70+R()*20+cls*2,happy:60,edu:0,
   money:0,partner:null,partnerYears:0,widowed:false,kids:0,grand:0,job:null,jobYears:0,smoke:false,abroad:null,alive:true,events:[],notes:[],
   ex:sex=="男"?c.mEx:c.fEx,cause:null};
- makeFamily(L);return L;
+ L.hist[0]=L.happy;makeFamily(L);return L;
 }
 
 let P,S=[],paused=false,auto=false,mult=1,focusSel="健康",busy=false,spend=1,ffwd=false;
@@ -339,7 +339,7 @@ const Q={5:"你五歲時，最記得的是什麼？",15:"十五歲的你，在�
 function reflect(){
  if(auto)return Promise.resolve();
  if(ffwd){ffwd=false;$("ffwd").textContent="⏭︎ 下一個抉擇";$("ffwd").classList.remove("on")}render();
- return new Promise(res=>{openModal(`暫停片刻 · ${P.age} 歲`);choice.innerHTML=`<h2>${P.name}，${P.age} 歲</h2><p>${P.name}現在 ${P.age} 歲。同年在${P.c.name}出生的人，約 ${survivePct(P)}% 還活著。</p><p class="mut">同一秒出生的人：${S.map(s=>`${s.name}（${s.c.name}）${s.alive?s.age+"歲・"+(s.job||EDU[s.edu]):"已離世"}`).join("、")}</p><p>${Q[P.age]}</p><textarea rows="2" id="rf" placeholder="想寫就寫，不寫也可以"></textarea><button class="pri" style="margin-top:10px">繼續</button>`;
+ return new Promise(res=>{openModal(`暫停片刻 · ${P.age} 歲`);choice.innerHTML=`<h2>${P.name}，${P.age} 歲</h2><p>同年在${P.c.name}出生的人，約 ${survivePct(P)}% 還活著。</p><p class="mut">同一秒出生的人：${S.map(s=>`${s.name}（${s.c.name}）${s.alive?P.age+"歲・"+(s.job||EDU[s.edu]):"已離世"}`).join("、")}</p><p>${Q[P.age]}</p><textarea rows="2" id="rf" placeholder="想寫就寫，不寫也可以"></textarea><button class="pri" style="margin-top:10px">繼續</button>`;
   choice.querySelector("button").onclick=async()=>{const v=$("rf").value.trim();if(v)P.notes.push(`${P.age}歲：${v}`);await closeModal();toast(v?"已記下這句話，結局時會再看到":"繼續往下走");res()}});
 }
 function mortality(L){

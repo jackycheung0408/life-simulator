@@ -51,7 +51,7 @@ function survivalSVG(L){
   <polyline points="${pts}" fill="none" stroke="var(--ac)" stroke-width="2"/>
   <circle cx="${x}" cy="${y}" r="4" fill="var(--ac)"/></svg>`;
 }
-const survivePct=L=>Math.round((L.surv||(L.surv=survival(L)))[Math.min(100,L.age)]*100);
+const survivePct=L=>{const v=(L.surv||(L.surv=survival(L)))[Math.min(100,L.age)]*100;return v>=99?Math.min(99.9,v).toFixed(1):Math.round(v)};
 
 // 人生地圖：一年一格，越幸福顏色越深；外框標到當地平均壽命
 function lifeMap(L){
