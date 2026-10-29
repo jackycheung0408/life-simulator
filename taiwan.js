@@ -104,7 +104,7 @@ async function twYear(L,f){
  if(L.age==18&&L.edu==2&&!L.twCollegeAsked){L.twCollegeAsked=true;
   const rate=c.uni,name=yr<2002?"大學聯考":"學測";
   await ask(L,`要考${name}嗎？`,[
-   ["拚一下",()=>{if(R()<rate/100+L.know/250+(f=="學業"?.1:0)-.1){L.edu=3;L.know+=8;say(L,yr<1990?"考上大學了！家裡放鞭炮慶祝。":"考上大學了。");if(L.cls<=2){L.money-=c.gdp*.4;ledger(L,"就學貸款",-c.gdp*.4);say(L,"申請了就學貸款。")}}else say(L,"沒考上大學。")},"知識↑ · 家境普通要背就貸"],
+   ["拚一下",()=>{if(R()<rate/100+L.know/250+(f=="學業"?.1:0)-.1){L.edu=3;L.know+=8;say(L,yr<1990?"考上大學了！家裡放鞭炮慶祝。":"考上大學了。");if(L.cls<=2){L.money-=c.gdp*.25;ledger(L,"就學貸款",-c.gdp*.25);say(L,"申請了就學貸款。")}}else say(L,"沒考上大學。")},"知識↑ · 家境普通要背就貸"],
    ["重考一年",()=>{L.know+=5;L.happy-=5;L.twRetake=true;say(L,"決定重考，在補習班度過了一整年。")},"多一年，機會更大"],
    ["直接工作",()=>{}]],`這一年台灣的大學就學率大約 ${Math.round(rate)}%。`)}
  if(L.twRetake&&L.age==19&&L.edu==2){L.twRetake=false;if(R()<c.uni/100+L.know/200){L.edu=3;say(L,"重考後考上了大學。")}else say(L,"重考還是沒考上。")}

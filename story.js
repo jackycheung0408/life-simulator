@@ -47,7 +47,7 @@ function ledger(L,cat,amt){L.led=L.led||{};L.led[cat]=(L.led[cat]||0)+amt}
 function moneyYear(L){
  const c=L.c;
  // 欠債要付利息
- if(L.money<0){const it=-L.money*.06;L.money-=it;ledger(L,"債務利息",-it)}
+ if(L.money<0){const it=-L.money*.03;L.money-=it;ledger(L,"債務利息",-it)}
  // 房租或房貸（成年、沒和父母住）
  // 一般生活費已含在每年的儲蓄裡；離鄉打拚或出國的人另外多付一筆房租
  if(L.age>=20&&!L.house&&(L.moved||L.abroad)&&L.job){const rent=L.inc*.08;L.money-=rent;ledger(L,"房租",-rent)}
