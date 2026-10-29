@@ -150,7 +150,7 @@ const POS={FW:"前鋒",MF:"中場",DF:"後衛",GK:"門將"};
 const ATTR=["速度","射門","傳球","盤帶","防守","體能"];
 const POSW={FW:{速度:.2,射門:.35,傳球:.1,盤帶:.25,防守:0,體能:.1},MF:{速度:.12,射門:.12,傳球:.35,盤帶:.2,防守:.11,體能:.1},DF:{速度:.18,射門:0,傳球:.12,盤帶:.05,防守:.5,體能:.15},GK:{速度:.05,射門:0,傳球:.15,盤帶:0,防守:.6,體能:.2}};
 function ovr(p){const w=POSW[p.pos];return Math.round(ATTR.reduce((s,a)=>s+p.a[a]*w[a],0))}
-function value(p){const o=ovr(p),agef=p.age<21?1.6:p.age<25?1.3:p.age<29?1:p.age<32?.55:.2;return Math.max(.01,.004*Math.pow(1.17,o-50)*agef)} // 百萬歐元
+function value(p){const o=ovr(p),agef=p.age<21?1.6:p.age<25?1.3:p.age<29?1:p.age<32?.55:.2;return Math.max(.01,.25*Math.pow(1.165,o-50)*agef)} // 百萬歐元：能力 80 約 €25M，90 約 €110M
 function eur(m){return m>=1?`€${m>=100?Math.round(m):m.toFixed(1)}M`:`€${Math.round(m*1000)}K`}
 function newPlayer(world,pos){
  const c=world=="tw"?COUNTRIES.find(x=>x[0]=="台灣"):wpick(COUNTRIES,x=>x[1]),nm=NM[c[4]];
