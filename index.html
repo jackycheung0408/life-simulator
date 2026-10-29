@@ -39,6 +39,19 @@ button.pri:hover{filter:brightness(1.08)}
 .opt.dim{opacity:.35}
 #lifebar{transition:width .12s linear}
 .bar.live{height:8px}
+.tbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}
+.tbar button{margin:0}
+.ib{width:40px;height:36px;padding:0;font-size:1rem;border-radius:50%}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--card)}
+.seg button{border:0;border-radius:0;padding:6px 11px;font-size:.88rem;font-variant-numeric:tabular-nums}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--ac);color:#fff}
+.chip{border-radius:999px;padding:6px 13px;font-size:.88rem}
+.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.sw{display:inline-flex;align-items:center;gap:8px;font-size:.88rem;cursor:pointer;user-select:none;margin-left:auto}
+.sw input{display:none}.sw i{width:38px;height:22px;border-radius:999px;background:var(--line);position:relative;transition:background .2s}
+.sw i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 2px #0003}
+.sw input:checked+i{background:var(--ac)}.sw input:checked+i::after{transform:translateX(16px)}
 #toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.92rem;max-width:calc(100% - 32px);pointer-events:none;transition:opacity .2s,transform .2s;z-index:9}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 .stat b{transition:color .3s}.stat.flash b{color:var(--ac)}
@@ -84,7 +97,14 @@ button.pri:hover{filter:brightness(1.08)}
 <!-- 遊戲 -->
 <section id="game" class="hide">
 <div class="card tool"><div class="row"><div><b id="who"></b> <span class="mut" id="yr"></span></div>
-<div><button id="pause">⏸ 暫停</button><button id="spd">×1</button><button id="auto">自動抉擇：關</button><button id="ffwd">快轉到下一個抉擇</button><button id="skip">跳到結局</button></div></div>
+</div>
+<div class="tbar">
+ <button id="pause" class="ib" title="暫停" aria-label="暫停">⏸</button>
+ <div class="seg" id="speeds" role="group" aria-label="速度"><button data-m="1" class="on">1×</button><button data-m="2">2×</button><button data-m="4">4×</button><button data-m="8">8×</button><button data-m="16">16×</button></div>
+ <button id="ffwd" class="chip" title="直接跳到下一次要你做決定的地方">⏭ 下一個抉擇</button>
+ <button id="skip" class="chip" title="剩下的人生自動跑完">⏩ 跳到結局</button>
+ <label class="sw"><input type="checkbox" id="auto"><i></i>自動抉擇</label>
+</div>
 <div class="row" style="border:0"><span class="mut" id="stage"></span><span class="mut" id="pct"></span></div><div class="bar live"><i id="lifebar" style="width:0"></i></div></div>
 <div class="card"><div id="scene"></div><div class="mut" id="origin" style="margin-top:6px"></div></div>
 <div class="card grid" id="stats"></div>
@@ -110,9 +130,9 @@ button.pri:hover{filter:brightness(1.08)}
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="countries.js?v=9"></script>
-<script src="events.js?v=9"></script>
-<script src="life.js?v=9"></script>
+<script src="countries.js?v=10"></script>
+<script src="events.js?v=10"></script>
+<script src="life.js?v=10"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -216,11 +236,13 @@ resume.onclick=()=>{
  document.querySelectorAll(".f").forEach(b=>b.onclick=()=>{focusSel=b.textContent;document.querySelectorAll(".f").forEach(x=>x.classList.toggle("on",x==b))});
  log.innerHTML=saved.log||"";setupGame();loop();
 };
-pause.onclick=()=>{paused=!paused;pause.textContent=paused?"▶ 繼續":"⏸ 暫停";pause.classList.toggle("on",paused);toast(paused?"已暫停":"繼續")};
-spd.onclick=()=>{mult=mult>=16?1:mult*2;spd.textContent="×"+mult;spd.classList.toggle("on",mult>1);toast(`速度 ×${mult}`)};
-$("auto").onclick=e=>{auto=!auto;e.target.textContent="自動抉擇："+(auto?"開":"關");e.target.classList.toggle("on",auto);toast(auto?"之後的抉擇會自動決定":"之後的抉擇由你決定")};
-$("ffwd").onclick=e=>{ffwd=true;paused=false;pause.textContent="⏸ 暫停";pause.classList.remove("on");e.target.textContent="快轉中…";e.target.classList.add("on")};
-$("skip").onclick=()=>{if(!confirm("剩下的人生會自動抉擇並快速跑完，確定嗎？"))return;auto=true;mult=9999;paused=false;$("auto").textContent="自動抉擇：開";spd.textContent="⏩";pause.textContent="暫停"};
+function setPaused(v){paused=v;pause.textContent=v?"▶":"⏸";pause.title=v?"繼續":"暫停";pause.setAttribute("aria-label",pause.title);pause.classList.toggle("on",v)}
+function setSpeed(m){mult=m;document.querySelectorAll("#speeds button").forEach(b=>b.classList.toggle("on",+b.dataset.m===m))}
+pause.onclick=()=>{setPaused(!paused);toast(paused?"已暫停":"繼續")};
+document.querySelectorAll("#speeds button").forEach(b=>b.onclick=()=>{setSpeed(+b.dataset.m);toast(`速度 ${b.dataset.m}×`)});
+$("auto").onchange=e=>{auto=e.target.checked;toast(auto?"之後的抉擇會自動決定":"之後的抉擇由你決定")};
+$("ffwd").onclick=e=>{ffwd=true;setPaused(false);e.target.textContent="⏭ 快轉中…";e.target.classList.add("on")};
+$("skip").onclick=e=>{if(!confirm("剩下的人生會自動抉擇並快速跑完，確定嗎？"))return;auto=true;$("auto").checked=true;mult=9999;document.querySelectorAll("#speeds button").forEach(b=>b.classList.remove("on"));setPaused(false);e.target.classList.add("on");e.target.textContent="⏩ 快速跑完中…"};
 
 let toastT;
 function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove("show"),2200);try{navigator.vibrate&&navigator.vibrate(12)}catch{}}
@@ -251,7 +273,7 @@ function render(){
 function ask(L,q,opts,info){
  const ok=o=>!o[3]||L.money>=o[3],avail=opts.filter(ok);
  if(L!==P||auto){const o=pick(avail.length?avail:opts);if(L===P)say(L,q+" → "+o[0]);o[1]();return Promise.resolve()}
- if(ffwd){ffwd=false;$("ffwd").textContent="快轉到下一個抉擇";$("ffwd").classList.remove("on")}render();
+ if(ffwd){ffwd=false;$("ffwd").textContent="⏭ 下一個抉擇";$("ffwd").classList.remove("on")}render();
  return new Promise(res=>{choice.style.display="block";
   choice.innerHTML=`<div class="mut">重大抉擇 · ${L.age} 歲 · ${L.c.y0+L.age} 年</div><h2>${q}</h2>${info?`<p class="mut">${info}</p>`:""}`+opts.map((o,i)=>`<button class="opt" data-i="${i}" ${ok(o)?"":"disabled"}>${o[0]}${o[2]?`<small>${o[2]}</small>`:""}${ok(o)?"":`<small>存款不夠 · 需要約 ${money(o[3])}</small>`}</button>`).join("");
   choice.querySelectorAll("button").forEach(b=>b.onclick=()=>{
@@ -263,7 +285,7 @@ function ask(L,q,opts,info){
 const Q={5:"你五歲時，最記得的是什麼？",15:"十五歲的你，在煩惱什麼？",30:"三十歲時，你覺得人生走到哪裡了？",50:"如果你也活到五十歲，最想守住的是什麼？",70:"走到七十歲，你希望身邊有誰？"};
 function reflect(){
  if(auto)return Promise.resolve();
- if(ffwd){ffwd=false;$("ffwd").textContent="快轉到下一個抉擇";$("ffwd").classList.remove("on")}render();
+ if(ffwd){ffwd=false;$("ffwd").textContent="⏭ 下一個抉擇";$("ffwd").classList.remove("on")}render();
  return new Promise(res=>{choice.style.display="block";choice.innerHTML=`<b>暫停片刻</b><p>${P.name}現在 ${P.age} 歲。同年在${P.c.name}出生的人，約 ${survivePct(P)}% 還活著。</p><p class="mut">同一秒出生的人：${S.map(s=>`${s.name}（${s.c.name}）${s.alive?s.age+"歲・"+(s.job||EDU[s.edu]):"已離世"}`).join("、")}</p><p>${Q[P.age]}</p><textarea rows="2" id="rf" placeholder="想寫就寫，不寫也可以"></textarea><button>繼續</button>`;
   choice.querySelector("button").onclick=()=>{const v=$("rf").value.trim();if(v)P.notes.push(`${P.age}歲：${v}`);choice.style.display="none";toast(v?"已記下這句話，結局時會再看到":"繼續往下走");res()}});
 }
