@@ -1,6 +1,11 @@
 <!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>人生模擬器</title>
+<meta name="description" content="隨機出生在世界上 173 個國家，或選擇一段台灣人生：聯考、當兵、北漂、房價、長照。依真實統計，活出只有一次的人生。">
+<meta property="og:title" content="人生模擬器｜隨機出生，活出只有一次的人生">
+<meta property="og:description" content="出生在哪、父母是誰，你沒得選。依聯合國、世界銀行與台灣政府統計，體驗另一段人生。">
+<meta property="og:type" content="website"><meta property="og:url" content="https://jackycheung0408.github.io/life-simulator/">
+<meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
@@ -119,6 +124,19 @@ button.pri{background:var(--ac);color:#fff;font-family:var(--px);font-size:.85re
 .kpi b{font-family:var(--px);font-size:1rem}
 .big{font-family:var(--px);color:var(--y)}
 textarea,input,select{border-radius:0}
+/* 字型清晰度：像素字型只在 8 的倍數時清楚 */
+h1,h2,.age,.seg button,.kpi b,.stat b,.big,.mbar .tag,button.pri,.lifebar-wrap .lbl{-webkit-font-smoothing:none;-moz-osx-font-smoothing:grayscale;font-smooth:never}
+h1{font-size:24px;line-height:40px}
+h2{font-family:"DotGothic16",sans-serif;font-size:16px;line-height:24px;letter-spacing:.06em}
+.seg button{font-size:8px;line-height:16px}
+.stat b{font-family:"DotGothic16",sans-serif;font-size:16px;line-height:24px}
+.kpi b{font-family:"DotGothic16",sans-serif;font-size:24px;line-height:32px}
+.big{font-size:24px;line-height:32px}
+.mbar .tag{font-family:"DotGothic16",sans-serif;font-size:14px;letter-spacing:.04em}
+button.pri{font-family:"DotGothic16",sans-serif;font-size:16px;letter-spacing:.1em}
+.hud .age{font-size:32px;line-height:32px}.hud .age small{font-family:"DotGothic16",sans-serif;font-size:16px}
+.lifebar-wrap .lbl{font-family:"DotGothic16",sans-serif;font-size:13px}
+.blink{font-family:"DotGothic16",sans-serif!important;font-size:16px!important}
 /* 頂部：照片、年齡、血條 */
 .tool{padding:12px 14px}
 .hud{display:flex;gap:12px;align-items:center}
@@ -214,19 +232,19 @@ textarea,input,select{border-radius:0}
 <div class="card"><h2>同一秒出生的人，後來</h2><div id="sibEnd"></div></div>
 <div class="card"><b>最後，對這個人說一句話</b><textarea id="msg" rows="2"></textarea>
 <p><label><input type="checkbox" id="share" style="width:auto" checked> 分享到追思館（會開啟 GitHub，按 Submit 送出）</label></p>
-<button class="pri" id="save">送出並再活一次</button></div>
+<button class="pri" id="save">送出並再活一次</button> <button id="shareBtn">📣 分享給朋友</button></div>
 </section>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=15"></script>
-<script src="events.js?v=15"></script>
-<script src="life.js?v=15"></script>
-<script src="pixel.js?v=15"></script>
-<script src="story.js?v=16"></script>
-<script src="taiwan.js?v=15"></script>
+<script src="countries.js?v=17"></script>
+<script src="events.js?v=17"></script>
+<script src="life.js?v=17"></script>
+<script src="pixel.js?v=17"></script>
+<script src="story.js?v=17"></script>
+<script src="taiwan.js?v=17"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -539,6 +557,10 @@ function finish(){
   <div class="row"><span>大學就學率</span><span>${Math.round(P.c.uni)}%</span><span>${Math.round(m.uni)}%</span></div>`}else compare.classList.add("hide");
  sibEnd.innerHTML=S.map(s=>`<div class="card"><b>${s.name}</b> <span class="mut">${s.c.name} · ${s.sex} · ${s.age}歲</span><p>${story(s)}</p></div>`).join("");
 }
+$("shareBtn").onclick=async()=>{
+ const url="https://jackycheung0408.github.io/life-simulator/",text=`我在人生模擬器裡活了一次：${P.name}，${P.c.tw?"台灣"+P.c.tw.county:P.c.name}，${P.c.y0}–${P.c.y0+P.age}，享年 ${P.age} 歲。你會出生在哪裡？`;
+ try{if(navigator.share){await navigator.share({title:"人生模擬器",text,url});return}await navigator.clipboard.writeText(text+" "+url);toast("已複製分享文字和網址")}catch{toast("可以複製網址分享："+url)}
+};
 save.onclick=()=>{
  if($("share").checked){
   const d={name:P.name,y0:P.c.y0,y1:P.c.y0+P.age,c:P.c.name,sex:P.sex,age:P.age,title:title(P),story:story(P),msg:$("msg").value.trim().slice(0,200)};
