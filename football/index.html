@@ -167,7 +167,8 @@ function value(p){const o=ovr(p),agef=p.age<21?1.6:p.age<25?1.3:p.age<29?1:p.age
 function eur(m){return m>=1?`€${m>=100?Math.round(m):m.toFixed(1)}M`:`€${Math.round(m*1000)}K`}
 function newPlayer(world,pos){
  const c=world=="tw"?COUNTRIES.find(x=>x[0]=="台灣"):wpick(COUNTRIES,x=>x[1]),nm=NM[c[4]];
- const talent=clamp(55+gauss()*9+(c[2]-75)*.15,35,92),pot=clamp(talent+12+R()*22,50,99);
+ // 天賦：多數認真踢球的孩子上限在 55～70；能到 80 以上的是少數
+ const talent=clamp(43+gauss()*8+(c[2]-75)*.2,30,92),pot=clamp(talent+6+Math.abs(gauss())*9,40,99);
  const position=pos=="?"?pick(["FW","MF","DF","GK"]):pos,a={};ATTR.forEach(k=>a[k]=clamp(3+R()*2,1,6));
  // 家庭：爸媽的工作、是不是球迷、有沒有哥哥姊姊——決定幾歲第一次碰到足球、家裡能不能支持
  const JOB=["工廠作業員","司機","店員","老師","工程師","小吃店老闆","農民","護理師","公務員","業務"],cls=Math.floor(R()*5),fan=R()<(c[2]>=80?.6:.3),sib=R()<.5;
@@ -275,7 +276,7 @@ PRO_EVENTS.push(
  p=>ask("有陌生人私訊，說只要這場故意踢差就給你一大筆錢",[["立刻拒絕並向聯盟舉報",()=>{p.fame+=4;p.morale+=2;say("舉報打假球集團，聯盟公開表揚。",1)},"形象↑"],["不理他",()=>{},""],["收下錢",()=>{p.money+=.3;if(R()<.6){p.banned=2;p.fame-=40;p.contract=0;say("打假球被查到，遭禁賽兩年、球隊解約。",1)}},"違法 · 可能被禁賽"]]),
  p=>ask("賽後被抽中藥檢，但你前幾天吃了感冒藥",[["主動向隊醫說明",()=>{p.morale+=1},"安全"],["什麼都不說",()=>{if(R()<.25){p.injuryLeft=1;p.fame-=10;say("藥檢呈陽性，被禁賽半季。",1)}},"有風險"],["請律師準備",()=>{p.money-=.02},"花錢買安心"]]),
  p=>ask("自由球員市場有一支中東球隊開出三倍年薪",[["心動，叫經紀人去談",()=>{p.contract=0;p.wantMoney=1},"合約到期時優先考慮"],["拒絕，還想在歐洲拚",()=>{p.morale+=2},""],["拿來跟現在的球隊談加薪",()=>{p.wage*=1.1},"年薪↑"]]),
- p=>ask("球隊連輸五場，總教練被炒了",[["跟新教練好好表現",()=>{p.a.戰術=(p.a.戰術||0);p.a.傳球+=1},""],["私下支持舊教練",()=>{p.morale-=2;if(R()<.3){p.contract=Math.min(p.contract,1);say("新教練不太喜歡你。")}},"可能被冷凍"],["專心踢好自己的比賽",()=>{p.morale+=1},""]]),
+ p=>ask("球隊連輸五場，總教練被炒了",[["跟新教練好好表現",()=>{p.a.傳球+=1;p.morale+=1},""],["私下支持舊教練",()=>{p.morale-=2;if(R()<.3){p.contract=Math.min(p.contract,1);say("新教練不太喜歡你。")}},"可能被冷凍"],["專心踢好自己的比賽",()=>{p.morale+=1},""]]),
  p=>ask("家鄉的少年足球隊邀請你回去辦一場訓練營",[["免費回去教小朋友",()=>{p.fame+=3;p.morale+=5;say("回家鄉辦訓練營，小朋友們圍著你要簽名。",1)},"心情↑ 名氣↑"],["捐一筆錢就好",()=>{p.money-=.05;p.fame+=2},""],["賽季太忙，婉拒",()=>{},""]]),
  p=>ask("訓練中被隊友不小心踢傷，對方一直跟你道歉",[["原諒他，繼續練",()=>{p.morale+=2;p.health-=3},""],["休息幾天",()=>{p.fat=clamp((p.fat||0)-15,0,100)},"疲勞↓"],["在媒體前抱怨",()=>{p.morale-=3;p.fame-=2},"更衣室氣氛↓"]]),
  p=>ask("有人提議你歸化去踢另一個國家的國家隊",[["考慮看看",()=>{p.cs=Math.max(p.cs,72);say("拿到第二國籍，有機會入選新國家的國家隊。",1)},"國家隊門檻改變",()=>p.caps==0&&p.age<=27],["只想代表自己的國家",()=>{p.morale+=3},""],["等更好的機會",()=>{},""]]),
@@ -338,8 +339,8 @@ async function academy(){
   ["留在學校隊，兼顧課業",()=>{p.stage="學校隊";p.morale+=4;p.school=true},"之後成為職業球員比較難，但退休後出路多"]]);
 }
 async function firstContract(){
- const p=P,o=ovr(p);const seen=c=>c.ct==p.c||p.scouted||p.academy==5||o>=c.str-8; // 國外球隊要先被球探看到
- const offers=CLUBS.filter(c=>c.str-14<=o+(p.academy||0)*1.5&&c.str-20<=o&&seen(c)).sort((a,b)=>b.str-a.str);
+ const p=P,o=ovr(p);const weak=p.cs<65,seen=c=>c.ct==p.c||p.academy==5||(p.scouted&&!weak)||o>=c.str-(weak?3:8); // 國外球隊要先被球探看到；足球弱國的球員更難被注意
+ const offers=CLUBS.filter(c=>c.str-12<=o+(p.academy||0)*1.2&&c.str-14<=o&&seen(c)).sort((a,b)=>b.str-a.str);
  const home=offers.filter(c=>c.ct==p.c),abroad=offers.filter(c=>c.ct!=p.c);
  const list=[...new Set([home[0],abroad[0],abroad[1],home[1]].filter(Boolean))].slice(0,3);
  if(!list.length){say("沒有職業球隊開出合約。");return}
@@ -360,6 +361,7 @@ async function proSeason(){
  // 上場時間：看你和球隊實力的差距，受傷會少踢
  const role=p.loanTo?"主力":roleOf(p,c);p.role=role;
  let share={預備隊:0,替補:.18,輪換:.5,主力:.88}[role];
+ if(p.banned>0){share=0;p.banned--;say("禁賽中，整季不能上場。")}
  if(role=="預備隊"){p.resYears=(p.resYears||0)+1;say(`還在${c.name}預備隊，本季沒有機會踢一線隊比賽。`)}
  else if(!p.debut){p.debut=p.age;say(`${c.name}一線隊初登場！`,1);p.fame+=3}
  if(p.injuryLeft>0){share*=p.injuryLeft>1?.1:.5;p.injuryLeft--}
@@ -407,7 +409,7 @@ async function national(rating){
 }
 async function transferWindow(rating,share){
  const p=P,o=ovr(p),c=p.clubObj;
- const seen=x=>x.ct==p.c||p.fame>25||o>=x.str-2||p.scouted;
+ const seen=x=>x.ct==p.c||p.fame>(p.cs<65?60:25)||o>=x.str-(p.cs<65?0:2);
  const up=CLUBS.filter(x=>x.name!=c.name&&x.str>c.str&&x.str<=o+4&&seen(x)).sort(()=>R()-.5),side=CLUBS.filter(x=>x.name!=c.name&&Math.abs(x.str-o)<5).sort(()=>R()-.5),money=CLUBS.filter(x=>x.ct=="沙烏地阿拉伯"||x.ct=="美國");
  const offers=[];if(rating>=7&&up[0])offers.push(up[0]);if(share<.4&&side[0])offers.push(side[0]);if(p.age>=29&&o>=72&&R()<.4)offers.push(pick(money));
  if(p.contract<=0){if(!offers.length&&side[0])offers.push(side[0]);
