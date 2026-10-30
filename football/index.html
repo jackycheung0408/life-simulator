@@ -82,6 +82,9 @@ button.on{background:var(--y);color:var(--ink)}
  <h2>出生在哪裡？</h2>
  <p><button class="w on" data-v="world">足球世界隨機</button><button class="w" data-v="tw">🇹🇼 台灣</button></p>
  <p class="mut">足球世界隨機：依各國的足球人口抽選，巴西、阿根廷、歐洲各國比較容易抽到。這個遊戲模擬的是「從小認真踢球的孩子」，成功率比一般人高，但仍然要過青訓、預備隊、一線隊一關一關往上爬。</p><div id="oddsTbl" class="mut" style="font-size:13px"></div>
+ <h2>遊戲模式</h2>
+ <p><button class="md on" data-v="real">現實模式</button><button class="md" data-v="pro">保送職業模式</button></p>
+ <p class="mut" id="mdTip">現實模式：大多數孩子會在青訓評估或試訓時被淘汰，足球生涯隨時可能結束。</p>
  <h2>你想踢什麼位置？</h2>
  <p id="posSel"><button class="p on" data-v="FW">前鋒</button><button class="p" data-v="MF">中場</button><button class="p" data-v="DF">後衛</button><button class="p" data-v="GK">門將</button><button class="p" data-v="?">讓命運決定</button></p>
  <h2>每一季的速度</h2>
@@ -430,13 +433,16 @@ function roleOf(p,c){const g=ovr(p)-c.str;return p.age<17||g<-10?"預備隊":g<-
 function wageOf(c,p){return Math.max(.003,c.pay*Math.pow(1.12,ovr(p)-c.str)*(1+Math.min(3,p.fame/150)))} // 百萬歐元／年：頂級聯賽一般球員約 €5M，巨星可到 €30M 以上
 function sign(c,yrs){const p=P;(p.moves=p.moves||[]).push({y:p.y0+p.age,age:p.age,from:p.club||p.stage,to:c.name,lg:c.lg,fee:p._fee||0,type:p._fee?"轉會":p.club?"自由轉會":"首份合約",yrs});p._fee=0;if(p.club&&p.club!==c.name)say(`離開${p.club}。`);p.club=c.name;p.clubObj=c;p.contract=yrs;p.wage=wageOf(c,p);if(!p.clubsPlayed.includes(c.name))p.clubsPlayed.push(c.name);say(`和${c.name}簽下 ${yrs} 年合約，年薪 ${eur(p.wage)}。`,1)}
 // ── 現實的淘汰關卡：大多數孩子會在某一關停下來 ──
-function endFootball(reason,after){const p=P;p.footEnd=reason;p.after=after||pick(["上班族","體育老師","業餘球隊教練","運動用品店店員","健身教練","工程師","餐廳老闆"]);say(`足球生涯在這裡畫下句點：${reason}`,1)}
+function proRescue(p){const o=ovr(p),home=CLUBS.filter(c=>c.ct==p.c).sort((a,b)=>a.str-b.str)[0],any=CLUBS.slice().sort((a,b)=>Math.abs(a.str-o-8)-Math.abs(b.str-o-8))[0],c=home&&home.str<=o+14?home:any;
+ say(pick(["一位老球探在業餘比賽注意到你，推薦給一支低級別球隊。","經紀人幫你找到一份職業合約，雖然是小球隊，但終於是職業球員了。"]),1);sign(c,2)}
+function endFootball(reason,after){const p=P;if(p.mode=="pro"&&!p.debut&&!p.club&&p.age<30){proRescue(p);return}p.footEnd=reason;p.after=after||pick(["上班族","體育老師","業餘球隊教練","運動用品店店員","健身教練","工程師","餐廳老闆"]);say(`足球生涯在這裡畫下句點：${reason}`,1)}
 async function amateur(){
  const p=P,o=ovr(p);if(p.club||p.footEnd)return;
  if(p.age==19||p.age==21)await ask(`${p.age} 歲，還沒有職業隊願意簽你（目前能力 ${Math.round(o)}）`,[
   ["放棄職業夢，好好讀書或找工作",()=>endFootball(`${p.age} 歲時放棄職業夢。`),"結束足球生涯"],
   ["去低級別球隊試訓",()=>{const c=CLUBS.filter(x=>x.str<=o+10).sort((a,b)=>b.str-a.str).find(x=>x.ct==p.c)||CLUBS.filter(x=>x.str<=o+10).sort((a,b)=>b.str-a.str)[0];if(c&&R()<.15+Math.max(0,(o-c.str+8)/40))sign(c,1);else say("試訓沒有通過。")},"成功率不高"],
   ["邊打工邊在業餘隊踢，再拚一年",()=>{p.money+=.005;p.morale-=3;p.a.體能+=1},"堅持"]]);
+ if(p.mode=="pro"&&p.age>=19&&!p.club&&!p.footEnd){proRescue(p);return}
  if(p.age>=23&&!p.club&&!p.footEnd)endFootball("一直沒有職業球隊願意簽約，終究沒能成為職業球員。");
 }
 // 16 歲青訓評估：大多數青訓球員在這一關被放走
@@ -667,7 +673,9 @@ function reveal(p){return new Promise(res=>{const ov=document.createElement("div
  const close=()=>{done=true;ov.remove();res()};ov.querySelector("#rvGo").onclick=close;ov.querySelector("#rvSkip").onclick=close})}
 
 // ── 首頁 ──
-const cfg={w:"world",pos:"FW"};
+const cfg={w:"world",pos:"FW",mode:"real"};
+document.querySelectorAll(".md").forEach(b=>b.onclick=()=>{document.querySelectorAll(".md").forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg.mode=b.dataset.v;
+ $("mdTip").textContent=cfg.mode=="pro"?"保送職業模式：一定會拿到職業合約，但從哪個等級的聯賽起步、能不能踢到頂級，還是看你的能力和選擇。":"現實模式：大多數孩子會在青訓評估或試訓時被淘汰，足球生涯隨時可能結束。"});
 document.querySelectorAll(".w").forEach(b=>b.onclick=()=>{document.querySelectorAll(".w").forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg.w=b.dataset.v});
 document.querySelectorAll(".p").forEach(b=>b.onclick=()=>{document.querySelectorAll(".p").forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg.pos=b.dataset.v});
 document.querySelectorAll(".s").forEach(b=>b.onclick=()=>{document.querySelectorAll(".s").forEach(x=>x.classList.remove("on"));b.classList.add("on");secPerSeason=+b.dataset.v});
@@ -678,7 +686,7 @@ $("auto").onchange=e=>{auto=e.target.checked;toast(auto?"之後的抉擇自動�
 $("skipEnd").onclick=e=>{const b=e.currentTarget;if(!b.dataset.arm){b.dataset.arm=1;b.textContent="再按一次確認";setTimeout(()=>{delete b.dataset.arm;if(!toEnd)b.textContent="⏩ 跳到結局"},3000);return}
  toEnd=true;b.textContent="⏩ 快速跑完中…";const open=!$("modal").classList.contains("hide")&&[...$("choice").querySelectorAll(".opt:not([disabled])")];if(open&&open.length)pick(open).click()};
 function start(p){P=p;$("home").classList.add("hide");$("game").classList.remove("hide");scrollTo(0,0);renderPlan();render();loop()}
-$("go").onclick=async()=>{const p=newPlayer(cfg.w,cfg.pos);P=p;await reveal(p);say(`${p.name}出生在${p.c}。`,1);start(p)};
+$("go").onclick=async()=>{const p=newPlayer(cfg.w,cfg.pos);p.mode=cfg.mode;P=p;await reveal(p);say(`${p.name}出生在${p.c}。`,1);start(p)};
 try{const s=JSON.parse(localStorage.getItem("fb-save"));if(s&&s.P&&s.P.alive){$("resume").innerHTML=`<button id="rs">繼續 ${esc(s.P.name)}（${s.P.age} 歲）</button>`;$("rs").onclick=()=>{if(s.plan)plan=s.plan;const p=s.P;if(!p.s){p.s={};SUBS.forEach(k=>p.s[k]=30)}attachA(p);if(p.club)p.clubObj=CLUBS.find(c=>c.name==p.club);$("log").innerHTML=p.log.slice(-60).reverse().map(([a,t,h])=>`<p class="${h?"hi":""}"><span class="y">${a}歲</span>${t}</p>`).join("");start(p)}}}catch{}
 try{const h=JSON.parse(localStorage.getItem("fb-hof")||"[]");$("hof").innerHTML=h.length?h.map(x=>`<div class="stat"><span>${esc(x.title)} · ${x.y}</span><b>${esc(x.name)}</b><span>${esc(x.c)} · ${x.pos} · 巔峰 ${x.peak} · ${x.goals} 球 · 🏆${x.tro}</span><span>生涯評分 ${x.sc}</span></div>`).join(""):"<p class='mut'>還沒有踢完的生涯。</p>"}catch{}
 $("oddsTbl").innerHTML="<b>真實世界的機率（概估）</b><br>"+["巴西","英格蘭","西班牙","日本","中國","台灣"].map(c=>{const o=realOdds(c);return `${c}：職業球員 ${oneIn(o.pro)}、五大聯賽 ${oneIn(o.top5)}`}).join("<br>");
