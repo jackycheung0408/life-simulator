@@ -145,7 +145,7 @@ const CLUB_WORDS={英格蘭:["倫敦紅獅","曼徹斯特藍鷹","利物浦海�
  墨西哥:["墨西哥城雄鷹","蒙特雷光芒"],台灣:["台北大同","台中未來","台南市隊","新北航源"],奈及利亞:["拉哥斯之星","阿布賈綠鷹"]};
 // 俱樂部：每個聯賽 2～6 隊，實力依聯賽等級上下浮動
 const CLUBS=[];LEAGUES.forEach(([lg,ct,tier])=>{(CLUB_WORDS[ct]||["城市聯"]).forEach((n,i)=>{if(tier==4&&ct=="英格蘭")n=["諾丁漢森林人","里茲白玫瑰","萊斯特狐狸"][i]||n;if(CLUBS.some(c=>c.name==n))return;
- const str=40+tier*9+(i==0?6:i==1?3:-(i*2));CLUBS.push({name:n,lg,ct,tier,str,pay:(tier==5?90:tier==4?35:tier==3?(ct=="沙烏地阿拉伯"?150:12):tier==2?5:1.2)*(str/80)})})});
+ const str=40+tier*9+(i==0?6:i==1?3:-(i*2));CLUBS.push({name:n,lg,ct,tier,str,pay:(tier==5?6:tier==4?2.5:tier==3?(ct=="沙烏地阿拉伯"?15:1.2):tier==2?.4:.05)*(str/80)})})});
 
 // ── 球員 ──
 let P=null,auto=false,paused=false,mult=1,secPerSeason=16,focusSel="",pendingSkip=false,toEnd=false;
@@ -310,7 +310,7 @@ async function firstContract(){
  if(!list.length){say("沒有職業球隊開出合約。");return}
  await ask(`${p.age} 歲，職業俱樂部遞出合約`,list.map(c=>[`${c.name}（${c.lg}）`,()=>sign(c,3),`球隊實力 ${c.str} · 週薪約 ${eur(wageOf(c,p)/52)}`]).concat([["先不簽，繼續練一年",()=>{p.a.體能+=2},"之後可能有更好的合約，也可能沒有"]]));
 }
-function wageOf(c,p){return Math.max(.003,c.pay*Math.pow(1.09,ovr(p)-c.str)*(p.fame>50?1.3:1))} // 百萬歐元／年
+function wageOf(c,p){return Math.max(.003,c.pay*Math.pow(1.12,ovr(p)-c.str)*(1+Math.min(3,p.fame/150)))} // 百萬歐元／年：頂級聯賽一般球員約 €5M，巨星可到 €30M 以上
 function sign(c,yrs){const p=P;if(p.club&&p.club!==c.name)say(`離開${p.club}。`);p.club=c.name;p.clubObj=c;p.contract=yrs;p.wage=wageOf(c,p);if(!p.clubsPlayed.includes(c.name))p.clubsPlayed.push(c.name);say(`和${c.name}簽下 ${yrs} 年合約，年薪 ${eur(p.wage)}。`,1)}
 async function amateur(){
  const p=P;if(p.age>=23&&!p.club&&!p.giveUp){p.giveUp=true;await ask("一直沒有職業隊簽你",[["放棄職業夢，找一般工作",()=>{p.retired=true;p.after="上班族";say("掛起球鞋，找了一份一般的工作。",1)},""],["去低級別聯賽試訓",()=>{const c=CLUBS.filter(c=>c.tier<=2).sort((a,b)=>a.str-b.str)[0];if(ovr(p)>=c.str-18){sign(c,1)}else say("試訓沒有通過。")},"最後一次機會"],["一邊打工一邊踢業餘",()=>{p.money+=.01},""]])}
