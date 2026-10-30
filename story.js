@@ -54,7 +54,7 @@ function moneyYear(L){
  // 欠太多會失眠
  if(L.money<-c.gdp*.5&&R()<.35){L.happy-=4;L.health-=1;if(L===P)say(L,`還欠著 ${money(-L.money)} 的債，晚上常常睡不著。`)}
  // 年底報告：只在有大筆變化時說
- if(L===P&&L.led){const ROUTINE=["吃","穿","住","行","其他","養孩子","薪水"],items=Object.entries(L.led).filter(([k,v])=>Math.abs(v)>c.gdp*.02&&(!ROUTINE.includes(k)||Object.keys(L.led).some(x=>!ROUTINE.includes(x)&&Math.abs(L.led[x])>c.gdp*.02))).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,3);
+ if(L===P&&L.led){const ROUTINE=["吃","穿","住","行","其他","養孩子","薪水","通膨","保費","慢性病藥費","自己花的","花費"],items=Object.entries(L.led).filter(([k,v])=>Math.abs(v)>c.gdp*.04&&!ROUTINE.includes(k)).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,3);
   if(items.length&&R()<.6)say(L,`今年的大筆收支：${items.map(([k,v])=>`${k} ${v>0?"+":"−"}${money(Math.abs(v))}`).join("・")}`)}
  L.led={};
 }
@@ -144,7 +144,7 @@ function livingYear(L){
  if(L.age<18||!L.job&&L.age<22)return;                                  // 學生時期由家裡負擔
  const {cost,income,total,full}=yearFlow(L),b=bonusMonths(L);
  if(L===P&&b>=2.5&&R()<.7)say(L,`公司今年業績好，年終領了 ${b} 個月！`);else if(L===P&&L.job&&b==0&&L.c.gdp>8000&&R()<.5)say(L,"今年公司說景氣不好，沒有年終。");
- if(L===P&&income&&full>income*1.05&&R()<.3)say(L,pick(["薪水不夠花，只好搬去更便宜的地方住。","每個月都在算錢，能省則省。","外食改成自己煮，衣服也很少買新的。"]));
+ if(L===P&&income&&full>income*1.05&&R()<.3&&!(L.tightAt>L.age-6)&&(L.tightAt=L.age))say(L,pick(["薪水不夠花，只好搬去更便宜的地方住。","每個月都在算錢，能省則省。","外食改成自己煮，衣服也很少買新的。"]));
  L.money+=income-total;if(income)ledger(L,"薪水",income);
  for(const k in cost)ledger(L,k,-cost[k]*total/Object.values(cost).reduce((a,b)=>a+b,0));
  if(L===P&&(L.age==22||L.age%10==0)&&income)say(L,`一年的生活開銷：吃 ${moneyShort(cost.吃)}・穿 ${moneyShort(cost.穿)}・住 ${moneyShort(cost.住)}・行 ${moneyShort(cost.行)}${cost.養孩子?`・孩子 ${moneyShort(cost.養孩子)}`:""}`);

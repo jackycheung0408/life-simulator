@@ -144,7 +144,7 @@ async function familyEvents(L){
  for(const s of f.sibs){const a=s.age+L.age;if(!s.married&&a>=20&&a<=35&&R()<.12){s.married=true;say(L,`${sibName(s)}結婚了，全家人一起拍了照。`)}}
  if(f.grand&&L.age<=30){if(R()<.05)say(L,pick(["外婆塞了一大袋自己做的點心給你。","爺爺教你一個他小時候玩的遊戲。","打電話給奶奶，她的聲音比以前虛弱了。"]));
   if(L.age>=8&&R()<.05){f.grand=false;L.happy-=6;say(L,"祖父母中最疼你的那一位過世了。")}}
- if(L.age>=4&&R()<.1)say(L,pick(FESTIVAL[f.religion]));
+ if(L.age>=4&&R()<.1){L.festSeen=L.festSeen||{};const left=FESTIVAL[f.religion].filter(x=>!L.festSeen[x]);if(left.length){const x=pick(left);L.festSeen[x]=1;say(L,x)}}
 }
 
 // 統計小知識（由資料計算，不另外編造數字）

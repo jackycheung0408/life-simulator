@@ -330,14 +330,14 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=69"></script>
-<script src="events.js?v=69"></script>
-<script src="life.js?v=69"></script>
-<script src="pixel.js?v=69"></script>
-<script src="story.js?v=69"></script>
-<script src="realism.js?v=69"></script>
-<script src="events2.js?v=69"></script>
-<script src="taiwan.js?v=69"></script>
+<script src="countries.js?v=70"></script>
+<script src="events.js?v=70"></script>
+<script src="life.js?v=70"></script>
+<script src="pixel.js?v=70"></script>
+<script src="story.js?v=70"></script>
+<script src="realism.js?v=70"></script>
+<script src="events2.js?v=70"></script>
+<script src="taiwan.js?v=70"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -415,6 +415,22 @@ function newLife(w){
 
 let P,S=[],paused=false,auto=false,mult=1,focusSel="健康",busy=false,spend=1,ffwd=false;
 const FOCI=["健康","學業","工作","家人","愛情","享受"];
+// 「今年的重心」依人生階段換成不同的選項，每年從中抽 5 個；背後對應到六種效果
+const STAGE_FOCI=[
+ [0,5,[["黏著爸媽","家人"],["到處爬來爬去","健康"],["看圖畫書","學業"],["玩玩具","享受"],["跟鄰居小孩玩","愛情"]]],
+ [6,12,[["認真寫功課","學業"],["下課去打球","健康"],["和同學玩","愛情"],["幫忙做家事","家人"],["看卡通、打電動","享受"],["上才藝班","學業"],["養寵物","享受"]]],
+ [13,18,[["拚升學考試","學業"],["參加社團","健康"],["談一場戀愛","愛情"],["打工賺零用錢","工作"],["和朋友出去玩","享受"],["陪家人","家人"],["練一項運動","健康"],["自學寫程式或畫畫","學業"]]],
+ [19,24,[["好好念書","學業"],["打工存錢","工作"],["談戀愛","愛情"],["揹包旅行","享受"],["健身","健康"],["陪家人","家人"],["參加志工","愛情"],["考證照","學業"]]],
+ [25,64,[["衝刺事業","工作"],["下班進修","學業"],["照顧家庭","家人"],["經營感情","愛情"],["顧好身體","健康"],["享受生活","享受"],["發展副業","工作"],["培養興趣","享受"],["陪孩子長大","家人"],["存錢理財","工作"]]],
+ [65,130,[["顧好身體","健康"],["含飴弄孫","家人"],["培養興趣","享受"],["學新東西","學業"],["當志工","愛情"],["和老朋友聚會","愛情"],["到處旅行","享受"],["整理一生的回憶","家人"]]]];
+let focusOpts=[],focusAge=-1;
+function renderFocus(){
+ if(!P)return;if(focusAge!==P.age){focusAge=P.age;const pool=STAGE_FOCI.find(s=>P.age>=s[0]&&P.age<=s[1])[2].filter(([,k])=>k!="工作"||P.age>=13);
+  focusOpts=[...pool].sort(()=>R()-.5).slice(0,5);if(!focusOpts.some(o=>o[1]==focusSel))focusSel=focusOpts[0][1];}
+ const cur=focusOpts.find(o=>o[1]==focusSel);
+ $("focus").innerHTML=focusOpts.map(([t,k])=>`<button class="f${cur&&cur[0]==t?' on':''}" data-k="${k}">${t}</button>`).join("");
+ document.querySelectorAll(".f").forEach(b=>b.onclick=()=>{focusSel=b.dataset.k;document.querySelectorAll(".f").forEach(x=>x.classList.toggle("on",x==b));toast(`今年的重心：${b.textContent}`)});
+}
 go.onclick=async()=>{
  if(cfg.w=="tw"){const y=$("twYear").value=="r"?1950+Math.floor(R()*76):+$("twYear").value;
   // 同一秒出生的另外四個人還是來自世界各地，用同年代的世界
@@ -428,8 +444,7 @@ start.onclick=()=>{start.disabled=true;
  birth.classList.add("hide");game.classList.remove("hide");scrollTo(0,0);
  who.textContent=`${P.name}（${P.sex}）`;
  $("origin").textContent=`${P.c.y0} 年，出生在${P.c.name}${P.fam.urban?P.c.city:"的鄉村"}一個${CLS[P.cls]}階層的家庭，是個${P.sex=="男"?"男孩":"女孩"}。當地平均壽命 ${Math.round(P.ex)} 歲。`;
- $("focus").innerHTML=FOCI.map(f=>`<button class="f${f==focusSel?' on':''}">${f}</button>`).join("");
- document.querySelectorAll(".f").forEach(b=>b.onclick=()=>{focusSel=b.textContent;document.querySelectorAll(".f").forEach(x=>x.classList.toggle("on",x==b));toast(`今年的重心：${focusSel}`)});
+ renderFocus();
  log.innerHTML="";say(P,`${P.name}誕生了。${familyLine(P)}`);setupGame();loop();
 };
 function setupGame(){
@@ -448,8 +463,7 @@ function resumeSave(saved){
  home.classList.add("hide");game.classList.remove("hide");
  who.textContent=`${P.name}（${P.sex}）`;
  $("origin").textContent=`${P.c.y0} 年，出生在${P.c.name}${P.fam.urban?P.c.city:"的鄉村"}一個${CLS[P.cls]}階層的家庭。當地平均壽命 ${Math.round(P.ex)} 歲。`;
- $("focus").innerHTML=FOCI.map(f=>`<button class="f${f==focusSel?' on':''}">${f}</button>`).join("");
- document.querySelectorAll(".f").forEach(b=>b.onclick=()=>{focusSel=b.textContent;document.querySelectorAll(".f").forEach(x=>x.classList.toggle("on",x==b))});
+ renderFocus();
  log.innerHTML=saved.log||"";setupGame();loop();
 };
 function setPaused(v){paused=v;pause.textContent=v?"▶︎":"⏸︎";pause.title=v?"繼續":"暫停";pause.setAttribute("aria-label",pause.title);pause.classList.toggle("on",v)}
@@ -695,7 +709,7 @@ async function loop(){renderShop();
    await new Promise(r=>setTimeout(r,ffwd||mult>999?16:50));const now=performance.now();if(!paused)w+=Math.min(250,now-last);last=now;
    prog=P.age+Math.min(1,w/total);monthMoney(Math.min(1,w/total));tickNow(Math.min(1,w/total))}
   prog=P.age+1;
-  await year(P);for(const s of S)if(s.alive)await year(s);render();renderShop();saveGame();
+  await year(P);for(const s of S)if(s.alive)await year(s);render();renderShop();renderFocus();saveGame();
  }
  while(S.some(s=>s.alive))for(const s of S)if(s.alive)await year(s);
  setTimeout(finish,1200);
