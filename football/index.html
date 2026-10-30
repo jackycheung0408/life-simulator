@@ -338,7 +338,7 @@ async function season(){
 }
 // ── 身高：照生長曲線長高，青春期會突然抽高（晚熟的人晚一兩年）──
 const HCURVE=[[0,.285],[1,.43],[2,.495],[3,.545],[4,.585],[5,.625],[6,.66],[7,.695],[8,.73],[9,.76],[10,.79],[11,.815],[12,.84],[13,.875],[14,.92],[15,.955],[16,.98],[17,.993],[18,1]];
-function hAt(p,age){const x=Math.max(0,age-(age>=11?p.bloom:0));const i=Math.min(17,Math.floor(x)),f=x-i;const [,a]=HCURVE[i],[,b]=HCURVE[Math.min(18,i+1)];return p.hT*(a+(b-a)*f)}
+function hAt(p,age){const x=Math.min(18,Math.max(0,age-(age>=11?p.bloom:0)));const i=Math.min(17,Math.floor(x)),f=x-i;const [,a]=HCURVE[i],[,b]=HCURVE[Math.min(18,i+1)];return p.hT*(a+(b-a)*f)}
 function heightYear(p){const before=p.h;p.h=Math.round(hAt(p,p.age)*10)/10;const d=p.h-before;
  if(p.age>=12&&p.age<=17&&d>=8){say(`這一年長高了 ${Math.round(d)} 公分，膝蓋常常痠痛，動作也變得有點不協調。`);p.a.盤帶-=1.5;p.a.速度+=1}
  if(p.age==18){say(`身高定在 ${Math.round(p.h)} 公分。`);if(p.pos=="GK"&&p.h<182)say("以門將來說偏矮，教練常常提醒要加強彈跳。");if(p.h>=188)p.a.防守+=2;if(p.h<170)p.a.盤帶+=2}}
@@ -563,7 +563,7 @@ function lines(series,W=320,H=120,maxV){const all=series.flatMap(s=>s.pts.map(x=
   ${series.map(s=>`<polyline points="${s.pts.map(([a,v])=>X(a)+","+Y(v)).join(" ")}" fill="none" stroke="${s.c}" stroke-width="2"/>`).join("")}</svg>
   <div class="legend">${series.map(s=>`<span><i style="background:${s.c}"></i>${s.n}</span>`).join("")}</div>`}
 function reportHTML(p){
- const tabs=["每季","能力成長","身價與收入","轉會","傷病","國家隊"],yh=p.yhist||[];let body="";
+ const tabs=["每季","能力成長","身價與收入","轉會","傷病","國家隊"],yh=(p.yhist||[]).filter(r=>r.age<=(p.retireAge||p.age));let body="";
  if(repTab=="每季")body=p.seasons.length?`<div class="tbl"><table><tr><th>年</th><th>歲</th><th>球隊</th><th>角色</th><th>出賽</th><th>${p.pos=="GK"?"零封":"進球"}</th><th>助攻</th><th>評分</th><th>能力</th><th>身價</th><th>年薪</th></tr>${p.seasons.map(s=>`<tr><td>${s.y}</td><td>${s.age}</td><td>${s.club}${s.titles.length?" 🏆":""}</td><td>${s.role||""}</td><td>${s.apps}</td><td>${p.pos=="GK"?s.cleans||0:s.goals}</td><td>${s.assists}</td><td>${s.rating}</td><td>${s.ovr}</td><td>${eur(s.val)}</td><td>${s.wage?eur(s.wage):"—"}</td></tr>`).join("")}
   <tr class="tot"><td colspan="4">合計</td><td>${p.apps}</td><td>${p.pos=="GK"?p.cleans:p.goals}</td><td>${p.assists}</td><td>${p.seasons.length?(p.seasons.reduce((a,s)=>a+s.rating,0)/p.seasons.length).toFixed(2):"—"}</td><td>${Math.round(p.peak)}</td><td>${eur(p.maxValue)}</td><td></td></tr></table></div>`:`<p class="mut">還沒有職業球季。</p>`;
  if(repTab=="能力成長")body=yh.length>1?lines([...ATTR.map((k,i)=>({n:k,c:["#3fa7ff","#ff4d4d","#ffd23f","#b07cff","#4cd964","#ff9f40"][i],pts:yh.map(r=>[r.age,r.a[k]])})),{n:"綜合能力",c:"#fff",pts:yh.map(r=>[r.age,r.ovr])}],320,140,100)+`<p class="mut">身高：${yh.map(r=>`${r.age}歲 ${Math.round(r.h)}`).filter((_,i)=>i%3==0).join("、")} 公分</p>`:`<p class="mut">資料還不夠。</p>`;
