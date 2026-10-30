@@ -150,7 +150,7 @@ async function debtRelief(L){
 async function realismYear(L){
  if(L.job){L.lastInc=L.inc;L.workYears=(L.workYears||0)+1}
  inflationYear(L);mortgageYear(L);partnerSetup(L);trackLife(L);
- await rentYear(L);await insuranceYear(L);await loveYear(L);await kidChoices(L);await healthYear(L);await friendsYear(L);await mishapYear(L);await debtRelief(L);
+ await rentYear(L);await insuranceYear(L);await loveYear(L);await kidChoices(L);await healthYear(L);await friendsYear(L);await moreEvents(L);await mishapYear(L);await debtRelief(L);
  if(L.money>-(L.inc||L.c.gdp*.3))L.debtHelped=false;
 }
 
