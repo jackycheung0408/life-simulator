@@ -153,7 +153,7 @@ async function lifeEvents(L,f){
  const c=L.c,yr=c.y0+L.age;
  if(!L.init){L.init=true;L.raw=L.c.name;L.talent=pick(TALENTS);L.parentAlive=true;say(L,`從小就特別${L.talent=="聰明"?"聰明":L.talent=="社交"?"會和人相處":L.talent=="耐心"?"有耐心":L.talent=="手巧"?"手巧":"有"+L.talent+"天分"}。`)}
  // 父母老去
- if(L.parentAlive&&L.age>20&&R()<(L.age-15)/700){L.parentAlive=false;L.happy-=10;say(L,"父母離開了人世。")}
+ // 父母過世改由 life.js 的家人事件逐一處理（有名字、年紀），這裡不再重複
  // 歷史
  if(!L.c.tw&&(cfg.w!="now"||yr<=today.getFullYear()+5))for(const h of HISTORY){
   if(yr<h[0]||yr>h[1]||(h[2]&&!h[2].includes(L.raw))||L.abroad)continue;
