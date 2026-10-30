@@ -122,7 +122,7 @@ function livingCost(L){
  const live=L.house?(L.mortPay||g*.03):(L.moved||L.abroad)?g*Math.max(.06,(city?.19:.12)+(L.rentAdj||0)):g*.08;  // 房貸／租屋／住家裡（給家裡的孝親費）
  const go=L.car?g*.08:g*(city?.035:.05);
  const kids=(L.kids||0)*g*.2*(L.age<55?1:0);                            // 台灣養一個孩子一年約 20～30 萬
- const etc=(g*.08*adult+(L.inc||0)*.15)*(.6+sp*.4);                      // 手機、娛樂、紅白包；收入越高花越多（生活水準跟著提高）
+ const etc=(g*.08*adult+((L.job?L.inc:0)+(L.pInc||0))*.15)*(.6+sp*.4);                      // 手機、娛樂、紅白包；收入越高花越多（生活水準跟著提高）
  return {吃:food,穿:cloth,住:live,行:go,其他:etc,養孩子:kids};
 }
 // 一年的收入與開銷（存款卡片的逐月動畫也用這個）
