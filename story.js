@@ -68,7 +68,7 @@ function moneyYear(L){
 
 // 善意的回響：曾經幫過的人，幾年後回來道謝
 async function kindness(L){
- if(L.age>=16&&L.age<=70&&!L.kindAt&&R()<.04){
+ if(L.age>=16&&L.age<=70&&!L.kindAt&&fated(L,"kind",.35)&&R()<.04){
   await ask(L,"公車上，一位老人家提著兩大袋東西站不穩",[["讓座，下車時幫忙提回家",()=>{L.kindAt=L.age;L.rel+=2;L.happy+=2},"人際↑"],["假裝沒看到",()=>{}]]);
  }
  if(L.kindAt&&!L.kindBack&&L.age-L.kindAt>=4&&R()<.25){L.kindBack=true;L.happy+=8;say(L,"幾年前你幫忙提東西的那位老人家，家人輾轉找到你，送來一箱自家種的水果。")}
