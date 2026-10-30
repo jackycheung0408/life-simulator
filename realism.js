@@ -66,6 +66,8 @@ async function insuranceYear(L){
 
 // ── 感情的起伏：伴侶有工作和收入，婚姻有吵架、外遇、離婚 ──
 function partnerSetup(L){
+ if(L.partner&&L.pInc&&!L.pNet){L.pInc*=.88;L.pNet=1} // 伴侶收入也扣稅與勞健保
+ if(!L.partner)L.pNet=0;
  if(L.partner&&L.pInc==null){const g=L.c.gdp,works=R()<(L.c.tw||g>15000?.8:.5);L.pInc=works?g*.45*(.7+R()*.8):0;
   if(L===P&&!works)say(L,`${L.partnerName||"伴侶"}沒有在外面工作，家裡靠你一個人的收入。`)}
  if(!L.partner)L.pInc=null;
@@ -147,9 +149,20 @@ async function debtRelief(L){
 }
 
 // 每年依序執行（在 storyYear 裡呼叫）
+// 沒有工作的成年人：每年都要決定要不要找工作（空窗越久越難找）
+async function jobHunt(L){
+ if(L.job||L.age<22||L.age>=65||L.lockUntil>L.age||L.backAt||(L.age<23&&!L.jobRetry&&!L.lostJob&&L.edu==3))return;
+ L.gap=(L.gap||0)+1;const g=L.c.gdp,base=g*.5*(L.edu==3?1.25:L.edu==2?.95:.7)*.85*Math.max(.7,1-L.gap*.05);
+ const pool=Object.keys(JOB_INFO).filter(j=>(JOB_INFO[j][3]=="U")==(L.edu==3)||(L.edu==3&&R()<.2)).sort(()=>R()-.5).slice(0,3);
+ const take=j=>()=>{const [pay,,e]=JOB_INFO[j];if(R()<.85-L.gap*.08){L.job=j;L.inc=base*pay*(L.sex=="女"?1-payGap(L.c):1);L.jobYears=0;L.lostJob=null;L.gap=0;for(const k in e)L[k]+=e[k];say(L,`找到${j}的工作。`)}else{L.happy-=3;say(L,`去應徵${j}，沒有被錄取。`)}};
+ await ask(L,L.gap>1?`已經 ${L.gap} 年沒有工作了，要找什麼工作？`:"現在沒有工作，要找什麼工作？",[
+  ...pool.map(j=>[j,take(j),`${JOB_INFO[j][1]} · 月薪約 ${money(base*JOB_INFO[j][0]/13.5)}`]),
+  ["去上職訓課程（半年）",()=>{L.know+=4;L.gap=Math.max(0,L.gap-1);L.money-=g*.01},"知識↑ 比較好找"],
+  ["先休息，靠存款或家人",()=>{L.happy+=1;L.rel-=1},"空窗越久越難找"]]);
+}
 async function realismYear(L){
  if(L.job){L.lastInc=L.inc;L.workYears=(L.workYears||0)+1}
- inflationYear(L);mortgageYear(L);partnerSetup(L);trackLife(L);
+ inflationYear(L);mortgageYear(L);partnerSetup(L);trackLife(L);await jobHunt(L);
  await rentYear(L);await insuranceYear(L);await loveYear(L);await kidChoices(L);await healthYear(L);await friendsYear(L);await moreEvents(L);await mishapYear(L);await debtRelief(L);
  if(L.money>-(L.inc||L.c.gdp*.3))L.debtHelped=false;
 }
@@ -208,7 +221,7 @@ function renderBoards(){
  // 收支（每月）
  let money1="";
  if(L.age>=18&&(L.job||L.age>=22)){const {cost,income,total,full}=yearFlow(L),k=total/Math.max(1,full),mx=Math.max(income,full)/12;
-  money1=brow("每月收入",moneyShort(income/12))+Object.entries(cost).filter(([,v])=>v>0).map(([n,v])=>`<div class="br"><span>${n}</span><b>${moneyShort(v*k/12)}</b></div>${bbar(v*k/12,mx,"var(--ac)")}`).join("")+
+  money1=brow("本人收入",L.job?moneyShort(netPay(L)/12):L.age>=65&&L.workYears?"年金 "+moneyShort(pension(L)/12):"沒有工作")+(L.pInc?brow("伴侶收入",moneyShort(L.pInc/12)):"")+Object.entries(cost).filter(([,v])=>v>0).map(([n,v])=>`<div class="br"><span>${n}</span><b>${moneyShort(v*k/12)}</b></div>${bbar(v*k/12,mx,"var(--ac)")}`).join("")+
    (L.ins?brow("保費",moneyShort(L.ins.prem/12)):"")+(L.mortPay?brow("房貸（含在住）",moneyShort(L.mortPay/12)):"")+(()=>{const bal=income-total-(L.ins?L.ins.prem:0);return brow("每月結餘",`<span style="color:${bal>=0?"var(--g)":"var(--ac)"}">${bal>=0?"+":"−"}${moneyShort(Math.abs(bal)/12)}</span>`)})();
  }else money1=`<p class="mut">${L.age<18?"還未成年，生活開銷由家裡負擔。":"還在讀書，靠家裡和打工過活。"}${L.pocket!=null?`<br>今年零用錢剩 ${money(Math.max(0,L.pocket))}`:""}</p>`;
  // 資產

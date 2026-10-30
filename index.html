@@ -330,14 +330,14 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=66"></script>
-<script src="events.js?v=66"></script>
-<script src="life.js?v=66"></script>
-<script src="pixel.js?v=66"></script>
-<script src="story.js?v=66"></script>
-<script src="realism.js?v=66"></script>
-<script src="events2.js?v=66"></script>
-<script src="taiwan.js?v=66"></script>
+<script src="countries.js?v=67"></script>
+<script src="events.js?v=67"></script>
+<script src="life.js?v=67"></script>
+<script src="pixel.js?v=67"></script>
+<script src="story.js?v=67"></script>
+<script src="realism.js?v=67"></script>
+<script src="events2.js?v=67"></script>
+<script src="taiwan.js?v=67"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -510,7 +510,7 @@ function render(){try{renderBoards()}catch(e){}
  if(!stats.firstChild)buildStats();
  setStat("健康",h,P.health,newYear?dh:undefined);setStat("幸福",hp,P.happy,newYear?dp:undefined);
  setStat("知識",Math.round(P.know),P.know);setStat("人際",Math.round(P.rel),P.rel);setStat("教育",EDU[P.edu]);
- setStat("工作",P.job||"—");setStat("薪水",P.job?`實領月薪 ${moneyShort(netPay(P)/(12+bonusMonths(P)))}`:P.age>=65&&P.workYears?`年金 ${moneyShort(pension(P)/12)}／月`:"—");{const m=P.money+(P.inv?P.inv.amt:0);setStat("存款",(m<0?"−"+moneyShort(-m):moneyShort(m))+(P.inv&&P.inv.amt>0?"（含投資）":""))}
+ setStat("工作",P.job||"—");setStat("薪水",P.job?`實領月薪 ${moneyShort(netPay(P)/(12+bonusMonths(P)))}`:P.age>=65&&P.workYears?`年金 ${moneyShort(pension(P)/12)}／月`:"—");{const m=P.money+(P.inv?P.inv.amt:0);setStat("存款",(m<0?"−"+moneyShort(-m):moneyShort(m))+(P.inv&&P.inv.amt>0?"＊":""))}
  setStat("家庭",(P.partner?"有伴侶":P.widowed?"喪偶":"單身")+(P.kids?` · ${P.kids}子女`:""));
  // 場景：有變才換，新出現的人物彈出來
  // 場景：家人組成或住所有變才重畫
@@ -570,9 +570,21 @@ function mortality(L){
  q*=1+(60-L.health)/80;if(L.smoke)q*=1.5;return q;
 }
 // 職業特性：[收入倍率, 說明, 選了之後的影響]
-const JOB_INFO={工程師:[1.3,"收入高、常加班",{health:-2}],教師:[1,"穩定、有寒暑假",{happy:2}],會計師:[1.2,"穩定、壓力大",{happy:-1}],醫師:[1.6,"收入最高、非常忙",{health:-3,rel:-2}],公務員:[.9,"最穩定",{happy:1}],設計師:[1,"有創意、收入不穩",{happy:2}],研究員:[.9,"一直在學新東西",{know:4}],律師:[1.4,"收入高、壓力大",{happy:-2}],護理師:[1,"輪班辛苦、照顧人",{health:-2,rel:2}],
- 農民:[.7,"自由、看天吃飯",{health:2}],工廠作業員:[1,"穩定、單調",{}],店員:[.85,"常和人接觸",{rel:2}],司機:[1,"自由、久坐",{health:-1}],建築工人:[1.15,"收入不錯、體力活",{health:-2}],廚師:[.95,"學一技之長",{know:1}],清潔工:[.75,"好找、辛苦",{}],攤販:[.9,"自己當老闆",{happy:1}],漁夫:[.85,"看海吃飯、危險",{health:-1}]};
-const JOBS_U=["工程師","教師","會計師","醫師","公務員","設計師","研究員","律師","護理師"],JOBS=["農民","工廠作業員","店員","司機","建築工人","廚師","清潔工","攤販","漁夫"];
+const JOB_INFO={
+ // 大學畢業的職業：[收入倍率, 說明, 影響, "U"]
+ 工程師:[1.3,"收入高、常加班",{health:-2},"U"],軟體工程師:[1.45,"收入高、要一直學新技術",{know:3,health:-2},"U"],資料分析師:[1.25,"看數字找答案",{know:3},"U"],產品經理:[1.35,"協調很多人、壓力大",{rel:2,happy:-1},"U"],
+ 教師:[1,"穩定、有寒暑假",{happy:2},"U"],會計師:[1.2,"穩定、壓力大",{happy:-1},"U"],醫師:[1.6,"收入最高、非常忙",{health:-3,rel:-2},"U"],藥師:[1.2,"穩定、要輪班",{},"U"],
+ 公務員:[.9,"最穩定",{happy:1},"U"],設計師:[1,"有創意、收入不穩",{happy:2},"U"],研究員:[.9,"一直在學新東西",{know:4},"U"],律師:[1.4,"收入高、壓力大",{happy:-2},"U"],
+ 護理師:[1,"輪班辛苦、照顧人",{health:-2,rel:2},"U"],建築師:[1.15,"做出看得見的作品",{happy:2,health:-1},"U"],金融分析師:[1.5,"收入高、看盤看到失眠",{health:-2},"U"],行銷企劃:[.95,"點子多、常趕檔期",{rel:1},"U"],
+ 記者:[.85,"到處跑新聞、截稿壓力",{know:2,health:-1},"U"],業務:[1.1,"收入看業績、常應酬",{rel:3,health:-1},"U"],社工師:[.8,"幫助人、情緒負擔大",{rel:2,happy:-1},"U"],心理師:[1,"傾聽別人的故事",{rel:2},"U"],
+ 空服員:[1.05,"飛遍世界、作息亂",{happy:2,health:-2},"U"],翻譯:[.9,"在家接案、自由",{know:2},"U"],獸醫:[1.1,"照顧動物",{happy:2},"U"],內容創作者:[.8,"自由但收入起伏大",{happy:3,rel:1},"U"],
+ // 不需大學學歷的職業
+ 農民:[.7,"自由、看天吃飯",{health:2}],工廠作業員:[1,"穩定、單調",{}],技術員:[1.05,"操作機台、要輪班",{health:-1}],店員:[.85,"常和人接觸",{rel:2}],超商店員:[.8,"大夜班很累",{health:-1}],
+ 司機:[1,"自由、久坐",{health:-1}],外送員:[.95,"時間自由、風吹日曬",{health:-1}],物流理貨員:[.95,"體力活、穩定",{health:1}],建築工人:[1.15,"收入不錯、體力活",{health:-2}],水電工:[1.2,"一技之長、到處跑",{know:1}],
+ 廚師:[.95,"學一技之長",{know:1}],餐廳服務生:[.8,"忙起來腳很痠",{rel:1}],美髮師:[.9,"跟客人聊天",{rel:2}],美甲師:[.85,"細心的手藝",{happy:1}],看護:[.85,"照顧長輩、很辛苦",{rel:2,health:-1}],
+ 保全:[.85,"值夜班、很安靜",{health:-1}],清潔工:[.75,"好找、辛苦",{}],攤販:[.9,"自己當老闆",{happy:1}],漁夫:[.85,"看海吃飯、危險",{health:-1}],木工:[1,"做出耐用的家具",{happy:1}],
+ 電話客服:[.85,"常被客人罵",{happy:-1}],保險業務:[1,"收入看人脈",{rel:2}]};
+const JOBS_U=Object.keys(JOB_INFO).filter(j=>JOB_INFO[j][3]=="U"),JOBS=Object.keys(JOB_INFO).filter(j=>JOB_INFO[j][3]!="U");
 
 // 數值基準線：依國家、家境、年齡與學歷算出「同齡同條件的人通常是多少」
 // 每年數值會往基準線靠近，再加上自己的選擇與事件
@@ -671,7 +683,7 @@ function tickNow(t){if(!P)return;const m=Math.min(11,Math.floor(t*12));
 function monthMoney(t){if(!P||P.age<18||!P.job&&P.age<22)return;const {income,total}=yearFlow(P),m=Math.min(12,Math.floor(t*12)+1),b=bonusMonths(P),mo=income/(12+b);
  // 每月 5 號發薪；第 12 個月加發年終
  const v=P.money+(P.inv?P.inv.amt:0)+m*mo+(m==12?b*mo:0)-t*total;
- if(m==12&&b&&!P.bonusShown){P.bonusShown=P.age;toast(`領到年終 ${b} 個月：${moneyShort(b*mo)}`)}if(m<12)P.bonusShown=0;setStat("存款",(v<0?"−"+moneyShort(-v):moneyShort(v))+(P.inv&&P.inv.amt>0?"（含投資）":""))}
+ if(m==12&&b&&!P.bonusShown){P.bonusShown=P.age;toast(`領到年終 ${b} 個月：${moneyShort(b*mo)}`)}if(m<12)P.bonusShown=0;setStat("存款",(v<0?"−"+moneyShort(-v):moneyShort(v))+(P.inv&&P.inv.amt>0?"＊":""))}
 (function bar(){if(P){shown+=(prog-shown)*.18;if(Math.abs(prog-shown)<.001)shown=prog;$("lifebar").style.width=Math.min(100,shown/Math.max(P.ex,100)*100)+"%";drawAvatarLCD($("avatar"),P)}requestAnimationFrame(bar)})();
 async function loop(){renderShop();
  prog=shown=P.age;
