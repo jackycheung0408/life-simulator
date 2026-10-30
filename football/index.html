@@ -99,7 +99,7 @@ button.on{background:var(--y);color:var(--ink)}
 </div>
 <div class="card"><canvas id="pitch" width="320" height="140"></canvas><div class="ticker" id="ticker"></div></div>
 <div class="card"><div class="grid" id="stats"></div></div>
-<div class="card"><h2>育成計劃・每週訓練表</h2><div id="focus"></div><div class="mut" id="focusTip" style="font-size:13px"></div></div>
+<div class="card" id="planCard"><h2 id="planTitle">育成計劃・每週訓練表</h2><div id="focus"></div><div class="mut" id="focusTip" style="font-size:13px"></div></div>
 <div class="card"><h2>生涯數據</h2><div class="grid" id="career"></div><div class="chart" id="ovrChart" style="margin-top:8px"></div></div>
 <div class="card"><h2>紀錄</h2><div id="log"></div></div>
 </section>
@@ -219,15 +219,19 @@ function grow(p,minutes,frac=1){
  if(rest>=2)p.health=Math.min(100,p.health+frac*12);if(rest==0)p.morale-=frac*6;
  if(plan.includes("讀書")&&p.age<20)p.grade=clamp((p.grade||60)+frac*plan.filter(d=>d=="讀書").length*3-frac*3,0,100);
 }
+// 小孩子沒有「訓練」，只有放學後的時間怎麼用；13 歲進青訓才有正式課表
+const KID_NAME={技術:"踢球",體能:"跑跑跳跳",讀書:"寫功課",休息:"玩耍、看卡通"};
 function renderPlan(){
- const p=P,acts=actsFor(p);plan=plan.map(d=>acts.includes(d)?d:(acts.includes("技術")?"技術":acts[0]));
+ const p=P,kid=p.age<13;$("planCard").classList.toggle("hide",p.age<p.touchAge);if(p.age<p.touchAge)return;
+ $("planTitle").textContent=kid?"放學後的時間（每週）":"育成計劃・每週訓練表";
+ const acts=actsFor(p);plan=plan.map(d=>acts.includes(d)?d:(acts.includes("技術")?"技術":acts[0]));
  const sh=planShare(),fat=planFat(),load=fat<=20?["輕鬆","var(--g)"]:fat<=40?["適中","var(--y)"]:["吃重，容易受傷","var(--ac)"];
- $("focus").innerHTML=`<div class="days">${plan.map((d,i)=>`<button class="day" data-i="${i}" style="--c:${ACTS[d].c}"><span>週${DAYS[i]}</span><b>${d}</b></button>`).join("")}</div>
+ $("focus").innerHTML=`<div class="days">${plan.map((d,i)=>`<button class="day" data-i="${i}" style="--c:${ACTS[d].c}"><span>週${DAYS[i]}</span><b>${kid?KID_NAME[d]||d:d}</b></button>`).join("")}</div>
   <div class="presets">${p.age<13?"":Object.keys(PRESETS).map(k=>`<button class="pre" data-k="${k}">${k}</button>`).join("")}</div>
-  <div class="plan-sum"><span>每週負荷 <b style="color:${load[1]}">${load[0]}</b></span><span>目前疲勞 <b style="color:${(p.fat||0)>70?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b></span>${ATTR.map(k=>`<span>${k} ${"▮".repeat(Math.round(sh[k]*14))||"·"}</span>`).join("")}</div>`;
+  ${kid?"":`<div class="plan-sum"><span>每週負荷 <b style="color:${load[1]}">${load[0]}</b></span><span>目前疲勞 <b style="color:${(p.fat||0)>70?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b></span>${ATTR.map(k=>`<span>${k} ${"▮".repeat(Math.round(sh[k]*14))||"·"}</span>`).join("")}</div>`}`;
  $("focus").querySelectorAll(".day").forEach(b=>b.onclick=()=>{const i=+b.dataset.i,cur=acts.indexOf(plan[i]);plan[i]=acts[(cur+1)%acts.length];renderPlan()});
  $("focus").querySelectorAll(".pre").forEach(b=>b.onclick=()=>{plan=PRESETS[b.dataset.k].slice();renderPlan();toast(`訓練計劃：${b.dataset.k}`)});
- $("focusTip").textContent=p.age<p.touchAge?"還沒碰過足球，訓練計劃從第一次踢球開始生效。":"點每一天切換訓練內容。練得越多進步越快，但疲勞超過 70 容易受傷；一週至少休息兩天比較健康。";
+ $("focusTip").textContent=kid?"點每一天切換放學後要做什麼。踢球多，球技進步；寫功課多，成績比較好。13 歲進青訓後會有正式的訓練表。":"點每一天切換訓練內容。練得越多進步越快，但疲勞超過 70 容易受傷；一週至少休息兩天比較健康。";
 }
 
 // ── 關鍵時刻：比賽中由你決定怎麼踢 ──
@@ -499,7 +503,7 @@ function render(){
  $("where").textContent=p.retired?`已退休 · ${p.after||""}`:p.club?`${p.club} · ${p.clubObj.lg} · 合約剩 ${Math.max(0,p.contract)} 年`:`${p.c} · ${p.stage}`;
  $("sL").textContent=`${p.age} 歲`;$("sR").textContent=`${p.age+1} 歲`;drawFace($("face"),p);
  $("stats").innerHTML=(p.age<p.touchAge?`<div class="stat" style="grid-column:1/-1"><span>足球能力</span><b>還沒碰過足球</b></div>`:"")+ATTR.filter(()=>p.age>=p.touchAge).map(k=>`<div class="stat"><span>${k}</span><b>${Math.round(p.a[k])}</b><div class="bar"><i style="width:${p.a[k]}%"></i></div></div>`).join("")+
-  `<div class="stat"><span>身高</span><b>${Math.round(p.h)} cm</b></div><div class="stat"><span>身價</span><b>${p.club?eur(value(p)):"—"}</b></div><div class="stat"><span>年薪</span><b>${p.club?eur(p.wage):"—"}</b></div><div class="stat"><span>存款</span><b>${eur(Math.max(0,p.money))}</b></div><div class="stat"><span>健康</span><b>${Math.round(p.health)}</b><div class="bar"><i style="width:${p.health}%"></i></div></div><div class="stat"><span>疲勞</span><b style="color:${(p.fat||0)>70?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b><div class="bar"><i style="width:${p.fat||0}%;background:var(--ac)"></i></div></div><div class="stat"><span>名氣</span><b>${Math.round(p.fame)}</b></div><div class="stat"><span>天賦上限</span><b>${p.age<16?"？？":Math.round(p.pot)}</b></div>`;
+  `<div class="stat"><span>身高</span><b>${Math.round(p.h)} cm</b></div>`+(p.age<13?`<div class="stat"><span>功課</span><b>${Math.round(p.grade||60)}</b></div><div class="stat"><span>健康</span><b>${Math.round(p.health)}</b></div>`:`<div class="stat"><span>身價</span><b>${p.club?eur(value(p)):"—"}</b></div><div class="stat"><span>年薪</span><b>${p.club?eur(p.wage):"—"}</b></div><div class="stat"><span>存款</span><b>${eur(Math.max(0,p.money))}</b></div><div class="stat"><span>健康</span><b>${Math.round(p.health)}</b><div class="bar"><i style="width:${p.health}%"></i></div></div><div class="stat"><span>疲勞</span><b style="color:${(p.fat||0)>70?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b><div class="bar"><i style="width:${p.fat||0}%;background:var(--ac)"></i></div></div><div class="stat"><span>名氣</span><b>${Math.round(p.fame)}</b></div><div class="stat"><span>天賦上限</span><b>${p.age<16?"？？":Math.round(p.pot)}</b></div>`);
  $("career").innerHTML=[["出賽",p.apps],[p.pos=="GK"?"零封":"進球",p.pos=="GK"?p.cleans:p.goals],["助攻",p.assists],["國家隊出賽",p.caps],["冠軍",p.trophies.length],["個人獎項",p.awards.length]].map(([k,v])=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`).join("");
  $("ovrChart").innerHTML=chart(p.ovrHist,"能力值");
 }
