@@ -81,7 +81,7 @@ button.on{background:var(--y);color:var(--ink)}
  <button class="pri" id="go">▶ 出生</button> <span id="resume"></span>
 </div>
 <div class="card"><h2>傳奇殿堂</h2><div class="mut">在這台裝置上踢完的生涯，依生涯評分排序。</div><div id="hof" class="hall" style="margin-top:8px"></div></div>
-<p class="mut">← <a href="../" style="color:var(--y)">回到人生模擬器</a>　·　球隊與聯賽名稱皆為虛構。</p>
+<p class="mut">← <a href="../" style="color:var(--y)">回到人生模擬器</a>　·　球隊與聯賽使用真實名稱，僅供模擬參考，非官方遊戲，與各俱樂部、聯賽無關；能力與結果皆為虛構。</p>
 </section>
 
 <!-- 遊戲 -->
@@ -145,20 +145,20 @@ function realOdds(c){const [b,pro,t5]=ODDS[c]||[10,500,1],boys=b*1e4;return {boy
 function oneIn(n){return n>=1e6?`${(n/1e4/100).toFixed(n>=1e7?0:1)} 百萬人中 1 人`:n>=1e4?`${Math.round(n/1e4).toLocaleString()} 萬人中 1 人`:`${n.toLocaleString()} 人中 1 人`}
 const TOP5=["英格蘭超級聯賽","西班牙甲級聯賽","德國甲級聯賽","義大利甲級聯賽","法國甲級聯賽"];
 
-// ── 聯賽與俱樂部（虛構名稱）：[聯賽, 國家, 等級] ──
+// ── 聯賽與俱樂部（真實名稱，僅作指稱；不使用隊徽與球衣）：[聯賽, 國家, 等級] ──
 const LEAGUES=[["英格蘭超級聯賽","英格蘭",5],["西班牙甲級聯賽","西班牙",5],["德國甲級聯賽","德國",5],["義大利甲級聯賽","義大利",5],["法國甲級聯賽","法國",4],
  ["葡萄牙超級聯賽","葡萄牙",3],["荷蘭甲級聯賽","荷蘭",3],["巴西甲級聯賽","巴西",3],["阿根廷甲級聯賽","阿根廷",3],["美國職業聯賽","美國",3],["沙烏地職業聯賽","沙烏地阿拉伯",3],
  ["英格蘭冠軍聯賽","英格蘭",4],["日本職業聯賽","日本",2],["韓國職業聯賽","韓國",2],["中國超級聯賽","中國",2],["墨西哥甲級聯賽","墨西哥",3],["台灣企業甲級聯賽","台灣",1],["西非職業聯賽","奈及利亞",1]];
-const CLUB_WORDS={英格蘭:["倫敦紅獅","曼徹斯特藍鷹","利物浦海鷗","北倫敦槍手","伯明罕鐵人","紐卡索黑貓"],西班牙:["馬德里白鷹","巴塞隆納藍浪","塞維亞烈陽","瓦倫西亞橙蝠"],德國:["慕尼黑紅星","多特蒙德黃蜂","萊比錫公牛","柏林熊隊"],
- 義大利:["米蘭紅黑","都靈斑馬","羅馬狼群","拿坡里藍浪"],法國:["巴黎王子","馬賽海風","里昂雄獅","摩納哥紅白"],葡萄牙:["里斯本雄鷹","波多巨龍"],荷蘭:["阿姆斯特丹之星","鹿特丹港人"],巴西:["里約紅黑","聖保羅三色","桑托斯白魚"],
- 阿根廷:["布宜諾斯藍金","河床紅帶"],美國:["洛杉磯銀河","邁阿密粉鶴","西雅圖海聲"],沙烏地阿拉伯:["利雅德新月","吉達之虎"],日本:["橫濱水手","鹿島鹿角","大阪櫻花"],韓國:["首爾猛虎","全北綠馬"],中國:["上海港灣","廣州之虎"],
- 墨西哥:["墨西哥城雄鷹","蒙特雷光芒"],台灣:["台北大同","台中未來","台南市隊","新北航源"],奈及利亞:["拉哥斯之星","阿布賈綠鷹"]};
-// 下級聯賽（虛構隊名）：多數職業球員其實在這些聯賽踢球
-[["英格蘭甲級聯賽","英格蘭",3,["樸茨茅斯水手","布萊克浦海濱","牛津黃牛","沙爾福德紅魔"]],["英格蘭乙級聯賽","英格蘭",2,["卡萊爾藍鳥","克魯鐵道","沃爾索爾馬鞍"]],
- ["西班牙乙級聯賽","西班牙",3,["薩拉戈薩獅子","希洪紅白","奧維耶多藍"]],["德國乙級聯賽","德國",3,["漢堡水手","沙爾克礦工","杜塞道夫旗手"]],["義大利乙級聯賽","義大利",3,["巴里公雞","巴勒莫粉鷹","帕爾馬十字"]],["法國乙級聯賽","法國",2,["波爾多海軍","聖埃蒂安綠","卡昂紅藍"]]]
+const CLUB_WORDS={英格蘭:["曼城","兵工廠","利物浦","切爾西","熱刺","紐卡索聯"],西班牙:["皇家馬德里","巴塞隆納","馬德里競技","塞維亞"],德國:["拜仁慕尼黑","多特蒙德","RB萊比錫","柏林聯合"],
+ 義大利:["國際米蘭","尤文圖斯","AC米蘭","拿坡里"],法國:["巴黎聖日耳曼","摩納哥","馬賽","里昂"],葡萄牙:["本菲卡","波圖"],荷蘭:["阿賈克斯","費耶諾德"],巴西:["佛朗明哥","帕梅拉斯","桑托斯"],
+ 阿根廷:["河床","博卡青年"],美國:["邁阿密國際","洛杉磯銀河","西雅圖海灣人"],沙烏地阿拉伯:["利雅德新月","吉達聯合"],日本:["橫濱水手","鹿島鹿角","大阪櫻花"],韓國:["蔚山HD","全北現代"],中國:["上海海港","山東泰山"],
+ 墨西哥:["美洲隊","蒙特雷"],台灣:["台北大同","台中Futuro","台南市","新北航源"],奈及利亞:["恩耶巴","卡諾支柱"]};
+// 下級聯賽：多數職業球員其實在這些聯賽踢球
+[["英格蘭甲級聯賽","英格蘭",3,["樸茨茅斯","布萊克浦","牛津聯","索爾福德城"]],["英格蘭乙級聯賽","英格蘭",2,["卡萊爾聯","克魯","沃爾索爾"]],
+ ["西班牙乙級聯賽","西班牙",3,["薩拉戈薩","希洪競技","奧維耶多"]],["德國乙級聯賽","德國",3,["漢堡","沙爾克04","杜塞道夫"]],["義大利乙級聯賽","義大利",3,["巴里","巴勒莫","桑普多利亞"]],["法國乙級聯賽","法國",2,["波爾多","聖埃蒂安","卡昂"]]]
  .forEach(([lg,ct,tier,names])=>{LEAGUES.push([lg,ct,tier]);CLUB_WORDS[lg]=names});
 // 俱樂部：每個聯賽 2～6 隊，實力依聯賽等級上下浮動
-const CLUBS=[];LEAGUES.forEach(([lg,ct,tier])=>{(CLUB_WORDS[lg]||CLUB_WORDS[ct]||["城市聯"]).forEach((n,i)=>{if(tier==4&&ct=="英格蘭")n=["諾丁漢森林人","里茲白玫瑰","萊斯特狐狸"][i]||n;if(CLUBS.some(c=>c.name==n))return;
+const CLUBS=[];LEAGUES.forEach(([lg,ct,tier])=>{(CLUB_WORDS[lg]||CLUB_WORDS[ct]||["城市聯"]).forEach((n,i)=>{if(tier==4&&ct=="英格蘭")n=["里茲聯","萊斯特城","伯恩利"][i]||n;if(CLUBS.some(c=>c.name==n))return;
  const str={5:80,4:73,3:68,2:62,1:49}[tier]+(i==0?5:i==1?3:i==2?1:-(i-2));CLUBS.push({name:n,lg,ct,tier,str,pay:(tier==5?6:tier==4?2.5:tier==3?(ct=="沙烏地阿拉伯"?15:1.2):tier==2?.4:.05)*(str/80)})})});
 
 // ── 球員 ──
@@ -167,7 +167,7 @@ const POS={FW:"前鋒",MF:"中場",DF:"後衛",GK:"門將"};
 const ATTR=["速度","射門","傳球","盤帶","防守","體能"];
 const POSW={FW:{速度:.2,射門:.35,傳球:.1,盤帶:.25,防守:0,體能:.1},MF:{速度:.12,射門:.12,傳球:.35,盤帶:.2,防守:.11,體能:.1},DF:{速度:.18,射門:0,傳球:.12,盤帶:.05,防守:.5,體能:.15},GK:{速度:.05,射門:0,傳球:.15,盤帶:0,防守:.6,體能:.2}};
 function ageCap(a){return a<=8?20+a*2:a<=12?36+(a-8)*3:a<=17?48+(a-12)*5:a<=21?73+(a-17)*4:a<=27?89+(a-21)*1.6:99}
-function capAttrs(p){const cap=ageCap(p.age),lim=Math.min(99,Math.max(cap,p.pot)+(p.age>=21?10:8));for(const k of ATTR)p.a[k]=Math.min(p.a[k],Math.min(lim,cap+12));
+function capAttrs(p){const cap=ageCap(p.age),lim=Math.min(97,Math.min(cap,p.pot)+6);for(const k of ATTR)p.a[k]=Math.min(p.a[k],lim);
  let o=ovr(p);if(o>cap)ATTR.forEach(k=>p.a[k]-=(o-cap))}
 function ovr(p){const w=POSW[p.pos];return Math.round(ATTR.reduce((s,a)=>s+p.a[a]*w[a],0))}
 function value(p){const o=ovr(p),agef=p.age<21?1.6:p.age<25?1.3:p.age<29?1:p.age<32?.55:.2;return Math.max(.01,.25*Math.pow(1.165,o-50)*agef)} // 百萬歐元：能力 80 約 €25M，90 約 €110M
@@ -176,12 +176,13 @@ function newPlayer(world,pos){
  const c=world=="tw"?COUNTRIES.find(x=>x[0]=="台灣"):wpick(COUNTRIES,x=>x[1]),nm=NM[c[4]];
  // 天賦：多數認真踢球的孩子上限在 55～70；能到 80 以上的是少數
  const talent=clamp(38+gauss()*9+(c[2]-75)*.2,30,92),pot=clamp(talent+6+Math.abs(gauss())*9,40,99);
+ const potCap=c[2]<60?62+Math.abs(gauss())*6:c[2]<72?72+Math.abs(gauss())*7:99;
  const position=pos=="?"?pick(["FW","MF","DF","GK"]):pos,a={};ATTR.forEach(k=>a[k]=clamp(3+R()*2,1,6));
  // 家庭：爸媽的工作、是不是球迷、有沒有哥哥姊姊——決定幾歲第一次碰到足球、家裡能不能支持
  const JOB=["工廠作業員","司機","店員","老師","工程師","小吃店老闆","農民","護理師","公務員","業務"],cls=Math.floor(R()*5),fan=R()<(c[2]>=80?.6:.3),sib=R()<.5;
  const fam={dad:pick(JOB),mom:pick(JOB),fan,sib,cls};
  const hT=({拉:175,歐:181,英:179,非:177,亞:172,中:175,華:173}[c[4]])+gauss()*6.5; // 成年身高目標（男性）
- return {name:c[4]=="華"?pick(nm.姓)+pick(nm.男):pick(nm.男)+" "+pick(nm.姓),c:c[0],cs:c[2],ctier:c[3],region:c[4],pos:position,dreamPos:position,talent,pot,a,age:0,y0:2026,cls,fam,h:50,hT,bloom:gauss()*.9,touchAge:fan||sib?3+Math.floor(R()*2):4+Math.floor(R()*3),grade:55+R()*20,
+ return {name:c[4]=="華"?pick(nm.姓)+pick(nm.男):pick(nm.男)+" "+pick(nm.姓),c:c[0],cs:c[2],ctier:c[3],region:c[4],pos:position,dreamPos:position,talent,pot:Math.min(pot,potCap),a,age:0,y0:2026,cls,fam,h:50,hT,bloom:gauss()*.9,touchAge:fan||sib?3+Math.floor(R()*2):4+Math.floor(R()*3),grade:55+R()*20,
   club:null,stage:"嬰兒",money:0,fame:0,morale:60,health:100,caps:0,intlGoals:0,apps:0,goals:0,assists:0,cleans:0,trophies:[],awards:[],injuries:0,seasons:[],ovrHist:[],log:[],alive:true,retired:false,contract:0,wage:0,partner:null,kids:0,after:null,clubsPlayed:[],peak:0,maxValue:0};
 }
 function say(t,hi){const p=document.createElement("p");if(hi)p.className="hi";p.innerHTML=`<span class="y">${P.age}歲</span>${t}`;$("log").prepend(p);P.log.push([P.age,t,!!hi])}
