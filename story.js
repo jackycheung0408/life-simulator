@@ -11,6 +11,8 @@ const DAILY=[
 // 只會發生在台灣或東亞的日常小事；其他地區的人不會遇到
 const DAILY_EA=/颱風|紅包|抽抽樂|蠶寶寶|夜市|段考|機車|中秋|便利商店|補習|家族群組|早安圖|廟口|長青班/;
 const DAILY_WORLD=[[4,12,["在河邊和朋友抓小魚。","跟著大人去參加婚禮，吃了好多甜點。","第一次學會游泳。","和鄰居的孩子在空地踢球踢到天黑。","在學校的話劇裡演一棵樹。"]],[13,19,["和朋友組了一個小樂團。","第一次自己搭公車去城裡。","偷偷熬夜看完一本小說。","在節慶上跳舞跳了一整晚。"]],[20,39,["在市場跟老闆殺價殺了好久。","第一次自己下廚請朋友吃飯。","下班後在路邊攤吃宵夜。","搬進一間小公寓。"]],[40,64,["週末帶孩子去公園散步。","鄰居請你去他家吃飯。","重新整理了家裡的小花園。"]],[65,120,["每天早上到廣場和老朋友聊天。","教孫子女唱小時候的歌。","把年輕時的照片整理成一本相簿。"]]];
+// 命運：每段人生出生時就決定「這輩子可能遇到哪些事」，同一個題庫每個人只會遇到其中一部分
+function fated(L,key,share){L.fateSeed=L.fateSeed||Math.floor(R()*1e9)+1;let h=L.fateSeed;for(const ch of String(key))h=Math.imul(h^ch.charCodeAt(0),2654435761)>>>0;return (h%1000)/1000<share}
 function dailyLife(L){
  const ea=L.c.tw||["華","韓","日"].includes(REGION(L.raw));
  const b0=DAILY.find(b=>L.age>=b[0]&&L.age<=b[1]),bw=DAILY_WORLD.find(b=>L.age>=b[0]&&L.age<=b[1]);if(!b0)return;
@@ -90,7 +92,7 @@ async function spendYear(L){
  if(L.lent&&L.age-L.lentAt>=2&&R()<.3){if(R()<.6){L.money+=L.lent;say(L,`朋友把之前借的 ${money(L.lent)} 還給你了。`)}else{L.rel-=2;say(L,"借出去的錢，朋友一直沒還，也不好意思開口。")}L.lent=0}
  if(L.age<14||R()>.3||L.money<=0&&L.age<22)return;
  L.spent=L.spent||{};
- const ok=SPEND.filter(e=>L.age>=e.min&&L.age<=e.max&&!(e.once&&L.spent[e.id]));if(!ok.length)return;
+ const ok=SPEND.filter(e=>L.age>=e.min&&L.age<=e.max&&!(e.once&&L.spent[e.id])&&fated(L,"sp"+e.id,.6));if(!ok.length)return;
  const e=pick(ok),cost=Math.max(e.cost(L),1);
  await ask(L,e.q,[[e.yes,()=>{L.spent[e.id]=1;L.money-=cost;ledger(L,"花費",-cost);e.y(L)},`約 ${money(cost)}`,cost],["花少一點，挑便宜的",()=>{L.money-=cost*.4;ledger(L,"花費",-cost*.4);L.happy+=2},`約 ${money(cost*.4)}`,cost*.4],[e.no,()=>{e.n(L)},"省下來"]]);
 }
@@ -111,7 +113,7 @@ const SMALL=[
 ];
 async function smallChoice(L){
  if(R()>.4)return;L.smallSeen=L.smallSeen||{};
- const ok=SMALL.filter(x=>L.age>=x[0]&&L.age<=x[1]&&!L.smallSeen[x[2]]);if(!ok.length)return;
+ const ok=SMALL.filter(x=>L.age>=x[0]&&L.age<=x[1]&&!L.smallSeen[x[2]]&&fated(L,"sm"+x[2],.5));if(!ok.length)return;
  const x=pick(ok);L.smallSeen[x[2]]=1;
  await ask(L,x[2],x[3].map(([t,e,m])=>{const cost=m?Math.abs(m)*L.c.gdp:0;return [t,()=>{for(const k in e)L[k]+=e[k];if(m){L.money+=m*L.c.gdp;ledger(L,m>0?"打工":"花費",m*L.c.gdp)}},m>0?`收入 +${money(cost)}`:m<0?`約 ${money(cost)}`:"",m<0?cost:0]}));
 }

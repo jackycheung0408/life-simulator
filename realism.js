@@ -50,7 +50,7 @@ async function rentYear(L){
 
 // ── 保險與意外 ──
 async function insuranceYear(L){
- if(!L.insAsked&&L.job&&L.age>=25&&L.age<=40&&R()<.25){L.insAsked=true;const g=L.c.gdp;
+ if(!L.insAsked&&L.job&&L.age>=25&&L.age<=40&&fated(L,"ins",.6)&&R()<.25){L.insAsked=true;const g=L.c.gdp;
   await ask(L,"業務員朋友推薦你買保險",[
    ["醫療險＋意外險",()=>{L.ins={med:1,acc:1,prem:g*.03}},"每年保費 · 看病和意外有理賠"],
    ["只買意外險",()=>{L.ins={acc:1,prem:g*.008}},"保費便宜"],
@@ -211,7 +211,7 @@ const MISHAPS=[
 ];
 async function mishapYear(L){
  if(L.age<18||R()>.35)return;
- const ok=MISHAPS.filter(m=>L.age>=m[0]&&L.age<=m[1]&&m[2](L));if(ok.length)await pick(ok)[3](L);
+ const ok=MISHAPS.filter((m,i)=>L.age>=m[0]&&L.age<=m[1]&&m[2](L)&&fated(L,"mh"+i,.5));if(ok.length)await pick(ok)[3](L);
 }
 
 // ── 看板：收支、資產、人際、職涯與健康 ──

@@ -60,6 +60,6 @@ const MORE_EVENTS=[
 
 async function moreEvents(L){
  if(L.age<3||R()>.6)return;L.moreSeen=L.moreSeen||{};
- const ok=MORE_EVENTS.map((e,i)=>[e,i]).filter(([e,i])=>!L.moreSeen[i]&&L.age>=e[0]&&L.age<=e[1]&&e[3](L));if(!ok.length)return;
+ const ok=MORE_EVENTS.map((e,i)=>[e,i]).filter(([e,i])=>!L.moreSeen[i]&&fated(L,"me"+i,.4)&&L.age>=e[0]&&L.age<=e[1]&&e[3](L));if(!ok.length)return;
  let t=ok.reduce((a,[e])=>a+e[2],0),r=R()*t;for(const [e,i] of ok){r-=e[2];if(r<=0){L.moreSeen[i]=1;await e[4](L);return}}
 }

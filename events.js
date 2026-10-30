@@ -167,7 +167,7 @@ async function lifeEvents(L,f){
  if(L.age>=10&&R()<.02)say(L,`這一年，「${THEME[0]}」在身邊引起很大的話題。`);
  // 一般事件：每年最多兩件
  L.done=L.done||{};let n=0;
- for(let i=0;i<EVENTS.length;i++){const e=EVENTS[i];if(n>=2)break;if(L.age<e[0]||L.age>e[1]||(L.done[i]&&!REPEAT.has(i)))continue;
+ for(let i=0;i<EVENTS.length;i++){const e=EVENTS[i];if(n>=2)break;if(L.age<e[0]||L.age>e[1]||(L.done[i]&&!REPEAT.has(i))||!fated(L,"ev"+i,.55))continue;
   if(R()<e[2]*(f=="享受"?1.1:1)&&e[3](L)){L.done[i]=1;await e[4](L);n++}}
  clamp(L);
 }
