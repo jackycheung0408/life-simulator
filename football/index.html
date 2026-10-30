@@ -170,7 +170,7 @@ function ageCap(a){return a<=8?20+a*2:a<=12?36+(a-8)*3:a<=17?48+(a-12)*5:a<=21?7
 function capAttrs(p){const cap=ageCap(p.age),lim=Math.min(97,Math.min(cap,p.pot)+6);for(const k of ATTR)p.a[k]=Math.min(p.a[k],lim);
  let o=ovr(p);if(o>cap)ATTR.forEach(k=>p.a[k]-=(o-cap))}
 function ovr(p){const w=POSW[p.pos];return Math.round(ATTR.reduce((s,a)=>s+p.a[a]*w[a],0))}
-function value(p){const o=ovr(p),agef=p.age<21?1.6:p.age<25?1.3:p.age<29?1:p.age<32?.55:.2;const mk=p.clubObj?{5:1,4:.55,3:.3,2:.12,1:.03}[p.clubObj.tier]:.05;return Math.max(.005,.25*Math.pow(1.165,o-50)*agef*mk)} // 身價也看在哪個等級的聯賽踢：台灣企甲球員多在 €1～5 萬 // 百萬歐元：能力 80 約 €25M，90 約 €110M
+function value(p){const o=ovr(p),agef=p.age<21?1.6:p.age<25?1.3:p.age<29?1:p.age<32?.55:.2;const mk=p.clubObj?{5:1,4:.55,3:.3,2:.2,1:.07}[p.clubObj.tier]:.05;return Math.max(.005,.25*Math.pow(1.165,o-50)*agef*mk)} // 身價依聯賽等級，參考 Transfermarkt 區間：台灣企甲約 €2.5～20 萬、日職約 €30～100 萬、英冠約 €100～500 萬、英超平均約 €3,000 萬 // 百萬歐元：能力 80 約 €25M，90 約 €110M
 function eur(m){return m>=1?`€${m>=100?Math.round(m):m.toFixed(1)}M`:`€${Math.round(m*1000)}K`}
 function newPlayer(world,pos){
  const c=world=="tw"?COUNTRIES.find(x=>x[0]=="台灣"):wpick(COUNTRIES,x=>x[1]),nm=NM[c[4]];
