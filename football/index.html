@@ -266,7 +266,7 @@ async function season(){
  const p=P;p.age++;
  heightYear(p);
  if(p.age<13){await childhood(p);return}
- if(p.age==13)await academy();
+ if(p.age==13){await academy();say("開始有正式的訓練課表了：射門、防守、戰術都能排進每週計劃。");toast("育成計劃解鎖更多訓練項目")}
  if(p.age>=17&&p.age<=22&&!p.club&&!p.retired)await firstContract();
  if(p.club&&!p.retired)await proSeason();else if(!p.retired){await youthYear(p.stage=="青訓"?.6:.3);if(p.age>=19&&!p.club){await amateur()}}
  if(p.retired)await afterLife();
@@ -463,7 +463,7 @@ function chart(arr,label){const v=arr.map((x,i)=>[i,x]).filter(x=>x[1]!=null);if
 async function loop(){
  while(P.alive){
   if(P.club&&!P.retired)await season();else{await quietYear();await season()}
-  pendingSkip=false;render();save();
+  pendingSkip=false;render();renderPlan();save();
  }
  finish();
 }
