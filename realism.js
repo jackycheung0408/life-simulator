@@ -161,6 +161,7 @@ async function jobHunt(L){
   ["先休息，靠存款或家人",()=>{L.happy+=1;L.rel-=1},"空窗越久越難找"]]);
 }
 async function realismYear(L){
+ L.liveCash=null;L._lastM=null;
  if(L.job){L.lastInc=L.inc;L.workYears=(L.workYears||0)+1}
  inflationYear(L);mortgageYear(L);partnerSetup(L);trackLife(L);await jobHunt(L);
  await rentYear(L);await insuranceYear(L);await loveYear(L);await kidChoices(L);await healthYear(L);await friendsYear(L);await moreEvents(L);await mishapYear(L);await debtRelief(L);
@@ -221,12 +222,13 @@ function renderBoards(){
  // 收支（每月）
  let money1="";
  if(L.age>=18&&(L.job||L.age>=22)){const {cost,income,total,full}=yearFlow(L),k=total/Math.max(1,full),mx=Math.max(income,full)/12;
-  money1=brow("本人收入",L.job?moneyShort(netPay(L)/12):L.age>=65&&L.workYears?"年金 "+moneyShort(pension(L)/12):"沒有工作")+(L.pInc?brow("伴侶收入",moneyShort(L.pInc/12)):"")+Object.entries(cost).filter(([,v])=>v>0).map(([n,v])=>`<div class="br"><span>${n}</span><b>${moneyShort(v*k/12)}</b></div>${bbar(v*k/12,mx,"var(--ac)")}`).join("")+
-   (L.ins?brow("保費",moneyShort(L.ins.prem/12)):"")+(L.mortPay?brow("房貸（含在住）",moneyShort(L.mortPay/12)):"")+(()=>{const bal=income-total-(L.ins?L.ins.prem:0);return brow("每月結餘",`<span style="color:${bal>=0?"var(--g)":"var(--ac)"}">${bal>=0?"+":"−"}${moneyShort(Math.abs(bal)/12)}</span>`)})();
+  const b=bonusMonths(L);
+  money1=brow("本人實領月薪",L.job?moneyShort(netPay(L)/(12+b)):L.age>=65&&L.workYears?"年金 "+moneyShort(pension(L)/12):"沒有工作")+(L.job&&b?brow("年終獎金",`${b} 個月（${moneyShort(netPay(L)/(12+b)*b)}）`):"")+(L.pInc?brow("伴侶月收入",moneyShort(L.pInc/12)):"")+`<div class="br mut" style="font-size:12px"><span>以下開銷與結餘為全年平均到每月</span></div>`+Object.entries(cost).filter(([,v])=>v>0).map(([n,v])=>`<div class="br"><span>${n}</span><b>${moneyShort(v*k/12)}</b></div>${bbar(v*k/12,mx,"var(--ac)")}`).join("")+
+   (L.ins?brow("保費",moneyShort(L.ins.prem/12)):"")+(L.mortPay?brow("房貸（含在住）",moneyShort(L.mortPay/12)):"")+(()=>{const bal=income-total-(L.ins?L.ins.prem:0);return brow("平均每月結餘",`<span style="color:${bal>=0?"var(--g)":"var(--ac)"}">${bal>=0?"+":"−"}${moneyShort(Math.abs(bal)/12)}</span>`)})();
  }else money1=`<p class="mut">${L.age<18?"還未成年，生活開銷由家裡負擔。":"還在讀書，靠家裡和打工過活。"}${L.pocket!=null?`<br>今年零用錢剩 ${money(Math.max(0,L.pocket))}`:""}</p>`;
  // 資產
- const inv=L.inv&&L.inv.amt>0?L.inv.amt:0,house=L.house?housePrice(L):0,loan=L.mort?L.mort.left:0,net=L.money+inv+house-loan;
- const assets=brow("現金存款",(L.money<0?"−":"")+moneyShort(Math.abs(L.money)))+(inv?brow(`投資（${L.inv.type}）`,`${moneyShort(inv)} <small style="color:${inv>=L.inv.base?"var(--g)":"var(--ac)"}">${inv>=L.inv.base?"+":""}${Math.round((inv/L.inv.base-1)*100)}%</small>`):"")+
+ const inv=L.inv&&L.inv.amt>0?L.inv.amt:0,house=L.house?housePrice(L):0,loan=L.mort?L.mort.left:0,net=(L.liveCash??L.money)+inv+house-loan;
+ const cash=L.liveCash??L.money;const assets=brow("現金存款",(cash<0?"−":"")+moneyShort(Math.abs(cash)))+(inv?brow(`投資（${L.inv.type}）`,`${moneyShort(inv)} <small style="color:${inv>=L.inv.base?"var(--g)":"var(--ac)"}">${inv>=L.inv.base?"+":""}${Math.round((inv/L.inv.base-1)*100)}%</small>`):"")+
   (house?brow("房子市值",moneyShort(house)):"")+(loan?brow("房貸未還",`−${moneyShort(loan)}`):"")+brow("淨資產",`<span style="color:${net>=0?"var(--g)":"var(--ac)"}">${net<0?"−":""}${moneyShort(Math.abs(net))}</span>`)+
   brow("保險",L.ins?[L.ins.med&&"醫療",L.ins.acc&&"意外",L.ins.life&&"壽險"].filter(Boolean).join("、"):"沒有");
  // 人際關係

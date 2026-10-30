@@ -330,14 +330,14 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=67"></script>
-<script src="events.js?v=67"></script>
-<script src="life.js?v=67"></script>
-<script src="pixel.js?v=67"></script>
-<script src="story.js?v=67"></script>
-<script src="realism.js?v=67"></script>
-<script src="events2.js?v=67"></script>
-<script src="taiwan.js?v=67"></script>
+<script src="countries.js?v=68"></script>
+<script src="events.js?v=68"></script>
+<script src="life.js?v=68"></script>
+<script src="pixel.js?v=68"></script>
+<script src="story.js?v=68"></script>
+<script src="realism.js?v=68"></script>
+<script src="events2.js?v=68"></script>
+<script src="taiwan.js?v=68"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -510,7 +510,7 @@ function render(){try{renderBoards()}catch(e){}
  if(!stats.firstChild)buildStats();
  setStat("健康",h,P.health,newYear?dh:undefined);setStat("幸福",hp,P.happy,newYear?dp:undefined);
  setStat("知識",Math.round(P.know),P.know);setStat("人際",Math.round(P.rel),P.rel);setStat("教育",EDU[P.edu]);
- setStat("工作",P.job||"—");setStat("薪水",P.job?`實領月薪 ${moneyShort(netPay(P)/(12+bonusMonths(P)))}`:P.age>=65&&P.workYears?`年金 ${moneyShort(pension(P)/12)}／月`:"—");{const m=P.money+(P.inv?P.inv.amt:0);setStat("存款",(m<0?"−"+moneyShort(-m):moneyShort(m))+(P.inv&&P.inv.amt>0?"＊":""))}
+ setStat("工作",P.job||"—");setStat("薪水",P.job?`實領月薪 ${moneyShort(netPay(P)/(12+bonusMonths(P)))}`:P.age>=65&&P.workYears?`年金 ${moneyShort(pension(P)/12)}／月`:"—");{const m=P.liveCash??P.money;setStat("存款",m<0?"−"+moneyShort(-m):moneyShort(m))}
  setStat("家庭",(P.partner?"有伴侶":P.widowed?"喪偶":"單身")+(P.kids?` · ${P.kids}子女`:""));
  // 場景：有變才換，新出現的人物彈出來
  // 場景：家人組成或住所有變才重畫
@@ -682,8 +682,9 @@ function tickNow(t){if(!P)return;const m=Math.min(11,Math.floor(t*12));
 // 年中存款的逐月變化（只是顯示；真正的結算在 year() 年底進行）
 function monthMoney(t){if(!P||P.age<18||!P.job&&P.age<22)return;const {income,total}=yearFlow(P),m=Math.min(12,Math.floor(t*12)+1),b=bonusMonths(P),mo=income/(12+b);
  // 每月 5 號發薪；第 12 個月加發年終
- const v=P.money+(P.inv?P.inv.amt:0)+m*mo+(m==12?b*mo:0)-t*total;
- if(m==12&&b&&!P.bonusShown){P.bonusShown=P.age;toast(`領到年終 ${b} 個月：${moneyShort(b*mo)}`)}if(m<12)P.bonusShown=0;setStat("存款",(v<0?"−"+moneyShort(-v):moneyShort(v))+(P.inv&&P.inv.amt>0?"＊":""))}
+ // 卡片和看板都顯示同一個「現金存款」（投資另外列在資產看板）
+ const v=P.money+m*mo+(m==12?b*mo:0)-t*total;P.liveCash=v;if(P._lastM!==m){P._lastM=m;try{renderBoards()}catch(e){}}
+ if(m==12&&b&&!P.bonusShown){P.bonusShown=P.age;toast(`領到年終 ${b} 個月：${moneyShort(b*mo)}`)}if(m<12)P.bonusShown=0;setStat("存款",v<0?"−"+moneyShort(-v):moneyShort(v))}
 (function bar(){if(P){shown+=(prog-shown)*.18;if(Math.abs(prog-shown)<.001)shown=prog;$("lifebar").style.width=Math.min(100,shown/Math.max(P.ex,100)*100)+"%";drawAvatarLCD($("avatar"),P)}requestAnimationFrame(bar)})();
 async function loop(){renderShop();
  prog=shown=P.age;
