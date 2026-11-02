@@ -228,9 +228,16 @@ const MGR=[
     ["公開表態想為國家效力",()=>{p.fame+=1;if(R()<.4)p.cs=Math.max(40,p.cs-3)},"國家隊門檻略降"],["考慮歸化別的國家隊",()=>{if(p.age<=27){p.cs=Math.max(p.cs,70);say("取得第二國籍，可以代表新的國家隊。",1)}},"",()=>p.age<=27],["不急",()=>{}]])}],
  ["宣布最後一季","這季踢完就退休",p=>p.club&&p.age>=28&&!p.lastSeason,async p=>{await ask("確定這是最後一季嗎？",[["確定，好好告別",()=>{p.lastSeason=p.age;p.fame+=5;say("宣布這是職業生涯的最後一季，各地球迷都來送行。",1)},"季末退休"],["再想想",()=>{}]])}],
 ];
+// 不能使用時說明原因
+const MGR_WHY={申請外租:p=>p.loanTo?"租借中":p.role=="主力"?"你已經是主力":"",宣布最後一季:p=>p.age<28?"28 歲以後才能宣布":p.lastSeason?"已經宣布了":"",要求轉會:p=>p.loanTo?"租借中不能轉會":"",國家隊:p=>p.age<18?"18 歲以後":""};
+MGR.push(
+ ["私人特訓","自費加強一項能力",p=>p.age>=15&&p.money>=.01,async p=>{const cost=Math.max(.01,Math.min(.5,p.wage*.06));await ask(`請私人教練一對一特訓（花費約 ${eur(cost)}）`,ATTR.map(k=>[`加強${k}`,()=>{p.money-=cost;p.a[k]+=1.5+R()*1.5;p.focus=p.focus||{};p.focus[k]=(p.focus[k]||0)+.8;capAttrs(p);say(`請私人教練加強${k}，${k}進步到 ${Math.round(p.a[k])}。`,1)},`目前 ${Math.round(p.a[k])}`]).concat([["算了",()=>{}]]))}],
+ ["改踢位置","向教練要求換位置",p=>p.club&&p.age>=16&&p.pos!="GK",async p=>{const opts=Object.keys(DPN).filter(d=>d!="GK"&&d!=dpOf(p));await ask(`想改踢哪個位置？（目前 ${DPN[dpOf(p)]}，教練關係 ${rel(p,"coach")}）`,opts.map(d=>{const w=DPW[d];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}const o=Math.round(t/sw);return [`改踢${DPN[d]}`,()=>{if(R()<.4+(rel(p,"coach")-50)/100){setDp(p,d);say(`教練同意讓你改踢${DPN[d]}。`,1)}else{rel(p,"coach",-3);say("教練拒絕了，要你先在原位置證明自己。")}},`在這個位置的評分 ${o}`]}).concat([["不換",()=>{}]]))}],
+ ["找教練談話","爭取上場、請教戰術",p=>!!p.club,async p=>{await ask(`找總教練談話（目前關係 ${rel(p,"coach")}，戰術「${p.coachStyle||"—"}」）`,[["爭取更多上場時間",()=>{if(R()<.35+(rel(p,"coach")-50)/120+(ovr(p)-p.clubObj.str)/40){rel(p,"coach",8);say("教練答應給你更多機會。",1)}else{rel(p,"coach",-5);say("教練覺得你還不夠格。")}},"看教練關係與實力"],["請教戰術要求",()=>{rel(p,"coach",4);const k=TAC[p.coachStyle]||["傳球"];k.forEach(x=>{p.a[x]+=.8});say(`照教練的戰術要求加練${k.join("、")}。`)},"配合戰術，能力小幅↑"],["只是打聲招呼",()=>{rel(p,"coach",2)},""]])}],
+ ["休假充電","降低疲勞、回復心情",p=>p.age>=16&&(p.fat||0)>20,async p=>{await ask("想怎麼休息？",[["和家人出國旅行",()=>{p.fat=Math.max(0,(p.fat||0)-35);p.morale+=6;p.money-=.01},"疲勞↓↓ 花點錢"],["在家完全放空一週",()=>{p.fat=Math.max(0,(p.fat||0)-25);p.morale+=3},"疲勞↓"],["去做物理治療",()=>{p.fat=Math.max(0,(p.fat||0)-20);p.health+=6},"健康↑"]])}]);
 function renderMgr(){const el=$("mgr");if(!el||!P)return;const p=P;p.mgrUsed=p.mgrUsed||{};
  $("mgrCard").classList.toggle("hide",p.age<16||p.retired||!!p.footEnd);
- el.innerHTML=MGR.map(([n,d,ok],i)=>{const used=p.mgrUsed[n]===p.age,can=ok(p)&&!used;return `<button class="mg" data-i="${i}" ${can?"":"disabled"}><b>${n}</b><small>${used?"本季已使用":d}</small></button>`}).join("");
+ el.innerHTML=MGR.map(([n,d,ok],i)=>{const used=p.mgrUsed[n]===p.age,can=ok(p)&&!used;const why=!can&&!used&&MGR_WHY[n]?MGR_WHY[n](p):"";return `<button class="mg" data-i="${i}" ${can?"":"disabled"}><b>${n}</b><small>${used?"本季已使用":why||d}</small></button>`}).join("");
  el.querySelectorAll(".mg").forEach(b=>b.onclick=async()=>{const [n,,,fn]=MGR[b.dataset.i];paused=true;p.mgrUsed[n]=p.age;await fn(p);paused=false;render();renderMgr()})}
 
 // ── 主迴圈 ──

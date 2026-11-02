@@ -34,6 +34,15 @@ function actsFor(p){return p.age<13?KID_ACTS:Object.keys(ACTS).filter(k=>(!ACTS[
 function planShare(){const s={};ATTR.forEach(k=>s[k]=0);plan.forEach(d=>{for(const[k,v]of Object.entries(ACTS[d].w))s[k]+=v/7});return s}
 function planFat(){return plan.reduce((a,d)=>a+ACTS[d].fat,0)}
 // 一段時間（frac=一年中的比例）的成長與疲勞
+// 球風：看能力最突出的兩項（相對自己的平均），也會影響關鍵時刻與教練戰術
+const STYLES={"速度,射門":"速度型射手","射門,體能":"禁區殺手","射門,盤帶":"技術型前鋒","傳球,盤帶":"組織核心","傳球,射門":"進攻組織者","防守,體能":"鐵血硬漢","防守,速度":"速度型後衛","傳球,防守":"節拍器","速度,盤帶":"突破快馬","體能,速度":"全場奔跑機","盤帶,射門":"技術型前鋒","傳球,速度":"邊路傳中手"};
+function styleOf(p){if(p.age<13)return "還沒定型";const avg=ATTR.reduce((t,k)=>t+p.a[k],0)/6,top=ATTR.slice().sort((a,b)=>p.a[b]-p.a[a]);if(p.a[top[0]]-avg<4)return "全面均衡型";
+ const key=[top[0],top[1]].sort((a,b)=>ATTR.indexOf(a)-ATTR.indexOf(b)).join(",");return STYLES[key]||STYLES[[top[1],top[0]].join(",")]||`${top[0]}專家`}
+// 不改動能力，估算這份課表一季大概會讓各能力變多少（給課表面板用）
+function planEstimate(p){const sh=planShare(),age=p.age,o=ovr(p),room=Math.max(0,p.pot-o);let base=(age<17?3.2:age<21?2.4:age<25?1.4:age<29?.4:age<32?-.8:-(age-29)*.9);
+ if(age>=12&&age<29)base*=.6+.6*Math.min(1,room/12)+.6*.4;const fat=p.fat||0,tired=(fat>80?.55:fat>60?.85:1);const e={};
+ ATTR.forEach(k=>{let d=base>0?base*(.4+7.5*sh[k])*tired:base+2.2*sh[k]*tired;if(age>=15&&age<=34)d+=3.2*(sh[k]-1/6)*tired;if((k=="速度"||k=="體能")&&age>=29)d-=(age-28)*.25;
+  if(room<=0&&d>0&&base>0)d*=.35;e[k]=d});return e}
 function grow(p,minutes,frac=1){
  if(p.age<p.touchAge)return;
  const o=ovr(p),room=Math.max(0,p.pot-o),age=p.age,sh=planShare(),fat=p.fat||0;
@@ -44,7 +53,10 @@ function grow(p,minutes,frac=1){
  for(const k of ATTR){let d=base>0?base*frac*(.7+R()*.6)*(.4+7.5*sh[k])*tired:base*frac*(.7+R()*.6)+frac*2.2*sh[k]*tired;
   if((k=="速度"||k=="體能")&&age>=29)d-=frac*(age-28)*.25*(sh.體能>.15?.6:1)*(1-.12*T(p,"自律"));
   if(base<0)d*=1-.1*T(p,"球商");
+  // 此消彼長：練得多的能力往上、沒練的慢慢退，讓課表真的決定你的風格
+  if(age>=15&&age<=34)d+=frac*3.2*(sh[k]-1/6)*tired;
   if(p.pos=="GK"&&k=="射門")d*=.2;p.a[k]=clamp(p.a[k]+d,5,99)}
+ if(age>=13){p.focus=p.focus||{};ATTR.forEach(k=>{p.focus[k]=Math.max(0,(p.focus[k]||0)*(1-.08*frac)+(sh[k]-1/6)*frac*2)})}
  if(base>0)p.s.反應=clamp(p.s.反應+base*frac*(.3+minutes*.6),1,99);
  const now=ovr(p);if(now>p.pot)ATTR.forEach(k=>p.a[k]-=(now-p.pot)*.5);capAttrs(p);
  // 疲勞：一週總負荷超過 30 就會累積
@@ -64,7 +76,7 @@ function renderPlan(){
  const sh=planShare(),fat=planFat(),load=fat<=20?["輕鬆","var(--g)"]:fat<=40?["適中","var(--y)"]:["吃重，容易受傷","var(--ac)"];
  $("focus").innerHTML=`<div class="days">${plan.map((d,i)=>`<button class="day" data-i="${i}" style="--c:${ACTS[d].c}"><span>週${DAYS[i]}</span><b>${kid?KID_NAME[d]||d:d}</b></button>`).join("")}</div>
   <div class="presets">${p.age<13?"":Object.keys(PRESETS).map(k=>`<button class="pre" data-k="${k}">${k}</button>`).join("")}</div>
-  ${kid?`<div class="plan-sum"><span>功課 <b>${Math.round(p.grade||60)}</b></span><span>疲勞 <b style="color:${(p.fat||0)>60?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b></span>${!plan.includes("讀書")&&p.age>=6?`<span style="color:var(--ac)">一週都沒寫功課，成績會往下掉</span>`:""}${!plan.includes("休息")?`<span style="color:var(--ac)">一天都沒休息，身體會吃不消</span>`:""}</div>`:`<div class="plan-sum"><span>每週負荷 <b style="color:${load[1]}">${load[0]}</b></span><span>目前疲勞 <b style="color:${(p.fat||0)>70?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b></span>${ATTR.map(k=>`<span>${k} ${"▮".repeat(Math.round(sh[k]*14))||"·"}</span>`).join("")}</div>${(()=>{const lim=Math.min(97,Math.min(ageCap(p.age),p.pot)+6),maxed=ATTR.filter(k=>sh[k]>.05&&p.a[k]>=lim-.5);return maxed.length?`<div class="plan-warn">⚠ ${maxed.join("、")}已經到目前的上限（${Math.round(lim)}），再練也不會進步，可以把時間改練其他能力。</div>`:""})()}`}`;
+  ${kid?`<div class="plan-sum"><span>功課 <b>${Math.round(p.grade||60)}</b></span><span>疲勞 <b style="color:${(p.fat||0)>60?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b></span>${!plan.includes("讀書")&&p.age>=6?`<span style="color:var(--ac)">一週都沒寫功課，成績會往下掉</span>`:""}${!plan.includes("休息")?`<span style="color:var(--ac)">一天都沒休息，身體會吃不消</span>`:""}</div>`:`<div class="plan-sum"><span>每週負荷 <b style="color:${load[1]}">${load[0]}</b></span><span>目前疲勞 <b style="color:${(p.fat||0)>70?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b></span>${(()=>{const est=planEstimate(p);return `<span class="est">一季預估：${ATTR.map(k=>`<i class="${est[k]>.3?"up":est[k]<-.3?"down":""}">${k} ${est[k]>=0?"+":""}${est[k].toFixed(1)}</i>`).join("")}</span>`})()}<span class="style">目前球風：<b>${styleOf(p)}</b></span>${ATTR.map(k=>`<span class="hide">${k} ${"▮".repeat(Math.round(sh[k]*14))||"·"}</span>`).join("")}</div>${(()=>{const lim=Math.min(97,Math.min(ageCap(p.age),p.pot)+6),maxed=ATTR.filter(k=>sh[k]>.05&&p.a[k]>=lim-.5);return maxed.length?`<div class="plan-warn">⚠ ${maxed.join("、")}已經到目前的上限（${Math.round(lim)}），再練也不會進步，可以把時間改練其他能力。</div>`:""})()}`}`;
  $("focus").querySelectorAll(".day").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;dayPick=dayPick===i?null:i;renderPlan()});
  if(dayPick!=null){const box=document.createElement("div");box.className="daymenu";box.innerHTML=`<div class="mut">週${DAYS[dayPick]}要做什麼？</div>`+acts.map(a=>`<button data-a="${a}" style="border-top:4px solid ${ACTS[a].c}" class="${plan[dayPick]==a?"on":""}">${kid?KID_NAME[a]||a:a}</button>`).join("")+`<button data-all="1">整週都這樣</button>`;
   $("focus").querySelector(".days").after(box);box.querySelectorAll("button").forEach(x=>x.onclick=()=>{if(x.dataset.all){plan=plan.map(()=>plan[dayPick])}else plan[dayPick]=x.dataset.a;dayPick=null;renderPlan()})}
@@ -152,7 +164,7 @@ function fansTxt(n){return n>=1e4?`${(n/1e4).toFixed(1)} 億`:n>=1?`${n>=100?Mat
 // ── 關鍵時刻：依位置隨機抽一個情境，每個選項顯示成功率（看對應的細項能力、疲勞、特質）──
 async function keyMoment(st){
  const p=P,S=p.s,fat=(p.fat||0)/400,bonus=.02*((rel(p,"mate")-50)/25)+(p.edge?.15:0)+.04*T(p,"球商")+.03*T(p,"拚命");
- const av=(...k)=>k.reduce((t,x)=>t+(S[x]||0),0)/k.length;
+ const av=(...k)=>k.reduce((t,x)=>t+(S[x]||0),0)/k.length+(/射手|殺手|前鋒/.test(styleOf(p))&&k.some(x=>/射|跑位/.test(x))?8:/組織|節拍|傳中/.test(styleOf(p))&&k.some(x=>/傳|視野/.test(x))?8:/硬漢|後衛/.test(styleOf(p))&&k.some(x=>/搶斷|盯人|強壯/.test(x))?8:/突破|快馬/.test(styleOf(p))&&k.some(x=>/盤帶|敏捷/.test(x))?8:0);
  // o(文字, 基礎機率, 能力值, 成功描述, 失敗描述, 成功效果, 額外說明)
  const o=(label,base,att,good,bad,fx,extra,foot)=>{const c=clamp(base+att/220-fat+bonus+(foot?(p.wf-3)*.04:0)+(extra=="花式"?(p.sm-3)*.04:0),.05,.95);
   return [label,()=>{const ok=R()<c;p.edge=0;p._ok=ok;say(ok?good:bad,ok);if(ok){fx&&fx();p.morale+=3;p.fame+=2}else p.morale-=2;toast(ok?"成功！":"沒有成功")},`成功率約 ${Math.round(c*100)}%${extra&&extra!="花式"?" · "+extra:""}`]};

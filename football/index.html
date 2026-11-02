@@ -37,7 +37,7 @@ button.on{background:var(--y);color:var(--ink)}
 #pitch{width:100%;height:auto;display:block;image-rendering:pixelated;border:3px solid var(--ink)}
 .ticker{font-size:14px;margin-top:6px;min-height:22px;color:var(--y)}
 /* 紀錄 */
-#log{max-height:300px;overflow:auto;background:#0a170e;border:3px solid var(--ink);padding:8px 12px}
+#log{background:#0a170e;border:3px solid var(--ink);padding:8px 12px}
 #log p{margin:4px 0;font-size:14px}#log p.hi{color:var(--y);border-left:4px solid var(--y);padding-left:6px}#log .y{color:var(--mut);margin-right:6px}
 /* 抉擇 */
 #modal{position:fixed;inset:0;background:#030805e6;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
@@ -72,7 +72,8 @@ button.on{background:var(--y);color:var(--ink)}
 .hz{fill:transparent;cursor:crosshair}.hz:hover{fill:#ffffff18}
 .tbl td.hon{text-align:left;font-size:12px;line-height:1.45;min-width:90px}
 /* 每季表：窄螢幕藏次要欄位（先發、分鐘、最佳、牌、年薪），不出現橫向捲軸 */
-@media(max-width:900px){.seas th:nth-child(7),.seas td:nth-child(7),.seas th:nth-child(8),.seas td:nth-child(8),.seas th:nth-child(12),.seas td:nth-child(12),.seas th:nth-child(13),.seas td:nth-child(13){display:none}}
+.seas th{white-space:nowrap}.seas td:nth-child(3){white-space:nowrap}
+/* 每季表固定只顯示重點欄位，避免擠在一起 */.seas th:nth-child(7),.seas td:nth-child(7),.seas th:nth-child(8),.seas td:nth-child(8),.seas th:nth-child(12),.seas td:nth-child(12),.seas th:nth-child(13),.seas td:nth-child(13){display:none}
 @media(max-width:560px){.seas th:nth-child(5),.seas td:nth-child(5),.seas th:nth-child(16),.seas td:nth-child(16),.seas th:nth-child(14),.seas td:nth-child(14){display:none}.tbl table{font-size:11.5px}.tbl th,.tbl td{padding:3px 3px}}
 .gala{margin-top:10px;padding:10px;border:2px solid var(--y);background:#2a2a0e}.gala-h{color:var(--y);font-weight:900;margin-bottom:4px}.gala-r{padding:3px 0;border-top:1px dashed #4a4a20}.gala-r small{color:var(--mut);margin-left:8px}.gala-r.w{color:var(--y);font-weight:900}
 .lgt tr.me td{background:#ffd23f33;font-weight:800}.lgt tr.rel td{color:#ff8a8a}
@@ -100,7 +101,8 @@ button.on{background:var(--y);color:var(--ink)}
 .days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.day{margin:0;padding:6px 2px;display:flex;flex-direction:column;align-items:center;border-top:5px solid var(--c)}.day span{font-size:11px;color:var(--mut)}.day b{font-size:14px}
 .presets{margin:6px 0;display:flex;flex-wrap:wrap;gap:2px}.presets button{padding:4px 10px;font-size:13px}
 .plan-sum{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mut);margin-top:4px}.plan-sum b{color:var(--fg)}
-.rtabs{display:flex;flex-wrap:wrap;gap:2px;margin-bottom:8px}.rtabs button{padding:5px 10px;font-size:13px}
+.rtabs{display:flex;flex-wrap:wrap;gap:2px;margin-bottom:8px}.rt.on{background:var(--y);color:var(--ink)}
+#log p:nth-child(n+13){display:none}#log.all p{display:block}#logMore{font-size:12.5px;padding:4px 10px;margin-top:6px}.rtabs button{padding:5px 10px;font-size:13px}
 .tbl{overflow:visible}.tbl table{border-collapse:collapse;width:100%;font-size:12.5px;white-space:normal;table-layout:auto}.tbl th,.tbl td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:right}.tbl th{color:var(--y);position:sticky;top:0;background:var(--card)}.tbl td:nth-child(3),.tbl th:nth-child(3){text-align:left}.tbl tr.tot td{font-weight:800;color:var(--y)}
 .cert .tbl th{background:#f4f1de;color:#16241a}
 .legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;margin-top:4px}.legend i{display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:middle}
@@ -115,7 +117,7 @@ button.on{background:var(--y);color:var(--ink)}
 .kstrip{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:10px}.kstrip .stat{text-align:center;padding:6px 4px}.kstrip .stat b{font-size:20px}
 #stats{display:block}
 @media(max-width:560px){.kstrip{grid-template-columns:repeat(3,1fr)}#stats{grid-template-columns:repeat(3,1fr)}.days{grid-template-columns:repeat(4,1fr)}}
-#log{max-height:240px}
+
 .trait{display:inline-block;background:var(--y);color:var(--ink);padding:1px 8px;margin:2px 4px 2px 0;font-size:13px}
 .achs{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;margin-top:6px}.ach{border:2px solid var(--line);padding:6px 8px;opacity:.6}.ach b{display:block;font-size:14px}.ach span{display:block;font-size:12px;color:var(--mut);min-height:30px}.ach small{font-size:11px;color:var(--mut)}
 .ach.t1{opacity:1;border-color:#c98a4b}.ach.t2{opacity:1;border-color:#c9d3d8}.ach.t3{opacity:1;border-color:#ffd23f}.ach.t4{opacity:1;border-color:#7fdcff;box-shadow:0 0 10px #7fdcff66}
@@ -123,6 +125,7 @@ button.on{background:var(--y);color:var(--ink)}
 .stat b small{font-size:12px;font-weight:700}.stat b small.up{color:var(--g)}.stat b small.down{color:var(--ac)}
 .faces{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}.stat .wt{float:right;font-style:normal;font-size:11px;color:var(--y);opacity:.85}
 .chips .more{display:none}.chips.open .more{display:block}.moreBtn{font-size:12.5px;padding:4px 10px;margin-top:8px}
+.plan-sum .est{display:block;width:100%}.plan-sum .est i{font-style:normal;margin-right:10px;white-space:nowrap}.plan-sum .est i.up{color:var(--g)}.plan-sum .est i.down{color:var(--ac)}.plan-sum .style b{color:var(--y)}.plan-sum .hide{display:none}
 .gr{font-style:normal;font-size:10.5px;margin-left:5px;padding:0 4px;border:1px solid currentColor}.g-傳奇,.g-國際球星,.g-狂熱,.g-愛戴,.g-良好,.g-正常{color:var(--g)}.g-全國知名,.g-普通,.g-偏高{color:var(--y)}.g-低迷,.g-很差,.g-危險{color:var(--ac)}.g-無名,.g-小有名氣{color:var(--mut)}
 .arc{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:8px 0;border-top:1px dashed var(--line);font-size:13.5px}.arc-y{color:var(--y)}.arc-y span{margin:0 6px;color:var(--mut)}
 .howto{font-size:12.5px;color:var(--mut);margin:8px 2px 0}.howto b{color:var(--y)}[data-tip]{cursor:help}
@@ -208,7 +211,7 @@ button.on{background:var(--y);color:var(--ink)}
 <div class="card" id="planCard"><h2 id="planTitle">育成計劃・每週訓練表</h2><div id="focus"></div><div class="mut" id="focusTip" style="font-size:13px"></div></div>
 
 <div class="card" id="mgrCard"><h2>生涯管理</h2><div class="mut" style="font-size:13px">由你主動決定。每項每個球季可以用一次，按下後遊戲會暫停讓你處理。</div><div id="mgr" class="mgr"></div></div>
-<div class="card"><h2>紀錄</h2><div id="log"></div></div>
+<div class="card"><h2>紀錄</h2><div id="log"></div><button id="logMore" onclick="$('log').classList.toggle('all');this.textContent=$('log').classList.contains('all')?'▴ 只看最近 12 則':'▾ 展開更多紀錄'">▾ 展開更多紀錄</button></div>
 <div class="card"><h2>生涯數據與報表</h2><div class="kstrip" id="career"></div><div id="ovrChart" class="hide"></div><div id="reports"></div></div>
 </section>
 
@@ -223,8 +226,8 @@ button.on{background:var(--y);color:var(--ink)}
 <div id="tip"></div><div id="modal" class="hide"><div class="sheet"><span class="tag" id="mtag"></span><span id="mctx"></span><div id="choice"></div></div></div>
 <div id="toast"></div>
 
-<script src="js/data.js?v=1"></script>
-<script src="js/events.js?v=1"></script>
-<script src="js/career.js?v=1"></script>
-<script src="js/ui.js?v=1"></script>
-<script src="js/home.js?v=1"></script></body></html>
+<script src="js/data.js?v=2"></script>
+<script src="js/events.js?v=2"></script>
+<script src="js/career.js?v=2"></script>
+<script src="js/ui.js?v=2"></script>
+<script src="js/home.js?v=2"></script></body></html>

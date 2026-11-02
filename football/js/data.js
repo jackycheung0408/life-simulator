@@ -54,7 +54,8 @@ function ageCap(a){return a<=8?20+a*2:a<=12?36+(a-8)*3:a<=17?48+(a-12)*5:a<=21?7
 function capAttrs(p){const cap=ageCap(p.age),lim=Math.min(95,Math.min(cap,p.pot)+4);
  // 依位置決定每項卡面能力的上限：主要能力最高、次要的低一些、用不到的明顯較低（參考 FIFA 球星的能力分布）
  const w=DPW[dpOf(p)],rel=ATTR.map(k=>[k,Object.keys(faceMap(p,k)).reduce((t,x)=>t+(w[x]||0),0)]).sort((a,b)=>b[1]-a[1]);
- rel.forEach(([k],i)=>{const m=i<2?lim:i<4?lim-6:lim-14;p.a[k]=Math.min(p.a[k],m)});
+ // 長期重點訓練（p.focus 累積）的能力，上限往上提，練得越久越能變成你的招牌
+ rel.forEach(([k],i)=>{const f=Math.min(1,((p.focus||{})[k]||0)/3);const m=(i<2?lim:i<4?lim-6:lim-14)+f*(i<2?0:i<4?6:12);p.a[k]=Math.min(p.a[k],m)});
  let o=ovr(p);if(o>cap)ATTR.forEach(k=>p.a[k]-=(o-cap))}
 // ── FIFA 式能力：細項能力 → 卡面六大數值；綜合能力依「細分位置」加權 ──
 const SUBS=["加速","衝刺速度","射術","射門力量","遠射","跑位","視野","短傳","長傳","傳中","盤帶技術","控球","敏捷","反應","盯人","搶斷","攔截","頭球","強壯","耐力","彈跳","撲救","手型","門將反應","門將站位"];
