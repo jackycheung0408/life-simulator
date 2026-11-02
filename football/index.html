@@ -393,6 +393,11 @@ YOUTH_EVENTS.push(
  p=>ask("看到心中偶像在電視上踢出一記任意球",[["每天加練一百次任意球",()=>{p.a.射門+=1.5;p.fat=clamp((p.fat||0)+8,0,100)},"射門↑"],["研究他的比賽影片",()=>{tag(p,"球商");p.a.傳球+=1},"球商↑"],["只是看看",()=>{},""]]),
 );
 const MINOR=[
+ p=>{const w=g("proWho");p.morale+=1;return pick([`${w}在更衣室放了一首老歌，全隊一起大合唱。`,`和${w}打賭輸了，請大家喝飲料。`,`${w}教你幾句外國話，大家笑成一團。`])},
+ p=>{const c=g("city");p.fame+=.5;return pick([`在${c}的咖啡店被球迷認出來，老闆請你喝一杯。`,`${c}的小學生寫信說你是他的偶像。`])},
+ p=>{p.s.反應=clamp(p.s.反應+.5,1,99);return pick(["睡前看了一場經典比賽的重播，學到新的跑位。","在訓練中被教練點名示範，有點緊張但完成了。"])},
+ p=>{const wx=g("weather");p.fat=clamp((p.fat||0)+4,0,100);return `${wx}天的訓練特別辛苦。`},
+ p=>{const f=g("family");p.morale+=2;return pick([`${f}來看你比賽，在看台上舉著自己做的加油牌。`,`${f}寄來一箱家鄉的水果。`])},
  p=>{p.morale+=2;return pick(["球迷在社群上做了一支你的精華影片，點閱破十萬。","收到一位小球迷寄來的手寫卡片。","下大雨，訓練改到室內，大家玩起了足球網球。"])},
  p=>{p.fat=clamp((p.fat||0)+6,0,100);return pick(["客場搭了十幾個小時的巴士，下車時腿都麻了。","連續三場比賽間隔不到四天，身體很疲憊。"])},
  p=>{p.a.傳球+=.4;return pick(["和新來的隊友練出默契，傳球越來越順。","看了好幾場自己比賽的錄影，發現不少可以改進的地方。"])},
@@ -401,8 +406,54 @@ const MINOR=[
  p=>{p.health-=2;return pick(["感冒發燒，請假兩天。","吃壞肚子，賽前一直跑廁所。"])},
  p=>{p.money+=.002;return pick(["幫社區少年隊上了一堂課，拿到一點車馬費。","二手市場賣掉舊球鞋，被球迷高價收藏。"])},
 ];
+// ── 隨機事件產生器：人物、地點、情境、結果隨機組合，每段人生都不一樣 ──
+const G={
+ kidWho:["同班的阿明","隔壁的大哥哥","表哥","新轉學來的同學","社區的阿伯","學校的體育老師","一起長大的玩伴","補習班認識的朋友"],
+ teenWho:["隊上的學長","同屆的隊友","班上的同學","青訓的室友","以前的國小同學","別隊的對手","教練的兒子","住在附近的退役球員"],
+ proWho:["一位老隊友","新來的外籍隊友","隊上的門將","青年隊的學弟","隊醫","球隊的翻譯","老家的朋友","一位退役的傳奇球員"],
+ place:["河堤旁的空地","廟口廣場","學校後面的停車場","海邊的沙灘","公園的籃球場","社區的頂樓","下雨後的泥巴地","高架橋下"],
+ city:["城北","海港區","老街","山邊小鎮","工業區","市中心","大學城","河對岸"],
+ skill:[["一招假射真扣","盤帶技術"],["外腳背傳球","短傳"],["頭球的起跳時機","頭球"],["門前的跑位","跑位"],["卡位用肩膀的技巧","強壯"],["第一腳停球","控球"],["長傳轉移","長傳"],["彈地遠射","遠射"],["倒地剷球的時機","搶斷"],["反越位的啟動","衝刺速度"],["呼吸調節的跑法","耐力"],["看對手膝蓋判斷方向","攔截"]],
+ body:["腳踝","膝蓋","大腿後側","小腿","腰","肩膀","鼠蹊部","腳趾"],
+ food:["夜市的鹽酥雞","媽媽的牛肉麵","隊友阿嬤做的便當","便利商店的御飯糰","路邊攤的烤玉米"],
+ media:["地方電視台","體育網站","知名 YouTuber","球迷論壇","報紙體育版","Podcast 節目"],
+ rumor:["和某位明星交往","私下想轉會","和教練不合","酒駕被攔檢","在夜店打架","收了球鞋廠商的錢"],
+ sponsor:["當地的牛肉麵店","一間運動飲料公司","手機遊戲廠商","汽車經銷商","老家的農會","一個網紅品牌"],
+ weather:["颱風","寒流","大雪","暴雨","熱浪","沙塵暴"],
+ family:["阿公","阿嬤","媽媽","爸爸","哥哥","姊姊","舅舅"],
+ trouble:["住院開刀","生意失敗欠了錢","心情很低落","要搬家","身體不太好"],
+};
+const g=k=>pick(G[k]);
+// 每個模板回傳一個抉擇；效果也帶隨機
+const GEN={
+ kid:[
+  p=>{const w=g("kidWho"),pl=g("place");return ask(`${w}約你去${pl}踢球`,[["馬上衝去",()=>{p.a.盤帶+=.8+R();say(`在${pl}踢到天黑，${pick(["球技又進步了一點","鞋子都踢破了","被蚊子叮了滿腿包"])}。`)},"球技↑"],["寫完功課再去",()=>{p.grade+=2;p.a.傳球+=.5},"兩邊兼顧"],["今天想在家",()=>{p.morale+=1},""]])},
+  p=>{const w=g("kidWho"),[sk,at]=g("skill");return ask(`${w}教你${sk}`,[["認真學，一直練到會",()=>{p.s[at]=clamp(p.s[at]+2+R()*2,1,99);say(`學會了${sk}。`)},`${at}↑`],["學一點就去玩",()=>{p.s[at]=clamp(p.s[at]+1,1,99)},""],["覺得很難，放棄",()=>{p.morale-=1},""]])},
+  p=>{const f=g("family"),t=g("trouble");return ask(`${f}${t}，家裡氣氛很沉重`,[["每天去陪${f}",()=>{p.morale+=2;p.fat=Math.max(0,(p.fat||0)-10)},"家人↑"],["用踢球轉移心情",()=>{p.a.射門+=1},""],["偷偷躲起來哭",()=>{p.morale-=3},""]].map(o=>[o[0].replace("${f}",f),o[1],o[2]]))},
+  p=>{const wx=g("weather");return ask(`${wx}來了，學校停課`,[["在家對著牆壁練球",()=>{p.a.盤帶+=1;say(pick(["被樓下鄰居抗議。","練到媽媽喊吃飯。"]))},"盤帶↑"],["看了一整天的球賽影片",()=>{p.s.視野=clamp(p.s.視野+1.5,1,99)},"視野↑"],["睡一整天",()=>{p.fat=Math.max(0,(p.fat||0)-15)},""]])},
+  p=>{const fd=g("food");return ask(`比賽前一天，${fd}看起來好好吃`,[["吃到飽",()=>{p.morale+=3;if(R()<.4){p.health-=4;say("隔天肚子痛，比賽踢得很辛苦。")}},"可能拉肚子"],["吃一點就好",()=>{p.morale+=1},""],["忍住，乖乖吃清淡的",()=>{p.a.體能+=.5},""]])},
+ ],
+ teen:[
+  p=>{const w=g("teenWho"),pl=g("place");return ask(`${w}找你去${pl}踢地下街頭賽，聽說有獎金`,[["去，順便練膽量",()=>{p.a.盤帶+=1.2;if(R()<.3){p.health-=6;say("比賽太粗野，被踢傷了腳。")}else{p.money+=.0005;say("贏了一點獎金。")}},"可能受傷"],["去看就好",()=>{p.s.視野=clamp(p.s.視野+1,1,99)},""],["不去，教練會生氣",()=>{rel(p,"coach",2)},""]])},
+  p=>{const w=g("teenWho"),[sk,at]=g("skill");return ask(`${w}私下教你${sk}，說這是他的祕密武器`,[["每天加練",()=>{p.s[at]=clamp(p.s[at]+2.5+R()*2,1,99);p.fat=Math.min(100,(p.fat||0)+6);say(`${sk}越來越熟練。`)},`${at}↑`],["學起來但比賽不敢用",()=>{p.s[at]=clamp(p.s[at]+1,1,99)},""],["覺得沒用",()=>{},""]])},
+  p=>{const m=g("media");return ask(`${m}想拍一集「明日之星」介紹你`,[["好啊，大方入鏡",()=>{p.fame+=2+R()*3;if(R()<.25){p.morale-=3;say("影片底下有人留言酸你，看了很難過。")}},"名氣↑"],["只拍訓練，不受訪",()=>{p.fame+=1},""],["拒絕，怕分心",()=>{p.a.體能+=.5},""]])},
+  p=>{const b=g("body");return ask(`最近${b}一直隱隱作痛`,[["去看運動醫學門診",()=>{p.money-=.0003;p.health+=4;say(`醫生說${b}只是發炎，休息幾天就好。`)},"安心"],["貼藥布繼續練",()=>{if(R()<.35){p.injuryLeft=1;p.health-=10;say(`${b}的傷勢惡化，休息了好幾個月。`)}},"有風險"],["減少訓練量",()=>{p.fat=Math.max(0,(p.fat||0)-15)},""]])},
+  p=>{const c=g("city");return ask(`${c}的一支青年隊想借你去打一場邀請賽`,[["去，多一場比賽經驗",()=>{p.a.傳球+=1;p.s.反應=clamp(p.s.反應+1.5,1,99);if(R()<.4){p.scouted=true;say("邀請賽表現亮眼，有球探留下聯絡方式。",1)}},"可能被球探看到"],["教練不准，留下",()=>{rel(p,"coach",3)},""],["當天剛好要考試",()=>{p.grade+=3},""]])},
+  p=>{const f=g("family"),t=g("trouble");return ask(`家裡傳來消息：${f}${t}`,[["請假回家幾天",()=>{p.morale+=2;p.fat=Math.max(0,(p.fat||0)-10)},""],["把這份心情帶到球場上",()=>{p.a.射門+=1;p.morale-=1},""],["打電話關心，但留在隊上",()=>{},""]])},
+ ],
+ pro:[
+  p=>{const sp=g("sponsor");return ask(`${sp}想找你拍廣告`,[["接，收入不錯",()=>{const m=.01+p.fame*.002*(.5+R());p.money+=m;p.fame+=1;say(`拍廣告賺了 ${eur(m)}。`)},"收入↑"],["只接公益廣告",()=>{p.fame+=2;tag(p,"正直")},"形象↑"],["婉拒",()=>{},""]])},
+  p=>{const m=g("media"),r=g("rumor");return ask(`${m}報導你「${r}」`,[["發聲明澄清",()=>{if(R()<.6){p.fame+=1;say("澄清之後，風波很快平息。")}else{p.fame-=4;say("越描越黑，新聞炒了好幾天。")}},"看運氣"],["不回應",()=>{p.fame-=1},""],["請律師提告",()=>{p.money-=.02;p.morale+=2},"花錢"]])},
+  p=>{const w=g("proWho"),[sk,at]=g("skill");return ask(`${w}說可以教你${sk}`,[["每天訓練後留下來練",()=>{p.s[at]=clamp(p.s[at]+2+R()*2,1,99);p.fat=Math.min(100,(p.fat||0)+8);say(`練成了${sk}。`)},`${at}↑ 疲勞↑`],["偶爾請教",()=>{p.s[at]=clamp(p.s[at]+1,1,99)},""],["沒興趣",()=>{},""]])},
+  p=>{const wx=g("weather");return ask(`客場遇到${wx}，比賽可能延期`,[["主動要求照常比賽",()=>{p.fame+=1;if(R()<.3){p.health-=6;say("在惡劣天氣下踢完比賽，感冒了好幾天。")}},""],["聽聯盟安排",()=>{},""],["趁空檔帶隊友去吃當地美食",()=>{rel(p,"mate",6);p.morale+=3},"隊友感情↑"]])},
+  p=>{const b=g("body");return ask(`賽前熱身時${b}拉了一下`,[["請隊醫評估再說",()=>{p.fat=Math.max(0,(p.fat||0)-8)},"安全"],["堅持先發",()=>{tag(p,"拚命");if(R()<.35){p.injuryLeft=1;p.health-=12;say(`${b}受傷，休息了一段時間。`)}},"可能受傷"],["主動要求替補",()=>{rel(p,"coach",3)},"教練信任↑"]])},
+  p=>{const c=g("city");return ask(`球隊辦了一場到${c}的社區活動`,[["帶小朋友踢球",()=>{p.fame+=2;p.morale+=3},"心情↑"],["簽名合照就好",()=>{p.fame+=1},""],["推說身體不舒服",()=>{rel(p,"coach",-3)},""]])},
+  p=>{const f=g("family"),t=g("trouble");return ask(`${f}${t}，需要你幫忙`,[["匯一筆錢回家",()=>{p.money-=.02+R()*.05;p.morale+=2},"花錢"],["請假回去陪",()=>{rel(p,"coach",-4);p.morale+=4},"教練信任↓"],["請家人先處理",()=>{p.morale-=3},""]])},
+ ]};
+async function genEvent(kind){await pick(GEN[kind])(P)}
 async function phaseEvent(pool){const p=P;p.evSeen=p.evSeen||{};const tag=pool===YOUTH_EVENTS?"y":"p";
- if(R()<.3){const m=pick(MINOR);say(m(p));return}
+ if(R()<.25){const m=pick(MINOR);say(m(p));return}
+ if(R()<.45){await genEvent(tag=="y"?"teen":"pro");return}
  const ok=pool.map((f,i)=>i).filter(i=>!(p.evSeen[tag+i]>=p.age-2));const i=ok.length?pick(ok):Math.floor(R()*pool.length);
  p.evSeen[tag+i]=p.age;await pool[i](p)}
 // 階段性的傷病檢查：疲勞越高越容易受傷
@@ -472,7 +523,7 @@ const KID_POOL=[
  [8,12,p=>ask(RV("被選為校隊隊長","教練要你在比賽中戴隊長臂章"),[["接下來",()=>{p.morale+=4;p.fame+=1;say("成為校隊隊長。",1)},"責任↑"],["讓給更會踢的同學",()=>{p.morale+=1},""],["有點害怕，先拒絕",()=>{},""]])],
  [9,12,p=>ask(RV("最好的朋友要轉學了","一起踢球的好朋友要搬到別的城市"),[["送他一顆簽名足球",()=>{p.morale+=1},""],["約好長大一起踢職業",()=>{p.morale+=3},"夢想↑"],["難過到好幾天不想踢球",()=>{p.morale-=3},""]])],
 ];
-async function kidRandom(p){if(p.age<4)return;p.kidSeen=p.kidSeen||{};
+async function kidRandom(p){if(p.age<4)return;if(p.age>=p.touchAge&&R()<.55)await genEvent("kid");p.kidSeen=p.kidSeen||{};
  const ok=KID_POOL.map((e,i)=>i).filter(i=>p.age>=KID_POOL[i][0]&&p.age<=KID_POOL[i][1]&&!p.kidSeen[i]);
  const n=R()<.35?2:R()<.85?1:0;for(let j=0;j<n&&ok.length;j++){const i=ok.splice(Math.floor(R()*ok.length),1)[0];p.kidSeen[i]=1;await KID_POOL[i][2](p)}}
 async function academy(){
