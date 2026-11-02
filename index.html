@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant"><head><meta charset="utf-8"><link rel="apple-touch-icon" href="icon.png"><link rel="icon" type="image/png" href="icon.png"><link rel="manifest" href="manifest.json"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="人生模擬器"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="theme-color" content="#12122b"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="zh-Hant"><head><meta charset="utf-8"><link rel="apple-touch-icon" href="icon.png"><link rel="icon" type="image/png" href="icon.png"><link rel="manifest" href="manifest.json"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="人生模擬器"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="theme-color" content="#12122b" media="(prefers-color-scheme: dark)"><meta name="theme-color" content="#f4f1e8" media="(prefers-color-scheme: light)"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>人生模擬器</title>
 <meta name="description" content="按下出生，隨機成為世界上某個嬰兒，或活一次台灣人生：聯考、當兵、北漂、921、房價、長照。依真實統計，每個人的一生都不一樣。">
 <meta property="og:site_name" content="人生模擬器">
@@ -13,9 +13,10 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
+<script>try{const t=localStorage.getItem("fb-theme");if(t&&t!="auto")document.documentElement.dataset.theme=t}catch(e){}</script>
 <style>
 :root{--bg:#f6f3ee;--fg:#222;--mut:#777;--card:#fff;--ac:#c0392b;--line:#e3ddd3}
-@media (prefers-color-scheme:dark){:root{--bg:#16151a;--fg:#eee;--mut:#999;--card:#222128;--ac:#e8705f;--line:#333}}
+
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,"PingFang TC","Noto Sans TC",sans-serif;line-height:1.6}
 .wrap{max-width:760px;margin:0 auto;padding:24px 16px}
 h1{font-size:2.4rem;margin:.1em 0}h2{font-size:1.2rem;margin:.2em 0}.mut{color:var(--mut);font-size:.88rem}
@@ -87,36 +88,42 @@ button.pri:hover{filter:brightness(1.08)}
 #log p{cursor:pointer}#log p.star::after{content:" ★";color:#d4a017}
 
 /* ===== 復古街機風 ===== */
-:root,:root[data-theme]{--bg:#12122b;--fg:#f4f1de;--mut:#a6a6c8;--card:#22224a;--ac:#ff4d4d;--line:#3d3d75;--y:#ffd23f;--b:#3fa7ff;--g:#4cd964;--ink:#05050f;--px:"Press Start 2P","DotGothic16","PingFang TC","Noto Sans TC",monospace}
+:root{--bg:#12122b;--fg:#f4f1de;--mut:#a6a6c8;--card:#22224a;--ac:#ff4d4d;--line:#3d3d75;--y:#ffd23f;--b:#3fa7ff;--g:#4cd964;--ink:#05050f;--btn:#33336b;--stat:#1a1a3a;--deep:#0b0b1e;--opt:#2b2b5c;--opth:#3a3a7a;--btnh:#44448a;--inset:#4a4a8a;--dot:#ffffff0d;--scan:#0000001f;--px:"Press Start 2P","DotGothic16","PingFang TC","Noto Sans TC",monospace}
+/* 淺色主題：跟隨系統，或用右上角按鈕切換（和足球員模擬器共用設定）*/
+@media (prefers-color-scheme: light){:root:not([data-theme=dark]){--bg:#f4f1e8;--fg:#23233a;--mut:#5f5f7a;--card:#ffffff;--ac:#d0342c;--line:#d3cfc2;--y:#a36a00;--b:#1f6fc0;--g:#1e8f39;--ink:#23233a;--btn:#ebe7da;--stat:#f8f6ef;--deep:#efebdf;--opt:#f3f0e6;--opth:#e4dfcf;--btnh:#ddd8c6;--inset:#c9c3b0;--dot:#00000010;--scan:transparent;}}
+:root[data-theme=light]{--bg:#f4f1e8;--fg:#23233a;--mut:#5f5f7a;--card:#ffffff;--ac:#d0342c;--line:#d3cfc2;--y:#a36a00;--b:#1f6fc0;--g:#1e8f39;--ink:#23233a;--btn:#ebe7da;--stat:#f8f6ef;--deep:#efebdf;--opt:#f3f0e6;--opth:#e4dfcf;--btnh:#ddd8c6;--inset:#c9c3b0;--dot:#00000010;--scan:transparent;}
+:root[data-theme=dark]{--bg:#12122b;--fg:#f4f1de;--mut:#a6a6c8;--card:#22224a;--ac:#ff4d4d;--line:#3d3d75;--y:#ffd23f;--b:#3fa7ff;--g:#4cd964;--ink:#05050f;--btn:#33336b;--stat:#1a1a3a;--deep:#0b0b1e;--opt:#2b2b5c;--opth:#3a3a7a;--btnh:#44448a;--inset:#4a4a8a;--dot:#ffffff0d;--scan:#0000001f;}
+#themeBtn{position:fixed;top:10px;right:10px;z-index:1000;padding:6px 10px;font-size:14px}
+:root[data-resolved=light] h1{text-shadow:2px 2px 0 #f2c94c!important}
 body{background:var(--bg);font-family:"DotGothic16",system-ui,sans-serif;letter-spacing:.02em;
- background-image:radial-gradient(#ffffff0d 1px,transparent 1px);background-size:6px 6px}
-body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:20;background:repeating-linear-gradient(#0000 0 2px,#0000001f 2px 3px)}
+ background-image:radial-gradient(var(--dot) 1px,transparent 1px);background-size:6px 6px}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:20;background:repeating-linear-gradient(#0000 0 2px,var(--scan) 2px 3px)}
 h1{font-family:var(--px);font-size:1.6rem;color:var(--y);text-shadow:3px 3px 0 var(--ac),6px 6px 0 var(--ink);line-height:1.5}
 h2{font-family:var(--px);font-size:.82rem;color:var(--y);text-shadow:2px 2px 0 var(--ink);line-height:1.8;letter-spacing:.04em}
 .card{background:var(--card);border:3px solid var(--ink);border-radius:0;box-shadow:inset 0 0 0 2px var(--line),5px 5px 0 var(--ink);position:relative}
 .card::before{content:"";position:absolute;top:4px;left:4px;width:6px;height:6px;background:var(--y);box-shadow:calc(100% - 0px) 0 0 transparent}
-button,select{border:3px solid var(--ink);border-radius:0;background:#33336b;color:var(--fg);box-shadow:3px 3px 0 var(--ink);font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif}
-button:hover:not([disabled]){border-color:var(--ink);background:#44448a}
+button,select{border:3px solid var(--ink);border-radius:0;background:var(--btn);color:var(--fg);box-shadow:3px 3px 0 var(--ink);font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif}
+button:hover:not([disabled]){border-color:var(--ink);background:var(--btnh)}
 button:active:not([disabled]){transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
 button.pri{background:var(--ac);color:#fff;font-family:var(--px);font-size:.85rem;padding:12px 22px;text-shadow:2px 2px 0 var(--ink)}
 .on{background:var(--b)!important;color:#fff!important}
 .seg,.chip,.ib,.sw i{border-radius:0!important}
-.seg{border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);background:#33336b}
+.seg{border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);background:var(--btn)}
 .seg button{box-shadow:none;border:0;font-family:var(--px);font-size:.62rem;padding:9px 9px}
 .seg button+button{border-left:2px solid var(--ink)}
 .seg button.on{background:var(--y)!important;color:var(--ink)!important}
 .ib{width:42px;height:38px}
-.sw i{border:2px solid var(--ink);background:#33336b}.sw i::after{border-radius:0;background:var(--fg)}.sw input:checked+i{background:var(--g)}
+.sw i{border:2px solid var(--ink);background:var(--btn)}.sw i::after{border-radius:0;background:var(--fg)}.sw input:checked+i{background:var(--g)}
 .mut{color:var(--mut)}
 .row{border-bottom:2px dotted var(--line)}
 .bar{border-radius:0;background:var(--ink);height:8px}.bar i{background:linear-gradient(90deg,var(--g),var(--y))}
-.stat{background:#1a1a3a;border:2px solid var(--ink);padding:6px 8px}
+.stat{background:var(--stat);border:2px solid var(--ink);padding:6px 8px}
 .stat b{font-family:var(--px);font-size:.8rem;margin:4px 0;color:var(--fg)}
 .up{color:var(--g)}.down{color:var(--ac)}
-#log{background:#0b0b1e;border:3px solid var(--ink);box-shadow:inset 0 0 0 2px var(--line)}
+#log{background:var(--deep);border:3px solid var(--ink);box-shadow:inset 0 0 0 2px var(--line)}
 #log p.hi{border-left:4px solid var(--y);color:var(--y)}
-.opt{border:3px solid var(--ink);background:#2b2b5c;margin:8px 0 0}
-.opt:hover:not([disabled]){background:#3a3a7a}
+.opt{border:3px solid var(--ink);background:var(--opt);margin:8px 0 0}
+.opt:hover:not([disabled]){background:var(--opth)}
 .opt::before{content:"▶ ";color:var(--y);opacity:0}.opt:hover::before,.opt.picked::before{opacity:1}
 .opt.picked{background:var(--y);color:var(--ink)}.opt.picked small{color:var(--ink)}
 #modal .sheet{border:4px solid var(--ink);border-radius:0;box-shadow:inset 0 0 0 3px var(--y),8px 8px 0 var(--ink);background:var(--card)}
@@ -153,7 +160,7 @@ button.pri{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;fon
 .lifebar-wrap{margin-top:10px}
 .lifebar-wrap .lbl{display:flex;justify-content:space-between;font-family:var(--px);font-size:.55rem;color:var(--fg);margin-bottom:4px}
 .lifebar-wrap .lbl b{color:var(--y)}
-.hp{position:relative;height:22px;background:var(--ink);border:3px solid var(--ink);box-shadow:inset 0 0 0 2px #4a4a8a,3px 3px 0 var(--ink)}
+.hp{position:relative;height:22px;background:var(--ink);border:3px solid var(--ink);box-shadow:inset 0 0 0 2px var(--inset),3px 3px 0 var(--ink)}
 .hp #lifebar{position:absolute;inset:2px auto 2px 2px;height:auto;max-width:calc(100% - 4px);background:linear-gradient(180deg,#fff6 0 30%,transparent 30%),linear-gradient(90deg,var(--g),var(--y) 60%,var(--ac));
  -webkit-mask:repeating-linear-gradient(90deg,#000 0 7px,#0000 7px 9px);mask:repeating-linear-gradient(90deg,#000 0 7px,#0000 7px 9px)}
 .hp .tick{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--fg);opacity:.5}
@@ -757,4 +764,13 @@ save.onclick=()=>{
  }
  location.reload();
 };
-</script></body></html>
+</script><button id="themeBtn" title="切換深色／淺色"></button>
+<script>
+// 深色／淺色主題：auto（跟系統）→ 淺色 → 深色；和足球員模擬器共用同一個設定
+(function(){const root=document.documentElement,btn=document.getElementById("themeBtn");
+ const now=()=>root.dataset.theme||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");
+ function apply(){let t="auto";try{t=localStorage.getItem("fb-theme")||"auto"}catch(e){}if(t=="auto")delete root.dataset.theme;else root.dataset.theme=t;root.dataset.resolved=now();btn.textContent={auto:"🌓 自動",light:"☀️ 淺色",dark:"🌙 深色"}[t]}
+ btn.onclick=()=>{let t="auto";try{t=localStorage.getItem("fb-theme")||"auto"}catch(e){}t={auto:"light",light:"dark",dark:"auto"}[t];try{localStorage.setItem("fb-theme",t)}catch(e){}apply()};
+ try{matchMedia("(prefers-color-scheme: light)").addEventListener("change",apply)}catch(e){}apply()})();
+</script>
+</body></html>
