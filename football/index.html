@@ -62,7 +62,18 @@ button.on{background:var(--y);color:var(--ink)}
 .trophies{font-size:22px;letter-spacing:2px}
 .chart svg{width:100%;height:90px;background:#10261a;border:2px solid var(--line)}
 .hall{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-@media(max-width:520px){.hud{flex-direction:column;align-items:stretch}.fut{margin:0 auto}}
+/* 手機：頂部狀態列縮小並固定在上方，球員卡放左邊；按鈕、卡片間距縮小 */
+@media(max-width:560px){
+ .wrap{padding:10px}.card{padding:10px;margin:10px 0}
+ #game>.card:first-child{position:sticky;top:0;z-index:20;margin-top:0}
+ .hud{gap:10px;align-items:flex-start}.fut{width:74px;padding:4px}.fut .ovr{font-size:22px}.fut .pos{font-size:11px}.fut canvas{width:40px;height:40px}.fut .nm{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .age{font-size:18px}.hud .info{font-size:13px}.hud .info b{font-size:13px}#where{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .ctrl{gap:4px;margin-top:6px}.ctrl button{padding:4px 7px;font-size:12px;box-shadow:2px 2px 0 var(--ink)}.ctrl label{font-size:12px!important}
+ .ticker{font-size:13px;min-height:18px}
+ .stat{padding:5px 7px}.stat b{font-size:16px}.chip{padding:3px 6px}.chip b{font-size:14px}
+ .tbl table{font-size:12px}.tbl th,.tbl td{padding:3px 5px}
+ h2{font-size:17px}
+}
 .days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.day{margin:0;padding:6px 2px;display:flex;flex-direction:column;align-items:center;border-top:5px solid var(--c)}.day span{font-size:11px;color:var(--mut)}.day b{font-size:14px}
 .presets{margin:6px 0;display:flex;flex-wrap:wrap;gap:2px}.presets button{padding:4px 10px;font-size:13px}
 .plan-sum{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mut);margin-top:4px}.plan-sum b{color:var(--fg)}
