@@ -74,7 +74,7 @@ button.on{background:var(--y);color:var(--ink)}
 .cert .subs b{color:#8a6a00}
 .daymenu{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:6px 0;padding:8px;background:#10261a;border:2px solid var(--y)}.daymenu .mut{width:100%;font-size:13px}.daymenu button{margin:0;padding:6px 12px}
 .kstrip{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:10px}.kstrip .stat{text-align:center;padding:6px 4px}.kstrip .stat b{font-size:20px}
-#stats{grid-template-columns:repeat(5,1fr)}
+#stats{display:block}
 @media(max-width:560px){.kstrip{grid-template-columns:repeat(3,1fr)}#stats{grid-template-columns:repeat(3,1fr)}.days{grid-template-columns:repeat(4,1fr)}}
 #log{max-height:240px}
 .trait{display:inline-block;background:var(--y);color:var(--ink);padding:1px 8px;margin:2px 4px 2px 0;font-size:13px}
@@ -85,6 +85,13 @@ button.on{background:var(--y);color:var(--ink)}
 .gcard .rr{font-weight:800;font-size:14px}.gcard b{font-size:34px;line-height:1}.gcard span{font-size:12px}.gcard small{font-size:11px;opacity:.85}.gcard em{font-style:normal;font-size:12px;font-weight:800}
 .gcard.sel{outline:4px solid var(--g);outline-offset:2px}.gcard.none{--c:#3a5a44;color:var(--fg)}
 .gcard.flip{animation:flip .7s ease-out}@keyframes flip{0%{transform:rotateY(90deg) scale(.6);filter:brightness(3)}60%{transform:rotateY(0) scale(1.1)}100%{transform:none}}
+.faces{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.chips{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}.chip{background:#10261a;border:2px solid var(--ink);padding:4px 8px}.chip span{display:block;font-size:11px;color:var(--mut)}.chip b{font-size:15px}
+.relbox{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-top:8px;padding:8px;background:#10261a;border:2px solid var(--ink)}
+.relrow{display:grid;grid-template-columns:110px 1fr 26px;align-items:center;gap:6px;font-size:13px}.relrow small{display:block;font-size:11px;color:var(--mut)}.relrow i{display:block;height:6px;background:var(--ink)}.relrow u{display:block;height:100%}.relrow em{font-style:normal;text-align:right}
+.traitbox{margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;gap:4px}.traitbox .mut{font-size:12px;margin-right:4px}
+.traitbox .trait{display:inline-block;background:var(--y);color:var(--ink);padding:2px 8px;font-size:13px;font-weight:700}
+@media(max-width:560px){.faces{grid-template-columns:repeat(3,1fr)}.chips{grid-template-columns:repeat(3,1fr)}.relbox{grid-template-columns:1fr}}
 </style></head><body><div class="wrap">
 
 <!-- 首頁 -->
@@ -748,8 +755,14 @@ function render(){
  $("where").textContent=p.retired?`已退休 · ${p.after||""}`:p.club?`${p.club} · ${p.clubObj.lg} · 合約剩 ${Math.max(0,p.contract)} 年`:`${p.c} · ${p.stage}`;
  $("sL").textContent=`${p.age} 歲`;$("sR").textContent=`${p.age+1} 歲`;drawFace($("face"),p);
  const FIFA=p.pos=="GK"?{速度:"SPD",射門:"SHO",傳球:"KIC",盤帶:"DRI",防守:"GK",體能:"PHY"}:{速度:"PAC",射門:"SHO",傳球:"PAS",盤帶:"DRI",防守:"DEF",體能:"PHY"};
- $("stats").innerHTML=(p.age<p.touchAge?`<div class="stat" style="grid-column:1/-1"><span>足球能力</span><b>還沒碰過足球</b></div>`:"")+ATTR.filter(()=>p.age>=p.touchAge).map(k=>`<div class="stat"><span>${FIFA[k]} ${k}</span><b>${Math.round(p.a[k])}${(()=>{const d=p.a[k]-((p.yStart||{})[k]??p.a[k]);return Math.abs(d)>=.3?` <small class="${d>0?"up":"down"}">${d>0?"▲":"▼"}${Math.abs(d).toFixed(1)}</small>`:""})()}</b><div class="bar"><i style="width:${p.a[k]}%"></i></div></div>`).join("")+
-  `<div class="stat"><span>身高</span><b>${Math.round(p.h)} cm</b></div><div class="stat"><span>位置</span><b>${p.age<11&&!p.done?.pos?"還沒固定":DPN[dpOf(p)]}</b></div><div class="stat"><span>逆足 / 花式</span><b>${p.age<10?"還看不出來":`${"★".repeat(p.wf)} / ${"★".repeat(p.sm)}`}</b></div>`+(p.age<13?`<div class="stat"><span>功課</span><b>${p.age<6?"還沒上學":Math.round(p.grade||60)}</b></div><div class="stat"><span>健康</span><b>${Math.round(p.health)}</b></div>`:`<div class="stat"><span>身價</span><b>${p.club?eur(value(p)):"—"}</b></div><div class="stat"><span>年薪</span><b>${p.club?eur(p.wage):"—"}</b></div><div class="stat"><span>存款</span><b>${eur(Math.max(0,p.money))}</b></div><div class="stat"><span>健康</span><b>${Math.round(p.health)}</b><div class="bar"><i style="width:${p.health}%"></i></div></div>${p.rel&&Object.keys(p.rel).length?`<div class="stat" style="grid-column:1/-1"><span>人際</span>${Object.entries(p.rel).map(([k,r])=>`<div class="sub"><span>${RELN[k]}</span><i style="width:${r.v}%;background:${r.v>=60?"var(--g)":r.v<35?"var(--ac)":"var(--y)"}"></i><em>${Math.round(r.v)}</em></div><div class="mut" style="font-size:12px;margin:-2px 0 4px">${r.name}</div>`).join("")}</div>`:""}<div class="stat"><span>疲勞</span><b style="color:${(p.fat||0)>70?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b><div class="bar"><i style="width:${p.fat||0}%;background:var(--ac)"></i></div></div><div class="stat"><span>名氣</span><b>${Math.round(p.fame)}</b></div>${Object.keys(p.tags||{}).length?`<div class="stat" style="grid-column:1/-1"><span>特質</span><b style="font-size:14px">${Object.entries(p.tags).map(([k,v])=>`<span class="trait" title="${TRAITS[k]}">${k}${v>1?" ×"+v:""}</span>`).join("")}</b></div>`:""}<div class="stat"><span>天賦上限</span><b>${p.age<16?"？？":Math.round(p.pot)}</b></div>`);
+ // 數值區分成四塊：六大能力 → 基本資料 → 人際 → 特質
+ const face=p.age<p.touchAge?`<div class="stat" style="grid-column:1/-1"><span>足球能力</span><b>還沒碰過足球</b></div>`:ATTR.map(k=>`<div class="stat"><span>${FIFA[k]} ${k}</span><b>${Math.round(p.a[k])}${(()=>{const d=p.a[k]-((p.yStart||{})[k]??p.a[k]);return Math.abs(d)>=.3?` <small class="${d>0?"up":"down"}">${d>0?"▲":"▼"}${Math.abs(d).toFixed(1)}</small>`:""})()}</b><div class="bar"><i style="width:${p.a[k]}%"></i></div></div>`).join("");
+ const info=[["身高",Math.round(p.h)+" cm"],["位置",p.age<11&&!p.done?.pos?"還沒固定":DPN[dpOf(p)]],["逆足／花式",p.age<10?"未知":`${p.wf}★／${p.sm}★`],["天賦上限",p.age<16?"？？":Math.round(p.pot)],
+  ...(p.age<13?[["功課",p.age<6?"還沒上學":Math.round(p.grade||60)],["健康",Math.round(p.health)]]:[["身價",p.club?eur(value(p)):"—"],["年薪",p.club?eur(p.wage):"—"],["存款",eur(Math.max(0,p.money))],["健康",Math.round(p.health)],["疲勞",Math.round(p.fat||0)],["名氣",Math.round(p.fame)]])]
+  .map(([k,v])=>`<div class="chip"><span>${k}</span><b${k=="疲勞"&&v>70?' style="color:var(--ac)"':""}>${v}</b></div>`).join("");
+ const rels=p.rel&&Object.keys(p.rel).length?`<div class="relbox">${Object.entries(p.rel).map(([k,r])=>`<div class="relrow"><span>${RELN[k]}<small>${r.name}</small></span><i><u style="width:${r.v}%;background:${r.v>=60?"var(--g)":r.v<35?"var(--ac)":"var(--y)"}"></u></i><em>${Math.round(r.v)}</em></div>`).join("")}</div>`:"";
+ const traits=Object.keys(p.tags||{}).length?`<div class="traitbox"><span class="mut">特質</span>${Object.entries(p.tags).map(([k,v])=>`<span class="trait" title="${TRAITS[k]}">${k}${v>1?" ×"+v:""}</span>`).join("")}</div>`:"";
+ $("stats").innerHTML=`<div class="faces">${face}</div><div class="chips">${info}</div>${rels}${traits}`;
  $("career").innerHTML=[["出賽",p.apps],[p.pos=="GK"?"零封":"進球",p.pos=="GK"?p.cleans:p.goals],["助攻",p.assists],["國家隊出賽",p.caps],["冠軍",p.trophies.length],["個人獎項",p.awards.length]].map(([k,v])=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`).join("");
  $("ovrChart").innerHTML=chart(p.ovrHist,"能力值");
 }
