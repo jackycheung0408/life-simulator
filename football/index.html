@@ -2,7 +2,7 @@
 <html lang="zh-Hant"><head><meta charset="utf-8"><link rel="apple-touch-icon" href="icon.png"><link rel="icon" type="image/png" href="icon.png"><link rel="manifest" href="manifest.json"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="足球員"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="theme-color" content="#0f1f14"><meta http-equiv="Cache-Control" content="no-cache"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>足球員模擬器</title>
 <meta name="description" content="從街頭踢球的孩子開始，青訓、職業合約、轉會、國家隊、世界盃，到退休後的人生。每一季的選擇都由你決定。">
-<meta property="og:title" content="足球員模擬器｜你能踢到世界盃嗎？"><meta property="og:description" content="從街頭到世界盃：青訓、轉會、傷病、國家隊，模擬一位足球員的一生。">
+<meta property="og:title" content="足球員模擬器｜你能踢到世界盃嗎？"><meta property="og:description" content="從街頭到世界盃：青訓、轉會、傷病、國家隊，模擬一位足球員的一生。"><meta property="og:image" content="https://jackycheung0408.github.io/life-simulator/football/og.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:url" content="https://jackycheung0408.github.io/life-simulator/football/"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://jackycheung0408.github.io/life-simulator/football/og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
@@ -83,6 +83,7 @@ button.on{background:var(--y);color:var(--ink)}
 .gbm{min-width:0}.gbm b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gbm small{display:block;color:var(--mut);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gbs{font-size:12px;white-space:nowrap}.gbsc{color:var(--y);font-weight:900;text-align:right}.gbr{font-size:11px}.gbt.on{background:var(--y);color:var(--ink)}
 @media(max-width:560px){.gbrow{grid-template-columns:28px 34px 1fr 44px}.gbs,.gbr{display:none}}
+#cardPv{position:fixed;inset:0;z-index:80;background:#030805ee;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;overflow:auto}#cardPv img{max-width:min(420px,100%);max-height:68vh;border:3px solid var(--y)}#cardPv .pvb{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:560px}
 #tour{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(440px,calc(100% - 24px));background:var(--card);border:3px solid var(--ink);box-shadow:inset 0 0 0 3px var(--y),0 12px 40px #000;padding:14px 16px;z-index:60}
 #tour h3{margin:0 0 6px;color:var(--y);font-size:16px}#tour p{margin:0 0 10px;font-size:14px;line-height:1.6}#tour .tn{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mut)}
 .tour-hi{outline:4px solid var(--y)!important;outline-offset:3px;position:relative;z-index:55}
@@ -202,7 +203,7 @@ button.on{background:var(--y);color:var(--ink)}
    <div><span class="age" id="age">0</span> 歲　<b id="who"></b></div>
    <div class="mut" id="where"></div>
    <div class="season"><span id="sL"></span><div class="track"><i id="sFill"></i></div><span id="sR"></span></div>
-   <div class="ctrl"><button id="pause">⏸ 暫停</button><button class="sp on" data-m="1">1×</button><button class="sp" data-m="2">2×</button><button class="sp" data-m="4">4×</button><button id="skipQ">⏭ 下一個抉擇</button><button id="skipEnd">⏩ 跳到結局</button><label style="font-size:13px"><input type="checkbox" id="auto"> 自動抉擇</label><button id="muteBtn" title="音效"></button><button id="tourBtn" title="玩法說明">？</button></div>
+   <div class="ctrl"><button id="pause">⏸ 暫停</button><button class="sp on" data-m="1">1×</button><button class="sp" data-m="2">2×</button><button class="sp" data-m="4">4×</button><button id="skipQ">⏭ 下一個抉擇</button><button id="skipEnd">⏩ 跳到結局</button><label style="font-size:13px"><input type="checkbox" id="auto"> 自動抉擇</label><button id="cardBtn" onclick="sharePlayer()" title="匯出球員卡">📸</button><button id="muteBtn" title="音效"></button><button id="tourBtn" title="玩法說明">？</button></div>
   </div>
  </div>
 </div>
@@ -226,8 +227,8 @@ button.on{background:var(--y);color:var(--ink)}
 <div id="tip"></div><div id="modal" class="hide"><div class="sheet"><span class="tag" id="mtag"></span><span id="mctx"></span><div id="choice"></div></div></div>
 <div id="toast"></div>
 
-<script src="js/data.js?v=4"></script>
-<script src="js/events.js?v=4"></script>
-<script src="js/career.js?v=4"></script>
-<script src="js/ui.js?v=4"></script>
-<script src="js/home.js?v=4"></script></body></html>
+<script src="js/data.js?v=5"></script>
+<script src="js/events.js?v=5"></script>
+<script src="js/career.js?v=5"></script>
+<script src="js/ui.js?v=5"></script>
+<script src="js/home.js?v=5"></script></body></html>
