@@ -72,6 +72,7 @@ button.on{background:var(--y);color:var(--ink)}
 .cert .life-st p.hi{color:#8a6a00}
 .subs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 16px}.subs b{color:var(--y);font-size:14px}.sub{display:grid;grid-template-columns:72px 1fr 28px;align-items:center;gap:6px;font-size:13px}.sub i{display:block;height:6px;background:linear-gradient(90deg,var(--g),var(--y))}.sub em{font-style:normal;text-align:right}
 .cert .subs b{color:#8a6a00}
+.daymenu{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:6px 0;padding:8px;background:#10261a;border:2px solid var(--y)}.daymenu .mut{width:100%;font-size:13px}.daymenu button{margin:0;padding:6px 12px}
 </style></head><body><div class="wrap">
 
 <!-- 首頁 -->
@@ -241,7 +242,7 @@ const ACTS={
 const KID_ACTS=["技術","體能","讀書","休息"];
 const PRESETS={均衡:["技術","體能","射門","休息","戰術","防守","休息"],進攻:["射門","技術","射門","休息","體能","射門","休息"],防守:["防守","戰術","防守","休息","體能","防守","休息"],恢復週:["技術","休息","戰術","休息","休息","體能","休息"],拚命練:["技術","體能","射門","防守","體能","技術","射門"]};
 const DAYS=["一","二","三","四","五","六","日"];
-let plan=PRESETS.均衡.slice();
+let plan=PRESETS.均衡.slice(),dayPick=null;
 function actsFor(p){return p.age<13?KID_ACTS:Object.keys(ACTS).filter(k=>(!ACTS[k].gk||p.pos=="GK")&&(!ACTS[k].study||p.age<20))}
 function planShare(){const s={};ATTR.forEach(k=>s[k]=0);plan.forEach(d=>{for(const[k,v]of Object.entries(ACTS[d].w))s[k]+=v/7});return s}
 function planFat(){return plan.reduce((a,d)=>a+ACTS[d].fat,0)}
@@ -261,6 +262,9 @@ function grow(p,minutes,frac=1){
  // 疲勞：一週總負荷超過 30 就會累積
  p.fat=clamp(fat+(planFat()-30)*frac*4,0,100);const rest=plan.filter(d=>d=="休息").length;
  if(rest>=2)p.health=Math.min(100,p.health+frac*12);if(rest==0)p.morale-=frac*6;
+ if(p.age>=6&&p.age<20&&!plan.includes("讀書"))p.grade=clamp((p.grade||60)-frac*7,0,100);
+ if(p.age<13&&p.age>=p.touchAge){const play=plan.filter(d=>d=="技術"||d=="體能").length;
+  if(play>=6&&R()<frac*.5){const t=pick([["每天都在踢球，作業都沒寫，被爸媽沒收了球鞋一個月。",()=>{p.grade-=4;p.morale-=4;plan=plan.map((d,i)=>i%2?"讀書":d)}],["連續踢太久，膝蓋和腳踝痠痛，醫生說小孩子也需要休息。",()=>{p.health-=6;p.fat=Math.min(100,(p.fat||0)+10)}],["老師打電話給爸媽，說你上課一直打瞌睡。",()=>{p.grade-=5}]]);say(t[0]);t[1]()}}
  if(plan.includes("讀書")&&p.age<20)p.grade=clamp((p.grade||60)+frac*plan.filter(d=>d=="讀書").length*3-frac*3,0,100);
 }
 // 小孩子沒有「訓練」，只有放學後的時間怎麼用；13 歲進青訓才有正式課表
@@ -272,10 +276,12 @@ function renderPlan(){
  const sh=planShare(),fat=planFat(),load=fat<=20?["輕鬆","var(--g)"]:fat<=40?["適中","var(--y)"]:["吃重，容易受傷","var(--ac)"];
  $("focus").innerHTML=`<div class="days">${plan.map((d,i)=>`<button class="day" data-i="${i}" style="--c:${ACTS[d].c}"><span>週${DAYS[i]}</span><b>${kid?KID_NAME[d]||d:d}</b></button>`).join("")}</div>
   <div class="presets">${p.age<13?"":Object.keys(PRESETS).map(k=>`<button class="pre" data-k="${k}">${k}</button>`).join("")}</div>
-  ${kid?"":`<div class="plan-sum"><span>每週負荷 <b style="color:${load[1]}">${load[0]}</b></span><span>目前疲勞 <b style="color:${(p.fat||0)>70?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b></span>${ATTR.map(k=>`<span>${k} ${"▮".repeat(Math.round(sh[k]*14))||"·"}</span>`).join("")}</div>`}`;
- $("focus").querySelectorAll(".day").forEach(b=>b.onclick=()=>{const i=+b.dataset.i,cur=acts.indexOf(plan[i]);plan[i]=acts[(cur+1)%acts.length];renderPlan()});
+  ${kid?`<div class="plan-sum"><span>功課 <b>${Math.round(p.grade||60)}</b></span><span>疲勞 <b style="color:${(p.fat||0)>60?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b></span>${!plan.includes("讀書")&&p.age>=6?`<span style="color:var(--ac)">一週都沒寫功課，成績會往下掉</span>`:""}${!plan.includes("休息")?`<span style="color:var(--ac)">一天都沒休息，身體會吃不消</span>`:""}</div>`:`<div class="plan-sum"><span>每週負荷 <b style="color:${load[1]}">${load[0]}</b></span><span>目前疲勞 <b style="color:${(p.fat||0)>70?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b></span>${ATTR.map(k=>`<span>${k} ${"▮".repeat(Math.round(sh[k]*14))||"·"}</span>`).join("")}</div>`}`;
+ $("focus").querySelectorAll(".day").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;dayPick=dayPick===i?null:i;renderPlan()});
+ if(dayPick!=null){const box=document.createElement("div");box.className="daymenu";box.innerHTML=`<div class="mut">週${DAYS[dayPick]}要做什麼？</div>`+acts.map(a=>`<button data-a="${a}" style="border-top:4px solid ${ACTS[a].c}" class="${plan[dayPick]==a?"on":""}">${kid?KID_NAME[a]||a:a}</button>`).join("")+`<button data-all="1">整週都這樣</button>`;
+  $("focus").querySelector(".days").after(box);box.querySelectorAll("button").forEach(x=>x.onclick=()=>{if(x.dataset.all){plan=plan.map(()=>plan[dayPick])}else plan[dayPick]=x.dataset.a;dayPick=null;renderPlan()})}
  $("focus").querySelectorAll(".pre").forEach(b=>b.onclick=()=>{plan=PRESETS[b.dataset.k].slice();renderPlan();toast(`訓練計劃：${b.dataset.k}`)});
- $("focusTip").textContent=kid?"點每一天切換放學後要做什麼。踢球多，球技進步；寫功課多，成績比較好。13 歲進青訓後會有正式的訓練表。":"點每一天切換訓練內容。練得越多進步越快，但疲勞超過 70 容易受傷；一週至少休息兩天比較健康。";
+ $("focusTip").textContent=kid?"點某一天，從選單挑要做什麼。踢球多，球技進步；寫功課多，成績比較好。13 歲進青訓後會有正式的訓練表。":"點某一天，從選單挑訓練內容。練得越多進步越快，但疲勞超過 70 容易受傷；一週至少休息兩天比較健康。";
 }
 
 // ── 關鍵時刻：比賽中由你決定怎麼踢 ──
