@@ -78,6 +78,7 @@ button.on{background:var(--y);color:var(--ink)}
 @media(max-width:560px){.kstrip{grid-template-columns:repeat(3,1fr)}#stats{grid-template-columns:repeat(3,1fr)}.days{grid-template-columns:repeat(4,1fr)}}
 #log{max-height:240px}
 .trait{display:inline-block;background:var(--y);color:var(--ink);padding:1px 8px;margin:2px 4px 2px 0;font-size:13px}
+.achs{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;margin-top:6px}.ach{border:2px solid var(--line);padding:6px 8px;opacity:.55}.ach.got{opacity:1;border-color:var(--y)}.ach b{display:block;font-size:14px}.ach span{font-size:12px;color:var(--mut)}
 </style></head><body><div class="wrap">
 
 <!-- 首頁 -->
@@ -97,6 +98,7 @@ button.on{background:var(--y);color:var(--ink)}
  <p><button class="s" data-v="10">快（約 10 秒）</button><button class="s on" data-v="16">一般（約 16 秒）</button><button class="s" data-v="28">慢（約 28 秒）</button></p>
  <button class="pri" id="go">▶ 出生</button> <span id="resume"></span>
 </div>
+<div class="card"><h2>挑戰與成就</h2><div id="achWall"></div></div>
 <div class="card"><h2>傳奇殿堂</h2><div class="mut">在這台裝置上踢完的生涯，依生涯評分排序。</div><div id="hof" class="hall" style="margin-top:8px"></div></div>
 <p class="mut">← <a href="../" style="color:var(--y)">回到人生模擬器</a>　·　球隊與聯賽使用真實名稱，僅供模擬參考，非官方遊戲，與各俱樂部、聯賽無關；能力與結果皆為虛構。</p>
 </section>
@@ -125,6 +127,7 @@ button.on{background:var(--y);color:var(--ink)}
 <!-- 結局 -->
 <section id="end" class="hide">
 <div class="cert" id="cert"></div>
+<div class="card" id="endAch"></div>
 <div class="card"><h2>生涯報表</h2><div id="endReports"></div></div>
 <p><button class="pri" onclick="location.reload()">再活一次</button> <button id="share">📣 分享</button></p>
 </section>
@@ -239,6 +242,11 @@ function ask(q,opts,info){
 }
 
 // ── 成長：訓練重心 + 天賦上限 + 上場時間 + 年齡 ──
+// ── 人際：教練、經紀人、最好的隊友、伴侶，各有名字與關係值（0～100）──
+function newName(p){const nm=NM[p.region];return p.region=="華"?pick(nm.姓)+pick(nm.男):pick(nm.男)+" "+pick(nm.姓)}
+function rel(p,k,d){p.rel=p.rel||{};const r=p.rel[k];if(!r)return 50;if(d){r.v=clamp(r.v+d,0,100)}return r.v}
+function meet(p,k,name,v){p.rel=p.rel||{};p.rel[k]={name:name||newName(p),v:v??50};return p.rel[k]}
+const RELN={coach:"總教練",agent:"經紀人",mate:"最好的隊友",partner:"伴侶"};
 // ── 特質：你的選擇會留下特質，改變之後的機率 ──
 const TRAITS={職業態度:"成長稍快、教練更信任",苦練:"成長稍快",自律:"受傷少、老化慢",夜生活:"成長變慢、容易受傷、容易鬧新聞",火爆:"名氣↑ 但容易和教練起衝突",
  領袖:"更容易當隊長，退休後當教練更順",媒體寵兒:"名氣成長快、球隊更常來挖角，退休後容易當球評",拚命:"比賽評分↑ 但受傷風險↑",會保養:"受傷少、能踢比較久",
@@ -297,14 +305,33 @@ function renderPlan(){
 }
 
 // ── 關鍵時刻：比賽中由你決定怎麼踢 ──
+// ── 逐場大比賽：90 分鐘即時比分，中間有 2～3 個關鍵時刻由你決定 ──
+async function bigMatch(kind,oppStr,myStr){
+ const p=P,st={goals:0,assists:0,cleans:0,apps:0},opp=kind.opp||pick(CLUBS.filter(c=>Math.abs(c.str-oppStr)<6&&c.name!=p.club).map(c=>c.name).concat(["對手"]));
+ let us=0,them=0;const moments=[15+Math.floor(R()*20),45+Math.floor(R()*20),75+Math.floor(R()*12)].slice(0,R()<.5?2:3);
+ say(`⚔ ${kind.name}：${kind.team||p.club} vs ${opp}`,1);
+ for(let m=0;m<=90;m+=5){
+  // 雙方依實力隨機進球
+  if(R()<.055*(1+(myStr-oppStr)/40))us++;if(R()<.055*(1+(oppStr-myStr)/40))them++;
+  if(moments.includes(m)||moments.some(x=>x>m-5&&x<m)){const ok=await keyMoment(Object.assign(st,{label:`${kind.name} · 第 ${m} 分鐘 · ${us}:${them}`}));
+   if(ok&&(p.pos=="FW"||p.pos=="MF"))us++;else if(!ok&&(p.pos=="GK"||p.pos=="DF"))them++}
+  $("ticker").textContent=`${kind.name}｜${kind.team||p.club} ${us} : ${them} ${opp}｜第 ${m} 分鐘`;
+  if(!toEnd)await new Promise(r=>setTimeout(r,Math.max(40,280/mult)));
+ }
+ let res=us>them?"勝":us<them?"敗":"和";
+ if(res=="和"&&kind.ko){const ok=R()<.5+(myStr-oppStr)/80+(p.pos=="GK"?p.a.防守/400:p.a.射門/500);res=ok?"勝":"敗";say(`延長賽後進入 PK 大戰……${ok?"你們贏了！":"輸了。"}`)}
+ say(`${kind.name}終場 ${us}:${them}，${res=="勝"?"贏球":res=="敗"?"輸球":"和局"}${res=="勝"&&st.goals?`，你進了 ${st.goals} 球`:""}。`,res=="勝");
+ p.bigGames=(p.bigGames||0)+1;if(res=="勝"){p.bigWins=(p.bigWins||0)+1;p.fame+=kind.fame||3;p.morale+=4;rel(p,"coach",3)}else p.morale-=3;
+ return {res,goals:st.goals,assists:st.assists};
+}
 async function keyMoment(st){
  const p=P,a=p.a;let q,opts;
- const win=(chance,good,bad,fx)=>()=>{const ok=R()<clamp(chance+(p.edge?.15:0)+(p.wf-3)*.03+(p.sm-3)*.03+.04*T(p,"球商")+.03*T(p,"拚命"),.05,.95);p.edge=0;say(ok?good:bad,ok);if(ok){fx&&fx();p.morale+=3;p.fame+=2}else p.morale-=2;toast(ok?"成功！":"沒有成功")};
+ const win=(chance,good,bad,fx)=>()=>{const ok=R()<clamp(.02*((rel(p,"mate")-50)/25)+chance+(p.edge?.15:0)+(p.wf-3)*.03+(p.sm-3)*.03+.04*T(p,"球商")+.03*T(p,"拚命"),.05,.95);p.edge=0;p._ok=ok;say(ok?good:bad,ok);if(ok){fx&&fx();p.morale+=3;p.fame+=2}else p.morale-=2;toast(ok?"成功！":"沒有成功")};
  if(p.pos=="GK"){q="比賽最後一分鐘，對手獲得 12 碼罰球";opts=[["撲向左邊",win(.3+a.防守/400,"你撲向左邊，把球擋了出去！全場沸騰。","球進了，對手射向另一邊。",()=>st.cleans++),"猜方向"],["撲向右邊",win(.3+a.防守/400,"你飛身撲右，指尖碰到球，救了下來！","對手射向左邊，球進了。",()=>st.cleans++),"猜方向"],["站在中間不動",win(.18+a.防守/300,"對手勺子點球，你站在原地穩穩接住！","對手射向角落，你來不及反應。",()=>st.cleans++),"賭對手射中間"]]}
  else if(p.pos=="FW"){q="下半場，你單刀面對門將";opts=[["大力抽射近角",win(.25+a.射門/220,"一腳抽射直入近角！","球打在門柱上彈出。",()=>st.goals++),"看射門"],["挑射過門將",win(.15+a.盤帶/220,"輕輕一挑，球越過門將落網！","挑太高，球飛出橫樑。",()=>st.goals++),"看盤帶"],["傳給包抄的隊友",win(.35+a.傳球/260,"橫傳給隊友推空門，助攻一次！","傳球被後衛攔截。",()=>st.assists++),"看傳球"],["假動作晃過門將",win(.2+(a.盤帶+a.速度)/450,"晃過門將推射空門！","被門將撲到腳下。",()=>st.goals++),"看盤帶和速度"]]}
  else if(p.pos=="MF"){q="中場拿球，前方隊友正在跑位";opts=[["直塞穿透防線",win(.3+a.傳球/230,"一記手術刀直塞，隊友破門！","直塞被斷。",()=>st.assists++),"看傳球"],["禁區外遠射",win(.12+a.射門/260,"一腳世界波掛進死角！","遠射高出橫樑。",()=>st.goals++),"看射門"],["自己帶球突破",win(.2+a.盤帶/240,"連過兩人後推射得手！","被對手剷斷。",()=>st.goals++),"看盤帶"],["回傳，控制節奏",win(.8,"穩穩控住節奏，球隊守住比分。","",null),"穩健"]]}
  else {q="對手前鋒高速突破，只剩你一個後衛";opts=[["果斷剷球",win(.25+a.防守/200,"乾淨俐落的剷斷，化解危機！","剷球犯規，吃了一張黃牌。",()=>st.cleans++),"看防守"],["卡位逼他到邊線",win(.3+(a.防守+a.速度)/400,"把對手逼到邊線，球出界了。","被對手加速甩開。",()=>st.cleans++),"看防守和速度"],["戰術犯規拉倒他",win(.85,"拉倒對手，吃黃牌但阻止了進球。","",()=>{p.fame-=1}),"確定阻止，會吃牌"]]}
- await ask(q,opts,"關鍵時刻");
+ p._ok=false;await ask(q,opts,st.label||"關鍵時刻");return p._ok;
 }
 
 // ── 每個階段一定會遇到的抉擇 ──
@@ -337,6 +364,14 @@ const RESERVE_EVENTS=[
  p=>ask("預備隊教練私下說，一線隊的位置被新買的球員卡住了",[["加練，搶回位置",()=>{p.a.體能+=1.5;p.fat=clamp((p.fat||0)+12,0,100)},"能力↑ 疲勞↑"],["請經紀人找出路",()=>{p.contract=Math.min(p.contract,0)},"可能轉隊"],["耐心等機會",()=>{p.morale+=1},""]]),
  p=>ask("預備隊比賽的球場只有幾十個觀眾，你覺得有點迷惘",[["寫下目標，每天提醒自己",()=>{p.morale+=4},"心情↑"],["跟家人聊聊",()=>{p.morale+=3},""],["開始想要不要放棄足球",()=>{p.morale-=4;p.doubt=(p.doubt||0)+1},"心情↓"]]),
 ];
+// 人際事件
+PRO_EVENTS.push(
+ p=>{const c=p.rel?.coach;if(!c)return Promise.resolve();return ask(`總教練 ${c.name} 找你單獨談話，說想調整你的踢法`,[["照他說的改",()=>{rel(p,"coach",10);p.a.傳球+=1},"教練信任↑"],["說出自己的想法",()=>{rel(p,"coach",R()<.6?6:-6)},"看他的個性"],["表面答應，比賽照舊",()=>{rel(p,"coach",-10);p.a.盤帶+=.5},"教練信任↓"]],`目前和教練的關係：${rel(p,"coach")}`)},
+ p=>{const m=p.rel?.mate;if(!m)return Promise.resolve();return ask(`最好的隊友 ${m.name} 最近狀態很差，常常一個人坐在更衣室`,[["約他出去吃飯聊聊",()=>{rel(p,"mate",15);p.morale+=2;say(`${m.name}說謝謝你陪他度過低潮。`)},"感情↑"],["加練時拉著他一起",()=>{rel(p,"mate",8);p.a.體能+=1},""],["自己的事都顧不完了",()=>{rel(p,"mate",-12)},"感情↓"]],`和 ${m.name} 的關係：${rel(p,"mate")}`)},
+ p=>{const m=p.rel?.mate;if(!m||rel(p,"mate")<60)return Promise.resolve();return ask(`${m.name}要轉會到別的國家了，臨走前問你要不要一起去`,[["叫經紀人去談，一起轉會",()=>{p.contract=0;p.followMate=1;say(`決定在合約到期後跟著 ${m.name} 一起走。`)},"可能轉隊"],["祝福他，留下來",()=>{rel(p,"mate",-5);meet(p,"mate",null,45)},"換一位隊友"],["約好以後一起退休、一起開足球學校",()=>{p.mateDream=1;rel(p,"mate",10)},"退休後的伏筆"]])},
+ p=>{const a=p.rel?.agent;if(!a)return Promise.resolve();return ask(`經紀人 ${a.name} 說有一支球隊願意開高薪，但要你下個月就決定`,[["全權交給他處理",()=>{if(rel(p,"agent")>=60){p.wage*=1.12;say("經紀人幫你談成加薪。")}else{p.money-=p.wage*.1;rel(p,"agent",-15);say("後來才發現經紀人私下拿了回扣。")}},"看經紀人可不可靠"],["自己親自去談",()=>{rel(p,"agent",-5);p.wage*=1.04},""],["換一位經紀人",()=>{meet(p,"agent",null,40+R()*40);say("換了新的經紀人。")},"重新開始"]],`經紀人可信度：${rel(p,"agent")}`)},
+ p=>{const pt=p.rel?.partner;if(!pt||p.clubObj?.ct==p.c)return Promise.resolve();return ask(`${pt.name}在國外住不習慣，想搬回家鄉`,[["跟家鄉球隊談轉會",()=>{p.goHome=1;rel(p,"partner",12);p.contract=Math.min(p.contract,0)},"可能回國踢球"],["請家人來陪伴",()=>{rel(p,"partner",6);p.money-=.05},"花一筆錢"],["說服對方再撐一下",()=>{rel(p,"partner",-12);p.morale-=3},"感情↓"]],`和 ${pt.name} 的關係：${rel(p,"partner")}`)},
+);
 // 更多一線隊事件
 PRO_EVENTS.push(
  p=>ask("有陌生人私訊，說只要這場故意踢差就給你一大筆錢",[["立刻拒絕並向聯盟舉報",()=>{tag(p,"正直");p.fame+=4;p.morale+=2;say("舉報打假球集團，聯盟公開表揚。",1)},"形象↑"],["不理他",()=>{},""],["收下錢",()=>{tag(p,"貪財");p.money+=.3;if(R()<.6){p.banned=2;p.fame-=40;p.contract=0;say("打假球被查到，遭禁賽兩年、球隊解約。",1)}},"違法 · 可能被禁賽"]]),
@@ -450,7 +485,8 @@ async function academy(){
 // 可能加盟的球隊：台灣、西非這類小聯賽很少簽外國球員（27 歲以後偶爾有）
 function poolFor(p){if(p.twAge!==p.age){p.twAge=p.age;p.smallOk=p.age>=29&&R()<.02}return CLUBS.filter(c=>c.ct==p.c||c.tier>=2||p.smallOk)}
 async function firstContract(){
- const p=P,o=ovr(p);const weak=p.cs<65,seen=c=>c.ct==p.c||(c.tier>=Math.max(2,p.ctier)&&(p.academy==5||(p.scouted&&!weak)||o>=c.str-(weak?3:8))); // 國外球隊要先被球探看到；足球弱國的球員更難被注意
+ const p=P,o=ovr(p);
+ if(!p.rel?.agent)await ask("有幾位經紀人想代理你",[["簽大牌經紀人（抽成 10%）",()=>{meet(p,"agent",null,75);p.agentCut=.1},"談判力強，挖角機會多"],["讓家人幫你處理",()=>{meet(p,"agent",(p.fam.sib?"哥哥":"爸爸"),55);p.agentCut=.02;p.morale+=3},"可信任，但人脈少"],["找朋友介紹的新手經紀人（抽成 5%）",()=>{meet(p,"agent",null,45+R()*25);p.agentCut=.05},"看運氣"]]);const weak=p.cs<65,seen=c=>c.ct==p.c||(c.tier>=Math.max(2,p.ctier)&&(p.academy==5||(p.scouted&&!weak)||o>=c.str-(weak?3:8))); // 國外球隊要先被球探看到；足球弱國的球員更難被注意
  const offers=poolFor(P).filter(c=>c.str-10<=o+(p.academy||0)*1&&c.str-12<=o&&seen(c)&&(c.tier<5||o>=70||(p.academy==5&&o>=64))).sort((a,b)=>b.str-a.str);
  const home=offers.filter(c=>c.ct==p.c),abroad=offers.filter(c=>c.ct!=p.c);
  const list=[...new Set([home[0],abroad[0],abroad[1],home[1]].filter(Boolean))].slice(0,3);
@@ -458,9 +494,9 @@ async function firstContract(){
  await ask(`${p.age} 歲，職業俱樂部遞出合約`,list.map(c=>[`${c.name}（${c.lg}）`,()=>sign(c,3),`球隊實力 ${c.str} · ${roleOf(p,c)}起步 · 週薪約 ${eur(wageOf(c,p)/52)}`]).concat([["先不簽，繼續練一年",()=>{p.a.體能+=2},"之後可能有更好的合約，也可能沒有"]]));
 }
 // 在球隊裡的角色：實力差太多只能待預備隊，不會出賽職業比賽
-function roleOf(p,c){const g=ovr(p)-c.str+T(p,"職業態度")+T(p,"領袖")-T(p,"火爆");return p.age<17||g<-10?"預備隊":g<-5?"替補":g<0?"輪換":"主力"}
-function wageOf(c,p){return Math.max(.003,c.pay*Math.pow(1.12,ovr(p)-c.str)*(1+Math.min(3,p.fame/150)))} // 百萬歐元／年：頂級聯賽一般球員約 €5M，巨星可到 €30M 以上
-function sign(c,yrs){const p=P;(p.moves=p.moves||[]).push({y:p.y0+p.age,age:p.age,from:p.club||p.stage,to:c.name,lg:c.lg,fee:p._fee||0,type:p._fee?"轉會":p.club?"自由轉會":"首份合約",yrs});p._fee=0;if(p.club&&p.club!==c.name)say(`離開${p.club}。`);p.club=c.name;p.clubObj=c;p.contract=yrs;p.wage=wageOf(c,p);if(!p.clubsPlayed.includes(c.name))p.clubsPlayed.push(c.name);say(`和${c.name}簽下 ${yrs} 年合約，年薪 ${eur(p.wage)}。`,1)}
+function roleOf(p,c){const g=ovr(p)-c.str+(rel(p,"coach")-50)/10+T(p,"職業態度")+T(p,"領袖")-T(p,"火爆");return p.age<17||g<-10?"預備隊":g<-5?"替補":g<0?"輪換":"主力"}
+function wageOf(c,p){return Math.max(.003,(1+(rel(p,"agent")-50)/250)*c.pay*Math.pow(1.12,ovr(p)-c.str)*(1+Math.min(3,p.fame/150)))} // 百萬歐元／年：頂級聯賽一般球員約 €5M，巨星可到 €30M 以上
+function sign(c,yrs){const p=P;meet(p,"coach",null,50+3*T(p,"職業態度")-3*T(p,"火爆"));if(!p.rel?.mate||R()<.5)meet(p,"mate",null,45+R()*15);(p.moves=p.moves||[]).push({y:p.y0+p.age,age:p.age,from:p.club||p.stage,to:c.name,lg:c.lg,fee:p._fee||0,type:p._fee?"轉會":p.club?"自由轉會":"首份合約",yrs});p._fee=0;if(p.club&&p.club!==c.name)say(`離開${p.club}。`);p.club=c.name;p.clubObj=c;p.contract=yrs;p.wage=wageOf(c,p);if(!p.clubsPlayed.includes(c.name))p.clubsPlayed.push(c.name);say(`和${c.name}簽下 ${yrs} 年合約，年薪 ${eur(p.wage)}。`,1)}
 // ── 現實的淘汰關卡：大多數孩子會在某一關停下來 ──
 function proRescue(p){const o=ovr(p),home=poolFor(P).filter(c=>c.ct==p.c).sort((a,b)=>a.str-b.str)[0],any=poolFor(P).filter(x=>x.tier>=Math.min(2,p.ctier)||x.ct==p.c).sort((a,b)=>Math.abs(a.str-o-8)-Math.abs(b.str-o-8))[0],c=home&&home.str<=o+14?home:any;
  say(pick(["一位老球探在業餘比賽注意到你，推薦給一支低級別球隊。","經紀人幫你找到一份職業合約，雖然是小球隊，但終於是職業球員了。"]),1);sign(c,2)}
@@ -480,8 +516,8 @@ async function academyReview(){
  if(o>=need){say(`通過 16 歲青訓評估（能力 ${Math.round(o)}），繼續留在青訓營。`,1);return}
  await ask(`16 歲青訓評估沒有通過（能力 ${Math.round(o)}，標準約 ${Math.round(need)}），俱樂部不再續留你`,[
   ["回到學校，好好準備升學",()=>endFootball("16 歲被青訓營放走，回到學校讀書。",pick(["大學生，後來當上工程師","大學生，後來當上老師","大學生，後來進了公司上班"])),"結束足球生涯"],
-  ["到低一級球隊的青訓再拚",()=>{p.academy=Math.max(1,(p.academy||1)-1);p.morale-=4;say("轉到低一級球隊的青訓營，從頭開始。")},"堅持下去"],
-  ["去踢業餘聯賽，看有沒有奇蹟",()=>{p.stage="業餘";p.morale-=2},"機會很小"]]);
+  ["到低一級球隊的青訓再拚",()=>{p.released=1;p.academy=Math.max(1,(p.academy||1)-1);p.morale-=4;say("轉到低一級球隊的青訓營，從頭開始。")},"堅持下去"],
+  ["去踢業餘聯賽，看有沒有奇蹟",()=>{p.released=1;p.stage="業餘";p.morale-=2},"機會很小"]]);
 }
 
 // ── 職業球季 ──
@@ -500,7 +536,10 @@ async function proSeason(){
   p.phase=PH[ph];render();renderPlan();
   await phaseEvent(role=="預備隊"?RESERVE_EVENTS.concat(PRO_EVENTS.slice(0,3)):PRO_EVENTS);
   if(ph>0){const n=ph==3?apps-st.apps:Math.round(apps/3);for(let i=0;i<n;i++){st.apps++;if(R()<rate)st.goals+=R()<.15?2:1;if(R()<{FW:.2,MF:.28,DF:.08,GK:.01}[p.pos]*(ovr(p)/80))st.assists++;if((p.pos=="GK"||p.pos=="DF")&&R()<.25+c.str/400)st.cleans++}
-   if(n>0&&R()<.7)await keyMoment(st);if(reserve&&ph==2&&R()<.5){say("預備隊比賽表現亮眼，教練開始注意你。");p.a.盤帶+=.8;p.a.傳球+=.8}}
+   if(n>0&&role!="預備隊"&&(ph==1||ph==3)&&R()<.5&&!toEnd){const kinds=[{name:"同城德比",fame:4},{name:"爭冠關鍵戰",fame:3,title:"league"},{name:"盃賽決賽",fame:5,ko:1,title:"cup"}].concat(c.tier>=4?[{name:"歐冠淘汰賽",fame:6,ko:1,title:"ucl"}]:[]);
+    const k=pick(kinds),r=await bigMatch(k,c.str+(R()-.5)*8,c.str+(ovr(p)-c.str)*.3);st.goals+=r.goals;st.assists+=r.assists;
+    if(k.title)(p.bigRes=p.bigRes||{})[k.title]=r.res}
+   else if(n>0&&R()<.5)await keyMoment(st);if(reserve&&ph==2&&R()<.5){say("預備隊比賽表現亮眼，教練開始注意你。");p.a.盤帶+=.8;p.a.傳球+=.8}}
   if(ph==2&&!p.loanTo)await midWindow(st,role);if(p.clubObj!==c)break;
   await playPhase(ph,st,apps);grow(p,reserve?.45:share,.25);injuryCheck(.25);
  }
@@ -510,8 +549,8 @@ async function proSeason(){
  p.fame+=2*T(p,"媒體寵兒")+T(p,"正直");
  if(R()<.04*(T(p,"夜生活")+T(p,"貪財")+T(p,"火爆"))){p.fame-=10;p.morale-=6;say(pick(["深夜在夜店和人起衝突，被拍下來上了新聞。","被爆出私下賭球的傳聞，聯盟展開調查。","在比賽中和裁判爭執，被追加禁賽三場。"]),1)}
  p.apps+=played;p.goals+=goals;p.assists+=assists;p.cleans+=cleans;p.money+=p.wage*.55;p.fame+=played*.15+goals*.6+c.tier*1.5;
- const titles=[];const lgP=clamp((c.str-64)/80+(c.tier==5?0:.05),.02,.5);if(R()<lgP)titles.push(c.lg+"冠軍");if(R()<lgP*.8)titles.push("盃賽冠軍");
- if(c.tier>=4&&R()<clamp((c.str-80)/60,0,.25))titles.push("歐洲冠軍聯賽冠軍");
+ const titles=[],br=p.bigRes||{};p.bigRes={};const lgP=clamp((c.str-64)/80+(c.tier==5?0:.05)+(br.league=="勝"?.15:br.league=="敗"?-.1:0),.02,.6);if(R()<lgP)titles.push(c.lg+"冠軍");if(br.cup?br.cup=="勝":R()<lgP*.8)titles.push("盃賽冠軍");
+ if(c.tier>=4&&(br.ucl=="勝"?R()<clamp((c.str-76)/30,.05,.6):br.ucl=="敗"?false:R()<clamp((c.str-80)/60,0,.25)))titles.push("歐洲冠軍聯賽冠軍");
  titles.forEach(t=>{p.trophies.push([p.y0+p.age,t]);say(`🏆 ${c.name}拿下${t}！`,1);p.morale+=5});
  if(p.pos=="FW"&&goals>=25&&c.tier>=4){p.awards.push([p.y0+p.age,"聯賽金靴獎"]);say("🥇 拿下聯賽金靴獎！",1)}
  if(ovr(p)>=89&&rating>=8&&c.tier>=4&&R()<.45){p.awards.push([p.y0+p.age,"世界足球先生"]);say("🌟 獲選年度世界足球先生！",1);p.fame+=30}
@@ -534,7 +573,9 @@ async function national(rating){
  if(ovr(p)>=need&&rating>=6.3&&p.role!="預備隊"&&p.age>=18){const g=p.pos=="FW"?Math.round(R()*4*Math.max(0,(ovr(p)-60)/30)):p.pos=="MF"?Math.round(R()*1.5):0;const caps=4+Math.round(R()*6);
   if(!p.caps)say(`第一次入選${p.c}國家隊！`,1);p.caps+=caps;p.intlGoals+=g;(p.intl=p.intl||[]).push({y:p.y0+p.age,age:p.age,caps,g});p.fame+=caps*.5;
   const y=p.y0+p.age;
-  if(y%4==2){const strength=p.cs+(ovr(p)-p.cs)*.15,stage=strength>=86?pick(["八強","四強","亞軍","冠軍","十六強"]):strength>=80?pick(["小組賽","十六強","八強","四強"]):strength>=72?pick(["小組賽","小組賽","十六強"]):"沒有晉級會內賽";
+  if(y%4==2){const strength=p.cs+(ovr(p)-p.cs)*.15;let stage=strength>=86?pick(["八強","四強","亞軍","冠軍","十六強"]):strength>=80?pick(["小組賽","十六強","八強","四強"]):strength>=72?pick(["小組賽","小組賽","十六強"]):"沒有晉級會內賽";
+   if(stage!="沒有晉級會內賽"&&!toEnd){const r=await bigMatch({name:`${y} 世界盃淘汰賽`,team:p.c,opp:pick(COUNTRIES.filter(x=>x[0]!=p.c&&Math.abs(x[2]-p.cs)<8).map(x=>x[0]).concat(["地主國"])),ko:1,fame:8},p.cs,strength);
+    const order=["小組賽","十六強","八強","四強","亞軍","冠軍"];let i=order.indexOf(stage);i=r.res=="勝"?Math.min(5,i+1):Math.max(0,i-1);stage=order[i]}
    if(stage=="沒有晉級會內賽")say(`${p.c}在${y}年世界盃資格賽止步。`);else{say(`⚽ 代表${p.c}出戰 ${y} 年世界盃，最後打到${stage}。`,1);p.wc=(p.wc||0)+1;if(stage=="冠軍"){p.trophies.push([y,"世界盃冠軍"]);p.fame+=40}}}
   if(y%4==0&&["歐","英"].includes(p.region)&&R()<.25){p.trophies.push([y,"歐洲國家盃冠軍"]);say(`🏆 和${p.c}一起拿下歐洲國家盃！`,1)}
  }
@@ -544,7 +585,7 @@ async function transferWindow(rating,share){
  const seen=x=>x.ct==p.c||((x.tier>=2||p.age>=26)&&(p.fame>(p.cs<65?60:25)||o>=x.str-(p.cs<65?0:2)));
  const up=poolFor(P).filter(x=>x.name!=c.name&&x.str>c.str&&x.str<=o+4&&seen(x)).sort(()=>R()-.5),side=poolFor(P).filter(x=>x.name!=c.name&&Math.abs(x.str-o)<5).sort(()=>R()-.5),money=poolFor(P).filter(x=>x.ct=="沙烏地阿拉伯"||x.ct=="美國");
  const offers=[];if(rating>=7&&up[0])offers.push(up[0]);if(share<.4&&side[0])offers.push(side[0]);if(p.age>=29&&o>=72&&R()<.4)offers.push(pick(money));
- if(p.contract<=0){if(!offers.length&&side[0])offers.push(side[0]);
+ if(p.contract<=0){if(p.goHome){const h=poolFor(p).filter(x=>x.ct==p.c).sort((a,b)=>b.str-a.str)[0];if(h)offers.unshift(h);p.goHome=0}if(!offers.length&&side[0])offers.push(side[0]);
   const stay=c.str<=o+6;
   await ask("合約到期了",[...(stay?[[`和${c.name}續約`,()=>{p.contract=3;p.wage=wageOf(c,p);say(`和${c.name}續約 3 年，年薪 ${eur(p.wage)}。`)},`年薪約 ${eur(wageOf(c,p))}`]]:[]),...offers.slice(0,3).map(x=>[`自由轉會到${x.name}`,()=>sign(x,3),`${x.lg} · 實力 ${x.str} · 年薪約 ${eur(wageOf(x,p))}`])].concat(stay||offers.length?[]:[["降到低級別聯賽",()=>sign(poolFor(P).filter(x=>x.str<=o+6).sort((a,b)=>b.str-a.str)[0]||CLUBS[CLUBS.length-1],2),""]]),stay?"":`${c.name}沒有打算續約。`);return}
  if(!offers.length&&p.role!="主力"&&R()<.12){const to=poolFor(p).filter(x=>x.name!=c.name&&Math.abs(x.str-o)<6).sort(()=>R()-.5)[0];if(to){const fee=value(p)*(.7+R()*.3);p._fee=fee;say(`${c.name}為了清理陣容，把你以 ${eur(fee)} 賣給${to.name}。`,1);sign(to,3);return}}
@@ -555,14 +596,14 @@ async function transferWindow(rating,share){
 async function lifeOffPlaceholder(){}
 // 合約還沒到期也可能被挖角或被賣掉
 async function midWindow(st,role){const p=P,c=p.clubObj,o=ovr(p),hot=st.apps>8&&(st.goals+st.assists)/Math.max(1,st.apps)>.35;
- const interest=(hot?.35:.08)+.08*T(p,"媒體寵兒");
+ const interest=(hot?.35:.08)+.08*T(p,"媒體寵兒")+(rel(p,"agent")-50)/400;
  if((role=="替補"||role=="預備隊")&&R()<.18){const to=poolFor(p).filter(x=>x.name!=c.name&&x.str<=o+4&&x.str>=o-8).sort(()=>R()-.5)[0];if(to){const fee=value(p)*(.6+R()*.4);
    await ask(`冬季轉會窗：${c.name}已經接受${to.name}的報價，準備把你賣掉`,[["接受，去新球隊找出路",()=>{p._fee=fee;say(`被${c.name}賣到${to.name}，轉會費 ${eur(fee)}。`,1);sign(to,3)},"上場機會↑"],["拒絕轉會，留下來爭取",()=>{p.morale-=6;if(R()<.5){p.contract=Math.min(p.contract,1);say("拒絕轉會後被教練冷凍。")}},"可能被冷凍"]],"球隊覺得你在這裡沒有未來");return}}
  if(R()<interest){const to=poolFor(p).filter(x=>x.name!=c.name&&x.str>c.str&&x.str<=o+6).sort(()=>R()-.5)[0];if(!to)return;const fee=value(p)*(1.2+R()*.8);
   await ask(`冬季轉會窗：${to.name}對你提出 ${eur(fee)} 的報價`,[["要求球隊放人",()=>{if(R()<.6){p._fee=fee;say(`${c.name}同意放人，以 ${eur(fee)} 轉會到${to.name}。`,1);p.fame+=fee*.2;sign(to,4)}else{p.morale-=4;say(`${c.name}拒絕放人，說你還有合約在身。`)}},"球隊不一定放"],["留下來完成這個賽季",()=>{p.morale+=2},"球迷好感↑"],["叫經紀人用報價談加薪",()=>{p.wage*=1.15;p.contract+=1;say(`用挖角報價談成加薪，年薪 ${eur(p.wage)}。`)},"年薪↑"]],"合約還沒到期，但其他球隊還是可以出價挖角")}}
 async function lifeOff(){
- const p=P;
- if(!p.partner&&p.age>=22&&p.age<=34&&R()<.2)await ask("在朋友聚會上認識了一個人",[["認真交往",()=>{p.partner=true;p.morale+=6;say("和對方開始交往，後來結了婚。",1)},"心情↑"],["球季忙，先不談感情",()=>{}],["只想玩玩",()=>{p.fame-=2;if(R()<.3){p.fame-=6;say("緋聞上了八卦版面。")}},"可能鬧緋聞"]]);
+ const p=P;if(p.partner&&rel(p,"partner")<25&&R()<.4){say(`和 ${p.rel.partner.name} 分開了。`,1);p.partner=false;p.morale-=10;delete p.rel.partner}
+ if(!p.partner&&p.age>=22&&p.age<=34&&R()<.2)await ask("在朋友聚會上認識了一個人",[["認真交往",()=>{p.partner=true;meet(p,"partner",newName(p),70);p.morale+=6;say("和對方開始交往，後來結了婚。",1)},"心情↑"],["球季忙，先不談感情",()=>{}],["只想玩玩",()=>{p.fame-=2;if(R()<.3){p.fame-=6;say("緋聞上了八卦版面。")}},"可能鬧緋聞"]]);
  if(p.partner&&p.age<40&&R()<.12){p.kids++;p.morale+=5;say(`第 ${p.kids} 個孩子出生了。`,1)}
  if(p.age>=20&&R()<.08)await ask("隊友約你去夜店慶祝",[["一起去，玩到天亮",()=>{tag(p,"夜生活");p.a.體能-=2;p.morale+=3;if(R()<.25){p.fame-=8;say("凌晨被拍到醉醺醺，球隊罰了一週薪水。")}},"可能被拍"],["去一下就回家",()=>{p.morale+=1}],["不去，早點睡",()=>{p.a.體能+=1}]]);
  if(p.money>1&&R()<.08)await ask("經紀人推薦一個投資機會",[["投一大筆到餐廳生意",()=>{const r=R()<.4?2:.3;p.money*=r>1?1.3:.75;say(r>1?"餐廳生意很好，多了一筆收入。":"餐廳經營不善，賠了不少。")},"有賺有賠"],["買房子給爸媽",()=>{p.money*=.85;p.morale+=6;say("買了一間房子送給爸媽。",1)},"心情↑"],["存起來",()=>{}]]);
@@ -575,7 +616,7 @@ async function retireCheck(){
 function retire(t){const p=P;p.retired=true;p.retireAge=p.age;say(t,1);p.club=null;p.clubObj=null}
 async function afterLife(){
  const p=P;
- if(!p.after){await ask("退休後，你想做什麼？",[["當教練",()=>{p.after="教練";say("考取教練證照，從青訓教練做起。",1)},T(p,"領袖")?"你有領袖特質，執教更順利":"從青訓開始"],["當球評",()=>{p.after="球評";p.fame+=3;say("成為電視台的球評。",1)},"需要名氣",()=>p.fame>40||T(p,"媒體寵兒")>0],["開足球學校",()=>{p.after="足球學校";p.money*=.8;say("在家鄉開了一間兒童足球學校。",1)},"花一筆錢"],["好好休息，陪家人",()=>{p.after="陪伴家人";p.morale+=10},""]]);return}
+ if(!p.after){await ask("退休後，你想做什麼？",[["當教練",()=>{p.after="教練";say("考取教練證照，從青訓教練做起。",1)},T(p,"領袖")?"你有領袖特質，執教更順利":"從青訓開始"],["當球評",()=>{p.after="球評";p.fame+=3;say("成為電視台的球評。",1)},"需要名氣",()=>p.fame>40||T(p,"媒體寵兒")>0],["開足球學校",()=>{p.after="足球學校";p.money*=.8;say("在家鄉開了一間兒童足球學校。",1)},"花一筆錢"],["好好休息，陪家人",()=>{p.after="陪伴家人";p.morale+=10},""]].concat(p.mateDream?[[`和 ${p.rel?.mate?.name||"老隊友"} 一起開足球學校`,()=>{p.after="和老隊友開足球學校";say("實現了當年的約定，和老隊友一起開了足球學校。",1)},"當年的約定"]]:[]));return}
  if(p.after=="教練"&&p.age<65&&R()<.15+.08*T(p,"領袖")+.05*T(p,"球商")){const lv=pick(["低級別球隊","本國職業隊","國家青年隊"]);say(`升任${lv}總教練。`,1);if(R()<.2){p.trophies.push([p.y0+p.age,"教練生涯冠軍"]);say("🏆 以總教練身分帶隊奪冠！",1)}}
  if(p.after=="足球學校"&&R()<.06)say("足球學校有一個學生入選了國家青年隊。",1);
  if(p.age>=50&&R()<.05)say(pick(["受邀回老東家參加傳奇賽，球迷全場起立鼓掌。","膝蓋的舊傷讓走路越來越吃力。","和當年的隊友聚餐，聊起那些年的比賽。"]));
@@ -641,7 +682,7 @@ function render(){
  $("sL").textContent=`${p.age} 歲`;$("sR").textContent=`${p.age+1} 歲`;drawFace($("face"),p);
  const FIFA=p.pos=="GK"?{速度:"SPD",射門:"SHO",傳球:"KIC",盤帶:"DRI",防守:"GK",體能:"PHY"}:{速度:"PAC",射門:"SHO",傳球:"PAS",盤帶:"DRI",防守:"DEF",體能:"PHY"};
  $("stats").innerHTML=(p.age<p.touchAge?`<div class="stat" style="grid-column:1/-1"><span>足球能力</span><b>還沒碰過足球</b></div>`:"")+ATTR.filter(()=>p.age>=p.touchAge).map(k=>`<div class="stat"><span>${FIFA[k]} ${k}</span><b>${Math.round(p.a[k])}</b><div class="bar"><i style="width:${p.a[k]}%"></i></div></div>`).join("")+
-  `<div class="stat"><span>身高</span><b>${Math.round(p.h)} cm</b></div><div class="stat"><span>位置</span><b>${p.age<11&&!p.done?.pos?"還沒固定":DPN[dpOf(p)]}</b></div><div class="stat"><span>逆足 / 花式</span><b>${p.age<10?"還看不出來":`${"★".repeat(p.wf)} / ${"★".repeat(p.sm)}`}</b></div>`+(p.age<13?`<div class="stat"><span>功課</span><b>${p.age<6?"還沒上學":Math.round(p.grade||60)}</b></div><div class="stat"><span>健康</span><b>${Math.round(p.health)}</b></div>`:`<div class="stat"><span>身價</span><b>${p.club?eur(value(p)):"—"}</b></div><div class="stat"><span>年薪</span><b>${p.club?eur(p.wage):"—"}</b></div><div class="stat"><span>存款</span><b>${eur(Math.max(0,p.money))}</b></div><div class="stat"><span>健康</span><b>${Math.round(p.health)}</b><div class="bar"><i style="width:${p.health}%"></i></div></div><div class="stat"><span>疲勞</span><b style="color:${(p.fat||0)>70?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b><div class="bar"><i style="width:${p.fat||0}%;background:var(--ac)"></i></div></div><div class="stat"><span>名氣</span><b>${Math.round(p.fame)}</b></div>${Object.keys(p.tags||{}).length?`<div class="stat" style="grid-column:1/-1"><span>特質</span><b style="font-size:14px">${Object.entries(p.tags).map(([k,v])=>`<span class="trait" title="${TRAITS[k]}">${k}${v>1?" ×"+v:""}</span>`).join("")}</b></div>`:""}<div class="stat"><span>天賦上限</span><b>${p.age<16?"？？":Math.round(p.pot)}</b></div>`);
+  `<div class="stat"><span>身高</span><b>${Math.round(p.h)} cm</b></div><div class="stat"><span>位置</span><b>${p.age<11&&!p.done?.pos?"還沒固定":DPN[dpOf(p)]}</b></div><div class="stat"><span>逆足 / 花式</span><b>${p.age<10?"還看不出來":`${"★".repeat(p.wf)} / ${"★".repeat(p.sm)}`}</b></div>`+(p.age<13?`<div class="stat"><span>功課</span><b>${p.age<6?"還沒上學":Math.round(p.grade||60)}</b></div><div class="stat"><span>健康</span><b>${Math.round(p.health)}</b></div>`:`<div class="stat"><span>身價</span><b>${p.club?eur(value(p)):"—"}</b></div><div class="stat"><span>年薪</span><b>${p.club?eur(p.wage):"—"}</b></div><div class="stat"><span>存款</span><b>${eur(Math.max(0,p.money))}</b></div><div class="stat"><span>健康</span><b>${Math.round(p.health)}</b><div class="bar"><i style="width:${p.health}%"></i></div></div>${p.rel&&Object.keys(p.rel).length?`<div class="stat" style="grid-column:1/-1"><span>人際</span>${Object.entries(p.rel).map(([k,r])=>`<div class="sub"><span>${RELN[k]}</span><i style="width:${r.v}%;background:${r.v>=60?"var(--g)":r.v<35?"var(--ac)":"var(--y)"}"></i><em>${Math.round(r.v)}</em></div><div class="mut" style="font-size:12px;margin:-2px 0 4px">${r.name}</div>`).join("")}</div>`:""}<div class="stat"><span>疲勞</span><b style="color:${(p.fat||0)>70?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b><div class="bar"><i style="width:${p.fat||0}%;background:var(--ac)"></i></div></div><div class="stat"><span>名氣</span><b>${Math.round(p.fame)}</b></div>${Object.keys(p.tags||{}).length?`<div class="stat" style="grid-column:1/-1"><span>特質</span><b style="font-size:14px">${Object.entries(p.tags).map(([k,v])=>`<span class="trait" title="${TRAITS[k]}">${k}${v>1?" ×"+v:""}</span>`).join("")}</b></div>`:""}<div class="stat"><span>天賦上限</span><b>${p.age<16?"？？":Math.round(p.pot)}</b></div>`);
  $("career").innerHTML=[["出賽",p.apps],[p.pos=="GK"?"零封":"進球",p.pos=="GK"?p.cleans:p.goals],["助攻",p.assists],["國家隊出賽",p.caps],["冠軍",p.trophies.length],["個人獎項",p.awards.length]].map(([k,v])=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`).join("");
  $("ovrChart").innerHTML=chart(p.ovrHist,"能力值");
 }
@@ -673,11 +714,31 @@ function reportHTML(p){
 }
 function drawReport(id){const el=$(id);if(!el||!P)return;el.innerHTML=reportHTML(P);el.querySelectorAll(".rt").forEach(b=>b.onclick=()=>{repTab=b.dataset.t;drawReport(id)})}
 
+// ── 挑戰與成就 ──
+const ACH=[
+ ["首秀","一線隊初登場",p=>p.debut],["少年得志","18 歲前踢上一線隊",p=>p.debut&&p.debut<=18],
+ ["台灣之光","以台灣球員身分在五大聯賽出賽",p=>p.c=="台灣"&&p.seasons.some(s=>s.apps>0&&TOP5.includes(s.lg))],
+ ["五大聯賽","在五大聯賽出賽",p=>p.seasons.some(s=>s.apps>0&&TOP5.includes(s.lg))],["留洋","在外國聯賽出賽",p=>p.seasons.some(s=>s.apps>0&&CLUBS.find(c=>c.name==s.club)?.ct!=p.c)],
+ ["百場里程碑","職業出賽 100 場",p=>p.apps>=100],["鐵人","職業出賽 500 場",p=>p.apps>=500],["百球射手","職業進球 100 球",p=>p.goals>=100],
+ ["金靴","拿下聯賽金靴獎",p=>p.awards.some(a=>a[1]=="聯賽金靴獎")],["世界足球先生","獲選世界足球先生",p=>p.awards.some(a=>a[1]=="世界足球先生")],
+ ["世界冠軍","拿下世界盃",p=>p.trophies.some(t=>t[1]=="世界盃冠軍")],["歐冠冠軍","拿下歐洲冠軍聯賽",p=>p.trophies.some(t=>t[1]=="歐洲冠軍聯賽冠軍")],
+ ["國家隊百場","國家隊出賽 100 場",p=>p.caps>=100],["一隊效忠","同一支球隊踢 10 季以上",p=>{const m={};p.seasons.forEach(s=>m[s.club]=(m[s.club]||0)+1);return Object.values(m).some(v=>v>=10)}],
+ ["環遊世界","在 4 個國家踢過職業",p=>new Set(p.seasons.filter(s=>s.apps>0).map(s=>CLUBS.find(c=>c.name==s.club)?.ct)).size>=4],
+ ["大賽英雄","贏下 10 場大比賽",p=>(p.bigWins||0)>=10],["浴火重生","受過重傷，仍然踢到 33 歲",p=>(p.injList||[]).some(i=>i.bad)&&p.seasons.some(s=>s.age>=33&&s.apps>0)],
+ ["千萬身價","身價超過 €1,000 萬",p=>p.maxValue>=10],["億元身價","身價超過 €1 億",p=>p.maxValue>=100],
+ ["堅持到底","被青訓放走後，仍然踢上職業一線隊",p=>p.released&&p.debut],["落寞的追夢人","在現實模式中沒能成為職業球員",p=>p.footEnd&&!p.debut],
+];
+function checkAch(p){p.ach=p.ach||[];let all=[];try{all=JSON.parse(localStorage.getItem("fb-ach")||"[]")}catch{}
+ for(const [n,d,f] of ACH)if(!p.ach.includes(n)&&f(p)){p.ach.push(n);say(`🏅 達成成就「${n}」：${d}`,1);toast(`🏅 成就解鎖：${n}`);if(!all.includes(n))all.push(n)}
+ try{localStorage.setItem("fb-ach",JSON.stringify(all))}catch{}}
+function achWall(){let all=[];try{all=JSON.parse(localStorage.getItem("fb-ach")||"[]")}catch{}
+ return `<div class="mut">已解鎖 ${all.length} / ${ACH.length}</div><div class="achs">${ACH.map(([n,d])=>`<div class="ach${all.includes(n)?" got":""}"><b>${all.includes(n)?"🏅":"🔒"} ${n}</b><span>${d}</span></div>`).join("")}</div>`}
+
 // ── 主迴圈 ──
 async function loop(){
  while(P.alive&&!P.footEnd){
   if(P.club&&!P.retired)await season();else{await quietYear();await season()}
-  pendingSkip=false;render();renderPlan();drawReport("reports");save();
+  pendingSkip=false;checkAch(P);render();renderPlan();drawReport("reports");save();
  }
  finish();
 }
@@ -698,7 +759,7 @@ function finish(){
  <div><b>效力過</b>　${p.clubsPlayed.join(" → ")||"沒有職業球隊"}</div>
  <div class="chart" style="margin-top:10px">${chart(p.ovrHist,"能力值變化")}</div>`;
  drawFace($("cface"),p);
- drawReport("endReports");const _unused=p.seasons.map(s=>`<div class="row"><span>${s.y}（${s.age}歲）${s.club}</span><span>${s.apps} 場 · ${s.goals} 球 · 評分 ${s.rating}${s.titles.length?" · 🏆":""}</span></div>`).join("")||"<p class='mut'>沒有職業球季。</p>";
+ checkAch(p);$("endAch").innerHTML=`<b>這段生涯解鎖的成就</b><br>${(p.ach||[]).map(n=>`🏅 ${n}`).join("　")||"沒有"}`;drawReport("endReports");const _unused=p.seasons.map(s=>`<div class="row"><span>${s.y}（${s.age}歲）${s.club}</span><span>${s.apps} 場 · ${s.goals} 球 · 評分 ${s.rating}${s.titles.length?" · 🏆":""}</span></div>`).join("")||"<p class='mut'>沒有職業球季。</p>";
  try{const h=JSON.parse(localStorage.getItem("fb-hof")||"[]");h.push({name:p.name,c:p.c,pos:p.pos,sc,title,peak:Math.round(p.peak),goals:p.goals,tro:p.trophies.length,y:`${p.y0}–${p.y0+p.age}`});h.sort((a,b)=>b.sc-a.sc);localStorage.setItem("fb-hof",JSON.stringify(h.slice(0,20)))}catch{}
  $("share").onclick=async()=>{const text=`我在足球員模擬器踢了一生：${p.name}（${p.c}·${POS[p.pos]}），巔峰能力 ${Math.round(p.peak)}，${p.goals} 球、${p.trophies.length} 座冠軍。${location.href.split("?")[0]}`;try{if(navigator.share)await navigator.share({text});else{await navigator.clipboard.writeText(text);toast("已複製分享文字")}}catch{}};
 }
@@ -731,5 +792,6 @@ try{const s=JSON.parse(localStorage.getItem("fb-save"));if(s&&s.P&&s.P.alive){$(
  if(!p.s){p.s={};SUBS.forEach(k=>p.s[k]=30)}attachA(p);if(p.club)p.clubObj=CLUBS.find(c=>c.name==p.club);$("log").innerHTML=p.log.slice(-60).reverse().map(([a,t,h])=>`<p class="${h?"hi":""}"><span class="y">${a}歲</span>${t}</p>`).join("");start(p)}}}catch{}
 try{const h=JSON.parse(localStorage.getItem("fb-hof")||"[]");$("hof").innerHTML=h.length?h.map(x=>`<div class="stat"><span>${esc(x.title)} · ${x.y}</span><b>${esc(x.name)}</b><span>${esc(x.c)} · ${x.pos} · 巔峰 ${x.peak} · ${x.goals} 球 · 🏆${x.tro}</span><span>生涯評分 ${x.sc}</span></div>`).join(""):"<p class='mut'>還沒有踢完的生涯。</p>"}catch{}
 $("oddsTbl").innerHTML="<b>真實世界的機率（概估）</b><br>"+["巴西","英格蘭","西班牙","日本","中國","台灣"].map(c=>{const o=realOdds(c);return `${c}：職業球員 ${oneIn(o.pro)}、五大聯賽 ${oneIn(o.top5)}`}).join("<br>");
+$("achWall").innerHTML=achWall();
 drawPitch(0,0);
 </script></body></html>
