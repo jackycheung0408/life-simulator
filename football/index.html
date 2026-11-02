@@ -1129,7 +1129,7 @@ function renderMgr(){const el=$("mgr");if(!el||!P)return;const p=P;p.mgrUsed=p.m
 async function loop(){
  while(P.alive&&!P.footEnd){
   if(P.club&&!P.retired)await season();else{await quietYear();await season()}
-  pendingSkip=false;checkAch(P);render();renderPlan();drawReport("reports");save();
+  pendingSkip=false;checkAch(P);if(!auto&&!toEnd)TOUR.forEach(([sel],i)=>{let f=1;try{f=localStorage.getItem("fb-tour"+sel)}catch{}const el=document.querySelector(sel);if(!f&&el&&el.offsetParent&&!$("tour"))tour(i,true)});render();renderPlan();drawReport("reports");save();
  }
  finish();
 }
@@ -1224,16 +1224,16 @@ const TOUR=[[".hud","時間會自己往前走","這裡是年齡和這一年的�
  ["#planCard","每週訓練表","點一天就能換訓練內容（小時候是放學後的時間安排）。練什麼就長什麼，但疲勞超過 70 容易受傷；能力到上限時會提醒你改練別的。"],
  ["#mgrCard","生涯管理","想轉會、談加薪、換經紀人，從這裡主動提出。每項每季能用一次。"],
  ["#log","抉擇與紀錄","遇到抉擇時會跳出視窗，選項下方的小字是效果或成功率。你的每個選擇都會影響後面的人生，這裡會記下來。"]];
-function tour(i=0){const old=document.querySelector(".tour-hi");if(old)old.classList.remove("tour-hi");$("tour")?.remove();
+function tour(i=0,only=false){const old=document.querySelector(".tour-hi");if(old)old.classList.remove("tour-hi");$("tour")?.remove();
  if(i>=TOUR.length){paused=P?._tourPaused||false;$("pause").textContent=paused?"▶ 繼續":"⏸ 暫停";try{localStorage.setItem("fb-tour","1")}catch{}return}
- if(i==0&&P){P._tourPaused=paused;paused=true}
+ if((i==0||only)&&P){P._tourPaused=paused;paused=true}
  const [sel,t,d]=TOUR[i],el=document.querySelector(sel);
  // 還沒出現的區塊（例如嬰兒時期沒有訓練表）就跳過
- if(!el||!el.offsetParent){tour(i+1);return}
+ if(!el||!el.offsetParent){tour(only?TOUR.length:i+1);return}try{localStorage.setItem("fb-tour"+sel,"1")}catch{}
  el.classList.add("tour-hi");const top=document.querySelector("#game>.card");const off=sel==".hud"?0:(getComputedStyle(top).position=="sticky"?top.offsetHeight:0)+12;
  scrollTo({top:Math.max(0,el.getBoundingClientRect().top+scrollY-off),behavior:"smooth"})
- document.body.insertAdjacentHTML("beforeend",`<div id="tour"><h3>${t}</h3><p>${d}</p><div class="tn"><span>${i+1} / ${TOUR.length}</span><span><button id="tSkip" class="linkbtn">略過</button> <button id="tNext" class="pri">${i==TOUR.length-1?"開始踢球":"下一步"}</button></span></div></div>`);
- $("tNext").onclick=()=>tour(i+1);$("tSkip").onclick=()=>tour(TOUR.length)}
+ document.body.insertAdjacentHTML("beforeend",`<div id="tour"><h3>${t}</h3><p>${d}</p><div class="tn"><span>${only?"新功能":`${i+1} / ${TOUR.length}`}</span><span><button id="tSkip" class="linkbtn">略過</button> <button id="tNext" class="pri">${only?"知道了":i==TOUR.length-1?"開始踢球":"下一步"}</button></span></div></div>`);
+ $("tNext").onclick=()=>tour(only?TOUR.length:i+1);$("tSkip").onclick=()=>tour(TOUR.length)}
 function start(p){P=p;$("home").classList.add("hide");$("game").classList.remove("hide");scrollTo(0,0);renderPlan();render();loop();let seen=null;try{seen=localStorage.getItem("fb-tour")}catch{}if(!seen)setTimeout(()=>tour(0),400)}
 $("draw").onclick=drawCard;$("noCard").onclick=()=>{cfg.card=null;renderCards()};renderCards();
 $("go").onclick=async()=>{const p=newPlayer(cfg.w,cfg.pos);p.mode=cfg.mode;
