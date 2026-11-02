@@ -211,7 +211,7 @@ function attachA(p){p.a=new Proxy({},{get:(_,k)=>{const m=faceMap(p,k);return m?
 function ovr(p){const w=DPW[dpOf(p)];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return Math.round(t/sw)}
 function bestDp(p){return Object.keys(DPW).filter(d=>d!="GK").sort((a,b)=>{const o=x=>{const w=DPW[x];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return t/sw};return o(b)-o(a)})[0]}
 function value(p){const o=ovr(p),agef=p.age<21?1.6:p.age<25?1.3:p.age<29?1:p.age<32?.55:.2;const mk=p.clubObj?{5:1,4:.55,3:.3,2:.2,1:.07}[p.clubObj.tier]:.05;return Math.max(.005,.25*Math.pow(1.165,o-50)*agef*mk)} // 身價依聯賽等級，參考 Transfermarkt 區間：台灣企甲約 €2.5～20 萬、日職約 €30～100 萬、英冠約 €100～500 萬、英超平均約 €3,000 萬 // 百萬歐元：能力 80 約 €25M，90 約 €110M
-function eur(m){return m>=1?`€${m>=100?Math.round(m):m.toFixed(1)}M`:`€${Math.round(m*1000)}K`}
+function eur(m){return m>=1?`€${m>=100?Math.round(m):m.toFixed(1)}M`:m>=.001?`€${Math.round(m*1000)}K`:`€${Math.round(m*1e6).toLocaleString()}`}
 function newPlayer(world,pos){
  const c=world=="tw"?COUNTRIES.find(x=>x[0]=="台灣"):wpick(COUNTRIES,x=>x[1]),nm=NM[c[4]];
  // 天賦：多數認真踢球的孩子上限在 55～70；能到 80 以上的是少數
@@ -439,9 +439,11 @@ async function academy(){
   [mid?"加入本國職業隊青訓":"參加本國職業隊青訓選拔",()=>{if(mid||R()<.5){p.stage="青訓";p.academy=Math.max(1,p.ctier);say("進入本國職業隊的青訓營。",1)}else say("沒選上本國青訓，繼續在業餘隊踢。")},"穩定成長"],
   ["留在學校隊，兼顧課業",()=>{p.stage="學校隊";p.morale+=4;p.school=true},"之後成為職業球員比較難，但退休後出路多"]]);
 }
+// 可能加盟的球隊：台灣、西非這類小聯賽很少簽外國球員（27 歲以後偶爾有）
+function poolFor(p){return CLUBS.filter(c=>c.ct==p.c||c.tier>=2||(p.age>=27&&R()<.03))}
 async function firstContract(){
- const p=P,o=ovr(p);const weak=p.cs<65,seen=c=>c.ct==p.c||p.academy==5||(p.scouted&&!weak)||o>=c.str-(weak?3:8); // 國外球隊要先被球探看到；足球弱國的球員更難被注意
- const offers=CLUBS.filter(c=>c.str-10<=o+(p.academy||0)*1&&c.str-12<=o&&seen(c)&&(c.tier<5||o>=70||(p.academy==5&&o>=64))).sort((a,b)=>b.str-a.str);
+ const p=P,o=ovr(p);const weak=p.cs<65,seen=c=>c.ct==p.c||(c.tier>=Math.max(2,p.ctier)&&(p.academy==5||(p.scouted&&!weak)||o>=c.str-(weak?3:8))); // 國外球隊要先被球探看到；足球弱國的球員更難被注意
+ const offers=poolFor(P).filter(c=>c.str-10<=o+(p.academy||0)*1&&c.str-12<=o&&seen(c)&&(c.tier<5||o>=70||(p.academy==5&&o>=64))).sort((a,b)=>b.str-a.str);
  const home=offers.filter(c=>c.ct==p.c),abroad=offers.filter(c=>c.ct!=p.c);
  const list=[...new Set([home[0],abroad[0],abroad[1],home[1]].filter(Boolean))].slice(0,3);
  if(!list.length){say("沒有職業球隊開出合約。");return}
@@ -452,14 +454,14 @@ function roleOf(p,c){const g=ovr(p)-c.str;return p.age<17||g<-10?"預備隊":g<-
 function wageOf(c,p){return Math.max(.003,c.pay*Math.pow(1.12,ovr(p)-c.str)*(1+Math.min(3,p.fame/150)))} // 百萬歐元／年：頂級聯賽一般球員約 €5M，巨星可到 €30M 以上
 function sign(c,yrs){const p=P;(p.moves=p.moves||[]).push({y:p.y0+p.age,age:p.age,from:p.club||p.stage,to:c.name,lg:c.lg,fee:p._fee||0,type:p._fee?"轉會":p.club?"自由轉會":"首份合約",yrs});p._fee=0;if(p.club&&p.club!==c.name)say(`離開${p.club}。`);p.club=c.name;p.clubObj=c;p.contract=yrs;p.wage=wageOf(c,p);if(!p.clubsPlayed.includes(c.name))p.clubsPlayed.push(c.name);say(`和${c.name}簽下 ${yrs} 年合約，年薪 ${eur(p.wage)}。`,1)}
 // ── 現實的淘汰關卡：大多數孩子會在某一關停下來 ──
-function proRescue(p){const o=ovr(p),home=CLUBS.filter(c=>c.ct==p.c).sort((a,b)=>a.str-b.str)[0],any=CLUBS.slice().sort((a,b)=>Math.abs(a.str-o-8)-Math.abs(b.str-o-8))[0],c=home&&home.str<=o+14?home:any;
+function proRescue(p){const o=ovr(p),home=poolFor(P).filter(c=>c.ct==p.c).sort((a,b)=>a.str-b.str)[0],any=poolFor(P).filter(x=>x.tier>=Math.min(2,p.ctier)||x.ct==p.c).sort((a,b)=>Math.abs(a.str-o-8)-Math.abs(b.str-o-8))[0],c=home&&home.str<=o+14?home:any;
  say(pick(["一位老球探在業餘比賽注意到你，推薦給一支低級別球隊。","經紀人幫你找到一份職業合約，雖然是小球隊，但終於是職業球員了。"]),1);sign(c,2)}
 function endFootball(reason,after){const p=P;if(p.mode=="pro"&&!p.debut&&!p.club&&p.age<30){proRescue(p);return}p.footEnd=reason;p.after=after||pick(["上班族","體育老師","業餘球隊教練","運動用品店店員","健身教練","工程師","餐廳老闆"]);say(`足球生涯在這裡畫下句點：${reason}`,1)}
 async function amateur(){
  const p=P,o=ovr(p);if(p.club||p.footEnd)return;
  if(p.age==19||p.age==21)await ask(`${p.age} 歲，還沒有職業隊願意簽你（目前能力 ${Math.round(o)}）`,[
   ["放棄職業夢，好好讀書或找工作",()=>endFootball(`${p.age} 歲時放棄職業夢。`),"結束足球生涯"],
-  ["去低級別球隊試訓",()=>{const c=CLUBS.filter(x=>x.str<=o+10).sort((a,b)=>b.str-a.str).find(x=>x.ct==p.c)||CLUBS.filter(x=>x.str<=o+10).sort((a,b)=>b.str-a.str)[0];if(c&&R()<.15+Math.max(0,(o-c.str+8)/40))sign(c,1);else say("試訓沒有通過。")},"成功率不高"],
+  ["去低級別球隊試訓",()=>{const c=poolFor(P).filter(x=>x.str<=o+10&&x.ct==p.c).sort((a,b)=>b.str-a.str)[0]||poolFor(P).filter(x=>x.str<=o+10&&x.tier>=Math.max(2,p.ctier)).sort((a,b)=>b.str-a.str)[0];if(c&&R()<.15+Math.max(0,(o-c.str+8)/40))sign(c,1);else say("試訓沒有通過。")},"成功率不高"],
   ["邊打工邊在業餘隊踢，再拚一年",()=>{p.money+=.005;p.morale-=3;p.a.體能+=1},"堅持"]]);
  if(p.mode=="pro"&&p.age>=19&&!p.club&&!p.footEnd){proRescue(p);return}
  if(p.age>=23&&!p.club&&!p.footEnd)endFootball("一直沒有職業球隊願意簽約，終究沒能成為職業球員。");
@@ -508,7 +510,7 @@ async function proSeason(){
  if(reserve&&!played)say(`本季在預備隊出賽 ${reserve} 場（不列入職業紀錄）。`);else say(`本季（${role}）：出賽 ${played} 場，${p.pos=="GK"?`零封 ${cleans} 場`:`進 ${goals} 球、助攻 ${assists} 次`}，平均評分 ${rating.toFixed(1)}。身價 ${eur(value(p))}。`);
  if(p.loanTo){say(`租借結束，回到${p.loanFrom.name}。`);p.club=p.loanFrom.name;p.clubObj=p.loanFrom;p.loanTo=null;p.loanFrom=null}
  else if(role=="預備隊"&&p.age>=18)await ask(`在${c.name}預備隊待了 ${p.resYears} 年，教練建議你外租`,[
-  ["租借到低一級的球隊打主力",()=>{const lo=CLUBS.filter(x=>x.str<=ovr(p)+3&&x.str>=ovr(p)-6&&x.name!=c.name).sort(()=>R()-.5)[0];if(lo){p.loanFrom=c;p.loanTo=lo;p.club=lo.name;p.clubObj=lo;if(!p.clubsPlayed.includes(lo.name))p.clubsPlayed.push(lo.name);say(`租借到${lo.name}一季。`,1)}},"上場時間↑ 進步↑"],
+  ["租借到低一級的球隊打主力",()=>{const lo=poolFor(P).filter(x=>x.str<=ovr(p)+3&&x.str>=ovr(p)-6&&x.name!=c.name).sort(()=>R()-.5)[0];if(lo){p.loanFrom=c;p.loanTo=lo;p.club=lo.name;p.clubObj=lo;if(!p.clubsPlayed.includes(lo.name))p.clubsPlayed.push(lo.name);say(`租借到${lo.name}一季。`,1)}},"上場時間↑ 進步↑"],
   ["留下來繼續拚",()=>{p.morale-=3},"可能繼續坐冷板凳"],["要求解約，自己找球隊",()=>{p.contract=0},"風險高"]]);
  p.contract--;if(!p.loanTo)await transferWindow(rating,share);await lifeOff();await retireCheck();
 }
@@ -528,12 +530,12 @@ async function national(rating){
 }
 async function transferWindow(rating,share){
  const p=P,o=ovr(p),c=p.clubObj;
- const seen=x=>x.ct==p.c||p.fame>(p.cs<65?60:25)||o>=x.str-(p.cs<65?0:2);
- const up=CLUBS.filter(x=>x.name!=c.name&&x.str>c.str&&x.str<=o+4&&seen(x)).sort(()=>R()-.5),side=CLUBS.filter(x=>x.name!=c.name&&Math.abs(x.str-o)<5).sort(()=>R()-.5),money=CLUBS.filter(x=>x.ct=="沙烏地阿拉伯"||x.ct=="美國");
+ const seen=x=>x.ct==p.c||((x.tier>=2||p.age>=26)&&(p.fame>(p.cs<65?60:25)||o>=x.str-(p.cs<65?0:2)));
+ const up=poolFor(P).filter(x=>x.name!=c.name&&x.str>c.str&&x.str<=o+4&&seen(x)).sort(()=>R()-.5),side=poolFor(P).filter(x=>x.name!=c.name&&Math.abs(x.str-o)<5).sort(()=>R()-.5),money=poolFor(P).filter(x=>x.ct=="沙烏地阿拉伯"||x.ct=="美國");
  const offers=[];if(rating>=7&&up[0])offers.push(up[0]);if(share<.4&&side[0])offers.push(side[0]);if(p.age>=29&&o>=72&&R()<.4)offers.push(pick(money));
  if(p.contract<=0){if(!offers.length&&side[0])offers.push(side[0]);
   const stay=c.str<=o+6;
-  await ask("合約到期了",[...(stay?[[`和${c.name}續約`,()=>{p.contract=3;p.wage=wageOf(c,p);say(`和${c.name}續約 3 年，年薪 ${eur(p.wage)}。`)},`年薪約 ${eur(wageOf(c,p))}`]]:[]),...offers.slice(0,3).map(x=>[`自由轉會到${x.name}`,()=>sign(x,3),`${x.lg} · 實力 ${x.str} · 年薪約 ${eur(wageOf(x,p))}`])].concat(stay||offers.length?[]:[["降到低級別聯賽",()=>sign(CLUBS.filter(x=>x.str<=o+6).sort((a,b)=>b.str-a.str)[0]||CLUBS[CLUBS.length-1],2),""]]),stay?"":`${c.name}沒有打算續約。`);return}
+  await ask("合約到期了",[...(stay?[[`和${c.name}續約`,()=>{p.contract=3;p.wage=wageOf(c,p);say(`和${c.name}續約 3 年，年薪 ${eur(p.wage)}。`)},`年薪約 ${eur(wageOf(c,p))}`]]:[]),...offers.slice(0,3).map(x=>[`自由轉會到${x.name}`,()=>sign(x,3),`${x.lg} · 實力 ${x.str} · 年薪約 ${eur(wageOf(x,p))}`])].concat(stay||offers.length?[]:[["降到低級別聯賽",()=>sign(poolFor(P).filter(x=>x.str<=o+6).sort((a,b)=>b.str-a.str)[0]||CLUBS[CLUBS.length-1],2),""]]),stay?"":`${c.name}沒有打算續約。`);return}
  if(!offers.length)return;
  const fee=value(p)*(1+R()*.4);
  await ask("轉會窗開啟，有球隊報價",[...offers.slice(0,3).map(x=>[`轉會到${x.name}`,()=>{p.fame+=fee*.2;p._fee=fee;say(`以 ${eur(fee)} 的轉會費加盟${x.name}。`,1);sign(x,4)},`${x.lg} · 實力 ${x.str} · 年薪約 ${eur(wageOf(x,p))}`]),["留下來，忠於球隊",()=>{p.morale+=3;p.fame+=1},"球迷好感↑"]]);
@@ -549,7 +551,7 @@ async function lifeOff(){
 async function retireCheck(){
  const p=P,o=ovr(p);
  if(p.age>=40||(p.age>=24&&o<45)){retire("身體已經跟不上，宣布退休。");return}
- if((p.age>=33&&R()<.35)||(p.age>=30&&o<p.clubObj.str-12))await ask(`${p.age} 歲，要繼續踢下去嗎？`,[["再踢一季",()=>{},"能力會持續下滑"],["退休，留下美好的回憶",()=>retire("宣布退休，向球迷告別。"),""],["到美國或沙烏地踢最後幾年",()=>{const c=pick(CLUBS.filter(x=>x.ct=="沙烏地阿拉伯"||x.ct=="美國"));sign(c,2)},"收入高 · 競爭低"]]);
+ if((p.age>=33&&R()<.35)||(p.age>=30&&o<p.clubObj.str-12))await ask(`${p.age} 歲，要繼續踢下去嗎？`,[["再踢一季",()=>{},"能力會持續下滑"],["退休，留下美好的回憶",()=>retire("宣布退休，向球迷告別。"),""],["到美國或沙烏地踢最後幾年",()=>{const c=pick(poolFor(P).filter(x=>x.ct=="沙烏地阿拉伯"||x.ct=="美國"));sign(c,2)},"收入高 · 競爭低"]]);
 }
 function retire(t){const p=P;p.retired=true;p.retireAge=p.age;say(t,1);p.club=null;p.clubObj=null}
 async function afterLife(){
