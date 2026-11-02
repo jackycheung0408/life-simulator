@@ -68,7 +68,10 @@ button.on{background:var(--y);color:var(--ink)}
 .tbl{overflow-x:auto}.tbl table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}.tbl th,.tbl td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:right}.tbl th{color:var(--y);position:sticky;top:0;background:var(--card)}.tbl td:nth-child(3),.tbl th:nth-child(3){text-align:left}.tbl tr.tot td{font-weight:800;color:var(--y)}
 .cert .tbl th{background:#f4f1de;color:#16241a}
 .legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;margin-top:4px}.legend i{display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:middle}
-.life-st{border-left:4px solid var(--y);padding:4px 10px;margin:8px 0;max-height:260px;overflow:auto}.life-st p{margin:3px 0;font-size:13px}.life-st p.hi{color:var(--y)}.life-st .y{color:var(--mut);margin-right:6px}
+.life-st{border-left:4px solid var(--y);padding:6px 12px;margin:12px 0}.life-st>h3{margin:0 0 8px;font-size:16px}.life-st>h3 small{color:var(--mut);font-weight:400;margin-left:6px}
+.life-sum{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}.life-sum span{background:#10261a;border:1px solid var(--mut);padding:1px 8px;font-size:12px}
+.age-row{display:grid;grid-template-columns:48px 1fr;gap:8px;padding:5px 0;border-top:1px dashed #2c4a35}.age-row:first-of-type{border-top:0}.age-row .y{color:var(--y);font-weight:700;font-size:13px}
+.age-row p{margin:0 0 4px;font-size:13.5px;line-height:1.55}.age-row p.hi{color:var(--y)}.age-row .q{color:var(--mut)}.age-row .q::after{content:"　→ "}.age-row .a{color:var(--fg,#f4f1de);font-weight:700}
 .cert .life-st p.hi{color:#8a6a00}
 .subs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 16px}.subs b{color:var(--y);font-size:14px}.sub{display:grid;grid-template-columns:72px 1fr 28px;align-items:center;gap:6px;font-size:13px}.sub i{display:block;height:6px;background:linear-gradient(90deg,var(--g),var(--y))}.sub em{font-style:normal;text-align:right}
 .cert .subs b{color:#8a6a00}
@@ -555,7 +558,9 @@ const GEN={
   p=>{const c=g("city");return ask(`球隊辦了一場到${c}的社區活動`,[["帶小朋友踢球",()=>{p.fame+=2;p.morale+=3},"心情↑"],["簽名合照就好",()=>{p.fame+=1},""],["推說身體不舒服",()=>{rel(p,"coach",-3)},""]])},
   p=>{const f=g("family"),t=g("trouble");return ask(`${f}${t}，需要你幫忙`,[["匯一筆錢回家",()=>{p.money-=.02+R()*.05;p.morale+=2},"花錢"],["請假回去陪",()=>{rel(p,"coach",-4);p.morale+=4},"教練信任↓"],["請家人先處理",()=>{p.morale-=3},""]])},
  ]};
-async function genEvent(kind){await pick(GEN[kind])(P)}
+// 同一種事件最近用過就先跳過，避免連續兩年都是「寒流停課」
+async function genEvent(kind){const p=P,L=GEN[kind];p.genRecent=p.genRecent||[];const ok=L.map((_,i)=>kind+i).filter(k=>!p.genRecent.includes(k)),k=ok.length?pick(ok):kind+Math.floor(R()*L.length);
+ p.genRecent.push(k);if(p.genRecent.length>Math.min(6,L.length-1))p.genRecent.shift();await L[+k.slice(kind.length)](p)}
 async function phaseEvent(pool){const p=P;p.evSeen=p.evSeen||{};const tag=pool===YOUTH_EVENTS?"y":"p";
  if(R()<.25){const m=pick(MINOR);say(m(p));return}
  if(R()<.45){await genEvent(tag=="y"?"teen":"pro");return}
@@ -954,8 +959,12 @@ function lines(series,W=320,H=120,maxV){const all=series.flatMap(s=>s.pts.map(x=
   <div class="legend">${series.map(s=>`<span><i style="background:${s.c}"></i>${s.n}</span>`).join("")}</div>`}
 function reportHTML(p,inGame){
  const tabs=[...(inGame?[]:["生平"]),...(p.stars?["同世代"]:[]),"能力細項","每季","榮譽","能力成長","身價與收入","轉會","傷病","國家隊"],yh=(p.yhist||[]).filter(r=>r.age<=(p.retireAge||p.age));let body="";
- if(repTab=="生平"){const st=[["嬰幼兒",0,5],["童年",6,12],["青少年",13,17],["職業生涯",18,(p.retireAge||99)],["退休後",(p.retireAge||99)+1,200]];
-  body=st.map(([n,a,b])=>{const ev=p.log.filter(([g])=>g>=a&&g<=b);return ev.length?`<div class="life-st"><b>${n}</b><span class="mut">（${a}～${Math.min(b,p.age)} 歲）</span>${ev.map(([g,t,h])=>`<p class="${h?"hi":""}"><span class="y">${g}歲</span>${t}</p>`).join("")}</div>`:""}).join("")||`<p class="mut">剛出生。</p>`}
+ if(repTab=="生平"){const ra=p.retireAge||(p.footEnd?p.age:99),st=[["嬰幼兒",0,5],["童年",6,12],["青少年",13,17],[p.debut?"職業生涯":"成年・追夢",18,ra],["退休後",ra+1,200]];
+  // 成就通知不放進生平；同樣的句子只留第一次
+  const seen=new Set(),log=p.log.filter(([,t])=>!t.startsWith("🏅")&&!seen.has(t)&&seen.add(t));
+  const line=(t,h)=>{const m=t.split(" → ");return `<p class="${h?"hi":""}">${m.length==2?`<span class="q">${m[0]}</span><span class="a">${m[1]}</span>`:t}</p>`};
+  body=st.map(([n,a,b])=>{const ev=log.filter(([g])=>g>=a&&g<=b);if(!ev.length)return "";const ages=[...new Set(ev.map(e=>e[0]))],ch=ev.filter(e=>e[1].includes(" → ")).length,hi=ev.filter(e=>e[2]).length;
+   return `<div class="life-st"><h3>${n}<small>${a}～${Math.min(b,p.age)} 歲</small></h3><div class="life-sum"><span>${ev.length} 件事</span><span>做了 ${ch} 個選擇</span>${hi?`<span>★ 重要時刻 ${hi}</span>`:""}</div>${ages.map(g=>`<div class="age-row"><span class="y">${g} 歲</span><div>${ev.filter(e=>e[0]==g).map(([,t,h])=>line(t,h)).join("")}</div></div>`).join("")}</div>`}).join("")||`<p class="mut">剛出生。</p>`}
  if(repTab=="同世代")body=starTable(p);
  if(repTab=="能力細項"){const fm=k=>faceMap(p,k);body=`<p class="mut">位置 ${DPN[dpOf(p)]}（${dpOf(p)}）· 綜合能力 ${ovr(p)} · 逆足 ${"★".repeat(p.wf)} · 花式 ${"★".repeat(p.sm)}。綜合能力依位置加權細項計算（參考 FIFA）。</p><div class="subs">${ATTR.map(k=>`<div><b>${k} ${Math.round(p.a[k])}</b>${Object.keys(fm(k)).map(x=>`<div class="sub"><span>${x}</span><i style="width:${p.s[x]}%"></i><em>${Math.round(p.s[x])}</em></div>`).join("")}</div>`).join("")}<div><b>其他</b><div class="sub"><span>反應</span><i style="width:${p.s.反應}%"></i><em>${Math.round(p.s.反應)}</em></div></div></div>
   <p class="mut">各位置綜合能力：${Object.keys(DPW).map(d=>{const w=DPW[d];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return `${DPN[d]} ${Math.round(t/sw)}`}).join("、")}</p>`}
