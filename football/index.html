@@ -440,7 +440,7 @@ async function academy(){
   ["留在學校隊，兼顧課業",()=>{p.stage="學校隊";p.morale+=4;p.school=true},"之後成為職業球員比較難，但退休後出路多"]]);
 }
 // 可能加盟的球隊：台灣、西非這類小聯賽很少簽外國球員（27 歲以後偶爾有）
-function poolFor(p){return CLUBS.filter(c=>c.ct==p.c||c.tier>=2||(p.age>=27&&R()<.03))}
+function poolFor(p){if(p.twAge!==p.age){p.twAge=p.age;p.smallOk=p.age>=29&&R()<.02}return CLUBS.filter(c=>c.ct==p.c||c.tier>=2||p.smallOk)}
 async function firstContract(){
  const p=P,o=ovr(p);const weak=p.cs<65,seen=c=>c.ct==p.c||(c.tier>=Math.max(2,p.ctier)&&(p.academy==5||(p.scouted&&!weak)||o>=c.str-(weak?3:8))); // 國外球隊要先被球探看到；足球弱國的球員更難被注意
  const offers=poolFor(P).filter(c=>c.str-10<=o+(p.academy||0)*1&&c.str-12<=o&&seen(c)&&(c.tier<5||o>=70||(p.academy==5&&o>=64))).sort((a,b)=>b.str-a.str);
