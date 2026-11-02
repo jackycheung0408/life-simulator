@@ -866,6 +866,11 @@ function starsInit(p,mode){if(mode=="off")return;
  const fic=Array.from({length:15},(_,i)=>{const cc=i<10?COUNTRIES.find(x=>x[0]==p.c):wpick(COUNTRIES,x=>x[1]),talent=clamp(40+gauss()*9+(cc[2]-75)*.2,30,85);
   return {n:newName({region:cc[4]}),tier:i<5?"青訓同學":"同期",fic:1,c:cc[0],pos:pick(["FW","MF","DF","GK"]),pot:Math.min(cc[2]<60?66:cc[2]<72?76:95,talent+6+Math.abs(gauss())*8),o:0,club:null,active:true,goals:0,apps:0,tro:0,aw:0,caps:0,peak:0,ret:31+Math.floor(R()*6),fate:"",moves:[]}});
  p.stars=[...real,...fic]}
+// 舊存檔只有 10 位球星：補到 30 人，並把新加入的人模擬到目前年齡
+function starsTopUp(p){if(!p.stars)return;p.stars.forEach(s=>{s.tier=s.tier||((STARS.find(x=>x[0]==s.real)||[])[4]>=93?"巨星":"一線")});if(p.stars.length>=30)return;const tmp={c:p.c};starsInit(tmp,p.stars.some(s=>s.n!=s.real&&!s.fic)?"alias":"real");
+ const have=new Set(p.stars.map(s=>s.real||s.n)),add=tmp.stars.filter(s=>s.fic?true:!have.has(s.real)).filter(s=>!s.fic||true);
+ const need=30-p.stars.length,realN=Math.max(0,15-p.stars.filter(s=>!s.fic).length),pick2=[...add.filter(s=>!s.fic).slice(0,realN),...add.filter(s=>s.fic)].slice(0,need);
+ pick2.forEach(s=>{for(let a=16;a<=p.age;a++)starStep(s,a)});p.stars.push(...pick2)}
 function starStep(s,age){if(!s.active||age<16)return;
  if(age==16)s.o=s.pot-22-R()*5;else if(age<=27)s.o+=(s.pot-s.o)*.25+(R()-.4)*2;else if(age>=31)s.o-=1+R()*2.5;
  if(R()<.035){s.pot-=3+R()*5;s.o-=3;s.inj=(s.inj||0)+1}
@@ -1238,7 +1243,7 @@ function start(p){P=p;$("home").classList.add("hide");$("game").classList.remove
 $("draw").onclick=drawCard;$("noCard").onclick=()=>{cfg.card=null;renderCards()};renderCards();
 $("go").onclick=async()=>{const p=newPlayer(cfg.w,cfg.pos);p.mode=cfg.mode;
  if(cfg.card!==null&&drawn[cfg.card]){const d=drawn[cfg.card];p.pot=d.pot;p.talent=Math.max(30,d.pot-12);p.card=d.r;p.flair=d.flair}p.id=Date.now()+"";starsInit(p,cfg.stars);P=p;await reveal(p);say(`${p.name}出生在${p.c}。`,1);start(p)};
-function loadSlot(s){if(s.plan)plan=s.plan;const p=s.P;p.h=Math.round(hAt(p,p.age)*10)/10; // 舊存檔可能有錯誤的身高，載入時重新計算
+function loadSlot(s){if(s.plan)plan=s.plan;const p=s.P;try{starsTopUp(p)}catch(e){}p.h=Math.round(hAt(p,p.age)*10)/10; // 舊存檔可能有錯誤的身高，載入時重新計算
  if(!p.s){p.s={};SUBS.forEach(k=>p.s[k]=30)}attachA(p);if(p.club)p.clubObj=CLUBS.find(c=>c.name==p.club);$("log").innerHTML=p.log.slice(-60).reverse().map(([a,t,h])=>`<p class="${h?"hi":""}"><span class="y">${a}歲</span>${t}</p>`).join("");start(p)}
 // 舊版只有一個存檔，搬到多存檔
 try{const old=JSON.parse(localStorage.getItem("fb-save"));if(old&&old.P&&old.P.alive){const all=slots();old.P.id=old.P.id||"old";all[old.P.id]={...old,t:Date.now()};localStorage.setItem("fb-saves",JSON.stringify(all))}localStorage.removeItem("fb-save")}catch{}
