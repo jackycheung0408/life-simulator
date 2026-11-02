@@ -151,6 +151,8 @@ async function proSeason(){
   if(finalPos==1)titles.push(c.lg+"冠軍");say(`${c.lg}最終排名：${c.name}第 ${finalPos} 名${finalPos==1?"，奪冠！":finalPos<=4?"，拿到洲際賽事資格":finalPos>p.table.N-3?"，不幸降級":""}。`,finalPos<=1||finalPos>p.table.N-3);if(finalPos>p.table.N-3){p.morale-=6;p.relegated=1}}
  else if(R()<lgP)titles.push(c.lg+"冠軍");if(br.cup?br.cup=="勝":R()<lgP*.8)titles.push(cupName(c.ct)+"冠軍");
  if(contOk(c)){const eu=CONT[c.ct]=="歐",base=eu?76:62;if(br.ucl=="勝"?R()<clamp((c.str-base)/30,.08,.6):br.ucl=="敗"?false:R()<clamp((c.str-base-4)/60,.02,.25))titles.push(CONT_CUP[CONT[c.ct]]+"冠軍")}
+ // 沒上場（預備隊）不算拿到冠軍，只是球隊奪冠
+ if(!played&&titles.length){say(`${c.name}拿下${titles.join("、")}，但你整季在預備隊，沒有獎牌。`);titles.length=0}
  titles.forEach(t=>{p.trophies.push([p.y0+p.age,t]);say(`🏆 ${c.name}拿下${t}！`,1);p.morale+=5});
  // 球季細項數據
  const starts=Math.round(played*({主力:.9,輪換:.55,替補:.12}[role]||0)),mins=starts*82+(played-starts)*22;
