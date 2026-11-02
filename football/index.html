@@ -62,6 +62,9 @@ button.on{background:var(--y);color:var(--ink)}
 .trophies{font-size:22px;letter-spacing:2px}
 .chart svg{width:100%;height:90px;background:#10261a;border:2px solid var(--line)}
 .hall{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+#tip{position:fixed;display:none;z-index:70;background:#050a06f0;border:2px solid var(--y);padding:6px 9px;font-size:13px;line-height:1.5;pointer-events:none;white-space:nowrap}#tip i{display:inline-block;width:9px;height:9px;margin-right:5px}
+.hz{fill:transparent;cursor:crosshair}.hz:hover{fill:#ffffff18}
+.tbl td.hon{text-align:left;white-space:normal;min-width:150px;font-size:12px;line-height:1.5}
 #tour{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(440px,calc(100% - 24px));background:var(--card);border:3px solid var(--ink);box-shadow:inset 0 0 0 3px var(--y),0 12px 40px #000;padding:14px 16px;z-index:60}
 #tour h3{margin:0 0 6px;color:var(--y);font-size:16px}#tour p{margin:0 0 10px;font-size:14px;line-height:1.6}#tour .tn{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mut)}
 .tour-hi{outline:4px solid var(--y)!important;outline-offset:3px;position:relative;z-index:55}
@@ -195,7 +198,7 @@ button.on{background:var(--y);color:var(--ink)}
 <p><button class="pri" onclick="location.reload()">再活一次</button> <button id="share">📣 分享文字</button> <button id="cardImg">🖼 存生涯卡圖片</button></p>
 </section>
 </div>
-<div id="modal" class="hide"><div class="sheet"><span class="tag" id="mtag"></span><span id="mctx"></span><div id="choice"></div></div></div>
+<div id="tip"></div><div id="modal" class="hide"><div class="sheet"><span class="tag" id="mtag"></span><span id="mctx"></span><div id="choice"></div></div></div>
 <div id="toast"></div>
 
 <script>
@@ -1002,8 +1005,13 @@ function render(){try{renderMgr()}catch(e){}
  $("career").innerHTML=[["出賽",p.apps],[p.pos=="GK"?"零封":"進球",p.pos=="GK"?p.cleans:p.goals],["助攻",p.assists],["國家隊出賽",p.caps],["冠軍",p.trophies.length],["個人獎項",p.awards.length]].map(([k,v])=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`).join("");
  $("ovrChart").innerHTML=chart(p.ovrHist,"能力值");
 }
+// 圖表懸停：每個年齡一條看不見的直條，滑到上面就顯示當年數值（手機點一下）
+const fmtV=(s,v)=>/歐元/.test(s.n)?eur(v):Math.round(v*10)/10;
+function hoverCols(xsAll,X,W,H,tipOf){const u=[...new Set(xsAll)].sort((a,b)=>a-b);return u.map((a,i)=>{const l=i?(+X(u[i-1])+ +X(a))/2:+X(a)-6,r=i<u.length-1?(+X(a)+ +X(u[i+1]))/2:+X(a)+6;return `<rect class="hz" x="${l}" y="0" width="${Math.max(2,r-l)}" height="${H}" data-tip="${esc(tipOf(a))}"/>`}).join("")}
+document.addEventListener("pointermove",e=>{const t=e.target.closest?.("[data-tip]"),tp=$("tip");if(!tp)return;if(!t){tp.style.display="none";return}tp.innerHTML=t.dataset.tip;tp.style.display="block";const w=tp.offsetWidth;tp.style.left=Math.min(innerWidth-w-8,e.clientX+12)+"px";tp.style.top=(e.clientY+14)+"px"});
+document.addEventListener("pointerdown",e=>{const t=e.target.closest?.("[data-tip]"),tp=$("tip");if(t&&tp){tp.innerHTML=t.dataset.tip;tp.style.display="block";tp.style.left=Math.min(innerWidth-tp.offsetWidth-8,e.clientX+12)+"px";tp.style.top=(e.clientY+14)+"px"}else if(tp)tp.style.display="none"});
 function chart(arr,label){const v=arr.map((x,i)=>[i,x]).filter(x=>x[1]!=null);if(v.length<2)return"";const W=300,H=80,n=Math.max(40,v[v.length-1][0]);const pts=v.map(([i,x])=>`${(i/n*W).toFixed(1)},${(H-x/100*H).toFixed(1)}`).join(" ");const pk=v.reduce((a,b)=>b[1]>a[1]?b:a);
- return `<div class="mut" style="font-size:13px">${label}　最高 ${Math.round(pk[1])}（${pk[0]} 歲）</div><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="#ffd23f" stroke-width="2.5"/></svg>`}
+ return `<div class="mut" style="font-size:13px">${label}　最高 ${Math.round(pk[1])}（${pk[0]} 歲）</div><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="#ffd23f" stroke-width="2.5"/>${hoverCols(v.map(x=>x[0]),i=>(i/n*W).toFixed(1),W,H,a=>`${a} 歲｜${label} ${Math.round(arr[a])}`)}</svg>`}
 
 // ── 報表：每季數據、能力成長、身價與收入、轉會、傷病、國家隊 ──
 let repTab="生平";const repTabs={reports:"能力細項",endReports:"生平"}; // 遊戲中已有紀錄欄，報表就不再重複顯示生平
@@ -1011,7 +1019,8 @@ function lines(series,W=320,H=120,maxV){const all=series.flatMap(s=>s.pts.map(x=
  const X=a=>((a-x0)/(x1-x0)*(W-30)+26).toFixed(1),Y=v=>(H-14-(v/mx)*(H-24)).toFixed(1);
  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;background:#0a170e;border:2px solid var(--line)">${[0,.5,1].map(f=>`<line x1="26" x2="${W}" y1="${Y(mx*f)}" y2="${Y(mx*f)}" stroke="#2f5a3a"/><text x="2" y="${+Y(mx*f)+4}" font-size="9" fill="#a9c2ad">${Math.round(mx*f)}</text>`).join("")}
   <text x="26" y="${H-2}" font-size="9" fill="#a9c2ad">${x0} 歲</text><text x="${W-30}" y="${H-2}" font-size="9" fill="#a9c2ad">${x1} 歲</text>
-  ${series.map(s=>`<polyline points="${s.pts.map(([a,v])=>X(a)+","+Y(v)).join(" ")}" fill="none" stroke="${s.c}" stroke-width="2"/>`).join("")}</svg>
+  ${series.map(s=>`<polyline points="${s.pts.map(([a,v])=>X(a)+","+Y(v)).join(" ")}" fill="none" stroke="${s.c}" stroke-width="2"/>`).join("")}
+  ${hoverCols(xs,X,W,H,a=>`<b>${a} 歲</b>`+series.map(s=>{const q=s.pts.find(x=>x[0]==a);return q?`<br><i style="background:${s.c}"></i>${s.n.replace(/（.*）/,"")}：${fmtV(s,q[1])}`:""}).join(""))}</svg>
   <div class="legend">${series.map(s=>`<span><i style="background:${s.c}"></i>${s.n}</span>`).join("")}</div>`}
 function reportHTML(p,inGame){
  const tabs=[...(inGame?[]:["生平"]),...(p.stars?["同世代"]:[]),"能力細項","每季","榮譽","能力成長","身價與收入","轉會","傷病","國家隊"],yh=(p.yhist||[]).filter(r=>r.age<=(p.retireAge||p.age));let body="";
@@ -1026,8 +1035,8 @@ function reportHTML(p,inGame){
   <p class="mut">各位置綜合能力：${Object.keys(DPW).map(d=>{const w=DPW[d];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return `${DPN[d]} ${Math.round(t/sw)}`}).join("、")}</p>`}
  if(repTab=="榮譽"){const all=[...p.trophies.map(([y,t])=>[y,"🏆",t]),...p.awards.map(([y,t])=>[y,"🥇",t])].sort((a,b)=>a[0]-b[0]);const cnt={};all.forEach(([,,t])=>cnt[t]=(cnt[t]||0)+1);
   body=all.length?`<p>${Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`<span class="trait" style="margin:2px">${t}${n>1?" ×"+n:""}</span>`).join("")}</p><div class="tbl"><table><tr><th>年</th><th></th><th style="text-align:left">榮譽</th></tr>${all.map(([y,i,t])=>`<tr><td>${y}</td><td>${i}</td><td style="text-align:left">${t}</td></tr>`).join("")}</table></div>`:`<p class="mut">還沒有任何冠軍或個人獎項。</p>`}
- if(repTab=="每季")body=p.seasons.length?`<div class="tbl"><table><tr><th>年</th><th>歲</th><th>球隊</th><th>角色</th><th>出賽</th><th>先發</th><th>分鐘</th><th>${p.pos=="GK"?"零封":"進球"}</th><th>助攻</th><th>評分</th><th>最佳</th><th>牌</th><th>能力</th><th>身價</th><th>年薪</th></tr>${p.seasons.map(s=>`<tr><td>${s.y}</td><td>${s.age}</td><td>${s.club}${s.titles.length?" 🏆":""}</td><td>${s.role||""}</td><td>${s.apps}</td><td>${s.starts??"—"}</td><td>${s.mins??"—"}</td><td>${p.pos=="GK"?s.cleans||0:s.goals}</td><td>${s.assists}</td><td>${s.rating}</td><td>${s.motm??"—"}</td><td>${s.yel!=null?`${s.yel}/${s.red}`:"—"}</td><td>${s.ovr}</td><td>${eur(s.val)}</td><td>${s.wage?eur(s.wage):"—"}</td></tr>`).join("")}
-  <tr class="tot"><td colspan="4">合計</td><td>${p.apps}</td><td>${p.seasons.reduce((a,s)=>a+(s.starts||0),0)}</td><td>${p.seasons.reduce((a,s)=>a+(s.mins||0),0).toLocaleString()}</td><td>${p.pos=="GK"?p.cleans:p.goals}</td><td>${p.assists}</td><td>${p.seasons.length?(p.seasons.reduce((a,s)=>a+s.rating,0)/p.seasons.length).toFixed(2):"—"}</td><td>${p.seasons.reduce((a,s)=>a+(s.motm||0),0)}</td><td>${p.seasons.reduce((a,s)=>a+(s.yel||0),0)}/${p.seasons.reduce((a,s)=>a+(s.red||0),0)}</td><td>${Math.round(p.peak)}</td><td>${eur(p.maxValue)}</td><td></td></tr></table></div>`:`<p class="mut">還沒有職業球季。</p>`;
+ if(repTab=="每季")body=p.seasons.length?`<div class="tbl"><table><tr><th>年</th><th>歲</th><th>球隊</th><th>角色</th><th>出賽</th><th>先發</th><th>分鐘</th><th>${p.pos=="GK"?"零封":"進球"}</th><th>助攻</th><th>評分</th><th>最佳</th><th>牌</th><th>能力</th><th>身價</th><th>年薪</th><th style="text-align:left">榮譽</th></tr>${p.seasons.map(s=>`<tr><td>${s.y}</td><td>${s.age}</td><td>${s.club}</td><td>${s.role||""}</td><td>${s.apps}</td><td>${s.starts??"—"}</td><td>${s.mins??"—"}</td><td>${p.pos=="GK"?s.cleans||0:s.goals}</td><td>${s.assists}</td><td>${s.rating}</td><td>${s.motm??"—"}</td><td>${s.yel!=null?`${s.yel}/${s.red}`:"—"}</td><td>${s.ovr}</td><td>${eur(s.val)}</td><td>${s.wage?eur(s.wage):"—"}</td><td class="hon">${[...p.trophies.filter(t=>t[0]==s.y).map(t=>"🏆 "+t[1]),...p.awards.filter(a=>a[0]==s.y).map(a=>"🥇 "+a[1])].join("<br>")||"<span class=mut>—</span>"}</td></tr>`).join("")}
+  <tr class="tot"><td colspan="4">合計</td><td>${p.apps}</td><td>${p.seasons.reduce((a,s)=>a+(s.starts||0),0)}</td><td>${p.seasons.reduce((a,s)=>a+(s.mins||0),0).toLocaleString()}</td><td>${p.pos=="GK"?p.cleans:p.goals}</td><td>${p.assists}</td><td>${p.seasons.length?(p.seasons.reduce((a,s)=>a+s.rating,0)/p.seasons.length).toFixed(2):"—"}</td><td>${p.seasons.reduce((a,s)=>a+(s.motm||0),0)}</td><td>${p.seasons.reduce((a,s)=>a+(s.yel||0),0)}/${p.seasons.reduce((a,s)=>a+(s.red||0),0)}</td><td>${Math.round(p.peak)}</td><td>${eur(p.maxValue)}</td><td></td><td class="hon">🏆 ${p.trophies.length}　🥇 ${p.awards.length}</td></tr></table></div>`:`<p class="mut">還沒有職業球季。</p>`;
  if(repTab=="能力成長")body=yh.length>1?lines([...ATTR.map((k,i)=>({n:k,c:["#3fa7ff","#ff4d4d","#ffd23f","#b07cff","#4cd964","#ff9f40"][i],pts:yh.map(r=>[r.age,r.a[k]])})),{n:"綜合能力",c:"#fff",pts:yh.map(r=>[r.age,r.ovr])}],320,140,100)+`<p class="mut">身高：${yh.map(r=>`${r.age}歲 ${Math.round(r.h)}`).filter((_,i)=>i%3==0).join("、")} 公分</p>`:`<p class="mut">資料還不夠。</p>`;
  if(repTab=="身價與收入"){const v=yh.filter(r=>r.val);const fm=x=>eur(x);
   body=v.length>1?`<div class="mut" style="font-size:13px">身價（最高 ${fm(Math.max(...v.map(r=>r.val)))}）</div>`+lines([{n:"身價（百萬歐元）",c:"#ffd23f",pts:v.map(r=>[r.age,r.val])}],320,100)+
