@@ -112,6 +112,7 @@ button.on{background:var(--y);color:var(--ink)}
 .gc.flip .gc-in,.gc.flip .gc-shine{animation:flip .8s ease-out}.gc.r4.flip .gc-in{animation:flip .8s ease-out,holo 4s linear infinite}
 @keyframes flip{0%{transform:rotateY(90deg) scale(.7);filter:brightness(3)}60%{transform:rotateY(-8deg) scale(1.08)}100%{transform:none}}
 .linkbtn{background:none;border:0;box-shadow:none;color:var(--y);text-decoration:underline;padding:0 4px;font-size:13px}
+.plan-warn{margin-top:6px;padding:6px 8px;border:2px solid var(--ac);color:var(--fg);font-size:13px;background:#3a1a1a}
 </style></head><body><div class="wrap">
 
 <!-- 首頁 -->
@@ -310,7 +311,7 @@ function grow(p,minutes,frac=1){
  let base=(age<8?2.6:age<12?3.4:age<17?3.2:age<21?2.4:age<25?1.4:age<29?.4:age<32?-.8:-(age-29)*.9);if(base>0)base*=env;
  if(age>=12&&age<29)base*=.6+.6*Math.min(1,room/12)+minutes*.4;
  const tired=(fat>80?.55:fat>60?.85:1)*(1+.05*T(p,"職業態度")+.05*T(p,"苦練")-.08*T(p,"夜生活"));
- for(const k of ATTR){let d=base>0?base*frac*(.7+R()*.6)*(.8+4.2*sh[k])*tired:base*frac*(.7+R()*.6)+frac*2.2*sh[k]*tired;
+ for(const k of ATTR){let d=base>0?base*frac*(.7+R()*.6)*(.4+7.5*sh[k])*tired:base*frac*(.7+R()*.6)+frac*2.2*sh[k]*tired;
   if((k=="速度"||k=="體能")&&age>=29)d-=frac*(age-28)*.25*(sh.體能>.15?.6:1)*(1-.12*T(p,"自律"));
   if(base<0)d*=1-.1*T(p,"球商");
   if(p.pos=="GK"&&k=="射門")d*=.2;p.a[k]=clamp(p.a[k]+d,5,99)}
@@ -333,7 +334,7 @@ function renderPlan(){
  const sh=planShare(),fat=planFat(),load=fat<=20?["輕鬆","var(--g)"]:fat<=40?["適中","var(--y)"]:["吃重，容易受傷","var(--ac)"];
  $("focus").innerHTML=`<div class="days">${plan.map((d,i)=>`<button class="day" data-i="${i}" style="--c:${ACTS[d].c}"><span>週${DAYS[i]}</span><b>${kid?KID_NAME[d]||d:d}</b></button>`).join("")}</div>
   <div class="presets">${p.age<13?"":Object.keys(PRESETS).map(k=>`<button class="pre" data-k="${k}">${k}</button>`).join("")}</div>
-  ${kid?`<div class="plan-sum"><span>功課 <b>${Math.round(p.grade||60)}</b></span><span>疲勞 <b style="color:${(p.fat||0)>60?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b></span>${!plan.includes("讀書")&&p.age>=6?`<span style="color:var(--ac)">一週都沒寫功課，成績會往下掉</span>`:""}${!plan.includes("休息")?`<span style="color:var(--ac)">一天都沒休息，身體會吃不消</span>`:""}</div>`:`<div class="plan-sum"><span>每週負荷 <b style="color:${load[1]}">${load[0]}</b></span><span>目前疲勞 <b style="color:${(p.fat||0)>70?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b></span>${ATTR.map(k=>`<span>${k} ${"▮".repeat(Math.round(sh[k]*14))||"·"}</span>`).join("")}</div>`}`;
+  ${kid?`<div class="plan-sum"><span>功課 <b>${Math.round(p.grade||60)}</b></span><span>疲勞 <b style="color:${(p.fat||0)>60?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b></span>${!plan.includes("讀書")&&p.age>=6?`<span style="color:var(--ac)">一週都沒寫功課，成績會往下掉</span>`:""}${!plan.includes("休息")?`<span style="color:var(--ac)">一天都沒休息，身體會吃不消</span>`:""}</div>`:`<div class="plan-sum"><span>每週負荷 <b style="color:${load[1]}">${load[0]}</b></span><span>目前疲勞 <b style="color:${(p.fat||0)>70?"var(--ac)":"var(--fg)"}">${Math.round(p.fat||0)}</b></span>${ATTR.map(k=>`<span>${k} ${"▮".repeat(Math.round(sh[k]*14))||"·"}</span>`).join("")}</div>${(()=>{const lim=Math.min(97,Math.min(ageCap(p.age),p.pot)+6),maxed=ATTR.filter(k=>sh[k]>.05&&p.a[k]>=lim-.5);return maxed.length?`<div class="plan-warn">⚠ ${maxed.join("、")}已經到目前的上限（${Math.round(lim)}），再練也不會進步，可以把時間改練其他能力。</div>`:""})()}`}`;
  $("focus").querySelectorAll(".day").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;dayPick=dayPick===i?null:i;renderPlan()});
  if(dayPick!=null){const box=document.createElement("div");box.className="daymenu";box.innerHTML=`<div class="mut">週${DAYS[dayPick]}要做什麼？</div>`+acts.map(a=>`<button data-a="${a}" style="border-top:4px solid ${ACTS[a].c}" class="${plan[dayPick]==a?"on":""}">${kid?KID_NAME[a]||a:a}</button>`).join("")+`<button data-all="1">整週都這樣</button>`;
   $("focus").querySelector(".days").after(box);box.querySelectorAll("button").forEach(x=>x.onclick=()=>{if(x.dataset.all){plan=plan.map(()=>plan[dayPick])}else plan[dayPick]=x.dataset.a;dayPick=null;renderPlan()})}
