@@ -66,3 +66,4 @@ $("gbCtry").innerHTML=`<option value="">其他國家…</option>`+COUNTRIES.map(
 const gbSet=c=>{gbCountry=c;document.querySelectorAll(".gbt").forEach(x=>x.classList.toggle("on",x.dataset.c===c));loadBoard()};
 document.querySelectorAll(".gbt").forEach(b=>b.onclick=()=>{$("gbCtry").value="";gbSet(b.dataset.c)});$("gbCtry").onchange=e=>{if(e.target.value)gbSet(e.target.value)};loadBoard();
 drawPitch(0,0);
+applyTheme();$("themeBtn").onclick=cycleTheme;try{matchMedia("(prefers-color-scheme: light)").addEventListener("change",applyTheme)}catch{}

@@ -107,7 +107,7 @@ function chart(arr,label){const v=arr.map((x,i)=>[i,x]).filter(x=>x[1]!=null);if
 let repTab="生平";const repTabs={reports:"能力細項",endReports:"生平"}; // 遊戲中已有紀錄欄，報表就不再重複顯示生平
 function lines(series,W=320,H=120,maxV){const all=series.flatMap(s=>s.pts.map(x=>x[1])),mx=maxV||Math.max(1,...all),xs=series.flatMap(s=>s.pts.map(x=>x[0])),x0=Math.min(...xs),x1=Math.max(x0+1,...xs);
  const X=a=>((a-x0)/(x1-x0)*(W-30)+26).toFixed(1),Y=v=>(H-14-(v/mx)*(H-24)).toFixed(1);
- return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;background:#0a170e;border:2px solid var(--line)">${[0,.5,1].map(f=>`<line x1="26" x2="${W}" y1="${Y(mx*f)}" y2="${Y(mx*f)}" stroke="#2f5a3a"/><text x="2" y="${+Y(mx*f)+4}" font-size="9" fill="#a9c2ad">${/歐元/.test(series[0].n)?eur(mx*f).replace("€",""):mx<10?(mx*f).toFixed(1):Math.round(mx*f)}</text>`).join("")}
+ return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;background:var(--pitch);border:2px solid var(--line)">${[0,.5,1].map(f=>`<line x1="26" x2="${W}" y1="${Y(mx*f)}" y2="${Y(mx*f)}" stroke="#2f5a3a"/><text x="2" y="${+Y(mx*f)+4}" font-size="9" fill="#a9c2ad">${/歐元/.test(series[0].n)?eur(mx*f).replace("€",""):mx<10?(mx*f).toFixed(1):Math.round(mx*f)}</text>`).join("")}
   <text x="26" y="${H-2}" font-size="9" fill="#a9c2ad">${x0} 歲</text><text x="${W-30}" y="${H-2}" font-size="9" fill="#a9c2ad">${x1} 歲</text>
   ${series.map(s=>`<polyline points="${s.pts.map(([a,v])=>X(a)+","+Y(v)).join(" ")}" fill="none" stroke="${s.c}" stroke-width="2"/>`).join("")}
   ${hoverCols(xs,X,W,H,a=>`<b>${a} 歲</b>`+series.map(s=>{const q=s.pts.find(x=>x[0]==a);return q?`<br><i style="background:${s.c}"></i>${s.n.replace(/（.*）/,"")}：${fmtV(s,q[1])}`:""}).join(""))}</svg>
@@ -279,12 +279,12 @@ function finish(){
 
 // ── 生涯卡圖片：1080×1350，可以直接傳到 LINE 或 IG ──
 function cardCanvas(p){const W=1080,H=1350,cv=document.createElement("canvas");cv.width=W;cv.height=H;const g=cv.getContext("2d");
- g.fillStyle="#0f2a1a";g.fillRect(0,0,W,H);g.fillStyle="#16341f";for(let i=0;i<8;i++)g.fillRect(0,400+i*130,W,65);
- g.strokeStyle="#ffd23f";g.lineWidth=16;g.strokeRect(24,24,W-48,H-48);
+ const C=IMG();g.fillStyle=C.bg0;g.fillRect(0,0,W,H);g.fillStyle=C.stripe;for(let i=0;i<8;i++)g.fillRect(0,400+i*130,W,65);
+ g.strokeStyle=C.frame;g.lineWidth=16;g.strokeRect(24,24,W-48,H-48);
  const fc=document.createElement("canvas");fc.width=fc.height=16;drawFace(fc,p);g.imageSmoothingEnabled=false;g.fillStyle="#ffd23f";g.fillRect(76,96,272,272);g.drawImage(fc,84,104,256,256);
  const F=(sz,w=900)=>`${w} ${sz}px "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif`;
- g.fillStyle="#ffd23f";g.font=F(34,700);g.fillText(p.footEnd?"足球生涯卡":"足球生涯證書",392,140);
- g.fillStyle="#f4f1de";let ns=72;g.font=F(ns);while(g.measureText(p.name).width>620&&ns>36){ns-=4;g.font=F(ns)}g.fillText(p.name,392,226);
+ g.fillStyle=C.acc;g.font=F(34,700);g.fillText(p.footEnd?"足球生涯卡":"足球生涯證書",392,140);
+ g.fillStyle=C.fg;let ns=72;g.font=F(ns);while(g.measureText(p.name).width>620&&ns>36){ns-=4;g.font=F(ns)}g.fillText(p.name,392,226);
  g.font=F(34,500);g.fillText(`${p.c} · ${POS[p.pos]} · ${p.y0}–${p.y0+p.age}`,392,286);
  g.font=F(36);g.fillStyle="#ffd23f";g.fillRect(392,312,Math.min(600,g.measureText(p._title).width+56),58);g.fillStyle="#0f2a1a";g.fillText(p._title,420,354);
  const items=[["生涯評分",p._sc],["巔峰能力",Math.round(p.peak)],["出賽",p.apps],[p.pos=="GK"?"零封":"進球",p.pos=="GK"?p.cleans:p.goals],["助攻",p.assists],["冠軍",p.trophies.length],["個人獎項",p.awards.length],["國家隊",`${p.caps} 場`],["最高身價",eur(p.maxValue)],["最多粉絲",fansTxt(p.maxFans||0)],["宿敵",p.nemesis||(p.revenge?"已復仇":"—")],["之後",p.afterDetail||p.after||"—"]];
@@ -293,10 +293,16 @@ function cardCanvas(p){const W=1080,H=1350,cv=document.createElement("canvas");c
   if(g.measureText(t).width<=260){g.fillText(t,x+20,y+112);return}
   // 太長就拆成多行小字
   g.font=F(26,700);let line="",ly=y+80;for(const ch of t.replace(/，/g,"，\n")){if(ch=="\n"||g.measureText(line+ch).width>260){g.fillText(line,x+20,ly);ly+=32;line=ch=="\n"?"":ch}else line+=ch}if(line)g.fillText(line,x+20,ly)});
- g.fillStyle="#f4f1de";g.font=F(30,500);const full=p.clubsPlayed.join(" → ")||"沒有職業球隊";let cl=full;while(g.measureText("效力過："+cl+"…").width>920&&cl.length>4)cl=cl.slice(0,-1);g.fillText("效力過："+cl+(cl!==full?"…":""),76,1130);
+ g.fillStyle=C.fg;g.font=F(30,500);const full=p.clubsPlayed.join(" → ")||"沒有職業球隊";let cl=full;while(g.measureText("效力過："+cl+"…").width>920&&cl.length>4)cl=cl.slice(0,-1);g.fillText("效力過："+cl+(cl!==full?"…":""),76,1130);
  g.fillStyle="#ffd23f";g.font=F(40);const sr=starRank(p);g.fillText((sr?`同世代第 ${sr.rank} / ${sr.all.length} 名　`:"")+("🏆".repeat(Math.min(sr?8:12,p.trophies.length))||(sr?"":"踢過，就不後悔")),76,1200);
- g.fillStyle="#9fb5a3";g.font=F(26,500);g.fillText("足球員模擬器 · "+location.host+location.pathname,76,1270);return cv}
+ g.fillStyle=C.mut;g.font=F(26,500);g.fillText("足球員模擬器 · "+location.host+location.pathname,76,1270);return cv}
 // 生涯卡：先跳出預覽，再選下載、複製或分享（電腦版的分享選單沒有「儲存」）
+// ── 主題：auto（跟系統）→ 淺色 → 深色 輪流切換；圖片也跟著目前的主題 ──
+function themeNow(){const t=document.documentElement.dataset.theme;return t||(matchMedia&&matchMedia("(prefers-color-scheme: light)").matches?"light":"dark")}
+function applyTheme(){let t="auto";try{t=localStorage.getItem("fb-theme")||"auto"}catch{}if(t=="auto")delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=t;document.documentElement.dataset.resolved=themeNow();const b=$("themeBtn");if(b)b.textContent={auto:"🌓 自動",light:"☀️ 淺色",dark:"🌙 深色"}[t]}
+function cycleTheme(){let t="auto";try{t=localStorage.getItem("fb-theme")||"auto"}catch{}t={auto:"light",light:"dark",dark:"auto"}[t];try{localStorage.setItem("fb-theme",t)}catch{}applyTheme();toast({auto:"跟隨系統的深淺色",light:"淺色主題",dark:"深色主題"}[t])}
+// 圖片用的配色
+function IMG(){return themeNow()=="light"?{bg0:"#f6f8f0",bg1:"#dfe8d6",stripe:"#00000008",fg:"#1d2b20",mut:"#5a6b5d",acc:"#a36a00",line:"#00000022",frame:"#a36a00"}:{bg0:"#0f2a1a",bg1:"#050a06",stripe:"#ffffff07",fg:"#f4f1de",mut:"#a9c2ad",acc:"#ffd23f",line:"#ffffff22",frame:"#ffd23f"}}
 // ── 分享：圖片預覽 + 系統分享（IG、LINE）、下載、複製、LINE / FB 連結 ──
 const SITE="https://jackycheung0408.github.io/life-simulator/football/";
 function showShare(cv,fn,text){const url=cv.toDataURL("image/png"),enc=encodeURIComponent;
@@ -313,8 +319,8 @@ function playerCardCanvas(p){const W=1080,H=1080,cv=document.createElement("canv
  const tier=o>=85?["#1a1030","#b07cff","#e7d4ff","ICON"]:o>=75?["#2a2000","#ffd23f","#fff2b0","GOLD"]:o>=65?["#22282b","#c9d3d8","#f2f6f8","SILVER"]:["#2a1608","#c98a4b","#f0d0a8","BRONZE"];
  // 版面格線：外框 40、內容區 80～1000；卡片與右欄共用上緣 TOP、下緣 BOT
  const TOP=120,BOT=900,L=80,CW=470,RX=L+CW+70,RW=1000-RX;
- const bg=g.createLinearGradient(0,0,W,H);bg.addColorStop(0,"#0f2a1a");bg.addColorStop(1,"#050a06");g.fillStyle=bg;g.fillRect(0,0,W,H);
- g.fillStyle="#ffffff07";for(let i=0;i<W;i+=90)g.fillRect(i,0,45,H);g.strokeStyle="#ffd23f";g.lineWidth=10;g.strokeRect(36,36,W-72,H-72);
+ const C=IMG(),bg=g.createLinearGradient(0,0,W,H);bg.addColorStop(0,C.bg0);bg.addColorStop(1,C.bg1);g.fillStyle=bg;g.fillRect(0,0,W,H);
+ g.fillStyle=C.stripe;for(let i=0;i<W;i+=90)g.fillRect(i,0,45,H);g.strokeStyle=C.frame;g.lineWidth=10;g.strokeRect(36,36,W-72,H-72);
  // 左：盾牌卡片
  const cx=L,cy=TOP,cw=CW,ch=BOT-TOP,mid=cx+cw/2;g.save();g.beginPath();g.moveTo(cx+46,cy);g.lineTo(cx+cw-46,cy);g.lineTo(cx+cw,cy+56);g.lineTo(cx+cw,cy+ch-120);g.lineTo(mid,cy+ch);g.lineTo(cx,cy+ch-120);g.lineTo(cx,cy+56);g.closePath();
  const cg=g.createLinearGradient(cx,cy,cx+cw,cy+ch);cg.addColorStop(0,tier[2]);cg.addColorStop(.5,tier[1]);cg.addColorStop(1,tier[2]);g.fillStyle=cg;g.fill();g.lineWidth=10;g.strokeStyle="#050a06";g.stroke();g.clip();
@@ -329,15 +335,15 @@ function playerCardCanvas(p){const W=1080,H=1080,cv=document.createElement("canv
  ATTR.forEach((k,i)=>{const col=mid+(i%2?95:-95),y=cy+460+Math.floor(i/2)*66;g.textAlign="right";g.font=F(48);g.fillText(Math.round(p.a[k]),col-6,y);g.textAlign="left";g.font=F(28,700);g.fillText(FIFA[k],col+8,y)});
  g.textAlign="center";g.font=F(24,700);g.fillText(`逆足 ${"★".repeat(p.wf)}　花式 ${"★".repeat(p.sm)}`,mid,cy+655);
  // 右欄：標題 → 四列資訊 → 2×2 數據；上緣對齊卡片頂、數據底對齊卡片底
- g.textAlign="left";g.fillStyle="#ffd23f";g.font=F(34);g.fillText("足球員模擬器",RX,TOP+34);g.fillStyle="#a9c2ad";g.font=F(24,500);g.fillText("我的球員",RX,TOP+72);
- const line=y=>{g.fillStyle="#ffffff22";g.fillRect(RX,y,RW,2)};line(TOP+98);
+ g.textAlign="left";g.fillStyle=C.acc;g.font=F(34);g.fillText("足球員模擬器",RX,TOP+34);g.fillStyle=C.mut;g.font=F(24,500);g.fillText("我的球員",RX,TOP+72);
+ const line=y=>{g.fillStyle=C.line;g.fillRect(RX,y,RW,2)};line(TOP+98);
  const rows=[["球風",styleOf(p),1],["球隊",p.club||p.stage||"—"],["聯賽",p.clubObj?p.clubObj.lg:"—"],["年齡",`${p.age} 歲`]];
- rows.forEach(([k,v,big],i)=>{const y=TOP+150+i*102;g.fillStyle="#a9c2ad";g.font=F(24,500);g.fillText(k,RX,y);g.fillStyle=big?"#ffd23f":"#f4f1de";let sz=big?46:38;g.font=F(sz);while(g.measureText(String(v)).width>RW&&sz>22){sz-=2;g.font=F(sz)}g.fillText(String(v),RX,y+48)});
+ rows.forEach(([k,v,big],i)=>{const y=TOP+150+i*102;g.fillStyle=C.mut;g.font=F(24,500);g.fillText(k,RX,y);g.fillStyle=big?C.acc:C.fg;let sz=big?46:38;g.font=F(sz);while(g.measureText(String(v)).width>RW&&sz>22){sz-=2;g.font=F(sz)}g.fillText(String(v),RX,y+48)});
  line(TOP+560);
  const st=[["出賽",p.apps],[p.pos=="GK"?"零封":"進球",p.pos=="GK"?p.cleans:p.goals],["冠軍",p.trophies.length],["身價",p.club?eur(value(p)):"—"]];
- st.forEach(([k,v],i)=>{const x=RX+(i%2)*(RW/2),y=TOP+640+Math.floor(i/2)*120;g.fillStyle="#ffd23f";g.font=F(50);g.fillText(String(v),x,y);g.fillStyle="#a9c2ad";g.font=F(24,500);g.fillText(k,x,y+38)});
+ st.forEach(([k,v],i)=>{const x=RX+(i%2)*(RW/2),y=TOP+640+Math.floor(i/2)*120;g.fillStyle=C.acc;g.font=F(50);g.fillText(String(v),x,y);g.fillStyle=C.mut;g.font=F(24,500);g.fillText(k,x,y+38)});
  // 底部網址置中
- g.fillStyle="#ffffff22";g.fillRect(L,BOT+50,1000-L,2);g.fillStyle="#9fb5a3";g.textAlign="center";g.font=F(24,500);g.fillText("jackycheung0408.github.io/life-simulator/football",W/2,BOT+98);g.textAlign="left";return cv}
+ g.fillStyle=C.line;g.fillRect(L,BOT+50,1000-L,2);g.fillStyle=C.mut;g.textAlign="center";g.font=F(24,500);g.fillText("jackycheung0408.github.io/life-simulator/football",W/2,BOT+98);g.textAlign="left";return cv}
 function sharePlayer(){const p=P;if(!p||p.age<p.touchAge){toast("還沒開始踢球，等長大一點再匯出");return}const wasPaused=paused;paused=true;
  showShare(playerCardCanvas(p),`${p.name}-球員卡.png`,`我的球員 ${p.name}：${p.c}・${DPN[dpOf(p)]}，綜合 ${Math.round(ovr(p))}，球風「${styleOf(p)}」，${p.age} 歲在${p.club||p.stage}。來足球員模擬器養一個你的球員！`);
  const x=$("cpX");const old=x.onclick;x.onclick=()=>{old();paused=wasPaused}}
