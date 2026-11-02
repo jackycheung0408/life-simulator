@@ -1,0 +1,98 @@
+// 資料：國家、聯賽、球隊、能力公式、球員產生
+const $=id=>document.getElementById(id),R=Math.random,pick=a=>a[Math.floor(R()*a.length)];
+const wpick=(a,w)=>{let t=a.reduce((s,x)=>s+w(x),0),r=R()*t;for(const x of a){r-=w(x);if(r<=0)return x}return a[0]};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const gauss=()=>Math.sqrt(-2*Math.log(R()||1e-9))*Math.cos(2*Math.PI*R());
+let toastT;function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove("show"),2200)}
+
+// ── 國家：[名稱, 足球人口權重, 國家隊強度, 本國最高聯賽等級, 名字池] ──
+const NM={
+ 拉:{男:["Lucas","Gabriel","Matheus","Mateo","Santiago","Thiago","Rodrigo","Diego","Bruno","Enzo"],姓:["Silva","Santos","Fernández","Rodríguez","Gómez","Costa","Pereira","Martínez","Álvarez","Souza"]},
+ 歐:{男:["Luca","Marco","Hugo","Léo","Jonas","Noah","Paul","Antoine","Pablo","Kai"],姓:["Müller","Rossi","Dubois","García","Schmidt","Bernard","Romano","López","Weber","Martin"]},
+ 英:{男:["Jack","Harry","Oliver","George","Charlie","Callum","Mason","Declan","Jude","Kieran"],姓:["Smith","Walker","Taylor","Brown","Wilson","Davies","Evans","Hughes","Wright","Cole"]},
+ 非:{男:["Kwame","Sadio","Victor","Moussa","Samuel","Yaw","Ismaila","Chidi","Amadou","Musa"],姓:["Mensah","Diallo","Okafor","Traoré","Koné","Osei","Ndiaye","Eze","Camara","Adeyemi"]},
+ 亞:{男:["Takumi","Daichi","Min-jun","Ji-ho","Kaoru","Ritsu","Hyun-woo","Sho","Yuto","Seung-ho"],姓:["Tanaka","Kim","Suzuki","Lee","Sato","Park","Ito","Choi","Kubo","Son"]},
+ 中:{男:["Ahmed","Omar","Youssef","Karim","Hakim","Salem","Ali","Riyad","Hamza","Nabil"],姓:["Hassan","Benali","Al-Farsi","Mansour","Haddad","Ziyech","Saleh","Amrabat","Nasser","Hakimi"]},
+ 華:{男:["家豪","冠廷","承恩","宇軒","柏翰","子傑","彥廷","俊宏","志明","睿恩"],姓:["陳","林","黃","張","李","王","吳","劉","蔡","楊"]}};
+const COUNTRIES=[
+ ["巴西",120,88,3,"拉"],["阿根廷",70,89,3,"拉"],["英格蘭",65,86,5,"英"],["法國",60,88,4,"歐"],["西班牙",55,87,5,"歐"],["德國",55,85,5,"歐"],["義大利",45,83,5,"歐"],
+ ["葡萄牙",30,85,3,"歐"],["荷蘭",28,84,3,"歐"],["比利時",18,80,3,"歐"],["克羅埃西亞",10,81,2,"歐"],["烏拉圭",12,80,2,"拉"],["哥倫比亞",30,79,2,"拉"],["墨西哥",40,76,3,"拉"],
+ ["美國",40,75,3,"英"],["奈及利亞",45,74,1,"非"],["塞內加爾",20,77,1,"非"],["摩洛哥",25,79,2,"中"],["迦納",25,72,1,"非"],["日本",30,77,2,"亞"],["韓國",22,75,2,"亞"],
+ ["埃及",25,72,2,"中"],["沙烏地阿拉伯",15,68,3,"中"],["中國",30,60,2,"華"],["台灣",4,52,1,"華"]];
+// ── 真實機率（概估）：[每年男嬰數(萬), 該國職業球員數, 正在五大聯賽踢球的人數] ──
+// 職業生涯約 12 年、五大聯賽生涯約 8 年，換算成「同年出生的男孩中，每幾人有一人」
+const ODDS={巴西:[69,12000,110],阿根廷:[17,5000,90],英格蘭:[31,4000,300],法國:[36,3000,250],西班牙:[17,3500,300],德國:[36,3000,200],義大利:[20,3000,200],
+ 葡萄牙:[4.4,1500,70],荷蘭:[8.7,1200,60],比利時:[5.7,800,50],克羅埃西亞:[1.7,500,30],烏拉圭:[1.6,1500,25],哥倫比亞:[26,3000,25],墨西哥:[92,3000,10],
+ 美國:[185,1500,25],奈及利亞:[420,1500,35],塞內加爾:[28,600,40],摩洛哥:[33,900,40],迦納:[46,700,25],日本:[38,1800,20],韓國:[12,900,6],
+ 埃及:[113,2000,3],沙烏地阿拉伯:[31,700,.3],中國:[470,2000,1],台灣:[7,150,.05]};
+function realOdds(c){const [b,pro,t5]=ODDS[c]||[10,500,1],boys=b*1e4;return {boys,pro:Math.round(boys/(pro/12)),top5:Math.round(boys/(t5/8))}}
+function oneIn(n){return n>=1e6?`${(n/1e4/100).toFixed(n>=1e7?0:1)} 百萬人中 1 人`:n>=1e4?`${Math.round(n/1e4).toLocaleString()} 萬人中 1 人`:`${n.toLocaleString()} 人中 1 人`}
+const TOP5=["英格蘭超級聯賽","西班牙甲級聯賽","德國甲級聯賽","義大利甲級聯賽","法國甲級聯賽"];
+
+// ── 聯賽與俱樂部（真實名稱，僅作指稱；不使用隊徽與球衣）：[聯賽, 國家, 等級] ──
+const LEAGUES=[["英格蘭超級聯賽","英格蘭",5],["西班牙甲級聯賽","西班牙",5],["德國甲級聯賽","德國",5],["義大利甲級聯賽","義大利",5],["法國甲級聯賽","法國",4],
+ ["葡萄牙超級聯賽","葡萄牙",3],["荷蘭甲級聯賽","荷蘭",3],["巴西甲級聯賽","巴西",3],["阿根廷甲級聯賽","阿根廷",3],["美國職業聯賽","美國",3],["沙烏地職業聯賽","沙烏地阿拉伯",3],
+ ["英格蘭冠軍聯賽","英格蘭",4],["日本職業聯賽","日本",2],["韓國職業聯賽","韓國",2],["中國超級聯賽","中國",2],["墨西哥甲級聯賽","墨西哥",3],["台灣企業甲級聯賽","台灣",1],["西非職業聯賽","奈及利亞",1]];
+const CLUB_WORDS={英格蘭:["曼城","兵工廠","利物浦","切爾西","熱刺","紐卡索聯"],西班牙:["皇家馬德里","巴塞隆納","馬德里競技","塞維亞"],德國:["拜仁慕尼黑","多特蒙德","RB萊比錫","柏林聯合"],
+ 義大利:["國際米蘭","尤文圖斯","AC米蘭","拿坡里"],法國:["巴黎聖日耳曼","摩納哥","馬賽","里昂"],葡萄牙:["本菲卡","波圖"],荷蘭:["阿賈克斯","費耶諾德"],巴西:["佛朗明哥","帕梅拉斯","桑托斯"],
+ 阿根廷:["河床","博卡青年"],美國:["邁阿密國際","洛杉磯銀河","西雅圖海灣人"],沙烏地阿拉伯:["利雅德新月","吉達聯合"],日本:["橫濱水手","鹿島鹿角","大阪櫻花"],韓國:["蔚山HD","全北現代"],中國:["上海海港","山東泰山"],
+ 墨西哥:["美洲隊","蒙特雷"],台灣:["台北大同","台中Futuro","台南市","新北航源"],奈及利亞:["恩耶巴","卡諾支柱"]};
+// 下級聯賽：多數職業球員其實在這些聯賽踢球
+[["英格蘭甲級聯賽","英格蘭",3,["樸茨茅斯","布萊克浦","牛津聯","索爾福德城"]],["英格蘭乙級聯賽","英格蘭",2,["卡萊爾聯","克魯","沃爾索爾"]],
+ ["西班牙乙級聯賽","西班牙",3,["薩拉戈薩","希洪競技","奧維耶多"]],["德國乙級聯賽","德國",3,["漢堡","沙爾克04","杜塞道夫"]],["義大利乙級聯賽","義大利",3,["巴里","巴勒莫","桑普多利亞"]],["法國乙級聯賽","法國",2,["波爾多","聖埃蒂安","卡昂"]]]
+ .forEach(([lg,ct,tier,names])=>{LEAGUES.push([lg,ct,tier]);CLUB_WORDS[lg]=names});
+// 俱樂部：每個聯賽 2～6 隊，實力依聯賽等級上下浮動
+const CLUBS=[];LEAGUES.forEach(([lg,ct,tier])=>{(CLUB_WORDS[lg]||CLUB_WORDS[ct]||["城市聯"]).forEach((n,i)=>{if(tier==4&&ct=="英格蘭")n=["里茲聯","萊斯特城","伯恩利"][i]||n;if(CLUBS.some(c=>c.name==n))return;
+ const str={5:80,4:73,3:68,2:62,1:49}[tier]+(i==0?5:i==1?3:i==2?1:-(i-2));CLUBS.push({name:n,lg,ct,tier,str,pay:(tier==5?6:tier==4?2.5:tier==3?(ct=="沙烏地阿拉伯"?15:1.2):tier==2?.4:.05)*(str/80)})})});
+
+// ── 球員 ──
+let P=null,auto=false,paused=false,mult=1,secPerSeason=16,focusSel="",pendingSkip=false,toEnd=false;
+const POS={FW:"前鋒",MF:"中場",DF:"後衛",GK:"門將"};
+const ATTR=["速度","射門","傳球","盤帶","防守","體能"];
+const POSW={FW:{速度:.2,射門:.35,傳球:.1,盤帶:.25,防守:0,體能:.1},MF:{速度:.12,射門:.12,傳球:.35,盤帶:.2,防守:.11,體能:.1},DF:{速度:.18,射門:0,傳球:.12,盤帶:.05,防守:.5,體能:.15},GK:{速度:.05,射門:0,傳球:.15,盤帶:0,防守:.6,體能:.2}};
+function ageCap(a){return a<=8?20+a*2:a<=12?36+(a-8)*3:a<=17?48+(a-12)*5:a<=21?73+(a-17)*4:a<=27?89+(a-21)*1.6:99}
+function capAttrs(p){const cap=ageCap(p.age),lim=Math.min(95,Math.min(cap,p.pot)+4);
+ // 依位置決定每項卡面能力的上限：主要能力最高、次要的低一些、用不到的明顯較低（參考 FIFA 球星的能力分布）
+ const w=DPW[dpOf(p)],rel=ATTR.map(k=>[k,Object.keys(faceMap(p,k)).reduce((t,x)=>t+(w[x]||0),0)]).sort((a,b)=>b[1]-a[1]);
+ rel.forEach(([k],i)=>{const m=i<2?lim:i<4?lim-6:lim-14;p.a[k]=Math.min(p.a[k],m)});
+ let o=ovr(p);if(o>cap)ATTR.forEach(k=>p.a[k]-=(o-cap))}
+// ── FIFA 式能力：細項能力 → 卡面六大數值；綜合能力依「細分位置」加權 ──
+const SUBS=["加速","衝刺速度","射術","射門力量","遠射","跑位","視野","短傳","長傳","傳中","盤帶技術","控球","敏捷","反應","盯人","搶斷","攔截","頭球","強壯","耐力","彈跳","撲救","手型","門將反應","門將站位"];
+// 卡面數值的組成（參考 FIFA：PAC、SHO、PAS、DRI、DEF、PHY）
+const FACE={速度:{加速:.45,衝刺速度:.55},射門:{射術:.45,射門力量:.2,遠射:.2,跑位:.15},傳球:{短傳:.35,視野:.25,傳中:.2,長傳:.2},盤帶:{盤帶技術:.5,控球:.35,敏捷:.15},防守:{盯人:.35,搶斷:.35,攔截:.2,頭球:.1},體能:{強壯:.55,耐力:.3,彈跳:.15}};
+const GKFACE={撲救:.25,手型:.25,門將反應:.25,門將站位:.25};
+// 細分位置的綜合能力權重（參考 FIFA 各位置的 OVR 公式）
+const DPW={ST:{射術:18,跑位:13,頭球:10,射門力量:10,反應:8,盤帶技術:7,控球:10,遠射:3,加速:4,衝刺速度:5,強壯:5,短傳:5,視野:2},
+ W:{傳中:9,盤帶技術:16,控球:14,短傳:9,遠射:4,加速:7,衝刺速度:6,敏捷:3,反應:7,視野:6,射術:10,跑位:9},
+ CAM:{短傳:16,控球:15,盤帶技術:13,視野:14,跑位:9,射術:7,遠射:5,反應:7,加速:4,敏捷:3,射門力量:4,長傳:3},
+ CM:{短傳:17,長傳:13,視野:13,控球:14,盤帶技術:7,反應:8,攔截:5,跑位:6,搶斷:5,耐力:6,遠射:4,射術:2},
+ CDM:{短傳:14,長傳:10,攔截:14,盯人:9,搶斷:12,控球:10,反應:7,視野:4,強壯:10,耐力:6,頭球:4},
+ FB:{加速:5,衝刺速度:7,耐力:8,反應:8,控球:8,短傳:7,傳中:9,頭球:4,攔截:12,盯人:8,搶斷:11,盤帶技術:4,強壯:4,長傳:5},
+ CB:{頭球:10,盯人:14,搶斷:31,攔截:13,反應:5,強壯:10,控球:4,短傳:5,衝刺速度:2,彈跳:3},
+ GK:{撲救:24,手型:24,門將反應:24,門將站位:24,長傳:4}};
+const DPN={ST:"中鋒",W:"邊鋒",CAM:"攻擊中場",CM:"中場",CDM:"防守中場",FB:"邊後衛",CB:"中後衛",GK:"門將"},DP2POS={ST:"FW",W:"FW",CAM:"MF",CM:"MF",CDM:"MF",FB:"DF",CB:"DF",GK:"GK"};
+function dpOf(p){return p.dp&&DP2POS[p.dp]==p.pos?p.dp:({FW:"ST",MF:"CM",DF:"CB",GK:"GK"}[p.pos])}
+function setDp(p,dp){p.dp=dp;p.pos=DP2POS[dp]}
+function faceMap(p,k){return p.pos=="GK"&&k=="防守"?GKFACE:FACE[k]}
+// p.a 是卡面六大數值的「窗口」：讀取時由細項計算；加減時平均分攤到組成它的細項
+function attachA(p){p.a=new Proxy({},{get:(_,k)=>{const m=faceMap(p,k);return m?Object.entries(m).reduce((t,[x,w])=>t+p.s[x]*w,0):undefined},
+ set:(_,k,v)=>{const m=faceMap(p,k);if(!m)return true;const d=v-p.a[k];for(const x in m)p.s[x]=clamp(p.s[x]+d*(.75+R()*.5),1,99);p.s.反應=clamp(p.s.反應+d*.12,1,99);return true},
+ ownKeys:()=>ATTR,getOwnPropertyDescriptor:()=>({enumerable:true,configurable:true})});return p}
+function ovr(p){const w=DPW[dpOf(p)];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return Math.round(t/sw)}
+function bestDp(p){return Object.keys(DPW).filter(d=>d!="GK").sort((a,b)=>{const o=x=>{const w=DPW[x];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return t/sw};return o(b)-o(a)})[0]}
+function value(p){const o=ovr(p),agef=p.age<21?1.6:p.age<25?1.3:p.age<29?1:p.age<32?.55:.2;const mk=p.clubObj?{5:1,4:.55,3:.3,2:.2,1:.07}[p.clubObj.tier]:.05,pf=1+clamp(((p.pop??50)-50)/250,-.15,.2);return Math.max(.005,.25*Math.pow(1.165,o-50)*agef*mk*pf)} // 身價依聯賽等級，參考 Transfermarkt 區間：台灣企甲約 €2.5～20 萬、日職約 €30～100 萬、英冠約 €100～500 萬、英超平均約 €3,000 萬 // 百萬歐元：能力 80 約 €25M，90 約 €110M
+function eur(m){return m>=1?`€${m>=100?Math.round(m):m.toFixed(1)}M`:m>=.001?`€${Math.round(m*1000)}K`:`€${Math.round(m*1e6).toLocaleString()}`}
+function newPlayer(world,pos){
+ const c=world=="tw"?COUNTRIES.find(x=>x[0]=="台灣"):COUNTRIES.find(x=>x[0]==world)||wpick(COUNTRIES,x=>x[1]),nm=NM[c[4]];
+ // 天賦：多數認真踢球的孩子上限在 55～70；能到 80 以上的是少數
+ const talent=clamp(38+gauss()*9+(c[2]-75)*.2,30,92),pot=clamp(talent+6+Math.abs(gauss())*9,40,99);
+ const potCap=c[2]<60?62+Math.abs(gauss())*6:c[2]<72?72+Math.abs(gauss())*7:99;
+ const position=pos=="?"?pick(["FW","MF","DF","GK"]):pos,a=null,sub={};SUBS.forEach(k=>sub[k]=clamp(3+R()*3,1,8));
+ // 家庭：爸媽的工作、是不是球迷、有沒有哥哥姊姊——決定幾歲第一次碰到足球、家裡能不能支持
+ const JOB=["工廠作業員","司機","店員","老師","工程師","小吃店老闆","農民","護理師","公務員","業務"],cls=Math.floor(R()*5),fan=R()<(c[2]>=80?.6:.3),sib=R()<.5;
+ const fam={dad:pick(JOB),mom:pick(JOB),fan,sib,cls};
+ const hT=({拉:175,歐:181,英:179,非:177,亞:172,中:175,華:173}[c[4]])+gauss()*6.5; // 成年身高目標（男性）
+ return attachA({s:sub,wf:wpick([1,2,3,4,5],x=>[5,30,45,15,5][x-1]),sm:wpick([1,2,3,4,5],x=>[10,35,35,15,5][x-1]),dp:({FW:"ST",MF:"CM",DF:"CB",GK:"GK"}[position]),name:c[4]=="華"?pick(nm.姓)+pick(nm.男):pick(nm.男)+" "+pick(nm.姓),c:c[0],cs:c[2],ctier:c[3],region:c[4],pos:position,dreamPos:position,talent,pot:Math.min(pot,potCap),a,age:0,y0:2026,cls,fam,h:50,hT,bloom:gauss()*.9,touchAge:fan||sib?3+Math.floor(R()*2):4+Math.floor(R()*3),grade:55+R()*20,
+  club:null,stage:"嬰兒",money:0,fame:0,morale:60,health:100,caps:0,intlGoals:0,apps:0,goals:0,assists:0,cleans:0,trophies:[],awards:[],injuries:0,seasons:[],ovrHist:[],log:[],alive:true,retired:false,contract:0,wage:0,partner:null,kids:0,after:null,clubsPlayed:[],peak:0,maxValue:0});
+}
+function say(t,hi){const p=document.createElement("p");if(hi)p.className="hi";p.innerHTML=`<span class="y">${P.age}歲</span>${t}`;const L=$("log");L.prepend(p);while(L.children.length>150)L.lastChild.remove();P.log.push([P.age,t,!!hi])} // 畫面只留最近 150 則，完整紀錄在報表的生平
