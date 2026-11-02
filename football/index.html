@@ -40,11 +40,13 @@ button.on{background:var(--y);color:var(--ink)}
 #log{max-height:300px;overflow:auto;background:#0a170e;border:3px solid var(--ink);padding:8px 12px}
 #log p{margin:4px 0;font-size:14px}#log p.hi{color:var(--y);border-left:4px solid var(--y);padding-left:6px}#log .y{color:var(--mut);margin-right:6px}
 /* 抉擇 */
-#modal{position:fixed;inset:0;background:#000a;display:flex;align-items:flex-end;justify-content:center;z-index:50}
-#modal .sheet{background:var(--card);border:4px solid var(--ink);box-shadow:inset 0 0 0 3px var(--y);width:100%;max-width:620px;padding:16px;max-height:88vh;overflow:auto;animation:up .25s}
-@keyframes up{from{transform:translateY(40px);opacity:0}}
+#modal{position:fixed;inset:0;background:#030805e6;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+@media(max-width:640px){#modal{align-items:flex-end;padding:0}}
+#modal .sheet{background:var(--card);border:4px solid var(--ink);box-shadow:inset 0 0 0 3px var(--y);width:100%;max-width:620px;padding:20px;max-height:88vh;overflow:auto;animation:up .2s ease-out;box-shadow:inset 0 0 0 3px var(--y),0 20px 60px #000}
+#modal h2{font-size:20px;line-height:1.45;margin:12px 0 6px}#mctx{color:var(--mut);font-size:12px;margin-left:8px}
+@keyframes up{from{transform:translateY(24px)}}
 .tag{display:inline-block;background:var(--y);color:var(--ink);font-weight:800;font-size:12px;padding:4px 8px}
-.opt{display:block;width:100%;text-align:left;margin:8px 0 0;background:#1f4129}.opt small{display:block;color:var(--mut);font-size:12px}
+.opt{display:block;width:100%;text-align:left;margin:10px 0 0;padding:12px 14px;background:#1f4129;font-size:16px;font-weight:700;border-left:6px solid var(--line)}.opt:hover:not([disabled]){background:#285434;border-left-color:var(--y)}.opt.picked{border-left-color:var(--y);background:#3a5a20}.opt small{display:block;color:var(--mut);font-size:12.5px;font-weight:400;margin-top:3px}.opt[disabled]:not(.picked){opacity:.45}
 .opt.picked{background:var(--y);color:var(--ink)}.opt.picked small{color:var(--ink)}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--y);color:var(--ink);border:3px solid var(--ink);padding:8px 14px;font-weight:700;z-index:60;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw}
 #toast.show{opacity:1}
@@ -179,7 +181,7 @@ button.on{background:var(--y);color:var(--ink)}
 <p><button class="pri" onclick="location.reload()">再活一次</button> <button id="share">📣 分享文字</button> <button id="cardImg">🖼 存生涯卡圖片</button></p>
 </section>
 </div>
-<div id="modal" class="hide"><div class="sheet"><span class="tag" id="mtag"></span><div id="choice"></div></div></div>
+<div id="modal" class="hide"><div class="sheet"><span class="tag" id="mtag"></span><span id="mctx"></span><div id="choice"></div></div></div>
 <div id="toast"></div>
 
 <script>
@@ -285,7 +287,7 @@ function say(t,hi){const p=document.createElement("p");if(hi)p.className="hi";p.
 function ask(q,opts,info){
  const avail=opts.filter(o=>!o[3]||o[3]());
  if(auto||toEnd){const o=pick(avail.length?avail:opts);say(`${q} → ${o[0]}`);o[1]();return Promise.resolve()}
- return new Promise(res=>{$("mtag").textContent=`${P.age} 歲 · ${P.y0+P.age} 年`;$("modal").classList.remove("hide");
+ return new Promise(res=>{$("mtag").textContent=`${P.age} 歲 · ${P.y0+P.age} 年`;$("mctx").textContent=P.retired?"退休後":P.club?`${P.club}${P.phase?" · "+P.phase:""}`:P.stage||"";$("modal").classList.remove("hide");
   $("choice").innerHTML=`<h2 style="margin-top:10px">${q}</h2>${info?`<p class="mut">${info}</p>`:""}`+opts.map((o,i)=>{const ok=!o[3]||o[3]();return `<button class="opt" data-i="${i}" ${ok?"":"disabled"}>${o[0]}${o[2]?`<small>${o[2]}</small>`:""}</button>`}).join("");
   $("choice").querySelectorAll(".opt").forEach(b=>b.onclick=()=>{const o=opts[b.dataset.i],before=ovr(P);b.classList.add("picked");$("choice").querySelectorAll(".opt").forEach(x=>x.disabled=true);
    say(`${q} → ${o[0]}`);o[1]();setTimeout(()=>{$("modal").classList.add("hide");render();const d=ovr(P)-before;toast(d?`${o[0]}：能力 ${d>0?"+":""}${d}`:`選擇了「${o[0]}」`);res()},380)})});
