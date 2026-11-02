@@ -113,6 +113,7 @@ button.on{background:var(--y);color:var(--ink)}
 @keyframes flip{0%{transform:rotateY(90deg) scale(.7);filter:brightness(3)}60%{transform:rotateY(-8deg) scale(1.08)}100%{transform:none}}
 .linkbtn{background:none;border:0;box-shadow:none;color:var(--y);text-decoration:underline;padding:0 4px;font-size:13px}
 .plan-warn{margin-top:6px;padding:6px 8px;border:2px solid var(--ac);color:var(--fg);font-size:13px;background:#3a1a1a}
+.mgr{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:8px}.mg{margin:0;text-align:left;padding:8px 10px}.mg b{display:block;font-size:14px}.mg small{display:block;font-size:12px;color:var(--mut)}
 </style></head><body><div class="wrap">
 
 <!-- 首頁 -->
@@ -158,6 +159,7 @@ button.on{background:var(--y);color:var(--ink)}
 <div class="card"><div class="grid" id="stats"></div></div>
 <div class="card" id="planCard"><h2 id="planTitle">育成計劃・每週訓練表</h2><div id="focus"></div><div class="mut" id="focusTip" style="font-size:13px"></div></div>
 
+<div class="card" id="mgrCard"><h2>生涯管理</h2><div class="mut" style="font-size:13px">由你主動決定。每項每個球季可以用一次，按下後遊戲會暫停讓你處理。</div><div id="mgr" class="mgr"></div></div>
 <div class="card"><h2>紀錄</h2><div id="log"></div></div>
 <div class="card"><h2>生涯數據與報表</h2><div class="kstrip" id="career"></div><div id="ovrChart" class="hide"></div><div id="reports"></div></div>
 </section>
@@ -699,7 +701,7 @@ async function youthYear(minutes){
 }
 async function national(rating){
  const p=P,need=Math.max(55,p.cs-4);
- if(ovr(p)>=need&&rating>=6.3&&p.role!="預備隊"&&p.age>=18){const g=p.pos=="FW"?Math.round(R()*4*Math.max(0,(ovr(p)-60)/30)):p.pos=="MF"?Math.round(R()*1.5):0;const caps=4+Math.round(R()*6);
+ if(!p.intlRetired&&ovr(p)>=need&&rating>=6.3&&p.role!="預備隊"&&p.age>=18){const g=p.pos=="FW"?Math.round(R()*4*Math.max(0,(ovr(p)-60)/30)):p.pos=="MF"?Math.round(R()*1.5):0;const caps=4+Math.round(R()*6);
   if(!p.caps)say(`第一次入選${p.c}國家隊！`,1);p.caps+=caps;p.intlGoals+=g;(p.intl=p.intl||[]).push({y:p.y0+p.age,age:p.age,caps,g});p.fame+=caps*.5;
   const y=p.y0+p.age;
   if(y%4==2){const strength=p.cs+(ovr(p)-p.cs)*.15;let stage=strength>=86?pick(["八強","四強","亞軍","冠軍","十六強"]):strength>=80?pick(["小組賽","十六強","八強","四強"]):strength>=72?pick(["小組賽","小組賽","十六強"]):"沒有晉級會內賽";
@@ -725,11 +727,11 @@ async function transferWindow(rating,share){
 async function lifeOffPlaceholder(){}
 // 合約還沒到期也可能被挖角或被賣掉
 async function midWindow(st,role){const p=P,c=p.clubObj,o=ovr(p),hot=st.apps>8&&(st.goals+st.assists)/Math.max(1,st.apps)>.35;
- const interest=(hot?.35:.08)+.08*T(p,"媒體寵兒")+(rel(p,"agent")-50)/400;
+ const interest=(hot?.35:.08)+(p.releaseClause?.12:0)+.08*T(p,"媒體寵兒")+(rel(p,"agent")-50)/400;
  if((role=="替補"||role=="預備隊")&&R()<.18){const to=poolFor(p).filter(x=>x.name!=c.name&&x.str<=o+4&&x.str>=o-8).sort(()=>R()-.5)[0];if(to){const fee=value(p)*(.6+R()*.4);
    await ask(`冬季轉會窗：${c.name}已經接受${to.name}的報價，準備把你賣掉`,[["接受，去新球隊找出路",()=>{p._fee=fee;say(`被${c.name}賣到${to.name}，轉會費 ${eur(fee)}。`,1);sign(to,3)},"上場機會↑"],["拒絕轉會，留下來爭取",()=>{p.morale-=6;if(R()<.5){p.contract=Math.min(p.contract,1);say("拒絕轉會後被教練冷凍。")}},"可能被冷凍"]],"球隊覺得你在這裡沒有未來");return}}
  if(R()<interest){const to=poolFor(p).filter(x=>x.name!=c.name&&x.str>c.str&&x.str<=o+6).sort(()=>R()-.5)[0];if(!to)return;const fee=value(p)*(1.2+R()*.8);
-  await ask(`冬季轉會窗：${to.name}對你提出 ${eur(fee)} 的報價`,[["要求球隊放人",()=>{if(R()<.6){p._fee=fee;say(`${c.name}同意放人，以 ${eur(fee)} 轉會到${to.name}。`,1);p.fame+=fee*.2;sign(to,4)}else{p.morale-=4;say(`${c.name}拒絕放人，說你還有合約在身。`)}},"球隊不一定放"],["留下來完成這個賽季",()=>{p.morale+=2},"球迷好感↑"],["叫經紀人用報價談加薪",()=>{p.wage*=1.15;p.contract+=1;say(`用挖角報價談成加薪，年薪 ${eur(p.wage)}。`)},"年薪↑"]],"合約還沒到期，但其他球隊還是可以出價挖角")}}
+  await ask(`冬季轉會窗：${to.name}對你提出 ${eur(fee)} 的報價`,[["要求球隊放人",()=>{if(R()<(p.releaseClause?.9:.6)){p._fee=fee;say(`${c.name}同意放人，以 ${eur(fee)} 轉會到${to.name}。`,1);p.fame+=fee*.2;sign(to,4)}else{p.morale-=4;say(`${c.name}拒絕放人，說你還有合約在身。`)}},"球隊不一定放"],["留下來完成這個賽季",()=>{p.morale+=2},"球迷好感↑"],["叫經紀人用報價談加薪",()=>{p.wage*=1.15;p.contract+=1;say(`用挖角報價談成加薪，年薪 ${eur(p.wage)}。`)},"年薪↑"]],"合約還沒到期，但其他球隊還是可以出價挖角")}}
 async function seasonCard(s){const p=P;if(auto||toEnd)return;
  const cell=(k,v)=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`;
  return new Promise(res=>{$("mtag").textContent=`${s.y} 球季總結 · ${s.age} 歲`;$("modal").classList.remove("hide");
@@ -744,7 +746,7 @@ async function lifeOff(){
  if(p.money>1&&R()<.08)await ask("經紀人推薦一個投資機會",[["投一大筆到餐廳生意",()=>{const r=R()<.4?2:.3;p.money*=r>1?1.3:.75;say(r>1?"餐廳生意很好，多了一筆收入。":"餐廳經營不善，賠了不少。")},"有賺有賠"],["買房子給爸媽",()=>{p.money*=.85;p.morale+=6;say("買了一間房子送給爸媽。",1)},"心情↑"],["存起來",()=>{}]]);
 }
 async function retireCheck(){
- const p=P,o=ovr(p);
+ const p=P,o=ovr(p);if(p.lastSeason){retire("踢完最後一季，在全場起立鼓掌中退休。");return}
  if(p.age>=40||(p.age>=24&&o<45)){retire("身體已經跟不上，宣布退休。");return}
  if((p.age>=33+T(p,"會保養")+T(p,"自律")&&R()<.35)||(p.age>=30&&o<p.clubObj.str-12))await ask(`${p.age} 歲，要繼續踢下去嗎？`,[["再踢一季",()=>{},"能力會持續下滑"],["退休，留下美好的回憶",()=>retire("宣布退休，向球迷告別。"),""],["到美國或沙烏地踢最後幾年",()=>{const c=pick(poolFor(P).filter(x=>x.ct=="沙烏地阿拉伯"||x.ct=="美國"));sign(c,2)},"收入高 · 競爭低"]]);
 }
@@ -810,7 +812,7 @@ async function playSeasonVisual(apps,goals){
   $("sFill").style.width=t*100+"%";drawPitch(t,g2)}
 }
 async function quietYear(){if(toEnd||P.retired)return;const total=secPerSeason*(P.retired?90:P.age<17?400:300);let w=0,last=performance.now();while(w<total){await new Promise(r=>setTimeout(r,50));const now=performance.now();if(!paused)w+=(now-last)*mult;last=now;if(pendingSkip||toEnd)w=total;$("sFill").style.width=Math.min(100,w/total*100)+"%";if(P.age<13)$("ticker").textContent=P.age<P.touchAge?`${P.age} 歲，還沒碰過足球`:`${P.age} 歲 · ${P.stage} · 身高 ${Math.round(P.h)} 公分`;drawPitch(Math.min(1,w/total),0)}}
-function render(){
+function render(){try{renderMgr()}catch(e){}
  const p=P,o=ovr(p);$("ovr").textContent=p.age<p.touchAge?"??":Math.round(o);$("pos").textContent=p.age<11&&!(p.done&&p.done.pos)?"—":dpOf(p);$("nm").textContent=p.name.split(" ").pop();$("age").textContent=p.age;
  $("fut").className="fut"+(o>=75?"":o>=65?" silver":" bronze");$("who").textContent=`${p.name}（${POS[p.pos]}）`;
  $("where").textContent=p.retired?`已退休 · ${p.after||""}`:p.club?`${p.club} · ${p.clubObj.lg} · 合約剩 ${Math.max(0,p.contract)} 年`:`${p.c} · ${p.stage}`;
@@ -910,6 +912,40 @@ function achWall(){const st=achStore();let pts=0;const max=ACH.length*4;
  const html=ACH.map(([n,d,f,th])=>{const v=st[n]||0,t=tierOf(v,th);pts+=t;const nx=th[t]??null,prev=t?th[t-1]:0,pct=nx==null?100:Math.min(100,(v-prev)/(nx-prev)*100);
   return `<div class="ach t${t}"><b>${t?TIER[t-1].split(" ")[0]:"🔒"} ${n}</b><span>${d}</span><div class="ab"><i style="width:${pct}%"></i></div><small>${nx==null?"已達最高級":`最佳 ${v}　下一級 ${nx}`}</small></div>`}).join("");
  return `<div class="mut">成就點數 ${pts} / ${max}（每項最高 4 級）</div><div class="achs">${html}</div>`}
+
+// ── 生涯管理：球員主動出擊 ──
+const MGR=[
+ ["要求轉會","主動請經紀人找新球隊",p=>p.club&&!p.loanTo,async p=>{const o=ovr(p),c=p.clubObj,ag=rel(p,"agent");
+   const pref=await new Promise(res=>ask("想去什麼樣的球隊？",[["更強的球隊，挑戰自己",()=>res("up")],["能固定先發的球隊",()=>res("start")],["薪水最高的球隊",()=>res("pay")],["回到家鄉",()=>res("home")]]));
+   let pool=poolFor(p).filter(x=>x.name!=c.name);
+   pool=pref=="up"?pool.filter(x=>x.str>c.str&&x.str<=o+3+(ag-50)/10):pref=="start"?pool.filter(x=>x.str<=o&&x.str>=o-8):pref=="pay"?pool.sort((a,b)=>wageOf(b,p)-wageOf(a,p)).filter(x=>x.str<=o+4).slice(0,6):pool.filter(x=>x.ct==p.c&&x.str<=o+6);
+   pool=pool.sort(()=>R()-.5).filter(()=>R()<.45+(ag-50)/150+p.fame/600).slice(0,3);
+   rel(p,"coach",-8);if(!pool.length){say("經紀人問了一圈，沒有球隊願意接手。教練知道你想走，關係變差了。");return}
+   await ask("經紀人帶回了幾份報價",pool.map(x=>{const fee=value(p)*(.8+R()*.5);return [`轉會到${x.name}（${x.lg}）`,()=>{p._fee=fee;say(`主動要求轉會，以 ${eur(fee)} 加盟${x.name}。`,1);sign(x,3)},`實力 ${x.str} · ${roleOf(p,x)} · 年薪約 ${eur(wageOf(x,p))}`]}).concat([["還是留下來",()=>{p.morale-=2},"教練已經知道你想走"]]))}],
+ ["談加薪","找球隊重談合約",p=>p.club,async p=>{const ag=rel(p,"agent"),c=p.clubObj,base=wageOf(c,p);
+   await ask(`想怎麼談？（目前年薪 ${eur(p.wage)}，市場行情約 ${eur(base)}）`,[
+    ["要求加薪三成，不然不續約",()=>{if(R()<.3+(ag-50)/150+(ovr(p)-c.str)/40){p.wage*=1.3;p.contract=Math.max(p.contract,2);say(`球隊讓步，年薪加到 ${eur(p.wage)}。`,1)}else{rel(p,"coach",-6);p.morale-=4;say("球隊拒絕，還把你放上轉會名單。");p.contract=Math.min(p.contract,1)}},"高風險"],
+    ["用延長合約換小幅加薪",()=>{p.wage=Math.max(p.wage*1.1,base*.95);p.contract+=2;say(`延長兩年，年薪 ${eur(p.wage)}。`)},"穩健"],
+    ["要求加入解約金條款",()=>{p.releaseClause=1;say("合約加入解約金條款，強隊報價時比較容易放人。")},"轉會更自由"]])}],
+ ["申請外租","想去小球隊拿上場時間",p=>p.club&&p.role&&p.role!="主力"&&!p.loanTo,async p=>{const o=ovr(p),c=p.clubObj,lo=poolFor(p).filter(x=>x.str<=o+3&&x.str>=o-8&&x.name!=c.name).sort(()=>R()-.5).slice(0,3);
+   if(!lo.length){say("找不到願意接手的球隊。");return}
+   await ask("有這些球隊願意租借你一季",lo.map(x=>[`租借到${x.name}`,()=>{p.loanFrom=c;p.loanTo=x;p.club=x.name;p.clubObj=x;if(!p.clubsPlayed.includes(x.name))p.clubsPlayed.push(x.name);say(`主動申請外租到${x.name}。`,1)},`${x.lg} · ${roleOf(p,x)}`]).concat([["算了",()=>{}]]))}],
+ ["換經紀人","挑一位新的經紀人",p=>p.age>=17,async p=>{const c=[["國際大牌經紀公司",80+R()*15,.1],["業界口碑不錯的經紀人",60+R()*20,.06],["剛出道的年輕經紀人",35+R()*40,.03]];
+   await ask(`目前的經紀人：${p.rel?.agent?.name||"沒有"}（可信度 ${rel(p,"agent")}）`,c.map(([n,q,cut])=>[n,()=>{meet(p,"agent",null,Math.round(q));p.agentCut=cut;say(`換了新經紀人（${n}）。`)},`抽成 ${Math.round(cut*100)}% · 能力約 ${Math.round(q/10)*10}`]).concat([["不換了",()=>{}]]))}],
+ ["經營個人品牌","社群、代言、公益",p=>p.age>=16,async p=>{await ask("想怎麼經營自己？",[
+    ["開社群頻道，分享訓練日常",()=>{p.fame+=4+R()*4;tag(p,"媒體寵兒");p.fat=Math.min(100,(p.fat||0)+5)},"名氣↑ 有點分心"],
+    ["成立家鄉的兒童足球基金會",()=>{p.money-=.05;p.fame+=5;tag(p,"正直");say("成立兒童足球基金會，幫助家鄉的孩子。",1)},"花錢 · 形象↑",()=>p.money>.05],
+    ["接一個大品牌代言",()=>{const m=.05+p.fame*.003;p.money+=m;p.fame+=2;say(`簽下代言，收入 ${eur(m)}。`)},"收入↑",()=>p.fame>30],
+    ["低調，只專心踢球",()=>{p.a.體能+=.8},""]])}],
+ ["國家隊","主動爭取或退出國家隊",p=>p.age>=18&&p.club,async p=>{await ask(p.caps?`你已經代表${p.c}出賽 ${p.caps} 場`:`還沒入選${p.c}國家隊`,p.caps?[
+    ["宣布退出國家隊，專心俱樂部",()=>{p.intlRetired=1;p.fat=Math.max(0,(p.fat||0)-10);say("宣布從國家隊退休。",1)},"不再入選，疲勞↓"],["繼續為國家而戰",()=>{p.morale+=2},""]]:[
+    ["公開表態想為國家效力",()=>{p.fame+=1;if(R()<.4)p.cs=Math.max(40,p.cs-3)},"國家隊門檻略降"],["考慮歸化別的國家隊",()=>{if(p.age<=27){p.cs=Math.max(p.cs,70);say("取得第二國籍，可以代表新的國家隊。",1)}},"",()=>p.age<=27],["不急",()=>{}]])}],
+ ["宣布最後一季","這季踢完就退休",p=>p.club&&p.age>=28&&!p.lastSeason,async p=>{await ask("確定這是最後一季嗎？",[["確定，好好告別",()=>{p.lastSeason=p.age;p.fame+=5;say("宣布這是職業生涯的最後一季，各地球迷都來送行。",1)},"季末退休"],["再想想",()=>{}]])}],
+];
+function renderMgr(){const el=$("mgr");if(!el||!P)return;const p=P;p.mgrUsed=p.mgrUsed||{};
+ $("mgrCard").classList.toggle("hide",p.age<16||p.retired||!!p.footEnd);
+ el.innerHTML=MGR.map(([n,d,ok],i)=>{const used=p.mgrUsed[n]===p.age,can=ok(p)&&!used;return `<button class="mg" data-i="${i}" ${can?"":"disabled"}><b>${n}</b><small>${used?"本季已使用":d}</small></button>`}).join("");
+ el.querySelectorAll(".mg").forEach(b=>b.onclick=async()=>{const [n,,,fn]=MGR[b.dataset.i];paused=true;p.mgrUsed[n]=p.age;await fn(p);paused=false;render();renderMgr()})}
 
 // ── 主迴圈 ──
 async function loop(){
