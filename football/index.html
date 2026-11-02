@@ -363,14 +363,30 @@ async function bigMatch(kind,oppStr,myStr){
  p.bigGames=(p.bigGames||0)+1;if(res=="勝"){p.bigWins=(p.bigWins||0)+1;if(st.goals+st.assists>0&&R()<.3)potUp(p,1+R(),"大賽中的亮眼表現讓你找到新的自信");p.fame+=kind.fame||3;p.morale+=4;rel(p,"coach",3)}else p.morale-=3;
  return {res,goals:st.goals,assists:st.assists};
 }
+// ── 關鍵時刻：依位置隨機抽一個情境，每個選項顯示成功率（看對應的細項能力、疲勞、特質）──
 async function keyMoment(st){
- const p=P,a=p.a;let q,opts;
- const win=(chance,good,bad,fx)=>()=>{const ok=R()<clamp(.02*((rel(p,"mate")-50)/25)+chance+(p.edge?.15:0)+(p.wf-3)*.03+(p.sm-3)*.03+.04*T(p,"球商")+.03*T(p,"拚命"),.05,.95);p.edge=0;p._ok=ok;say(ok?good:bad,ok);if(ok){fx&&fx();p.morale+=3;p.fame+=2}else p.morale-=2;toast(ok?"成功！":"沒有成功")};
- if(p.pos=="GK"){q="比賽最後一分鐘，對手獲得 12 碼罰球";opts=[["撲向左邊",win(.3+a.防守/400,"你撲向左邊，把球擋了出去！全場沸騰。","球進了，對手射向另一邊。",()=>st.cleans++),"猜方向"],["撲向右邊",win(.3+a.防守/400,"你飛身撲右，指尖碰到球，救了下來！","對手射向左邊，球進了。",()=>st.cleans++),"猜方向"],["站在中間不動",win(.18+a.防守/300,"對手勺子點球，你站在原地穩穩接住！","對手射向角落，你來不及反應。",()=>st.cleans++),"賭對手射中間"]]}
- else if(p.pos=="FW"){q="下半場，你單刀面對門將";opts=[["大力抽射近角",win(.25+a.射門/220,"一腳抽射直入近角！","球打在門柱上彈出。",()=>st.goals++),"看射門"],["挑射過門將",win(.15+a.盤帶/220,"輕輕一挑，球越過門將落網！","挑太高，球飛出橫樑。",()=>st.goals++),"看盤帶"],["傳給包抄的隊友",win(.35+a.傳球/260,"橫傳給隊友推空門，助攻一次！","傳球被後衛攔截。",()=>st.assists++),"看傳球"],["假動作晃過門將",win(.2+(a.盤帶+a.速度)/450,"晃過門將推射空門！","被門將撲到腳下。",()=>st.goals++),"看盤帶和速度"]]}
- else if(p.pos=="MF"){q="中場拿球，前方隊友正在跑位";opts=[["直塞穿透防線",win(.3+a.傳球/230,"一記手術刀直塞，隊友破門！","直塞被斷。",()=>st.assists++),"看傳球"],["禁區外遠射",win(.12+a.射門/260,"一腳世界波掛進死角！","遠射高出橫樑。",()=>st.goals++),"看射門"],["自己帶球突破",win(.2+a.盤帶/240,"連過兩人後推射得手！","被對手剷斷。",()=>st.goals++),"看盤帶"],["回傳，控制節奏",win(.8,"穩穩控住節奏，球隊守住比分。","",null),"穩健"]]}
- else {q="對手前鋒高速突破，只剩你一個後衛";opts=[["果斷剷球",win(.25+a.防守/200,"乾淨俐落的剷斷，化解危機！","剷球犯規，吃了一張黃牌。",()=>st.cleans++),"看防守"],["卡位逼他到邊線",win(.3+(a.防守+a.速度)/400,"把對手逼到邊線，球出界了。","被對手加速甩開。",()=>st.cleans++),"看防守和速度"],["戰術犯規拉倒他",win(.85,"拉倒對手，吃黃牌但阻止了進球。","",()=>{p.fame-=1}),"確定阻止，會吃牌"]]}
- p._ok=false;await ask(q,opts,st.label||"關鍵時刻");return p._ok;
+ const p=P,S=p.s,fat=(p.fat||0)/400,bonus=.02*((rel(p,"mate")-50)/25)+(p.edge?.15:0)+.04*T(p,"球商")+.03*T(p,"拚命");
+ const av=(...k)=>k.reduce((t,x)=>t+(S[x]||0),0)/k.length;
+ // o(文字, 基礎機率, 能力值, 成功描述, 失敗描述, 成功效果, 額外說明)
+ const o=(label,base,att,good,bad,fx,extra,foot)=>{const c=clamp(base+att/220-fat+bonus+(foot?(p.wf-3)*.04:0)+(extra=="花式"?(p.sm-3)*.04:0),.05,.95);
+  return [label,()=>{const ok=R()<c;p.edge=0;p._ok=ok;say(ok?good:bad,ok);if(ok){fx&&fx();p.morale+=3;p.fame+=2}else p.morale-=2;toast(ok?"成功！":"沒有成功")},`成功率約 ${Math.round(c*100)}%${extra&&extra!="花式"?" · "+extra:""}`]};
+ const G=()=>st.goals++,A=()=>st.assists++,C=()=>st.cleans++;
+ const SC={
+  FW:[["下半場，你單刀面對門將",[o("大力抽射近角",.2,av("射術","射門力量"),"一腳抽射直入近角！","球打在門柱上彈出。",G,"",1),o("挑射過門將",.12,av("盤帶技術","控球"),"輕輕一挑，球越過門將落網！","挑太高，球飛出橫樑。",()=>{G();p.fame+=2},"花式"),o("傳給包抄的隊友",.3,av("短傳","視野"),"橫傳給隊友推空門，助攻一次！","傳球被後衛攔截。",A),o("假動作晃過門將",.15,av("敏捷","盤帶技術"),"晃過門將推射空門！","被門將撲到腳下。",G,"花式")]],
+      ["角球開出，你在禁區裡",[o("衝前點搶點",.15,av("頭球","彈跳"),"前點一甩頭，球應聲入網！","頭球頂偏了。",G),o("繞到後點包抄",.18,av("跑位","頭球"),"後點無人防守，你輕鬆頂進！","球被後衛解圍。",G),o("把球回做給隊友",.3,av("短傳","反應"),"回做給隊友，他一腳打進！","回做被斷。",A)]],
+      ["你被絆倒，裁判判了 12 碼",[o("射左下角，穩穩的",.55,av("射術"),"球應聲入網！","門將猜對方向，撲了出來。",G,"",1),o("大力射右上角",.42,av("射門力量"),"一腳轟進死角，門將毫無機會！","球飛過橫樑。",()=>{G();p.fame+=1}),o("勺子點球",.3,av("反應"),"勺子點球騙過門將，全場瘋狂！","門將站著不動接住了球。",()=>{G();p.fame+=4},"成功名氣大增")]],
+      ["禁區邊緣背身拿球",[o("轉身直接射門",.15,av("敏捷","射術"),"轉身一腳低射得手！","射門被擋出。",G,"",1),o("和隊友做牆傳球",.3,av("短傳","跑位"),"撞牆配合撕開防線，助攻隊友破門！","傳球被斷。",A),o("用身體護球造犯規",.4,av("強壯"),"成功造成犯規，球隊獲得好位置任意球。","被對手斷球。",null)]]],
+  MF:[["中場拿球，前方隊友正在跑位",[o("直塞穿透防線",.25,av("短傳","視野"),"一記手術刀直塞，隊友破門！","直塞被斷。",A),o("禁區外遠射",.08,av("遠射","射門力量"),"一腳世界波掛進死角！","遠射高出橫樑。",()=>{G();p.fame+=2},"",1),o("自己帶球突破",.15,av("盤帶技術","敏捷"),"連過兩人後推射得手！","被對手剷斷。",G,"花式"),o("回傳，控制節奏",.6,av("控球"),"穩穩控住節奏，球隊守住比分。","回傳太軟，差點被抄截。",null)]],
+      ["禁區前沿獲得任意球",[o("弧線繞過人牆",.1,av("遠射","射術"),"弧線球繞過人牆，直掛死角！","被人牆擋出。",()=>{G();p.fame+=2},"",1),o("大力抽射",.08,av("射門力量"),"大力抽射穿過人牆縫隙！","球打在人牆上。",G),o("傳給後點包抄的隊友",.25,av("傳中","視野"),"精準吊到後點，隊友頭球破門！","傳球太長出了底線。",A)]],
+      ["球隊斷球，發動反擊",[o("長傳找邊路隊友",.25,av("長傳","視野"),"四十公尺長傳精準找到隊友，助攻破門！","長傳被攔截。",A),o("自己帶球長途奔襲",.12,av("衝刺速度","盤帶技術"),"一路帶到禁區，冷靜推射得手！","被追上來的後衛斷掉。",G),o("放慢節奏等隊友插上",.5,av("控球","視野"),"耐心組織，球隊穩住控球權。","被對手搶回球權。",null)]]],
+  DF:[["對手前鋒高速突破，只剩你一個後衛",[o("果斷剷球",.2,av("搶斷","反應"),"乾淨俐落的剷斷，化解危機！","剷球犯規，吃了一張黃牌。",C),o("卡位逼他到邊線",.25,av("強壯","衝刺速度"),"把對手逼到邊線，球出界了。","被對手加速甩開。",C),o("戰術犯規拉倒他",.85,0,"拉倒對手，吃黃牌但阻止了進球。","",()=>{p.fame-=1},"一定會吃牌")]],
+      ["角球進攻，你上前助攻",[o("頭球攻門",.12,av("頭球","彈跳"),"高高躍起頭球破門！後衛也能進球！","頭球頂偏。",()=>{G();p.fame+=2}),o("在前點擋人掩護隊友",.35,av("強壯"),"你卡住防守球員，隊友頭球得分！","被裁判判犯規。",A),o("留在後面防反擊",.6,av("盯人"),"守住後方，沒讓對手打出反擊。","對手還是打出了一次快攻。",null)]],
+      ["對手一記長傳打到你身後",[o("頭球解圍",.3,av("頭球","彈跳"),"頂出一記漂亮的解圍。","頭球沒頂到，對手拿到球。",C),o("胸部停球再回傳門將",.15,av("控球"),"冷靜停球回傳，看台響起掌聲。","停球失誤，差點送對手一球。",C,"有風險"),o("大腳解圍",.5,av("長傳"),"一腳把球踢出危險區。","解圍踢偏。",C)]]],
+  GK:[["比賽最後一分鐘，對手獲得 12 碼罰球",[o("撲向左邊",.2,av("撲救","門將反應"),"你撲向左邊，把球擋了出去！全場沸騰。","球進了，對手射向另一邊。",C),o("撲向右邊",.2,av("撲救","門將反應"),"飛身撲右，指尖碰到球，救了下來！","對手射向左邊，球進了。",C),o("站在中間不動",.1,av("門將反應"),"對手勺子點球，你站在原地穩穩接住！","對手射向角落，你來不及反應。",()=>{C();p.fame+=3},"賭對手射中間")]],
+      ["對手單刀直入，你要怎麼守？",[o("衝出去封角度",.25,av("門將站位","門將反應"),"你衝出去封住角度，射門打在你身上！","被對手挑射過頭頂。",C),o("留在門線上等",.2,av("門將反應"),"一個神仙撲救！","球從腋下鑽進網。",C),o("倒地撲他腳下",.22,av("撲救"),"勇敢地撲在對手腳下，搶下球！","撲空了，對手推射空門。",C)]],
+      ["一記高吊傳中飛向小禁區",[o("出擊把球拳擊出去",.3,av("手型","彈跳"),"果斷出擊，一拳把球打出禁區。","出擊撲空，對手頭球破門。",C),o("穩穩接住",.25,av("手型"),"高高躍起穩穩接住。","球從手中滑落。",C),o("留在門線上",.3,av("門將站位"),"站好位置，擋下對手的頭球。","對手頭球近距離得分。",C)]]]};
+ const [q,opts]=pick(SC[p.pos]);
+ p._ok=false;await ask(q,opts,(st.label||"關鍵時刻")+"　·　成功率依你的細項能力、疲勞、特質計算");return p._ok;
 }
 
 // ── 每個階段一定會遇到的抉擇 ──
@@ -647,11 +663,26 @@ async function proSeason(){
  const titles=[],br=p.bigRes||{};p.bigRes={};const lgP=clamp((c.str-64)/80+(c.tier==5?0:.05)+(br.league=="勝"?.15:br.league=="敗"?-.1:0),.02,.6);if(R()<lgP)titles.push(c.lg+"冠軍");if(br.cup?br.cup=="勝":R()<lgP*.8)titles.push("盃賽冠軍");
  if(c.tier>=4&&(br.ucl=="勝"?R()<clamp((c.str-76)/30,.05,.6):br.ucl=="敗"?false:R()<clamp((c.str-80)/60,0,.25)))titles.push("歐洲冠軍聯賽冠軍");
  titles.forEach(t=>{p.trophies.push([p.y0+p.age,t]);say(`🏆 ${c.name}拿下${t}！`,1);p.morale+=5});
- if(p.pos=="FW"&&goals>=25&&c.tier>=4){p.awards.push([p.y0+p.age,"聯賽金靴獎"]);say("🥇 拿下聯賽金靴獎！",1)}
- if(ovr(p)>=89&&rating>=8&&c.tier>=4&&R()<.45){p.awards.push([p.y0+p.age,"世界足球先生"]);say("🌟 獲選年度世界足球先生！",1);p.fame+=30}
- if(p.age<=21&&rating>=7.4&&c.tier>=4&&!p.awards.some(a=>a[1]=="最佳新秀")){p.awards.push([p.y0+p.age,"最佳新秀"]);say("獲選聯賽最佳新秀。",1)}
+ // 球季細項數據
+ const starts=Math.round(played*({主力:.9,輪換:.55,替補:.12}[role]||0)),mins=starts*82+(played-starts)*22;
+ let motm=0,yel=0,red=0;for(let i=0;i<played;i++){if(R()<clamp((rating-6.4)/9,0,.35))motm++;if(R()<.07+(p.pos=="DF"?.06:0)+.04*T(p,"火爆"))yel++;if(R()<.006+.01*T(p,"火爆"))red++}
+ // 個人獎項：看聯賽等級、評分與數據
+ const yr=p.y0+p.age,lg=c.lg.replace("聯賽",""),aw=[];
+ const award=(n,ok,fame)=>{if(ok){aw.push(n);p.awards.push([yr,n]);p.fame+=fame||3}};
+ award(`${lg}金靴獎`,p.pos!="GK"&&goals>=(c.tier>=4?20:14)&&R()<.7,8);
+ award(`${lg}助攻王`,assists>=(c.tier>=4?13:11)&&R()<.6,5);
+ award(`${lg}金手套獎`,p.pos=="GK"&&cleans>=(c.tier>=4?14:12)&&R()<.6,5);
+ award(`${lg}年度最佳球員`,rating>=7.35&&played>=25&&R()<.4,c.tier*4);
+ award(`${lg}年度最佳年輕球員`,p.age<=21&&rating>=6.85&&played>=15&&R()<.6,4);
+ award(`${lg}年度最佳陣容`,rating>=7.0&&played>=25&&R()<.6,3);
+ if(rating>=6.9&&played>=10)for(let m=0;m<3;m++)if(R()<.15)award(`${lg}月最佳球員`,true,1);
+ award(`${p.c}年度足球先生`,rating>=6.8&&ovr(p)>=p.cs-6&&played>=20&&R()<.35,6);
+ award("金球獎提名",ovr(p)>=84&&rating>=7.1&&c.tier>=4&&R()<.6,10);
+ award("世界足球先生",ovr(p)>=89&&rating>=8&&c.tier>=4&&R()<.35,30);
+ if(aw.length)say(`🥇 本季個人獎項：${aw.join("、")}`,1);
  await national(rating);
- p.seasons.push({y:p.y0+p.age,age:p.age,club:c.name,lg:c.lg,role,wage:p.wage,cleans,apps:played,goals,assists,rating:+rating.toFixed(2),ovr:ovr(p),titles,val:value(p)});
+ p.seasons.push({y:p.y0+p.age,age:p.age,club:c.name,lg:c.lg,role,wage:p.wage,cleans,starts,mins,motm,yel,red,aw,apps:played,goals,assists,rating:+rating.toFixed(2),ovr:ovr(p),titles,val:value(p)});
+ await seasonCard(p.seasons[p.seasons.length-1]);
  if(reserve&&!played)say(`本季在預備隊出賽 ${reserve} 場（不列入職業紀錄）。`);else say(`本季（${role}）：出賽 ${played} 場，${p.pos=="GK"?`零封 ${cleans} 場`:`進 ${goals} 球、助攻 ${assists} 次`}，平均評分 ${rating.toFixed(1)}。身價 ${eur(value(p))}。`);
  if(p.loanTo){say(`租借結束，回到${p.loanFrom.name}。`);p.club=p.loanFrom.name;p.clubObj=p.loanFrom;p.loanTo=null;p.loanFrom=null}
  else if(role=="預備隊"&&p.age>=18)await ask(`在${c.name}預備隊待了 ${p.resYears} 年，教練建議你外租`,[
@@ -696,6 +727,12 @@ async function midWindow(st,role){const p=P,c=p.clubObj,o=ovr(p),hot=st.apps>8&&
    await ask(`冬季轉會窗：${c.name}已經接受${to.name}的報價，準備把你賣掉`,[["接受，去新球隊找出路",()=>{p._fee=fee;say(`被${c.name}賣到${to.name}，轉會費 ${eur(fee)}。`,1);sign(to,3)},"上場機會↑"],["拒絕轉會，留下來爭取",()=>{p.morale-=6;if(R()<.5){p.contract=Math.min(p.contract,1);say("拒絕轉會後被教練冷凍。")}},"可能被冷凍"]],"球隊覺得你在這裡沒有未來");return}}
  if(R()<interest){const to=poolFor(p).filter(x=>x.name!=c.name&&x.str>c.str&&x.str<=o+6).sort(()=>R()-.5)[0];if(!to)return;const fee=value(p)*(1.2+R()*.8);
   await ask(`冬季轉會窗：${to.name}對你提出 ${eur(fee)} 的報價`,[["要求球隊放人",()=>{if(R()<.6){p._fee=fee;say(`${c.name}同意放人，以 ${eur(fee)} 轉會到${to.name}。`,1);p.fame+=fee*.2;sign(to,4)}else{p.morale-=4;say(`${c.name}拒絕放人，說你還有合約在身。`)}},"球隊不一定放"],["留下來完成這個賽季",()=>{p.morale+=2},"球迷好感↑"],["叫經紀人用報價談加薪",()=>{p.wage*=1.15;p.contract+=1;say(`用挖角報價談成加薪，年薪 ${eur(p.wage)}。`)},"年薪↑"]],"合約還沒到期，但其他球隊還是可以出價挖角")}}
+async function seasonCard(s){const p=P;if(auto||toEnd)return;
+ const cell=(k,v)=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`;
+ return new Promise(res=>{$("mtag").textContent=`${s.y} 球季總結 · ${s.age} 歲`;$("modal").classList.remove("hide");
+  $("choice").innerHTML=`<h2 style="margin-top:10px">${s.club}（${s.lg}）· ${s.role}</h2><div class="grid">${[["出賽",s.apps],["先發",s.starts],["上場分鐘",s.mins.toLocaleString()],[p.pos=="GK"?"零封":"進球",p.pos=="GK"?s.cleans:s.goals],["助攻",s.assists],["平均評分",s.rating.toFixed(2)],["全場最佳",s.motm+" 次"],["黃牌／紅牌",`${s.yel}／${s.red}`],["能力",s.ovr],["身價",eur(s.val)]].map(([k,v])=>cell(k,v)).join("")}</div>
+   ${s.titles.length?`<p>🏆 ${s.titles.join("、")}</p>`:""}${s.aw.length?`<p>🥇 ${s.aw.join("、")}</p>`:""}<button class="opt" id="scOk">繼續下一季 ▶</button>`;
+  $("scOk").onclick=()=>{$("modal").classList.add("hide");res()}})}
 async function lifeOff(){
  const p=P;if(p.partner&&rel(p,"partner")<25&&R()<.4){say(`和 ${p.rel.partner.name} 分開了。`,1);p.partner=false;p.morale-=10;delete p.rel.partner}
  if(!p.partner&&p.age>=22&&p.age<=34&&R()<.2)await ask("在朋友聚會上認識了一個人",[["認真交往",()=>{p.partner=true;meet(p,"partner",newName(p),70);p.morale+=6;say("和對方開始交往，後來結了婚。",1)},"心情↑"],["球季忙，先不談感情",()=>{}],["只想玩玩",()=>{p.fame-=2;if(R()<.3){p.fame-=6;say("緋聞上了八卦版面。")}},"可能鬧緋聞"]]);
@@ -799,13 +836,15 @@ function lines(series,W=320,H=120,maxV){const all=series.flatMap(s=>s.pts.map(x=
   ${series.map(s=>`<polyline points="${s.pts.map(([a,v])=>X(a)+","+Y(v)).join(" ")}" fill="none" stroke="${s.c}" stroke-width="2"/>`).join("")}</svg>
   <div class="legend">${series.map(s=>`<span><i style="background:${s.c}"></i>${s.n}</span>`).join("")}</div>`}
 function reportHTML(p,inGame){
- const tabs=[...(inGame?[]:["生平"]),"能力細項","每季","能力成長","身價與收入","轉會","傷病","國家隊"],yh=(p.yhist||[]).filter(r=>r.age<=(p.retireAge||p.age));let body="";
+ const tabs=[...(inGame?[]:["生平"]),"能力細項","每季","榮譽","能力成長","身價與收入","轉會","傷病","國家隊"],yh=(p.yhist||[]).filter(r=>r.age<=(p.retireAge||p.age));let body="";
  if(repTab=="生平"){const st=[["嬰幼兒",0,5],["童年",6,12],["青少年",13,17],["職業生涯",18,(p.retireAge||99)],["退休後",(p.retireAge||99)+1,200]];
   body=st.map(([n,a,b])=>{const ev=p.log.filter(([g])=>g>=a&&g<=b);return ev.length?`<div class="life-st"><b>${n}</b><span class="mut">（${a}～${Math.min(b,p.age)} 歲）</span>${ev.map(([g,t,h])=>`<p class="${h?"hi":""}"><span class="y">${g}歲</span>${t}</p>`).join("")}</div>`:""}).join("")||`<p class="mut">剛出生。</p>`}
  if(repTab=="能力細項"){const fm=k=>faceMap(p,k);body=`<p class="mut">位置 ${DPN[dpOf(p)]}（${dpOf(p)}）· 綜合能力 ${ovr(p)} · 逆足 ${"★".repeat(p.wf)} · 花式 ${"★".repeat(p.sm)}。綜合能力依位置加權細項計算（參考 FIFA）。</p><div class="subs">${ATTR.map(k=>`<div><b>${k} ${Math.round(p.a[k])}</b>${Object.keys(fm(k)).map(x=>`<div class="sub"><span>${x}</span><i style="width:${p.s[x]}%"></i><em>${Math.round(p.s[x])}</em></div>`).join("")}</div>`).join("")}<div><b>其他</b><div class="sub"><span>反應</span><i style="width:${p.s.反應}%"></i><em>${Math.round(p.s.反應)}</em></div></div></div>
   <p class="mut">各位置綜合能力：${Object.keys(DPW).map(d=>{const w=DPW[d];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return `${DPN[d]} ${Math.round(t/sw)}`}).join("、")}</p>`}
- if(repTab=="每季")body=p.seasons.length?`<div class="tbl"><table><tr><th>年</th><th>歲</th><th>球隊</th><th>角色</th><th>出賽</th><th>${p.pos=="GK"?"零封":"進球"}</th><th>助攻</th><th>評分</th><th>能力</th><th>身價</th><th>年薪</th></tr>${p.seasons.map(s=>`<tr><td>${s.y}</td><td>${s.age}</td><td>${s.club}${s.titles.length?" 🏆":""}</td><td>${s.role||""}</td><td>${s.apps}</td><td>${p.pos=="GK"?s.cleans||0:s.goals}</td><td>${s.assists}</td><td>${s.rating}</td><td>${s.ovr}</td><td>${eur(s.val)}</td><td>${s.wage?eur(s.wage):"—"}</td></tr>`).join("")}
-  <tr class="tot"><td colspan="4">合計</td><td>${p.apps}</td><td>${p.pos=="GK"?p.cleans:p.goals}</td><td>${p.assists}</td><td>${p.seasons.length?(p.seasons.reduce((a,s)=>a+s.rating,0)/p.seasons.length).toFixed(2):"—"}</td><td>${Math.round(p.peak)}</td><td>${eur(p.maxValue)}</td><td></td></tr></table></div>`:`<p class="mut">還沒有職業球季。</p>`;
+ if(repTab=="榮譽"){const all=[...p.trophies.map(([y,t])=>[y,"🏆",t]),...p.awards.map(([y,t])=>[y,"🥇",t])].sort((a,b)=>a[0]-b[0]);const cnt={};all.forEach(([,,t])=>cnt[t]=(cnt[t]||0)+1);
+  body=all.length?`<p>${Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`<span class="trait" style="margin:2px">${t}${n>1?" ×"+n:""}</span>`).join("")}</p><div class="tbl"><table><tr><th>年</th><th></th><th style="text-align:left">榮譽</th></tr>${all.map(([y,i,t])=>`<tr><td>${y}</td><td>${i}</td><td style="text-align:left">${t}</td></tr>`).join("")}</table></div>`:`<p class="mut">還沒有任何冠軍或個人獎項。</p>`}
+ if(repTab=="每季")body=p.seasons.length?`<div class="tbl"><table><tr><th>年</th><th>歲</th><th>球隊</th><th>角色</th><th>出賽</th><th>先發</th><th>分鐘</th><th>${p.pos=="GK"?"零封":"進球"}</th><th>助攻</th><th>評分</th><th>最佳</th><th>牌</th><th>能力</th><th>身價</th><th>年薪</th></tr>${p.seasons.map(s=>`<tr><td>${s.y}</td><td>${s.age}</td><td>${s.club}${s.titles.length?" 🏆":""}</td><td>${s.role||""}</td><td>${s.apps}</td><td>${s.starts??"—"}</td><td>${s.mins??"—"}</td><td>${p.pos=="GK"?s.cleans||0:s.goals}</td><td>${s.assists}</td><td>${s.rating}</td><td>${s.motm??"—"}</td><td>${s.yel!=null?`${s.yel}/${s.red}`:"—"}</td><td>${s.ovr}</td><td>${eur(s.val)}</td><td>${s.wage?eur(s.wage):"—"}</td></tr>`).join("")}
+  <tr class="tot"><td colspan="4">合計</td><td>${p.apps}</td><td>${p.seasons.reduce((a,s)=>a+(s.starts||0),0)}</td><td>${p.seasons.reduce((a,s)=>a+(s.mins||0),0).toLocaleString()}</td><td>${p.pos=="GK"?p.cleans:p.goals}</td><td>${p.assists}</td><td>${p.seasons.length?(p.seasons.reduce((a,s)=>a+s.rating,0)/p.seasons.length).toFixed(2):"—"}</td><td>${p.seasons.reduce((a,s)=>a+(s.motm||0),0)}</td><td>${p.seasons.reduce((a,s)=>a+(s.yel||0),0)}/${p.seasons.reduce((a,s)=>a+(s.red||0),0)}</td><td>${Math.round(p.peak)}</td><td>${eur(p.maxValue)}</td><td></td></tr></table></div>`:`<p class="mut">還沒有職業球季。</p>`;
  if(repTab=="能力成長")body=yh.length>1?lines([...ATTR.map((k,i)=>({n:k,c:["#3fa7ff","#ff4d4d","#ffd23f","#b07cff","#4cd964","#ff9f40"][i],pts:yh.map(r=>[r.age,r.a[k]])})),{n:"綜合能力",c:"#fff",pts:yh.map(r=>[r.age,r.ovr])}],320,140,100)+`<p class="mut">身高：${yh.map(r=>`${r.age}歲 ${Math.round(r.h)}`).filter((_,i)=>i%3==0).join("、")} 公分</p>`:`<p class="mut">資料還不夠。</p>`;
  if(repTab=="身價與收入"){const v=yh.filter(r=>r.val);body=v.length>1?lines([{n:"身價（百萬歐元）",c:"#ffd23f",pts:v.map(r=>[r.age,r.val])},{n:"年薪（百萬歐元）",c:"#4cd964",pts:v.map(r=>[r.age,r.wage])}])+`<p>累計稅前收入約 ${eur(p.seasons.reduce((a,s)=>a+(s.wage||0),0))}，目前存款 ${eur(Math.max(0,p.money))}。</p>`:`<p class="mut">還沒有職業合約。</p>`}
  if(repTab=="轉會")body=(p.moves||[]).length?`<div class="tbl"><table><tr><th>年</th><th>歲</th><th>從</th><th>到</th><th>方式</th><th>轉會費</th></tr>${p.moves.map(m=>`<tr><td>${m.y}</td><td>${m.age}</td><td>${m.from}</td><td>${m.to}</td><td>${m.type}</td><td>${m.fee?eur(m.fee):"—"}</td></tr>`).join("")}</table></div><p>轉會費合計 ${eur(p.moves.reduce((a,m)=>a+m.fee,0))}</p>`:`<p class="mut">還沒有轉會紀錄。</p>`;
