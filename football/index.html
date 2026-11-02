@@ -680,9 +680,9 @@ const KID_POOL=[
  [8,12,p=>ask(RV("被選為校隊隊長","教練要你在比賽中戴隊長臂章"),[["接下來",()=>{p.morale+=4;p.fame+=1;say("成為校隊隊長。",1)},"責任↑"],["讓給更會踢的同學",()=>{p.morale+=1},""],["有點害怕，先拒絕",()=>{},""]])],
  [9,12,p=>ask(RV("最好的朋友要轉學了","一起踢球的好朋友要搬到別的城市"),[["送他一顆簽名足球",()=>{p.morale+=1},""],["約好長大一起踢職業",()=>{p.morale+=3},"夢想↑"],["難過到好幾天不想踢球",()=>{p.morale-=3},""]])],
 ];
-async function kidRandom(p){if(p.age<4)return;if(p.age>=p.touchAge&&R()<.55)await genEvent("kid");p.kidSeen=p.kidSeen||{};
+async function kidRandom(p){if(p.age<4)return;if(p.age>=p.touchAge&&R()<.3)await genEvent("kid");p.kidSeen=p.kidSeen||{};
  const ok=KID_POOL.map((e,i)=>i).filter(i=>p.age>=KID_POOL[i][0]&&p.age<=KID_POOL[i][1]&&!p.kidSeen[i]);
- const n=R()<.35?2:R()<.85?1:0;for(let j=0;j<n&&ok.length;j++){const i=ok.splice(Math.floor(R()*ok.length),1)[0];p.kidSeen[i]=1;await KID_POOL[i][2](p)}}
+ const n=R()<.1?2:R()<.6?1:0;for(let j=0;j<n&&ok.length;j++){const i=ok.splice(Math.floor(R()*ok.length),1)[0];p.kidSeen[i]=1;await KID_POOL[i][2](p)}}
 async function academy(){
  const p=P,o=ovr(p),top=o>=40,mid=o>=33;
  await ask(RV("13 歲，有青訓營想延攬你","13 歲，一位青訓教練到學校找你","13 歲，職業球隊的青訓部打電話到家裡","13 歲，你在選拔賽中被青訓營看上"),[
@@ -792,7 +792,7 @@ async function proSeason(){
 }
 // 青少年（還沒簽職業約）：上下兩個學期，各有一個抉擇
 async function youthYear(minutes){
- const p=P;for(let h=0;h<2;h++){if(!toEnd)await phaseEvent(YOUTH_EVENTS);grow(p,minutes,.5);injuryCheck(.5);render();renderPlan()}
+ const p=P;for(let h=0;h<2;h++){if(!toEnd&&(h==0||p.age>=15))await phaseEvent(YOUTH_EVENTS);grow(p,minutes,.5);injuryCheck(.5);render();renderPlan()}
 }
 async function national(rating){
  const p=P,need=Math.max(55,p.cs-4);
@@ -843,7 +843,7 @@ async function lifeOff(){
 async function retireCheck(){
  const p=P,o=ovr(p);if(p.lastSeason){retire("踢完最後一季，在全場起立鼓掌中退休。");return}
  if(p.age>=40||(p.age>=24&&o<45)){retire("身體已經跟不上，宣布退休。");return}
- if((p.age>=33+T(p,"會保養")+T(p,"自律")&&R()<.35)||(p.age>=30&&o<p.clubObj.str-12))await ask(`${p.age} 歲，要繼續踢下去嗎？`,[["再踢一季",()=>{},"能力會持續下滑"],["退休，留下美好的回憶",()=>retire("宣布退休，向球迷告別。"),""],["到美國或沙烏地踢最後幾年",()=>{const c=pick(poolFor(P).filter(x=>x.ct=="沙烏地阿拉伯"||x.ct=="美國"));sign(c,2)},"收入高 · 競爭低"]]);
+ if((p.age>=34+T(p,"會保養")+T(p,"自律")&&R()<.3)||(p.age>=30&&o<p.clubObj.str-12))await ask(`${p.age} 歲，要繼續踢下去嗎？`,[["再踢一季",()=>{},"能力會持續下滑"],["退休，留下美好的回憶",()=>retire("宣布退休，向球迷告別。"),""],["到美國或沙烏地踢最後幾年",()=>{const c=pick(poolFor(P).filter(x=>x.ct=="沙烏地阿拉伯"||x.ct=="美國"));sign(c,2)},"收入高 · 競爭低"]]);
 }
 function retire(t){const p=P;p.retired=true;p.retireAge=p.age;say(t,1);p.club=null;p.clubObj=null}
 async function afterLife(){
@@ -992,7 +992,7 @@ function drawField(prog,goals){const cv=$("pitch"),g=cv.getContext("2d"),W=320,H
  g.fillStyle="#ffd23f";g.font="10px monospace";g.fillText(`GOAL ${goals||0}`,10,18)}
 let liveGoals=0;
 async function playPhase(ph,st,apps){
- if(toEnd)return;const p=P,total=secPerSeason*250;let w=0,last=performance.now();
+ if(toEnd)return;const p=P,total=secPerSeason*420;let w=0,last=performance.now();
  while(w<total){await new Promise(r=>setTimeout(r,50));const now=performance.now();if(!paused)w+=(now-last)*mult;last=now;if(pendingSkip||toEnd)w=total;
   const t=Math.min(1,w/total);$("ticker").textContent=`${p.y0+p.age} 球季 · ${p.phase} · 已出賽 ${st.apps} / ${apps} 場 · ${p.pos=="GK"?`零封 ${st.cleans}`:`進球 ${st.goals} · 助攻 ${st.assists}`} · 疲勞 ${Math.round(p.fat||0)}`;
   $("sFill").style.width=((ph+t)/4*100)+"%";drawPitch((ph+t)/4,st.goals)}
@@ -1004,7 +1004,7 @@ async function playSeasonVisual(apps,goals){
   if(g2>shown){shown=g2;toast(`⚽ 進球！本季第 ${shown} 球`)}$("ticker").textContent=`${p.y0+p.age} 球季 · 第 ${Math.round(apps*t)} 場 / ${apps} 場 · ${p.pos=="GK"?"":`進球 ${g2}`}`;
   $("sFill").style.width=t*100+"%";drawPitch(t,g2)}
 }
-async function quietYear(){if(toEnd||P.retired)return;const total=secPerSeason*(P.retired?90:P.age<17?400:300);let w=0,last=performance.now();while(w<total){await new Promise(r=>setTimeout(r,50));const now=performance.now();if(!paused)w+=(now-last)*mult;last=now;if(pendingSkip||toEnd)w=total;$("sFill").style.width=Math.min(100,w/total*100)+"%";if(P.age<13)$("ticker").textContent=P.age<P.touchAge?`${P.age} 歲，還沒碰過足球`:`${P.age} 歲 · ${P.stage} · 身高 ${Math.round(P.h)} 公分`;drawPitch(Math.min(1,w/total),0)}}
+async function quietYear(){if(toEnd||P.retired)return;const total=secPerSeason*(P.age<6?60:P.age<13?120:P.age<16?200:260);/* 童年快轉，16 歲後才是重點 */let w=0,last=performance.now();while(w<total){await new Promise(r=>setTimeout(r,50));const now=performance.now();if(!paused)w+=(now-last)*mult;last=now;if(pendingSkip||toEnd)w=total;$("sFill").style.width=Math.min(100,w/total*100)+"%";if(P.age<13)$("ticker").textContent=P.age<P.touchAge?`${P.age} 歲，還沒碰過足球`:`${P.age} 歲 · ${P.stage} · 身高 ${Math.round(P.h)} 公分`;drawPitch(Math.min(1,w/total),0)}}
 function render(){try{renderMgr()}catch(e){}
  const p=P,o=ovr(p);$("ovr").textContent=p.age<p.touchAge?"??":Math.round(o);$("pos").textContent=p.age<11&&!(p.done&&p.done.pos)?"—":dpOf(p);$("nm").textContent=p.name.split(" ").pop();$("age").textContent=p.age;
  $("fut").className="fut"+(o>=75?"":o>=65?" silver":" bronze");$("who").textContent=`${p.name}（${POS[p.pos]}）`;
