@@ -1060,7 +1060,10 @@ function cardCanvas(p){const W=1080,H=1350,cv=document.createElement("canvas");c
  g.font=F(36);g.fillStyle="#ffd23f";g.fillRect(392,312,Math.min(600,g.measureText(p._title).width+56),58);g.fillStyle="#0f2a1a";g.fillText(p._title,420,354);
  const items=[["生涯評分",p._sc],["巔峰能力",Math.round(p.peak)],["出賽",p.apps],[p.pos=="GK"?"零封":"進球",p.pos=="GK"?p.cleans:p.goals],["助攻",p.assists],["冠軍",p.trophies.length],["個人獎項",p.awards.length],["國家隊",`${p.caps} 場`],["最高身價",eur(p.maxValue)],["最多粉絲",fansTxt(p.maxFans||0)],["宿敵",p.nemesis||(p.revenge?"已復仇":"—")],["之後",p.afterDetail||p.after||"—"]];
  items.forEach(([k,v],i)=>{const x=76+(i%3)*316,y=420+Math.floor(i/3)*170;g.fillStyle="#f4f1de";g.fillRect(x,y,296,150);g.fillStyle="#5d6e60";g.font=F(28,500);g.fillText(k,x+20,y+44);
-  g.fillStyle="#16241a";const t=String(v);let sz=56;g.font=F(sz);while(g.measureText(t).width>260&&sz>20){sz-=4;g.font=F(sz)}g.fillText(t,x+20,y+112)});
+  g.fillStyle="#16241a";const t=String(v);let sz=56;g.font=F(sz);while(g.measureText(t).width>260&&sz>32){sz-=4;g.font=F(sz)}
+  if(g.measureText(t).width<=260){g.fillText(t,x+20,y+112);return}
+  // 太長就拆成多行小字
+  g.font=F(26,700);let line="",ly=y+80;for(const ch of t.replace(/，/g,"，\n")){if(ch=="\n"||g.measureText(line+ch).width>260){g.fillText(line,x+20,ly);ly+=32;line=ch=="\n"?"":ch}else line+=ch}if(line)g.fillText(line,x+20,ly)});
  g.fillStyle="#f4f1de";g.font=F(30,500);const full=p.clubsPlayed.join(" → ")||"沒有職業球隊";let cl=full;while(g.measureText("效力過："+cl+"…").width>920&&cl.length>4)cl=cl.slice(0,-1);g.fillText("效力過："+cl+(cl!==full?"…":""),76,1130);
  g.fillStyle="#ffd23f";g.font=F(40);g.fillText("🏆".repeat(Math.min(12,p.trophies.length))||"踢過，就不後悔",76,1200);
  g.fillStyle="#9fb5a3";g.font=F(26,500);g.fillText("足球員模擬器 · "+location.host+location.pathname,76,1270);return cv}
