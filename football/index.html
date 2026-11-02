@@ -380,6 +380,9 @@ function renderPlan(){
 // ── 關鍵時刻：比賽中由你決定怎麼踢 ──
 // ── 逐場大比賽：90 分鐘即時比分，中間有 2～3 個關鍵時刻由你決定 ──
 async function potUp(p,n,why){if(p.age>=29)return;p.potUps=(p.potUps||0)+1;p.pot=Math.min(99,p.pot+n);say(`${why}，潛力上限提高到 ${Math.round(p.pot)}。`,1)}
+// 各國的國內盃賽正式名稱
+const CUPS={英格蘭:"英格蘭足總盃",西班牙:"西班牙國王盃",德國:"德國足協盃",義大利:"義大利盃",法國:"法國盃",葡萄牙:"葡萄牙盃",荷蘭:"荷蘭盃",巴西:"巴西盃",阿根廷:"阿根廷盃",美國:"美國公開盃",沙烏地阿拉伯:"沙烏地國王盃",日本:"天皇盃",韓國:"韓國足協盃",中國:"中國足協盃",墨西哥:"墨西哥盃",台灣:"台灣足協盃",奈及利亞:"奈及利亞足總盃"};
+const cupName=ct=>CUPS[ct]||`${ct}盃`;
 const EU7=["英格蘭","西班牙","德國","義大利","法國","葡萄牙","荷蘭"];
 async function bigMatch(kind,oppStr,myStr){
  const p=P;
@@ -764,7 +767,7 @@ async function proSeason(){
   p.phase=PH[ph];render();renderPlan();
   await phaseEvent(role=="預備隊"?RESERVE_EVENTS.concat(PRO_EVENTS.slice(0,3)):PRO_EVENTS);
   if(ph>0){let n=ph==3?apps-st.apps-(st.lost||0):Math.round(apps/3);if(p.missG>0){const k=Math.min(n,p.missG);n-=k;p.missG-=k;st.lost=(st.lost||0)+k;if(k)say(`因傷缺席 ${k} 場。`)}n=Math.max(0,n);for(let i=0;i<n;i++){st.apps++;if(R()<rate)st.goals+=R()<.15?2:1;if(R()<{FW:.2,MF:.28,DF:.08,GK:.01}[p.pos]*(ovr(p)/80))st.assists++;if((p.pos=="GK"||p.pos=="DF")&&R()<.25+c.str/400)st.cleans++}
-   if(n>0&&!p.missG&&role!="預備隊"&&(ph==1||ph==3)&&R()<.5&&!toEnd){const kinds=[{name:"德比戰",fame:4,scope:"league"},{name:"爭冠關鍵戰",fame:3,title:"league",scope:"league"},{name:"盃賽決賽",fame:5,ko:1,title:"cup",scope:"cup"}].concat(c.tier>=4&&["英格蘭","西班牙","德國","義大利","法國","葡萄牙","荷蘭"].includes(c.ct)?[{name:"歐冠淘汰賽",fame:6,ko:1,title:"ucl",scope:"europe"}]:[]);
+   if(n>0&&!p.missG&&role!="預備隊"&&(ph==1||ph==3)&&R()<.5&&!toEnd){const kinds=[{name:"德比戰",fame:4,scope:"league"},{name:"爭冠關鍵戰",fame:3,title:"league",scope:"league"},{name:`${cupName(c.ct)}決賽`,fame:5,ko:1,title:"cup",scope:"cup"}].concat(c.tier>=4&&["英格蘭","西班牙","德國","義大利","法國","葡萄牙","荷蘭"].includes(c.ct)?[{name:"歐冠淘汰賽",fame:6,ko:1,title:"ucl",scope:"europe"}]:[]);
     const k=pick(kinds),r=await bigMatch(k,c.str+(R()-.5)*8,c.str+(ovr(p)-c.str)*.3);st.goals+=r.goals;st.assists+=r.assists;
     if(k.title)(p.bigRes=p.bigRes||{})[k.title]=r.res}
    else if(n>0&&R()<.5)await keyMoment(st);if(reserve&&ph==2&&R()<.5){say("預備隊比賽表現亮眼，教練開始注意你。");p.a.盤帶+=.8;p.a.傳球+=.8}}
@@ -777,7 +780,7 @@ async function proSeason(){
  p.fame+=2*T(p,"媒體寵兒")+T(p,"正直");
  if(R()<.04*(T(p,"夜生活")+T(p,"貪財")+T(p,"火爆"))){p.fame-=10;p.morale-=6;say(pick(["深夜在夜店和人起衝突，被拍下來上了新聞。","被爆出私下賭球的傳聞，聯盟展開調查。","在比賽中和裁判爭執，被追加禁賽三場。"]),1)}
  p.apps+=played;p.goals+=goals;p.assists+=assists;p.cleans+=cleans;p.money+=p.wage*.55;p.fame+=played*.15+goals*.6+c.tier*1.5;
- const titles=[],br=p.bigRes||{};p.bigRes={};const lgP=clamp((c.str-64)/80+(c.tier==5?0:.05)+(br.league=="勝"?.15:br.league=="敗"?-.1:0),.02,.6);if(R()<lgP)titles.push(c.lg+"冠軍");if(br.cup?br.cup=="勝":R()<lgP*.8)titles.push("盃賽冠軍");
+ const titles=[],br=p.bigRes||{};p.bigRes={};const lgP=clamp((c.str-64)/80+(c.tier==5?0:.05)+(br.league=="勝"?.15:br.league=="敗"?-.1:0),.02,.6);if(R()<lgP)titles.push(c.lg+"冠軍");if(br.cup?br.cup=="勝":R()<lgP*.8)titles.push(cupName(c.ct)+"冠軍");
  if(c.tier>=4&&["英格蘭","西班牙","德國","義大利","法國","葡萄牙","荷蘭"].includes(c.ct)&&(br.ucl=="勝"?R()<clamp((c.str-76)/30,.05,.6):br.ucl=="敗"?false:R()<clamp((c.str-80)/60,0,.25)))titles.push("歐洲冠軍聯賽冠軍");
  titles.forEach(t=>{p.trophies.push([p.y0+p.age,t]);say(`🏆 ${c.name}拿下${t}！`,1);p.morale+=5});
  // 球季細項數據
