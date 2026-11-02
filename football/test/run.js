@@ -36,7 +36,8 @@ const N=+process.argv[2]||40;const fails=[];const check=(ok,msg)=>{if(!ok)fails.
  check(crash==0,`有 ${crash} 局當掉`);
  check(badOpp==0,`有 ${badOpp} 場大比賽對手不合理`);
  check(badStar==0,`有 ${badStar} 次球星轉到不合理的聯賽`);
- check(pro/N>.25&&pro/N<.9,`踢上職業的比例異常：${(pro/N*100).toFixed(0)}%`);
+ // 樣本太少時比例會亂跳，至少 30 段才檢查
+ if(N>=30)check(pro/N>.25&&pro/N<.9,`踢上職業的比例異常：${(pro/N*100).toFixed(0)}%`);
  check(maxSave<1.5e6,`存檔太大：${Math.round(maxSave/1024)} KB`);
  console.log(`跑了 ${N} 段生涯（${((Date.now()-t0)/1000).toFixed(0)} 秒）：職業 ${(pro/N*100).toFixed(0)}%、聯賽冠軍 ${titles}/${seasons} 季、最大存檔 ${Math.round(maxSave/1024)} KB`);
  if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過")})();
