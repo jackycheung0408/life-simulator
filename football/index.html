@@ -62,6 +62,9 @@ button.on{background:var(--y);color:var(--ink)}
 .trophies{font-size:22px;letter-spacing:2px}
 .chart svg{width:100%;height:90px;background:#10261a;border:2px solid var(--line)}
 .hall{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+#tour{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(440px,calc(100% - 24px));background:var(--card);border:3px solid var(--ink);box-shadow:inset 0 0 0 3px var(--y),0 12px 40px #000;padding:14px 16px;z-index:60}
+#tour h3{margin:0 0 6px;color:var(--y);font-size:16px}#tour p{margin:0 0 10px;font-size:14px;line-height:1.6}#tour .tn{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mut)}
+.tour-hi{outline:4px solid var(--y)!important;outline-offset:3px;position:relative;z-index:55}
 /* 手機：頂部狀態列縮小並固定在上方，球員卡放左邊；按鈕、卡片間距縮小 */
 @media(max-width:560px){
  .wrap{padding:10px}.card{padding:10px;margin:10px 0}
@@ -171,7 +174,7 @@ button.on{background:var(--y);color:var(--ink)}
    <div><span class="age" id="age">0</span> 歲　<b id="who"></b></div>
    <div class="mut" id="where"></div>
    <div class="season"><span id="sL"></span><div class="track"><i id="sFill"></i></div><span id="sR"></span></div>
-   <div class="ctrl"><button id="pause">⏸ 暫停</button><button class="sp on" data-m="1">1×</button><button class="sp" data-m="2">2×</button><button class="sp" data-m="4">4×</button><button id="skipQ">⏭ 下一個抉擇</button><button id="skipEnd">⏩ 跳到結局</button><label style="font-size:13px"><input type="checkbox" id="auto"> 自動抉擇</label></div>
+   <div class="ctrl"><button id="pause">⏸ 暫停</button><button class="sp on" data-m="1">1×</button><button class="sp" data-m="2">2×</button><button class="sp" data-m="4">4×</button><button id="skipQ">⏭ 下一個抉擇</button><button id="skipEnd">⏩ 跳到結局</button><label style="font-size:13px"><input type="checkbox" id="auto"> 自動抉擇</label><button id="tourBtn" title="玩法說明">？</button></div>
   </div>
  </div>
 </div>
@@ -1209,12 +1212,25 @@ document.querySelectorAll(".p").forEach(b=>b.onclick=()=>{document.querySelector
 document.querySelectorAll(".s").forEach(b=>b.onclick=()=>{document.querySelectorAll(".s").forEach(x=>x.classList.remove("on"));b.classList.add("on");secPerSeason=+b.dataset.v});
 document.querySelectorAll(".sp").forEach(b=>b.onclick=()=>{document.querySelectorAll(".sp").forEach(x=>x.classList.remove("on"));b.classList.add("on");mult=+b.dataset.m});
 document.querySelectorAll(".st").forEach(b=>b.onclick=()=>{document.querySelectorAll(".st").forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg.stars=b.dataset.v});
+$("tourBtn").onclick=()=>tour(0);
 $("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"▶ 繼續":"⏸ 暫停"};
 $("skipQ").onclick=()=>{pendingSkip=true};
 $("auto").onchange=e=>{auto=e.target.checked;toast(auto?"之後的抉擇自動決定":"之後的抉擇由你決定")};
 $("skipEnd").onclick=e=>{const b=e.currentTarget;if(!b.dataset.arm){b.dataset.arm=1;b.textContent="再按一次確認";setTimeout(()=>{delete b.dataset.arm;if(!toEnd)b.textContent="⏩ 跳到結局"},3000);return}
  toEnd=true;b.textContent="⏩ 快速跑完中…";const open=!$("modal").classList.contains("hide")&&[...$("choice").querySelectorAll(".opt:not([disabled])")];if(open&&open.length)pick(open).click()};
-function start(p){P=p;$("home").classList.add("hide");$("game").classList.remove("hide");scrollTo(0,0);renderPlan();render();loop()}
+// ── 新手導覽：第一次玩時依序框出重點區塊（之後按「？」可以重看）──
+const TOUR=[[".hud","時間會自己往前走","上方是年齡和這一年的進度條。可以暫停、加速，或按「下一個抉擇」直接跳到下一個要你做決定的地方。"],
+ ["#stats","你的能力","六大能力（速度、射門……）決定綜合評分。小小的 ▲▼ 是今年的變化。下面還有身價、疲勞、名氣和人際關係。"],
+ ["#planCard","每週訓練表","點一天就能換訓練內容。練什麼就長什麼，但疲勞超過 70 容易受傷；能力到上限時會提醒你改練別的。"],
+ ["#mgrCard","生涯管理","想轉會、談加薪、換經紀人，從這裡主動提出。每項每季能用一次。"],
+ ["#log","抉擇與紀錄","遇到抉擇時會跳出視窗，選項下方的小字是效果或成功率。你的每個選擇都會影響後面的人生，這裡會記下來。"]];
+function tour(i=0){const old=document.querySelector(".tour-hi");if(old)old.classList.remove("tour-hi");$("tour")?.remove();
+ if(i>=TOUR.length){paused=P?._tourPaused||false;$("pause").textContent=paused?"▶ 繼續":"⏸ 暫停";try{localStorage.setItem("fb-tour","1")}catch{}return}
+ if(i==0&&P){P._tourPaused=paused;paused=true}
+ const [sel,t,d]=TOUR[i],el=document.querySelector(sel);if(el){el.classList.add("tour-hi");el.scrollIntoView({block:"center",behavior:"smooth"})}
+ document.body.insertAdjacentHTML("beforeend",`<div id="tour"><h3>${t}</h3><p>${d}</p><div class="tn"><span>${i+1} / ${TOUR.length}</span><span><button id="tSkip" class="linkbtn">略過</button> <button id="tNext" class="pri">${i==TOUR.length-1?"開始踢球":"下一步"}</button></span></div></div>`);
+ $("tNext").onclick=()=>tour(i+1);$("tSkip").onclick=()=>tour(TOUR.length)}
+function start(p){P=p;$("home").classList.add("hide");$("game").classList.remove("hide");scrollTo(0,0);renderPlan();render();loop();let seen=null;try{seen=localStorage.getItem("fb-tour")}catch{}if(!seen)setTimeout(()=>tour(0),400)}
 $("draw").onclick=drawCard;$("noCard").onclick=()=>{cfg.card=null;renderCards()};renderCards();
 $("go").onclick=async()=>{const p=newPlayer(cfg.w,cfg.pos);p.mode=cfg.mode;
  if(cfg.card!==null&&drawn[cfg.card]){const d=drawn[cfg.card];p.pot=d.pot;p.talent=Math.max(30,d.pot-12);p.card=d.r;p.flair=d.flair}p.id=Date.now()+"";starsInit(p,cfg.stars);P=p;await reveal(p);say(`${p.name}出生在${p.c}。`,1);start(p)};
