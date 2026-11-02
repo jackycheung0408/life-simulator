@@ -73,6 +73,10 @@ button.on{background:var(--y);color:var(--ink)}
 .subs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 16px}.subs b{color:var(--y);font-size:14px}.sub{display:grid;grid-template-columns:72px 1fr 28px;align-items:center;gap:6px;font-size:13px}.sub i{display:block;height:6px;background:linear-gradient(90deg,var(--g),var(--y))}.sub em{font-style:normal;text-align:right}
 .cert .subs b{color:#8a6a00}
 .daymenu{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:6px 0;padding:8px;background:#10261a;border:2px solid var(--y)}.daymenu .mut{width:100%;font-size:13px}.daymenu button{margin:0;padding:6px 12px}
+.kstrip{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:10px}.kstrip .stat{text-align:center;padding:6px 4px}.kstrip .stat b{font-size:20px}
+#stats{grid-template-columns:repeat(5,1fr)}
+@media(max-width:560px){.kstrip{grid-template-columns:repeat(3,1fr)}#stats{grid-template-columns:repeat(3,1fr)}.days{grid-template-columns:repeat(4,1fr)}}
+#log{max-height:240px}
 </style></head><body><div class="wrap">
 
 <!-- 首頁 -->
@@ -112,9 +116,9 @@ button.on{background:var(--y);color:var(--ink)}
 <div class="card"><canvas id="pitch" width="320" height="140"></canvas><div class="ticker" id="ticker"></div></div>
 <div class="card"><div class="grid" id="stats"></div></div>
 <div class="card" id="planCard"><h2 id="planTitle">育成計劃・每週訓練表</h2><div id="focus"></div><div class="mut" id="focusTip" style="font-size:13px"></div></div>
-<div class="card"><h2>生涯數據</h2><div class="grid" id="career"></div><div class="chart" id="ovrChart" style="margin-top:8px"></div></div>
-<div class="card"><h2>報表</h2><div id="reports"></div></div>
+
 <div class="card"><h2>紀錄</h2><div id="log"></div></div>
+<div class="card"><h2>生涯數據與報表</h2><div class="kstrip" id="career"></div><div id="ovrChart" class="hide"></div><div id="reports"></div></div>
 </section>
 
 <!-- 結局 -->
