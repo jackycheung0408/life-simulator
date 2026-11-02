@@ -13,7 +13,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:"PingFang TC","No
 h1{font-family:var(--px);font-size:22px;line-height:36px;color:var(--y);text-shadow:3px 3px 0 var(--ac),6px 6px 0 var(--ink);margin:12px 0}
 h2{font-size:17px;color:var(--y);margin:0 0 8px}
 .card{background:var(--card);border:3px solid var(--ink);box-shadow:inset 0 0 0 2px var(--line),5px 5px 0 var(--ink);padding:14px;margin:14px 0}
-button,select{font:inherit;border:3px solid var(--ink);background:#285236;color:var(--fg);box-shadow:3px 3px 0 var(--ink);padding:8px 12px;cursor:pointer;margin:3px}
+button,select,a.btn{font:inherit;text-decoration:none;display:inline-block;border:3px solid var(--ink);background:#285236;color:var(--fg);box-shadow:3px 3px 0 var(--ink);padding:8px 12px;cursor:pointer;margin:3px}
 button:hover:not([disabled]){background:#346b46}button:active:not([disabled]){transform:translate(3px,3px);box-shadow:none}
 button[disabled]{opacity:.45;cursor:default}
 button.pri{background:var(--ac);color:#fff;font-weight:800;font-size:17px;padding:12px 24px}
@@ -87,7 +87,7 @@ button.on{background:var(--y);color:var(--ink)}
 .tbl{overflow-x:auto}.tbl table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}.tbl th,.tbl td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:right}.tbl th{color:var(--y);position:sticky;top:0;background:var(--card)}.tbl td:nth-child(3),.tbl th:nth-child(3){text-align:left}.tbl tr.tot td{font-weight:800;color:var(--y)}
 .cert .tbl th{background:#f4f1de;color:#16241a}
 .legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;margin-top:4px}.legend i{display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:middle}
-.life-st{border-left:4px solid var(--y);padding:6px 12px;margin:12px 0}.life-st>h3{margin:0 0 8px;font-size:16px}.life-st>h3 small{color:var(--mut);font-weight:400;margin-left:6px}
+.life-st{border-left:4px solid var(--y);padding:6px 12px;margin:12px 0}.life-st summary{cursor:pointer;list-style:none}.life-st summary::-webkit-details-marker{display:none}.life-st summary h3::before{content:"▸ ";color:var(--y)}.life-st[open] summary h3::before{content:"▾ "}.life-st h3{margin:0 0 8px;font-size:16px;display:inline-block}.life-st h3 small{color:var(--mut);font-weight:400;margin-left:6px}
 .life-sum{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}.life-sum span{background:#10261a;border:1px solid var(--mut);padding:1px 8px;font-size:12px}
 .age-row{display:grid;grid-template-columns:48px 1fr;gap:8px;padding:5px 0;border-top:1px dashed #2c4a35}.age-row:first-of-type{border-top:0}.age-row .y{color:var(--y);font-weight:700;font-size:13px}
 .age-row p{margin:0 0 4px;font-size:13.5px;line-height:1.55}.age-row p.hi{color:var(--y)}.age-row .q{color:var(--mut)}.age-row .q::after{content:"　→ "}.age-row .a{color:var(--fg,#f4f1de);font-weight:700}
@@ -195,7 +195,7 @@ button.on{background:var(--y);color:var(--ink)}
 <div class="cert" id="cert"></div>
 <div class="card" id="endAch"></div>
 <div class="card"><h2>生涯報表</h2><div id="endReports"></div></div>
-<p><button class="pri" onclick="location.reload()">再活一次</button> <button id="share">📣 分享文字</button> <button id="cardImg">🖼 存生涯卡圖片</button></p>
+<p><button class="pri" onclick="location.reload()">再活一次</button> <button id="share">📣 分享文字</button> <button id="cardImg">🖼 生涯卡圖片</button></p>
 </section>
 </div>
 <div id="tip"></div><div id="modal" class="hide"><div class="sheet"><span class="tag" id="mtag"></span><span id="mctx"></span><div id="choice"></div></div></div>
@@ -883,7 +883,9 @@ function starStep(s,age){if(!s.active||age<16)return;
  if(age<17)return;
  if(s.o<55){s.club=null;return}
  const cur=CLUBS.find(c=>c.name==s.club);
- if(!cur||R()<.15||Math.abs(cur.str-s.o)>7){const pool=CLUBS.filter(c=>c.str<=s.o+3&&c.str>=s.o-7&&(s.o<78||c.tier>=4)&&(s.o>=68||c.ct==s.c||c.tier>=2));const to=pick(pool.length?pool:CLUBS.slice().sort((a,b)=>Math.abs(a.str-s.o)-Math.abs(b.str-s.o)).slice(0,3));if(to.name!=s.club){s.club=to.name;s.moves.push([age,to.name])}}
+ if(!cur||R()<.15||Math.abs(cur.str-s.o)>7||!(cur.ct==s.c||EU7.includes(cur.ct)||["美國","沙烏地阿拉伯","巴西","阿根廷","墨西哥"].includes(cur.ct))){// 去哪踢要合理：年輕時在本國或歐洲；30 歲後才可能去美國、沙烏地養老；台灣、中國、日韓、西非聯賽只收本國人
+ const okCt=c=>c.ct==s.c||EU7.includes(c.ct)||(["巴西","阿根廷","墨西哥"].includes(c.ct)&&age>=31&&["拉"].includes((COUNTRIES.find(x=>x[0]==s.c)||[])[4]))||(["美國","沙烏地阿拉伯"].includes(c.ct)&&age>=30);
+ const pool=CLUBS.filter(c=>okCt(c)&&c.str<=s.o+3&&c.str>=s.o-7&&(s.o<78||c.tier>=4));const to=pick(pool.length?pool:CLUBS.filter(okCt).sort((a,b)=>Math.abs(a.str-s.o)-Math.abs(b.str-s.o)).slice(0,3));if(to.name!=s.club){s.club=to.name;s.moves.push([age,to.name])}}
  const cl=CLUBS.find(c=>c.name==s.club),ap=s.o>=60?22+Math.floor(R()*14):Math.floor(R()*15);s.apps+=ap;
  s.goals+=Math.max(0,Math.round(ap/34*({FW:(s.o-50)*.75,MF:(s.o-58)*.25,DF:2,GK:0}[s.pos])*(.7+R()*.6)));
  if(R()<clamp((cl.str-64)/80,.02,.6))s.tro++;if(s.o>=Math.max(62,(COUNTRIES.find(x=>x[0]==s.c)||[,,75])[2]-4)&&age>=19)s.caps+=5+Math.floor(R()*5)}
@@ -1028,8 +1030,9 @@ function reportHTML(p,inGame){
   // 成就通知不放進生平；同樣的句子只留第一次
   const seen=new Set(),log=p.log.filter(([,t])=>!t.startsWith("🏅")&&!seen.has(t)&&seen.add(t));
   const line=(t,h)=>{const m=t.split(" → ");return `<p class="${h?"hi":""}">${m.length==2?`<span class="q">${m[0]}</span><span class="a">${m[1]}</span>`:t}</p>`};
-  body=st.map(([n,a,b])=>{const ev=log.filter(([g])=>g>=a&&g<=b);if(!ev.length)return "";const ages=[...new Set(ev.map(e=>e[0]))],ch=ev.filter(e=>e[1].includes(" → ")).length,hi=ev.filter(e=>e[2]).length;
-   return `<div class="life-st"><h3>${n}<small>${a}～${Math.min(b,p.age)} 歲</small></h3><div class="life-sum"><span>${ev.length} 件事</span><span>做了 ${ch} 個選擇</span>${hi?`<span>★ 重要時刻 ${hi}</span>`:""}</div>${ages.map(g=>`<div class="age-row"><span class="y">${g} 歲</span><div>${ev.filter(e=>e[0]==g).map(([,t,h])=>line(t,h)).join("")}</div></div>`).join("")}</div>`}).join("")||`<p class="mut">剛出生。</p>`}
+  const only=window.lifeOnly;
+  body=`<p><button class="linkbtn" id="lifeOnly">${only?"顯示全部事件":"只看重要時刻"}</button>　<span class="mut" style="font-size:12px">點階段標題可以展開或收合</span></p>`+st.map(([n,a,b],si)=>{const ev=log.filter(([g,,h])=>g>=a&&g<=b&&(!only||h));if(!ev.length)return "";const ages=[...new Set(ev.map(e=>e[0]))],ch=ev.filter(e=>e[1].includes(" → ")).length,hi=ev.filter(e=>e[2]).length;
+   return `<details class="life-st"${only||n.includes("職業")||n.includes("追夢")?" open":""}><summary><h3>${n}<small>${a}～${Math.min(b,p.age)} 歲</small></h3></summary><div class="life-sum"><span>${ev.length} 件事</span><span>做了 ${ch} 個選擇</span>${hi?`<span>★ 重要時刻 ${hi}</span>`:""}</div>${ages.map(g=>`<div class="age-row"><span class="y">${g} 歲</span><div>${ev.filter(e=>e[0]==g).map(([,t,h])=>line(t,h)).join("")}</div></div>`).join("")}</details>`}).join("")||`<p class="mut">剛出生。</p>`}
  if(repTab=="同世代")body=starTable(p);
  if(repTab=="能力細項"){const fm=k=>faceMap(p,k);body=`<p class="mut">位置 ${DPN[dpOf(p)]}（${dpOf(p)}）· 綜合能力 ${ovr(p)} · 逆足 ${"★".repeat(p.wf)} · 花式 ${"★".repeat(p.sm)}。綜合能力依位置加權細項計算（參考 FIFA）。</p><div class="subs">${ATTR.map(k=>`<div><b>${k} ${Math.round(p.a[k])}</b>${Object.keys(fm(k)).map(x=>`<div class="sub"><span>${x}</span><i style="width:${p.s[x]}%"></i><em>${Math.round(p.s[x])}</em></div>`).join("")}</div>`).join("")}<div><b>其他</b><div class="sub"><span>反應</span><i style="width:${p.s.反應}%"></i><em>${Math.round(p.s.反應)}</em></div></div></div>
   <p class="mut">各位置綜合能力：${Object.keys(DPW).map(d=>{const w=DPW[d];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return `${DPN[d]} ${Math.round(t/sw)}`}).join("、")}</p>`}
@@ -1048,7 +1051,7 @@ function reportHTML(p,inGame){
  if(repTab=="國家隊")body=(p.intl||[]).length?`<div class="tbl"><table><tr><th>年</th><th>歲</th><th>出賽</th><th>進球</th></tr>${p.intl.map(i=>`<tr><td>${i.y}</td><td>${i.age}</td><td>${i.caps}</td><td>${i.g}</td></tr>`).join("")}<tr class="tot"><td colspan="2">合計</td><td>${p.caps}</td><td>${p.intlGoals}</td></tr></table></div><p>參加世界盃 ${p.wc||0} 次。</p>`:`<p class="mut">還沒有入選國家隊。${p.c}國家隊大約要能力 ${Math.max(55,p.cs-4)} 以上。</p>`;
  return `<div class="rtabs">${tabs.map(t=>`<button class="rt${t==repTab?" on":""}" data-t="${t}">${t}</button>`).join("")}</div>${body}`;
 }
-function drawReport(id){const el=$(id);if(!el||!P)return;repTab=repTabs[id];el.innerHTML=reportHTML(P,id=="reports");el.querySelectorAll(".rt").forEach(b=>b.onclick=()=>{repTabs[id]=b.dataset.t;drawReport(id)})}
+function drawReport(id){const el=$(id);if(!el||!P)return;repTab=repTabs[id];el.innerHTML=reportHTML(P,id=="reports");const lo=el.querySelector("#lifeOnly");if(lo)lo.onclick=()=>{window.lifeOnly=!window.lifeOnly;drawReport(id)};el.querySelectorAll(".rt").forEach(b=>b.onclick=()=>{repTabs[id]=b.dataset.t;drawReport(id)})}
 
 // ── 挑戰與成就：每項分銅、銀、金、鑽石四級，跨局保留最佳紀錄 ──
 const TIER=["🥉 銅","🥈 銀","🥇 金","💎 鑽石"];
@@ -1193,9 +1196,12 @@ function cardCanvas(p){const W=1080,H=1350,cv=document.createElement("canvas");c
  g.fillStyle="#f4f1de";g.font=F(30,500);const full=p.clubsPlayed.join(" → ")||"沒有職業球隊";let cl=full;while(g.measureText("效力過："+cl+"…").width>920&&cl.length>4)cl=cl.slice(0,-1);g.fillText("效力過："+cl+(cl!==full?"…":""),76,1130);
  g.fillStyle="#ffd23f";g.font=F(40);const sr=starRank(p);g.fillText((sr?`同世代第 ${sr.rank} / ${sr.all.length} 名　`:"")+("🏆".repeat(Math.min(sr?8:12,p.trophies.length))||(sr?"":"踢過，就不後悔")),76,1200);
  g.fillStyle="#9fb5a3";g.font=F(26,500);g.fillText("足球員模擬器 · "+location.host+location.pathname,76,1270);return cv}
-function shareCard(p){const cv=cardCanvas(p);cv.toBlob(async b=>{const fn=`${p.name}-生涯卡.png`,file=new File([b],fn,{type:"image/png"});
- try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],text:`${p.name}的足球生涯`});return}}catch(e){if(e.name=="AbortError")return}
- const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=fn;a.click();toast("已下載生涯卡圖片")},"image/png")}
+// 生涯卡：先跳出預覽，再選下載、複製或分享（電腦版的分享選單沒有「儲存」）
+function shareCard(p){const cv=cardCanvas(p),url=cv.toDataURL("image/png"),fn=`${p.name}-生涯卡.png`;
+ document.body.insertAdjacentHTML("beforeend",`<div id="cardPv" style="position:fixed;inset:0;z-index:80;background:#030805ee;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px"><img src="${url}" style="max-width:min(420px,100%);max-height:70vh;border:3px solid var(--y)"><div class="mut" style="font-size:13px">手機也可以長按圖片儲存</div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><a class="btn pri" id="cpDl" href="${url}" download="${fn}">⬇ 下載圖片</a><button id="cpCopy">📋 複製圖片</button>${navigator.canShare?'<button id="cpShare">📤 分享</button>':""}<button id="cpX">關閉</button></div></div>`);
+ const close=()=>$("cardPv").remove();$("cpX").onclick=close;$("cardPv").onclick=e=>{if(e.target.id=="cardPv")close()};
+ $("cpCopy").onclick=()=>cv.toBlob(async b=>{try{await navigator.clipboard.write([new ClipboardItem({"image/png":b})]);toast("已複製圖片，可以直接貼上")}catch{toast("這個瀏覽器不能複製圖片，請改用下載")}},"image/png");
+ if($("cpShare"))$("cpShare").onclick=()=>cv.toBlob(async b=>{const f=new File([b],fn,{type:"image/png"});try{if(navigator.canShare({files:[f]}))await navigator.share({files:[f],text:`${p.name}的足球生涯`});else toast("這個裝置不能分享圖片，請改用下載")}catch{}},"image/png")}
 // ── 揭曉 ──
 function reveal(p){return new Promise(res=>{const ov=document.createElement("div");ov.id="reveal";
  ov.innerHTML=`<div><div class="mut" style="margin-bottom:10px">— 一位未來的足球員誕生了 —</div><div class="slot" id="rvN">？？？</div><div id="rvS" style="margin:14px 0"></div><button class="pri hide" id="rvGo">開始踢球 ▶</button><br><button id="rvSkip" style="background:none;border:0;box-shadow:none;color:var(--mut);text-decoration:underline">跳過</button></div>`;
