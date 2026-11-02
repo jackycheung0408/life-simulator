@@ -1034,7 +1034,7 @@ function chart(arr,label){const v=arr.map((x,i)=>[i,x]).filter(x=>x[1]!=null);if
 let repTab="生平";const repTabs={reports:"能力細項",endReports:"生平"}; // 遊戲中已有紀錄欄，報表就不再重複顯示生平
 function lines(series,W=320,H=120,maxV){const all=series.flatMap(s=>s.pts.map(x=>x[1])),mx=maxV||Math.max(1,...all),xs=series.flatMap(s=>s.pts.map(x=>x[0])),x0=Math.min(...xs),x1=Math.max(x0+1,...xs);
  const X=a=>((a-x0)/(x1-x0)*(W-30)+26).toFixed(1),Y=v=>(H-14-(v/mx)*(H-24)).toFixed(1);
- return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;background:#0a170e;border:2px solid var(--line)">${[0,.5,1].map(f=>`<line x1="26" x2="${W}" y1="${Y(mx*f)}" y2="${Y(mx*f)}" stroke="#2f5a3a"/><text x="2" y="${+Y(mx*f)+4}" font-size="9" fill="#a9c2ad">${Math.round(mx*f)}</text>`).join("")}
+ return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;background:#0a170e;border:2px solid var(--line)">${[0,.5,1].map(f=>`<line x1="26" x2="${W}" y1="${Y(mx*f)}" y2="${Y(mx*f)}" stroke="#2f5a3a"/><text x="2" y="${+Y(mx*f)+4}" font-size="9" fill="#a9c2ad">${/歐元/.test(series[0].n)?eur(mx*f).replace("€",""):mx<10?(mx*f).toFixed(1):Math.round(mx*f)}</text>`).join("")}
   <text x="26" y="${H-2}" font-size="9" fill="#a9c2ad">${x0} 歲</text><text x="${W-30}" y="${H-2}" font-size="9" fill="#a9c2ad">${x1} 歲</text>
   ${series.map(s=>`<polyline points="${s.pts.map(([a,v])=>X(a)+","+Y(v)).join(" ")}" fill="none" stroke="${s.c}" stroke-width="2"/>`).join("")}
   ${hoverCols(xs,X,W,H,a=>`<b>${a} 歲</b>`+series.map(s=>{const q=s.pts.find(x=>x[0]==a);return q?`<br><i style="background:${s.c}"></i>${s.n.replace(/（.*）/,"")}：${fmtV(s,q[1])}`:""}).join(""))}</svg>
