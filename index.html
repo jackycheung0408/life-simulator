@@ -212,7 +212,7 @@ body{font-size:15px;line-height:1.6}
 .rv-stamp{border:2px solid var(--ac);color:var(--ac);padding:6px 10px;transform:rotate(-4deg);animation:rvStamp .3s ease-out;background:rgba(255,77,77,.08)}
 .rv-stamp span{display:block;font-size:11px;opacity:.8}.rv-stamp b{font-size:16px}
 @keyframes rvStamp{0%{transform:scale(2.4) rotate(-12deg);opacity:0}100%{transform:scale(1) rotate(-4deg);opacity:1}}
-.rv-skip{display:block;margin:14px auto 0;background:none;border:0;box-shadow:none;color:var(--mut);font-size:13px;text-decoration:underline}
+.rv-skip{display:block;margin:14px auto 0;font-size:13px}
 .bc{position:relative;background:#f4f1de;color:#22223a;padding:18px;border:4px solid var(--ink);box-shadow:8px 8px 0 var(--ac)}
 .bc .mut{color:#6b6b85!important}.bc-top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px double #22223a;padding-bottom:10px;margin-bottom:12px}
 .bc-title{font-size:22px;font-weight:800;letter-spacing:.2em}
@@ -253,7 +253,7 @@ body{font-size:15px;line-height:1.6}
 <section id="home">
 <p class="mut">v1.0 · 免費人生模擬 · 依 170 個國家與地區的公開統計概估 · 15 歲以上</p>
 <h1>人生模擬器</h1>
-<p><a href="football/" style="display:inline-block;background:#2f8a3e;color:#fff;border:3px solid #05050f;box-shadow:3px 3px 0 #05050f;padding:6px 12px;text-decoration:none;font-weight:700">⚽ 新遊戲：足球員模擬器 ▶</a></p><p class="blink" style="font-family:var(--px);font-size:.7rem;color:var(--y)">— 按下「出生」開始 —</p>
+<p><button onclick="location.href='football/'" style="background:#2f8a3e;color:#fff;border:3px solid #05050f;box-shadow:3px 3px 0 #05050f;padding:6px 12px;font-weight:700">⚽ 新遊戲：足球員模擬器 ▶</button></p><p class="blink" style="font-family:var(--px);font-size:.7rem;color:var(--y)">— 按下「出生」開始 —</p>
 <p>此刻每秒約有四個嬰兒誕生，你會是其中一個，一路活到最後。出生在哪、父母是誰，你沒得選——當初的你也一樣。</p>
 <div class="grid card"><div><span class="big" id="born">0</span><div class="mut">你打開本頁後出生的嬰兒</div></div><div><span class="big" id="died">0</span><div class="mut">同一段時間離世的人</div></div></div>
 <div class="card"><b>今日主題：</b><span id="theme"></span><div class="mut">今天出生的人生都會遇到和這個主題有關的事件。</div></div>

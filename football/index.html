@@ -76,6 +76,12 @@ button.on{background:var(--y);color:var(--ink)}
 @media(max-width:560px){.seas th:nth-child(5),.seas td:nth-child(5),.seas th:nth-child(16),.seas td:nth-child(16),.seas th:nth-child(14),.seas td:nth-child(14){display:none}.tbl table{font-size:11.5px}.tbl th,.tbl td{padding:3px 3px}}
 .gala{margin-top:10px;padding:10px;border:2px solid var(--y);background:#2a2a0e}.gala-h{color:var(--y);font-weight:900;margin-bottom:4px}.gala-r{padding:3px 0;border-top:1px dashed #4a4a20}.gala-r small{color:var(--mut);margin-left:8px}.gala-r.w{color:var(--y);font-weight:900}
 .lgt tr.me td{background:#ffd23f33;font-weight:800}.lgt tr.rel td{color:#ff8a8a}
+.gblist{display:grid;gap:6px}.gbrow{display:grid;grid-template-columns:34px 40px 1fr auto 52px auto;gap:8px;align-items:center;background:#10261a;border:2px solid var(--ink);padding:6px 8px}
+.gbrow.m1{box-shadow:inset 0 0 0 2px #ffd23f}.gbrow.m2{box-shadow:inset 0 0 0 2px #c9d3d8}.gbrow.m3{box-shadow:inset 0 0 0 2px #c98a4b}
+.gbn{font-weight:900;text-align:center}.gbp{background:linear-gradient(160deg,#ffe58a,#c9a227);color:#2a2000;font-weight:900;text-align:center;padding:4px 0;border:2px solid var(--ink)}
+.gbm{min-width:0}.gbm b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gbm small{display:block;color:var(--mut);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gbs{font-size:12px;white-space:nowrap}.gbsc{color:var(--y);font-weight:900;text-align:right}.gbr{font-size:11px}.gbt.on{background:var(--y);color:var(--ink)}
+@media(max-width:560px){.gbrow{grid-template-columns:28px 34px 1fr 44px}.gbs,.gbr{display:none}}
 #tour{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(440px,calc(100% - 24px));background:var(--card);border:3px solid var(--ink);box-shadow:inset 0 0 0 3px var(--y),0 12px 40px #000;padding:14px 16px;z-index:60}
 #tour h3{margin:0 0 6px;color:var(--y);font-size:16px}#tour p{margin:0 0 10px;font-size:14px;line-height:1.6}#tour .tn{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mut)}
 .tour-hi{outline:4px solid var(--y)!important;outline-offset:3px;position:relative;z-index:55}
@@ -146,7 +152,7 @@ button.on{background:var(--y);color:var(--ink)}
 .gc-rib{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:var(--g);color:var(--ink);font-style:normal;font-size:12px;font-weight:800;padding:2px 10px;white-space:nowrap}
 .gc.flip .gc-in,.gc.flip .gc-shine{animation:flip .8s ease-out}.gc.r4.flip .gc-in{animation:flip .8s ease-out,holo 4s linear infinite}
 @keyframes flip{0%{transform:rotateY(90deg) scale(.7);filter:brightness(3)}60%{transform:rotateY(-8deg) scale(1.08)}100%{transform:none}}
-.linkbtn{background:none;border:0;box-shadow:none;color:var(--y);text-decoration:underline;padding:0 4px;font-size:13px}
+.linkbtn{padding:5px 10px;font-size:13px} /* 所有互動都用按鈕外觀，不用底線連結 */
 .plan-warn{margin-top:6px;padding:6px 8px;border:2px solid var(--ac);color:var(--fg);font-size:13px;background:#3a1a1a}
 .mgr{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:8px}.mg{margin:0;text-align:left;padding:8px 10px}.mg b{display:block;font-size:14px}.mg small{display:block;font-size:12px;color:var(--mut)}
 </style></head><body><div class="wrap">
@@ -176,8 +182,9 @@ button.on{background:var(--y);color:var(--ink)}
  <button class="pri" id="go">▶ 出生</button> <div id="resume"></div>
 </div>
 <div class="card"><h2>挑戰與成就</h2><div id="achWall"></div></div>
+<div class="card"><h2>🌍 全球排行榜</h2><div class="mut" style="font-size:13px">所有玩家自願上傳的生涯，依生涯評分排序。只公開球員名字和數據。</div><p id="gbTabs" style="margin:8px 0"><button class="gbt on" data-c="">全球</button><button class="gbt" data-c="台灣">台灣</button><select id="gbCtry" style="padding:6px"></select></p><div id="gb" class="gblist"><p class="mut">載入中…</p></div></div>
 <div class="card"><h2>傳奇殿堂</h2><div class="mut">在這台裝置上踢完的生涯，依生涯評分排序。</div><div id="hof" class="hall" style="margin-top:8px"></div></div>
-<p class="mut">← <a href="../" style="color:var(--y)">回到人生模擬器</a>　·　球隊與聯賽使用真實名稱，僅供模擬參考，非官方遊戲，與各俱樂部、聯賽無關；能力與結果皆為虛構。</p>
+<p class="mut">← <button onclick="location.href='../'">← 回到人生模擬器</button>　·　球隊與聯賽使用真實名稱，僅供模擬參考，非官方遊戲，與各俱樂部、聯賽無關；能力與結果皆為虛構。</p>
 </section>
 
 <!-- 遊戲 -->
@@ -207,7 +214,7 @@ button.on{background:var(--y);color:var(--ink)}
 <div class="cert" id="cert"></div>
 <div class="card" id="endAch"></div>
 <div class="card"><h2>生涯報表</h2><div id="endReports"></div></div>
-<p><button class="pri" onclick="location.reload()">再活一次</button> <button id="share">📣 分享文字</button> <button id="cardImg">🖼 生涯卡圖片</button></p>
+<p><button class="pri" onclick="location.reload()">再活一次</button> <button id="upload">🌍 上傳到全球排行榜</button> <button id="share">📣 分享文字</button> <button id="cardImg">🖼 生涯卡圖片</button></p>
 </section>
 </div>
 <div id="tip"></div><div id="modal" class="hide"><div class="sheet"><span class="tag" id="mtag"></span><span id="mctx"></span><div id="choice"></div></div></div>
@@ -1342,7 +1349,7 @@ function finish(){
  drawFace($("cface"),p);
  checkAch(p,true);$("endAch").innerHTML=`<b>這段生涯的成就</b><br>${Object.entries(p.achGot||{}).map(([n,t])=>`${TIER[t-1].split(" ")[0]} ${n}`).join("　")||"沒有"}`;drawReport("endReports");const _unused=p.seasons.map(s=>`<div class="row"><span>${s.y}（${s.age}歲）${s.club}</span><span>${s.apps} 場 · ${s.goals} 球 · 評分 ${s.rating}${s.titles.length?" · 🏆":""}</span></div>`).join("")||"<p class='mut'>沒有職業球季。</p>";
  try{const h=JSON.parse(localStorage.getItem("fb-hof")||"[]");h.push({name:p.name,c:p.c,pos:p.pos,sc,title:(p.card?p.card+"・":"")+title,peak:Math.round(p.peak),goals:p.goals,tro:p.trophies.length,y:`${p.y0}–${p.y0+p.age}`});h.sort((a,b)=>b.sc-a.sc);localStorage.setItem("fb-hof",JSON.stringify(h.slice(0,20)))}catch{}
- p._sc=sc;p._title=title;$("cardImg").onclick=()=>shareCard(p);
+ p._sc=sc;p._title=title;$("cardImg").onclick=()=>shareCard(p);$("upload").onclick=()=>uploadCareer(p);if(!p.debut){$("upload").classList.add("hide")}
  $("share").onclick=async()=>{const text=`我在足球員模擬器踢了一生：${p.name}（${p.c}·${POS[p.pos]}），巔峰能力 ${Math.round(p.peak)}，${p.goals} 球、${p.trophies.length} 座冠軍。${location.href.split("?")[0]}`;try{if(navigator.share)await navigator.share({text});else{await navigator.clipboard.writeText(text);toast("已複製分享文字")}}catch{}};
 }
 
@@ -1371,9 +1378,25 @@ function shareCard(p){const cv=cardCanvas(p),url=cv.toDataURL("image/png"),fn=`$
  const close=()=>$("cardPv").remove();$("cpX").onclick=close;$("cardPv").onclick=e=>{if(e.target.id=="cardPv")close()};
  $("cpCopy").onclick=()=>cv.toBlob(async b=>{try{await navigator.clipboard.write([new ClipboardItem({"image/png":b})]);toast("已複製圖片，可以直接貼上")}catch{toast("這個瀏覽器不能複製圖片，請改用下載")}},"image/png");
  if($("cpShare"))$("cpShare").onclick=()=>cv.toBlob(async b=>{const f=new File([b],fn,{type:"image/png"});try{if(navigator.canShare({files:[f]}))await navigator.share({files:[f],text:`${p.name}的足球生涯`});else toast("這個裝置不能分享圖片，請改用下載")}catch{}},"image/png")}
+// ── 全球排行榜（Supabase）：只能新增與讀取；資料庫端有數值上限、髒話過濾、送出頻率限制，檢舉 3 次自動隱藏 ──
+const SB="https://gerqdagicybtyilihvvm.supabase.co/rest/v1/",SBK="sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y",SBH={apikey:SBK,"Content-Type":"application/json"};
+function devId(){let d=null;try{d=localStorage.getItem("fb-dev")}catch{}if(!d){d="d"+Math.random().toString(36).slice(2)+Date.now().toString(36);try{localStorage.setItem("fb-dev",d)}catch{}}return d}
+async function uploadCareer(p){const b=$("upload");if(b.dataset.done)return;b.disabled=true;b.textContent="上傳中…";
+ const row={device:devId(),name:p.name.slice(0,24),country:p.c.slice(0,12),pos:p.pos,title:String(p._title||"").slice(0,30),peak:Math.min(99,Math.round(p.peak)),apps:Math.min(1200,p.apps),goals:Math.min(1500,p.goals),trophies:Math.min(60,p.trophies.length),awards:Math.min(80,p.awards.length),score:Math.min(2500,p._sc||0),born:p.y0,died:p.y0+p.age};
+ try{const r=await fetch(SB+"fb_careers",{method:"POST",headers:{...SBH,Prefer:"return=minimal"},body:JSON.stringify(row)});
+  if(r.ok){b.dataset.done=1;b.textContent="✔ 已上傳";toast("已上傳到全球排行榜");return}
+  const e=await r.json().catch(()=>({}));toast({"too fast":"送太快了，請一分鐘後再試","bad words":"名字含有不當字詞，無法上傳",busy:"現在上傳的人太多，請稍後再試"}[e.message]||"資料不符合排行榜規則，無法上傳")}catch{toast("連線失敗，請稍後再試")}
+ b.disabled=false;b.textContent="🌍 上傳到全球排行榜"}
+let gbCountry="";
+async function loadBoard(){const el=$("gb");if(!el)return;el.innerHTML="<p class='mut'>載入中…</p>";
+ try{const q=`fb_careers?select=id,name,country,pos,title,peak,goals,trophies,score,born,died&order=score.desc&limit=30${gbCountry?`&country=eq.${encodeURIComponent(gbCountry)}`:""}`;
+  const rows=await (await fetch(SB+q,{headers:SBH})).json();let rep=[];try{rep=JSON.parse(localStorage.getItem("fb-rep")||"[]")}catch{}
+  el.innerHTML=rows.length?rows.map((x,i)=>`<div class="gbrow${i<3?" m"+(i+1):""}"><span class="gbn">${i<3?["🥇","🥈","🥉"][i]:i+1}</span><span class="gbp">${x.peak}</span><span class="gbm"><b>${esc(x.name)}</b><small>${esc(x.country)} · ${POS[x.pos]||""} · ${esc(x.title||"")} · ${x.born}–${x.died}</small></span><span class="gbs">⚽ ${x.goals}　🏆 ${x.trophies}</span><span class="gbsc">${x.score}</span>${rep.includes(x.id)?`<span class="gbr mut">已檢舉</span>`:`<button class="gbr linkbtn" data-id="${x.id}" title="名字不當可以檢舉，3 次自動隱藏">檢舉</button>`}</div>`).join(""):"<p class='mut'>還沒有人上傳。</p>";
+  el.querySelectorAll("button.gbr").forEach(b=>b.onclick=async()=>{const id=+b.dataset.id;b.disabled=true;try{await fetch(SB+"rpc/fb_report",{method:"POST",headers:SBH,body:JSON.stringify({cid:id,dev:devId()})});rep.push(id);localStorage.setItem("fb-rep",JSON.stringify(rep));toast("已檢舉，謝謝回報");b.outerHTML='<span class="gbr mut">已檢舉</span>'}catch{toast("檢舉失敗")}})}
+ catch{el.innerHTML="<p class='mut'>排行榜暫時無法載入。</p>"}}
 // ── 揭曉 ──
 function reveal(p){return new Promise(res=>{const ov=document.createElement("div");ov.id="reveal";
- ov.innerHTML=`<div><div class="mut" style="margin-bottom:10px">— 一位未來的足球員誕生了 —</div><div class="slot" id="rvN">？？？</div><div id="rvS" style="margin:14px 0"></div><button class="pri hide" id="rvGo">開始踢球 ▶</button><br><button id="rvSkip" style="background:none;border:0;box-shadow:none;color:var(--mut);text-decoration:underline">跳過</button></div>`;
+ ov.innerHTML=`<div><div class="mut" style="margin-bottom:10px">— 一位未來的足球員誕生了 —</div><div class="slot" id="rvN">？？？</div><div id="rvS" style="margin:14px 0"></div><button class="pri hide" id="rvGo">開始踢球 ▶</button><br><button id="rvSkip" style="margin-top:10px">跳過 ⏭</button></div>`;
  document.body.appendChild(ov);let t=0,d=40,done=false;const n=ov.querySelector("#rvN");
  const spin=()=>{if(done)return;n.textContent=wpick(COUNTRIES,x=>x[1])[0];t+=d;d*=1.1;if(t>2400){n.textContent=p.c;n.style.color="var(--y)";stamps();return}setTimeout(spin,d)};spin();
  function stamps(){const od=realOdds(p.c);ov.querySelector("#rvS").insertAdjacentHTML("beforebegin",`<p class='mut' style='max-width:420px;margin:10px auto'>真實世界裡，${p.c}同年出生的約 ${Math.round(od.boys/1e4)} 萬名男孩中：成為職業球員約 <b style='color:var(--y)'>${oneIn(od.pro)}</b>，踢進五大聯賽約 <b style='color:var(--y)'>${oneIn(od.top5)}</b>。</p>`);const it=[["位置",POS[p.pos]],["國家隊強度",p.cs],["家境",["貧困","偏低","中等","小康","富裕"][p.cls]],["天賦",p.card?`${p.card}・${p.flair}`:p.talent>=70?"罕見":p.talent>=60?"不錯":p.talent>=50?"普通":"平庸"]];
@@ -1443,5 +1466,8 @@ $("ctry").innerHTML=`<option value="world">🎲 足球世界隨機（依足球�
 $("ctry").onchange=e=>{cfg.w=e.target.value};
 $("oddsTbl").innerHTML=COUNTRIES.map(c=>c[0]).map(c=>{const o=realOdds(c);return `${c}：職業球員 ${oneIn(o.pro)}、五大聯賽 ${oneIn(o.top5)}`}).join("<br>");
 $("achWall").innerHTML=achWall();
+$("gbCtry").innerHTML=`<option value="">其他國家…</option>`+COUNTRIES.map(c=>`<option>${c[0]}</option>`).join("");
+const gbSet=c=>{gbCountry=c;document.querySelectorAll(".gbt").forEach(x=>x.classList.toggle("on",x.dataset.c===c));loadBoard()};
+document.querySelectorAll(".gbt").forEach(b=>b.onclick=()=>{$("gbCtry").value="";gbSet(b.dataset.c)});$("gbCtry").onchange=e=>{if(e.target.value)gbSet(e.target.value)};loadBoard();
 drawPitch(0,0);
 </script></body></html>
