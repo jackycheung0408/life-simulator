@@ -150,7 +150,7 @@ begin
     r.x := px; r.y := py; r.place := dest; r.sleeping := false;
     if dest in ('plaza','restaurant','market','park') then
       select string_agg(name, '、') into others from public.town_residents where place = dest and id <> rid and pin_hash is not null;
-      if others is not null and not exists (select 1 from public.town_events where actor = rid and kind = 'meet' and at > now() - interval '2 hours') then
+      if others is not null and not exists (select 1 from public.town_events e where e.actor = rid and e.kind = 'meet' and e.at > now() - interval '2 hours') then
         insert into public.town_events(actor,kind,msg) values (rid,'meet', r.name || ' 在' || public.town_place_name(dest) || '遇到了 ' || others);
         r.fun := r.fun + 10;
       end if;
@@ -175,7 +175,7 @@ begin
     if not found or t.pin_hash is null then raise exception '這位朋友還沒入住'; end if;
     if r.place <> 'home:' || target then raise exception '要先走到他家'; end if;
     if t.place <> 'home:' || target then raise exception '% 不在家，在%', t.name, public.town_place_name(t.place); end if;
-    if exists (select 1 from public.town_events where actor = rid and target = t.id and kind = act and at > now() - interval '2 hours') then raise exception '剛剛才做過，等一下再來'; end if;
+    if exists (select 1 from public.town_events e where e.actor = rid and e.target = t.id and e.kind = act and e.at > now() - interval '2 hours') then raise exception '剛剛才做過，等一下再來'; end if;
     t := public.town_tick(t); tn := t.name;
     if act = 'feed' then if r.money < 10 then raise exception '錢不夠買食材'; end if; t.hunger := t.hunger + 35; r.money := r.money - 10; r.fun := r.fun + 5;
       insert into public.town_events(actor,target,kind,msg) values (rid,target,act, r.name || ' 煮了一餐給 ' || tn || ' 吃');
