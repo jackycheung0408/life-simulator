@@ -51,6 +51,16 @@ create table if not exists public.town_bonds (
   primary key (a, b), check (a < b)
 );
 alter table public.town_bonds enable row level security;
+-- 商品目錄：造型（wear）與門口擺飾（deco）；unlock 不是 null 的造型要達成條件才能穿（bandage：被扁 10 次；couple：有好麻吉）
+create table if not exists public.town_shop (id text primary key, kind text not null, slot text, name text not null, price int not null default 0, unlock text);
+insert into public.town_shop(id,kind,slot,name,price,unlock) values
+ ('twintail','wear','hair','雙馬尾',100,null),('mohawk','wear','hair','刺蝟頭',100,null),
+ ('suit','wear','top','西裝',250,null),('jersey','wear','top','球衣',150,null),('dress','wear','top','洋裝',150,null),('couple','wear','top','情侶 T',0,'couple'),
+ ('crown','wear','acc','皇冠',300,null),('pigears','wear','acc','小豬耳朵',80,null),('headphones','wear','acc','耳機',120,null),('scarf','wear','acc','圍巾',60,null),('bandage','wear','acc','繃帶頭',0,'bandage'),
+ ('flowers','deco',null,'花圃',40,null),('mailbox','deco',null,'信箱',30,null),('lamp','deco',null,'路燈',60,null),('bench','deco',null,'長椅',80,null),('tree','deco',null,'小樹',50,null),('pigstatue','deco',null,'小豬雕像',200,null)
+on conflict (id) do update set kind=excluded.kind, slot=excluded.slot, name=excluded.name, price=excluded.price, unlock=excluded.unlock;
+alter table public.town_shop enable row level security;
+revoke all on public.town_shop from anon, authenticated;
 revoke all on public.town_bonds from anon, authenticated;
 
 alter table public.town_towns enable row level security;
@@ -145,8 +155,14 @@ begin
   end loop;
   return json_build_object('now',now(),'town',json_build_object('id',t.id,'name',t.name,'rows',t.rows),'residents',array_to_json(acc),
     'bonds',(select coalesce(json_agg(json_build_object('a',a,'b',b,'s',score)),'[]') from public.town_bonds where town_id = t.id),
+    -- 每週排行（最近 7 天）：最勤勞、最受歡迎、最欠扁、最愛照顧人
+    'week',(select json_build_object(
+      'work',(select coalesce(json_agg(x),'[]') from (select actor id, count(*) n from public.town_events where town_id = t.id and at > now() - interval '7 days' and kind in ('work','cowork') and actor is not null group by actor order by n desc limit 3) x),
+      'popular',(select coalesce(json_agg(x),'[]') from (select target id, count(*) n from public.town_events where town_id = t.id and at > now() - interval '7 days' and kind in ('feed','wash','visit','gift','note','thank','greet','feast') and target is not null group by target order by n desc limit 3) x),
+      'punched',(select coalesce(json_agg(x),'[]') from (select target id, count(*) n from public.town_events where town_id = t.id and at > now() - interval '7 days' and kind in ('fight','egg','prank') and target is not null group by target order by n desc limit 3) x),
+      'kind',(select coalesce(json_agg(x),'[]') from (select actor id, count(*) n from public.town_events where town_id = t.id and at > now() - interval '7 days' and kind in ('feed','wash','visit','gift','note','feast') and actor is not null group by actor order by n desc limit 3) x))),
     'events',(select coalesce(json_agg(e order by e.at desc, e.id desc),'[]') from
-      (select id,at,actor,target,kind,msg from public.town_events where town_id = t.id order by at desc, id desc limit 60) e));
+      (select id,at,actor,target,kind,msg from public.town_events where town_id = t.id and kind <> 'work' order by at desc, id desc limit 60) e));
 end $$;
 
 -- 驗證密碼：連錯 5 次鎖 10 分鐘。錯的時候回傳 id 是 null（不用 raise，raise 會把錯誤次數一起復原）
@@ -220,7 +236,19 @@ declare r public.town_residents;
 begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
-  if new_look is not null and pg_column_size(new_look) < 600 then update public.town_residents set look = new_look where id = rid; end if;
+  if new_look is not null and pg_column_size(new_look) < 800 then
+    -- 特別款要買過或達成條件
+    if exists (select 1 from public.town_shop w where w.kind = 'wear' and w.id in (new_look->>'hair', new_look->>'top', new_look->>'acc')
+       and not (coalesce(r.items->'w','[]'::jsonb) ? w.id)
+       and not (w.unlock = 'bandage' and (select count(*) from public.town_events e where e.target = rid and e.kind = 'fight') >= 10)
+       and not (w.unlock = 'couple' and exists (select 1 from public.town_bonds b where (b.a = rid or b.b = rid) and b.score >= 30))) then
+      raise exception '這個造型還沒買或還沒解鎖';
+    end if;
+    if r.look is distinct from new_look and r.look <> '{}'::jsonb and not exists (select 1 from public.town_events e where e.actor = rid and e.kind = 'look' and e.at > now() - interval '1 hour') then
+      insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'look', r.name || ' 換了新造型 ✨');
+    end if;
+    update public.town_residents set look = new_look where id = rid;
+  end if;
   update public.town_residents set seen_at = now() where id = rid;
   return json_build_object('ok',true,'town_id',r.town_id,'last_seen',r.seen_at);
 end $$;
@@ -277,6 +305,21 @@ begin
   elsif act = 'snack' then
     if coalesce((r.items->>'snack')::int,0) < 1 then raise exception '背包裡沒有零食，去超市買'; end if;
     r.items := jsonb_set(r.items, '{snack}', to_jsonb((r.items->>'snack')::int - 1)); r.hunger := r.hunger + 20; r.fun := r.fun + 3;
+  elsif act = 'buy' and (item like 'w:%' or item like 'd:%') then
+    if r.place <> 'market' then raise exception '要在超市才能買'; end if;
+    select price into n from public.town_shop where id = substr(item,3) and kind = case when item like 'w:%' then 'wear' else 'deco' end and price > 0;
+    if n is null then raise exception '超市沒有賣這個'; end if;
+    if coalesce(r.items->(left(item,1)),'[]'::jsonb) ? substr(item,3) then raise exception '你已經有了'; end if;
+    if item like 'd:%' and jsonb_array_length(coalesce(r.items->'d','[]'::jsonb)) >= 4 then raise exception '門口最多放 4 樣擺飾'; end if;
+    if r.money < n then raise exception '錢不夠，去公司打工吧'; end if;
+    r.money := r.money - n; r.fun := r.fun + 5;
+    r.items := jsonb_set(r.items, array[left(item,1)], coalesce(r.items->(left(item,1)),'[]'::jsonb) || to_jsonb(substr(item,3)));
+  elsif act = 'paint' then
+    -- 裝潢：換屋頂或牆壁顏色（€50）
+    if r.place <> 'home:' || rid then raise exception '要先回家'; end if;
+    if not (item ~ '^(roof|wall):#[0-9a-f]{6}$') then raise exception '顏色不對'; end if;
+    if r.money < 50 then raise exception '錢不夠，去公司打工吧'; end if;
+    r.money := r.money - 50; r.fun := r.fun + 8; r.items := jsonb_set(r.items, array[split_part(item,':',1)], to_jsonb(split_part(item,':',2)));
   elsif act = 'buy' then
     if r.place <> 'market' then raise exception '要在超市才能買'; end if;
     if item not in ('gift','snack') then raise exception '超市沒有賣這個'; end if;
@@ -288,6 +331,7 @@ begin
     if (act = 'dine' and r.place <> 'restaurant') or (act = 'work' and r.place <> 'office') or (act = 'play' and r.place not in ('park','plaza')) or (act = 'browse' and r.place <> 'market') then raise exception '不在那個地方'; end if;
     if act = 'dine' then if r.money < 30 then raise exception '錢不夠，去公司打工吧'; end if; r.hunger := r.hunger + 55; r.fun := r.fun + 10; r.money := r.money - 30;
     elsif act = 'work' then if r.energy < 15 then raise exception '太累了，先回家睡覺'; end if; r.money := r.money + 120; r.energy := r.energy - 15; r.fun := r.fun - 10; r.hunger := r.hunger - 8;
+      insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'work', r.name || ' 打工賺了 €120');
     elsif act = 'play' then r.fun := r.fun + 20; r.energy := r.energy - 5;
     else r.fun := r.fun + 6; end if;
     -- 有人在同一個地方：大家一起做，在場的人心情都變好
@@ -301,11 +345,11 @@ begin
         end if;
       end if;
     end if;
-  elsif act in ('feed','wash','wakeup','visit','prank','gift','note','thank','greet','fight','egg','makeup') then
+  elsif act in ('feed','wash','wakeup','visit','prank','gift','note','thank','greet','fight','egg','makeup','cowork','feast') then
     if target is null or target = rid then raise exception '要選一位朋友'; end if;
     select * into t from public.town_residents where id = target and town_id = r.town_id for update;
     if not found then raise exception '找不到這位鄰居'; end if;
-    if exists (select 1 from public.town_events e where e.actor = rid and e.target = t.id and e.kind = act and e.at > now() - case act when 'thank' then interval '12 hours' when 'makeup' then interval '12 hours' when 'fight' then interval '6 hours' else interval '2 hours' end) then raise exception '剛剛才做過，等一下再來'; end if;
+    if exists (select 1 from public.town_events e where e.actor = rid and e.target = t.id and e.kind = act and e.at > now() - case act when 'thank' then interval '12 hours' when 'makeup' then interval '12 hours' when 'fight' then interval '6 hours' when 'cowork' then interval '4 hours' when 'feast' then interval '4 hours' else interval '2 hours' end) then raise exception '剛剛才做過，等一下再來'; end if;
     t := public.town_tick(t); tn := t.name; bond := public.town_bond_get(rid, t.id);
     -- 面對面：在同一個地方（不算路上），或在路上距離 2 格以內
     near := (r.place = t.place and r.place <> 'street') or (abs(r.x - t.x) + abs(r.y - t.y) <= 2.5);
@@ -335,6 +379,19 @@ begin
       if bond >= 0 then raise exception '你們本來就沒有不合'; end if;
       t.fun := t.fun + 5; r.fun := r.fun + 5; perform public.town_bond(r.town_id, rid, t.id, 8);
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 向 ' || tn || ' 伸出手，兩人握手言和 🤝');
+    elsif act in ('cowork','feast') then
+      if not near or t.sleeping then raise exception '要和 % 面對面，而且他醒著', tn; end if;
+      if act = 'cowork' then
+        if r.place <> 'office' then raise exception '要一起在公司才能加班'; end if;
+        if r.energy < 15 or t.energy < 15 then raise exception '有人太累了，加不了班'; end if;
+        r.money := r.money + 200; t.money := t.money + 200; r.energy := r.energy - 15; t.energy := t.energy - 15; perform public.town_bond(r.town_id, rid, t.id, 3);
+        insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 和 ' || tn || ' 一起加班，薪水加倍 💼 各賺 €200');
+      else
+        if r.place <> 'restaurant' then raise exception '要一起在餐廳才能請吃大餐'; end if;
+        if r.money < 60 then raise exception '錢不夠，大餐要 €60'; end if;
+        r.money := r.money - 60; r.hunger := r.hunger + 70; t.hunger := t.hunger + 70; r.fun := r.fun + 15; t.fun := t.fun + 15; perform public.town_bond(r.town_id, rid, t.id, 4);
+        insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 請 ' || tn || ' 吃大餐 🍖');
+      end if;
     elsif act = 'greet' then
       if not near or t.sleeping then raise exception '要和 % 面對面，而且他醒著', tn; end if;
       t.fun := t.fun + 8; r.fun := r.fun + 8; perform public.town_bond(r.town_id, rid, t.id, 2);
@@ -370,7 +427,7 @@ begin
         end if;
       end if;
     end if;
-    update public.town_residents set hunger=least(100,t.hunger),energy=greatest(0,t.energy),bladder=t.bladder,hygiene=least(100,greatest(0,t.hygiene)),fun=least(100,greatest(0,t.fun)),sleeping=t.sleeping,bruised_until=t.bruised_until,updated_at=t.updated_at where id=t.id;
+    update public.town_residents set money=greatest(0,t.money),hunger=least(100,t.hunger),energy=greatest(0,t.energy),bladder=t.bladder,hygiene=least(100,greatest(0,t.hygiene)),fun=least(100,greatest(0,t.fun)),sleeping=t.sleeping,bruised_until=t.bruised_until,updated_at=t.updated_at where id=t.id;
   else raise exception '不知道要做什麼';
   end if;
   update public.town_residents set x=r.x,y=r.y,place=r.place,sleeping=r.sleeping,items=r.items,bruised_until=r.bruised_until,
