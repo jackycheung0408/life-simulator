@@ -35,7 +35,7 @@ label{display:block;margin:10px 0}
 #needs{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:8px}
 .need{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px;text-align:center;min-width:0}
 .need span{font-size:18px}.need i{display:block;height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:3px 0}.need i b{display:block;height:100%}
-.need small{display:block;font-size:11px;color:var(--mut);white-space:nowrap}.need.low{animation:blink 1s infinite}.need.money small{font-size:13px;color:var(--fg);font-weight:600;margin-top:8px}
+.need em{font-style:normal}.need small{display:block;font-size:11px;color:var(--mut);white-space:nowrap}.need.low{animation:blink 1s infinite}.need.money small{font-size:13px;color:var(--fg);font-weight:600;margin-top:8px}
 @keyframes blink{50%{border-color:var(--bad)}}
 #stage{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);touch-action:none}
 #cv{display:block;width:100%}
@@ -59,7 +59,7 @@ textarea{width:100%;font:inherit;color:var(--fg);background:var(--btn);border:1p
 .tabs{display:flex;gap:6px;margin-bottom:10px}.tabs button{flex:1;padding:8px 4px;font-size:14px}.tabs button.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
 .rank{margin-bottom:10px}.rank p{margin:2px 0}h3{font-size:15px;margin:12px 0 6px}
 .sw.lock{opacity:.75;border-style:dashed}.lookopts{min-width:0;flex:1}.lookbox canvas{width:96px;height:120px}
-@media (max-width:520px){#needs{grid-template-columns:repeat(3,1fr)}.who{grid-template-columns:repeat(2,1fr)}.lookbox{flex-direction:column;align-items:flex-start}}
+@media (max-width:520px){#needs{grid-template-columns:repeat(6,1fr);gap:4px}.need{padding:4px 2px}.need em{display:none}.need span{font-size:16px}.need.money small{font-size:11px;margin-top:4px}.who{grid-template-columns:repeat(2,1fr)}.lookbox{flex-direction:column;align-items:flex-start}}
 </style>
 </head>
 <body>
@@ -78,6 +78,6 @@ textarea{width:100%;font:inherit;color:var(--fg);background:var(--btn);border:1p
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide"><div class="card" id="mbody"></div></div>
-<script src="town.js?v=9"></script>
+<script src="town.js?v=10"></script>
 </body>
 </html>
