@@ -70,7 +70,7 @@ async function playSeasonVisual(apps,goals){
   if(g2>shown){shown=g2;toast(`⚽ 進球！本季第 ${shown} 球`)}$("ticker").textContent=`${p.y0+p.age} 球季 · 第 ${Math.round(apps*t)} 場 / ${apps} 場 · ${p.pos=="GK"?"":`進球 ${g2}`}`;
   $("sFill").style.width=t*100+"%";drawPitch(t,g2)}
 }
-async function quietYear(){if(toEnd||P.retired)return;const total=secPerSeason*(P.age<6?60:P.age<13?120:P.age<16?200:260);/* 童年快轉，16 歲後才是重點 */let w=0,last=performance.now();while(w<total){await new Promise(r=>setTimeout(r,50));const now=performance.now();if(!paused)w+=(now-last)*mult;last=now;if(pendingSkip||toEnd)w=total;$("sFill").style.width=Math.min(100,w/total*100)+"%";if(P.age<13)$("ticker").textContent=P.age<P.touchAge?`${P.age} 歲，還沒碰過足球`:`${P.age} 歲 · ${P.stage} · 身高 ${Math.round(P.h)} 公分`;drawPitch(Math.min(1,w/total),0)}}
+async function quietYear(){if(toEnd||P.retired)return;const total=secPerSeason*(P.age<17?400:300);/* 童年每年和職業球季差不多長，慢慢體會成長 */let w=0,last=performance.now();while(w<total){await new Promise(r=>setTimeout(r,50));const now=performance.now();if(!paused)w+=(now-last)*mult;last=now;if(pendingSkip||toEnd)w=total;$("sFill").style.width=Math.min(100,w/total*100)+"%";if(P.age<13)$("ticker").textContent=P.age<P.touchAge?`${P.age} 歲，還沒碰過足球`:`${P.age} 歲 · ${P.stage} · 身高 ${Math.round(P.h)} 公分`;drawPitch(Math.min(1,w/total),0)}}
 function render(){try{renderMgr();renderIntent()}catch(e){}
  const p=P,o=ovr(p);$("ovr").textContent=p.age<p.touchAge?"??":Math.round(o);$("pos").textContent=p.age<11&&!(p.done&&p.done.pos)?"—":posCode(p);$("nm").textContent=p.name.split(" ").pop();$("age").textContent=p.age;
  $("fut").className="fut"+(o>=75?"":o>=65?" silver":" bronze");$("who").textContent=`${p.name}（${POS[p.pos]}）`;
