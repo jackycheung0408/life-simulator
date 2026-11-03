@@ -247,20 +247,27 @@ const ZONES=[["左後","D","L"],["左中","M","L"],["左前","A","L"],["中後",
 const ZNAME={D:"後場",M:"中場",A:"前場",L:"左路",C:"中路",R:"右路"};
 // 依位置建議的區域（選了不符合位置的區域，教練會不太高興）
 function zoneFit(p,z){const d=dpOf(p),[_,band,lane]=ZONES.find(x=>x[0]==z)||[];const want={ST:["A"],W:["A","M"],CAM:["A","M"],CM:["M"],CDM:["M","D"],FB:["D","M"],CB:["D"],GK:["D"]}[d]||["M"];const laneOk=(d=="W"||d=="FB")?lane!="C":d=="CB"||d=="ST"||d=="CDM"||d=="CAM"?lane=="C":true;return want.includes(band)&&laneOk}
+// 各位置平常站的區域：選這格＝照平常踢，數值不變；往前、往後才有增減
+const ZHOME={ST:"中前",W:"左前",CAM:"中中",CM:"中中",CDM:"中中",FB:"左後",CB:"中後",GK:"中後"};
+function zoneRaw(z){const m={g:1,a:1,c:1};if(!z)return m;const [,band,lane]=z;
+ if(band=="A"){m.g=lane=="C"?1.25:1.05;m.a=lane=="C"?.95:1.2;m.c=.8}
+ if(band=="M"){m.g=.85;m.a=1.15}
+ if(band=="D"){m.g=.55;m.a=.8;m.c=1.25}return m}
 function intentMods(p){const it=p.intent||{};const z=ZONES.find(x=>x[0]==it.zone);const m={g:1,a:1,c:1,fat:1,grow:{},km:0};if(!z)return m;const [_,band,lane]=z;
- if(band=="A"){m.g*=lane=="C"?1.25:1.05;m.a*=lane=="C"?.95:1.2;m.c*=.8;m.grow=lane=="C"?{射門:.4}:{速度:.25,傳球:.25}}
- if(band=="M"){m.g*=.85;m.a*=1.15;m.grow=lane=="C"?{傳球:.4}:{傳球:.2,體能:.2}}
- if(band=="D"){m.g*=.55;m.a*=.8;m.c*=1.25;m.grow={防守:.4}}
+ const zr=zoneRaw(z),hr=zoneRaw(ZONES.find(x=>x[0]==ZHOME[dpOf(p)]));m.g=zr.g/hr.g;m.a=zr.a/hr.a;m.c=zr.c/hr.c;
+ m.grow=band=="A"?(lane=="C"?{射門:.4}:{速度:.25,傳球:.25}):band=="M"?(lane=="C"?{傳球:.4}:{傳球:.2,體能:.2}):{防守:.4};
+ // 邊路跑得比較多
+ if(lane!="C")m.fat*=1.05;
  if(it.mind=="攻")m.g*=1.15,m.a*=1.05,m.c*=.85,m.fat*=1.1;if(it.mind=="守")m.g*=.85,m.c*=1.15;
  if(it.move=="自由")m.fat*=1.12,m.km+=.03,m.a*=1.05;if(it.move=="紀律")m.fat*=.92,m.km-=.01;
  if(!zoneFit(p,it.zone))m.km-=.03;return m}
 function renderIntent(){const el=$("intent");if(!el||!P)return;const p=P;$("intentCard").classList.toggle("hide",p.age<13||p.retired||!!p.footEnd);p.intent=p.intent||{zone:null,mind:"衡",move:"一般"};const it=p.intent;
- const m=intentMods(p),pct=x=>{const v=Math.round((x-1)*100);return v?`<b style="color:${v>0?"var(--g)":"var(--ac)"}">${v>0?"+":""}${v}%</b>`:"<b>±0</b>"};
+ const m=intentMods(p),pct=(x,bad)=>{const v=Math.round((x-1)*100);return v?`<b style="color:${(v>0)!=!!bad?"var(--g)":"var(--ac)"}">${v>0?"+":""}${v}%</b>`:"<b>±0</b>"},d=dpOf(p),show=d=="GK"?["c"]:d=="CB"||d=="FB"?["c","a","g"]:d=="CDM"?["c","a","g"]:["g","a"];
  el.innerHTML=`<div class="pitchI"><i class="gl"></i><i class="gr"></i>${["L","C","R"].map(l=>["D","M","A"].map(b=>{const z=ZONES.find(x=>x[1]==b&&x[2]==l);return `<button class="${it.zone==z[0]?"on":""} ${zoneFit(p,z[0])?"fit":""}" data-z="${z[0]}">${ZNAME[l]}${ZNAME[b]}</button>`}).join("")).join("")}</div>
-  <div class="int-ends"><span>← 自家球門</span><span>對方球門 →</span></div><div class="int-eff">黃框＝適合你目前位置（${posName(p)}）的區域</div>
+  <div class="int-ends"><span>← 自家球門</span><span>對方球門 →</span></div><div class="int-eff">黃框＝適合你目前位置（${posName(p)}）的區域；選「${(z=>ZNAME[z[2]]+ZNAME[z[1]])(ZONES.find(x=>x[0]==ZHOME[dpOf(p)]))}」＝照平常的踢法，其他格子相對它增減</div>
   <div class="int-row"><b>比賽意識</b>${[["攻","積極進攻"],["衡","平衡"],["守","優先防守"]].map(([k,n])=>`<button class="${it.mind==k?"on":""}" data-m="${k}">${n}</button>`).join("")}</div>
   <div class="int-row"><b>跑動方式</b>${[["紀律","守住位置"],["一般","一般"],["自由","自由跑位"]].map(([k,n])=>`<button class="${it.move==k?"on":""}" data-v="${k}">${n}</button>`).join("")}</div>
-  <div class="int-eff">${it.zone?`目前：<b>${(z=>ZNAME[z[2]]+ZNAME[z[1]])(ZONES.find(x=>x[0]==it.zone))}</b><br>進球 ${pct(m.g)}　助攻 ${pct(m.a)}　零封 ${pct(m.c)}　疲勞 ${pct(m.fat)}　關鍵時刻 ${m.km>=0?"+":""}${Math.round(m.km*100)}%${Object.keys(m.grow).length?`　多練到：${Object.keys(m.grow).join("、")}`:""}${zoneFit(p,it.zone)?"":"　<b style='color:var(--ac)'>不符合你的位置，教練評價會下降</b>"}`:"還沒選區域：照教練的安排踢"}</div>`;
+  <div class="int-eff">${it.zone?`目前：<b>${(z=>ZNAME[z[2]]+ZNAME[z[1]])(ZONES.find(x=>x[0]==it.zone))}</b><br>${show.map(k=>({g:"進球",a:"助攻",c:"零封"})[k]+" "+pct(m[k])).join("　")}　疲勞 ${pct(m.fat,1)}　關鍵時刻 ${m.km>=0?"+":""}${Math.round(m.km*100)}%${Object.keys(m.grow).length?`　多練到：${Object.keys(m.grow).join("、")}`:""}${zoneFit(p,it.zone)?"":"　<b style='color:var(--ac)'>不符合你的位置，教練評價會下降</b>"}`:"還沒選區域：照教練的安排踢"}</div>`;
  el.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{it.zone=it.zone==b.dataset.z?null:b.dataset.z;renderIntent()});
  el.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{it.mind=b.dataset.m;renderIntent()});
  el.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{it.move=b.dataset.v;renderIntent()})}
