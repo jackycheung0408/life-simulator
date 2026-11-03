@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Jacky 的小遊戲大全：人生模擬器、足球員模擬器、小豬鎮。">
+<link rel="icon" href="../icon.png">
+<title>Jacky 的小遊戲大全</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Noto+Sans+TC:wght@400;700;900&display=swap">
+<style>
+/* Layout: arcade cabinet shelf — big marquee header, three game "cartridges" in a wrapping grid */
+:root{
+  --bg:#f3f1fa; --panel:#ffffff; --ink:#1d1a2e; --muted:#6b6584; --line:#d9d4ea;
+  --life:#e0528a; --fb:#1f9d63; --town:#e08a1f;
+  --pixel:"Silkscreen",ui-monospace,monospace;
+  --body:"Noto Sans TC","PingFang TC",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14121f; --panel:#1f1c30; --ink:#f1eefb; --muted:#a39dbd; --line:#34304a;
+  --life:#ff77aa; --fb:#3fd08c; --town:#ffb04a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14121f; --panel:#1f1c30; --ink:#f1eefb; --muted:#a39dbd; --line:#34304a;
+  --life:#ff77aa; --fb:#3fd08c; --town:#ffb04a; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.6}
+.wrap{max-width:1040px;margin:0 auto;padding-block:48px 64px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid;gap:40px}
+header{display:grid;gap:12px}
+.eyebrow{font-family:var(--pixel);font-size:13px;letter-spacing:.12em;color:var(--muted)}
+h1{margin:0;font-weight:900;font-size:clamp(34px,7vw,64px);line-height:1.1;text-wrap:balance}
+h1 .px{font-family:var(--pixel);font-weight:700;color:var(--life)}
+.lede{margin:0;color:var(--muted);max-width:40em;font-size:16px}
+.actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:6px}
+#random{font:700 15px var(--body);color:var(--bg);background:var(--ink);border:0;border-radius:4px;padding:10px 18px;cursor:pointer;
+  box-shadow:4px 4px 0 var(--life);transition:transform .1s,box-shadow .1s}
+#random:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--life)}
+#random:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--life)}
+#random:focus-visible{outline:3px solid var(--life);outline-offset:3px}
+.hint{font-size:13px;color:var(--muted)}
+.hint kbd{font-family:var(--pixel);border:1px solid var(--line);border-radius:3px;padding:0 5px}
+@media (hover:none){.hint{display:none}}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.game{--c:var(--life);display:grid;grid-template-rows:auto 1fr auto;gap:16px;
+  background:var(--panel);border:2px solid var(--line);border-radius:6px;padding:22px;
+  text-decoration:none;color:inherit;transition:transform .15s,border-color .15s,box-shadow .15s}
+.game:hover,.game:focus-visible,.game.pick{transform:translateY(-4px);border-color:var(--c);box-shadow:6px 6px 0 var(--c);outline:none}
+.game.fb{--c:var(--fb)} .game.town{--c:var(--town)}
+.screen{aspect-ratio:16/9;max-width:100%;border-radius:4px;background:var(--c);display:grid;place-items:center;
+  font-family:var(--pixel);font-size:44px;color:var(--panel);position:relative;overflow:hidden}
+.screen::after{content:"";position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.08) 3px 4px)}
+.screen .key{position:absolute;top:8px;left:10px;font-size:13px;opacity:.85}
+.game h2{margin:0;font-size:22px;font-weight:900}
+.game .tag{font-family:var(--pixel);font-size:12px;letter-spacing:.1em;color:var(--c)}
+.game p{margin:6px 0 0;color:var(--muted);font-size:15px}
+.chips{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.chips li{font-size:12px;padding:2px 8px;border:1px solid var(--line);border-radius:3px;color:var(--muted)}
+.play{font-family:var(--pixel);font-size:14px;color:var(--c);display:flex;justify-content:space-between;
+  border-top:2px dashed var(--line);padding-top:12px}
+footer{font-size:13px;color:var(--muted);font-family:var(--pixel);letter-spacing:.08em}
+@media (prefers-reduced-motion:reduce){.game,#random{transition:none}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">INSERT COIN · 3 GAMES</div>
+    <h1>Jacky 的<span class="px">小遊戲</span>大全</h1>
+    <p class="lede">三款瀏覽器模擬遊戲，手機打開就能玩，不用下載。挑一台機台，或讓命運幫你選。</p>
+    <div class="actions">
+      <button id="random" type="button">隨機來一款</button>
+      <span class="hint">鍵盤按 <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> 直接開玩</span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <a class="game" href="https://jackycheung0408.github.io/life-simulator/" target="_blank" rel="noopener">
+      <div class="screen"><span class="key">1P</span>LIFE</div>
+      <div>
+        <div class="tag">人生 · 單人</div>
+        <h2>人生模擬器</h2>
+        <p>按下出生，隨機成為世界上某個嬰兒，或活一次台灣人生。依真實統計，每個人的一生都不一樣。</p>
+        <ul class="chips"><li>聯考</li><li>當兵</li><li>北漂</li><li>房價</li><li>長照</li></ul>
+      </div>
+      <div class="play"><span>PLAY</span><span>▶</span></div>
+    </a>
+
+    <a class="game fb" href="https://jackycheung0408.github.io/life-simulator/football/" target="_blank" rel="noopener">
+      <div class="screen"><span class="key">2P</span>FB</div>
+      <div>
+        <div class="tag">足球 · 單人</div>
+        <h2>足球員模擬器</h2>
+        <p>從街頭踢球的孩子開始，一路踢到退休後的人生。每一季的選擇都由你決定。</p>
+        <ul class="chips"><li>青訓</li><li>轉會</li><li>國家隊</li><li>世界盃</li></ul>
+      </div>
+      <div class="play"><span>PLAY</span><span>▶</span></div>
+    </a>
+
+    <a class="game town" href="https://jackycheung0408.github.io/life-simulator/town/" target="_blank" rel="noopener">
+      <div class="screen"><span class="key">3P</span>PIG</div>
+      <div>
+        <div class="tag">小鎮 · 和朋友一起</div>
+        <h2>小豬鎮</h2>
+        <p>和朋友住在同一個像素小鎮，照顧自己吃飯睡覺洗澡，也能去朋友家串門子。</p>
+        <ul class="chips"><li>幫忙</li><li>送禮</li><li>惡作劇</li><li>扁他一頓</li></ul>
+      </div>
+      <div class="play"><span>PLAY</span><span>▶</span></div>
+    </a>
+  </main>
+
+  <footer>© JACKY CHEUNG · GAME OVER? PRESS START AGAIN</footer>
+</div>
+
+<script>
+const games=[...document.querySelectorAll('.game')];
+const go=g=>g.click();
+document.getElementById('random').addEventListener('click',()=>{
+  let i=0;const n=9+Math.floor(Math.random()*3);
+  const t=setInterval(()=>{
+    games.forEach(g=>g.classList.remove('pick'));
+    const g=games[i%3];g.classList.add('pick');
+    if(++i>n){clearInterval(t);setTimeout(()=>{g.classList.remove('pick');go(g)},450)}
+  },90);
+});
+addEventListener('keydown',e=>{const k=+e.key;if(k>=1&&k<=3&&!e.metaKey&&!e.ctrlKey)go(games[k-1])});
+</script>
+</body>
+</html>
