@@ -97,6 +97,7 @@ button.on{background:var(--y);color:var(--ink)}
 .pitchI .gl,.pitchI .gr{position:absolute;top:50%;width:6px;height:40px;background:#fff;transform:translateY(-50%)}.pitchI .gl{left:-4px}.pitchI .gr{right:-4px}
 .sqpitch{background:#2f8a3e;border:3px solid var(--ink);padding:8px 6px;margin:8px 0;display:flex;flex-direction:column;gap:6px}.sqrow{display:flex;justify-content:center;gap:6px}.sq{flex:0 1 128px;min-width:0;background:#1f5a2c;color:#fff;border:2px solid #ffffff44;padding:4px 6px;font-size:12px;line-height:1.35;text-align:center}.sq small{display:block;opacity:.75;font-size:11px}.sq b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sq span{font-weight:900;color:#ffd23f}.sq em{display:block;font-style:normal;font-size:11px;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sq em.me{opacity:1;color:#ffd23f;font-weight:700}.sq.me{background:#ffd23f;color:#1d2b20;border-color:#050a06}.sq.me span{color:#1d2b20}.sq.mine{border:2px solid #ffd23f}
 .meterbox{margin-top:12px;text-align:center}.meter{position:relative;height:26px;background:var(--deep);border:3px solid var(--ink);margin:8px 0}.mz{position:absolute;top:0;bottom:0;background:#4cd964aa}.mn{position:absolute;top:-6px;bottom:-6px;width:4px;margin-left:-2px;background:var(--fg);box-shadow:0 0 0 2px var(--ink)}.meterbox.win .mn{background:#4cd964}.meterbox.lose .mn{background:#ff4d4d}#mstop{font-size:16px;padding:10px 22px}
+.yrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}#yNow{font-size:26px;min-width:70px;text-align:center}.yrow .yb{padding:6px 12px}
 .int-row{display:grid;grid-template-columns:5.5em repeat(3,1fr);gap:6px;align-items:center;margin:6px 0;font-size:13px}.int-row button{padding:6px 4px;font-size:13px;margin:0;white-space:nowrap}.int-ends{display:flex;justify-content:space-between;font-size:12.5px;color:var(--mut);margin:-4px 0 4px}.int-eff{line-height:1.7}.int-row button.on{background:var(--y);color:var(--ink)}.int-eff{font-size:12.5px;color:var(--mut)}.int-eff b{color:var(--fg)}
 #hofPv{position:fixed;inset:0;z-index:85;background:#030805e6;display:flex;align-items:center;justify-content:center;padding:16px}#hofPv .sheet{background:var(--card);border:4px solid var(--ink);box-shadow:inset 0 0 0 3px var(--y);max-width:720px;width:100%;max-height:88vh;overflow:auto;padding:18px}#hofPv h2 small{font-size:13px;font-weight:400}.hcard{cursor:pointer}.hcard:hover{filter:brightness(1.12)}
 #tour{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(440px,calc(100% - 24px));background:var(--card);border:3px solid var(--ink);box-shadow:inset 0 0 0 3px var(--y),0 12px 40px #000;padding:14px 16px;z-index:60}
@@ -189,8 +190,8 @@ button.on{background:var(--y);color:var(--ink)}
  <p><select id="ctry" style="min-width:220px"></select></p>
  <p class="mut">足球世界隨機：依各國的足球人口抽選，巴西、阿根廷、歐洲各國比較容易抽到。這個遊戲模擬的是「從小認真踢球的孩子」，成功率比一般人高，但仍然要過青訓、預備隊、一線隊一關一關往上爬。</p><details class="mut" style="font-size:13px;margin-bottom:10px"><summary>真實世界各國踢上職業的機率（概估）</summary><div id="oddsTbl"></div></details>
  <h2>哪一年出生？</h2>
- <p><button class="yb" data-d="-10">−10</button><button class="yb" data-d="-1">−1</button> <b id="yNow" style="font-size:22px;display:inline-block;min-width:64px;text-align:center">2026</b> <button class="yb" data-d="1">+1</button><button class="yb" data-d="10">+10</button></p>
- <p><button class="yq" data-y="1960">1960</button><button class="yq" data-y="1970">1970</button><button class="yq" data-y="1980">1980</button><button class="yq" data-y="1987">1987</button><button class="yq" data-y="1998">1998</button><button class="yq" data-y="2007">2007</button><button class="yq on" data-y="2026">2026</button></p>
+ <div class="yrow"><button class="yb" data-d="-1" aria-label="早一年">◀</button><b id="yNow">2026</b><button class="yb" data-d="1" aria-label="晚一年">▶</button><span id="yEra" class="mut"></span></div>
+ <input type="range" id="ySl" min="1950" max="2026" step="1" value="2026" style="width:100%;max-width:420px">
  <p class="mut" id="yTip"></p>
  <h2>遊戲模式</h2>
  <p><button class="md on" data-v="real">現實模式</button><button class="md" data-v="pro">保送職業模式</button></p>
@@ -249,8 +250,8 @@ button.on{background:var(--y);color:var(--ink)}
 <button id="themeBtn" title="切換深色／淺色"></button><div id="tip"></div><div id="modal" class="hide"><div class="sheet"><span class="tag" id="mtag"></span><span id="mctx"></span><div id="choice"></div></div></div>
 <div id="toast"></div>
 
-<script src="js/data.js?v=36"></script>
-<script src="js/events.js?v=36"></script>
-<script src="js/career.js?v=36"></script>
-<script src="js/ui.js?v=36"></script>
-<script src="js/home.js?v=36"></script></body></html>
+<script src="js/data.js?v=37"></script>
+<script src="js/events.js?v=37"></script>
+<script src="js/career.js?v=37"></script>
+<script src="js/ui.js?v=37"></script>
+<script src="js/home.js?v=37"></script></body></html>

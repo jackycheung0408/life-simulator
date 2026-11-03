@@ -23,9 +23,12 @@ document.querySelectorAll(".sp").forEach(b=>b.onclick=()=>{document.querySelecto
 document.querySelectorAll(".st").forEach(b=>b.onclick=()=>{document.querySelectorAll(".st").forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg.stars=b.dataset.v});
 // ── 出生年份：1950 到 2026；之前的年份會遇到那個年代的真實球星和足壇大事 ──
 function renderYear(){$("yNow").textContent=BIRTH_Y;const ok=BIRTH_Y<REAL_LAST;$("yTip").textContent=ok?`${BIRTH_Y} 年出生：同世代是那個年代的真實球星；到 ${REAL_LAST} 年之前會遇到真實的足壇大事和世界盃，之後是平行世界。`:`${BIRTH_Y} 年出生：同世代是現役球星重新走一次，未來的足壇大事隨機發生。`;
- document.querySelectorAll(".yq").forEach(b=>b.classList.toggle("on",+b.dataset.y==BIRTH_Y))}
+ $("ySl").value=BIRTH_Y;
+ // 和誰同世代：出生年最接近的巨星
+ const st=ALL_STARS.filter(x=>x[4]>=93).map(x=>[STAR_EN[x[0]]||x[0],STAR_BORN[x[0]]]).sort((a,b)=>Math.abs(a[1]-BIRTH_Y)-Math.abs(b[1]-BIRTH_Y))[0];
+ $("yEra").textContent=BIRTH_Y>=2026?"現在":`和 ${st[0]}（${st[1]}）同世代`}
 document.querySelectorAll(".yb").forEach(b=>b.onclick=()=>{BIRTH_Y=clamp(BIRTH_Y+ +b.dataset.d,1950,2026);renderYear()});
-document.querySelectorAll(".yq").forEach(b=>b.onclick=()=>{BIRTH_Y=+b.dataset.y;renderYear()});renderYear();
+$("ySl").oninput=e=>{BIRTH_Y=+e.target.value;renderYear()};renderYear();
 $("tourBtn").onclick=()=>tour(0);
 const muteTxt=()=>{$("muteBtn").textContent=muted?"🔇":"🔊"};muteTxt();$("muteBtn").onclick=()=>{muted=!muted;try{localStorage.setItem("fb-mute",muted?"1":"0")}catch{}muteTxt();if(!muted)sfx("kick")};
 $("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"▶ 繼續":"⏸ 暫停"};
