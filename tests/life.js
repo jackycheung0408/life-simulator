@@ -14,7 +14,7 @@ for(const m of html.matchAll(/id="([A-Za-z_$][\w$]*)"/g))if(!(m[1] in global))gl
 let src=files.join("\n;\n")+"\n;\n"+inline.join("\n;\n");
 (0,eval)(src+`;auto=true;global.L_run=async(w)=>{P=newLife(w);S=[];let n=0;while(P.alive&&n++<130)await year(P);return P};`);
 const N=+process.argv[2]||30,fails=[];
-(async()=>{let crash=0,ages=[];for(let i=0;i<N;i++){try{const p=await L_run(["now","past","future"][i%3]);ages.push(p.age);if(!Number.isFinite(p.money))fails.push("存款變成 NaN");if(p.alive)fails.push("活超過 130 歲")}catch(e){crash++;if(crash<3)console.log("當掉：",String(e.stack).split("\n").slice(0,3).join(" | "))}}
+(async()=>{let crash=0,ages=[],seeds=0,paid=0;for(let i=0;i<N;i++){try{const p=await L_run(["now","past","future"][i%3]);ages.push(p.age);seeds+=Object.keys(p.seedAt||{}).length;paid+=Object.keys(p.seedDone||{}).filter(k=>p.seed[k]!=null).length;if(!Number.isFinite(p.money))fails.push("存款變成 NaN");if(p.alive)fails.push("活超過 130 歲")}catch(e){crash++;if(crash<3)console.log("當掉：",String(e.stack).split("\n").slice(0,3).join(" | "))}}
  ages.sort((a,b)=>a-b);if(crash)fails.push(`有 ${crash} 段人生當掉`);
- console.log(`跑了 ${N} 段人生：壽命中位數 ${ages[ages.length>>1]} 歲（${ages[0]}～${ages[ages.length-1]}）`);
+ console.log(`跑了 ${N} 段人生：壽命中位數 ${ages[ages.length>>1]} 歲（${ages[0]}～${ages[ages.length-1]}）、伏筆埋下 ${seeds} 條、回收 ${paid} 條`);
  if(fails.length){console.log("❌ 測試失敗：\n- "+[...new Set(fails)].join("\n- "));process.exit(1)}console.log("✅ 全部通過");process.exit(0)})();

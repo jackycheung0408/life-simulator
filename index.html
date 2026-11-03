@@ -27,6 +27,7 @@ button.pri{background:var(--ac);color:#fff;border-color:var(--ac);padding:10px 2
 .stat b{display:block;font-size:1.15rem}.up{color:#2e8b57;font-size:.8rem}.down{color:var(--ac);font-size:.8rem}.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
 .row{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding:4px 0}
 #log{max-height:42vh;overflow:auto;font-size:.95rem}#log p{margin:4px 0}.y{color:var(--mut);margin-right:6px}
+details.more>summary{cursor:pointer;font-weight:600}details.more .card{margin:10px 0 0}
 #log p.hi{font-weight:600;border-left:3px solid var(--ac);padding-left:8px}
 #log p:first-child{animation:fade .5s}@keyframes fade{from{opacity:0;transform:translateY(-4px)}}
 .tl{position:relative;margin:8px 0 0 6px;padding-left:18px;border-left:2px solid var(--line)}
@@ -317,10 +318,12 @@ body{font-size:15px;line-height:1.6}
 <div class="card"><b>今年的重心</b><br><span id="focus"></span>
 <p style="margin:8px 0 0"><b>花錢習慣</b> <select id="spend"><option value="0">節省</option><option value="1" selected>普通</option><option value="2">大方</option></select> <span class="mut">聚餐、送禮、孝親費；越大方人際越好，但存不了錢</span></p><div id="shop"></div></div>
 <div class="card" id="log"></div>
+<details class="card more"><summary>更多：同一秒出生的人、人生地圖、存活曲線、國家資訊</summary>
 <div class="card"><h2>同一秒出生的人</h2><div id="sibs" class="grid"></div></div>
 <div class="card"><h2>人生地圖</h2><div class="mut">一格是一年 · 顏色越深那年越幸福 · 實線格到當地平均壽命</div><div id="lmap"></div></div>
 <div class="card"><h2>存活曲線</h2><div class="mut">同一年出生的人，活到各年齡的比例</div><div id="surv"></div></div>
 <div class="card"><h2 id="cname"></h2><div id="cpanel"></div></div>
+</details>
 </section>
 
 <!-- 結局 -->
@@ -337,14 +340,15 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=74"></script>
-<script src="events.js?v=74"></script>
-<script src="life.js?v=74"></script>
-<script src="pixel.js?v=74"></script>
-<script src="story.js?v=74"></script>
-<script src="realism.js?v=74"></script>
-<script src="events2.js?v=74"></script>
-<script src="taiwan.js?v=74"></script>
+<script src="countries.js?v=75"></script>
+<script src="events.js?v=75"></script>
+<script src="life.js?v=75"></script>
+<script src="pixel.js?v=75"></script>
+<script src="story.js?v=75"></script>
+<script src="realism.js?v=75"></script>
+<script src="events2.js?v=75"></script>
+<script src="taiwan.js?v=75"></script>
+<script src="foreshadow.js?v=75"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -683,6 +687,7 @@ async function year(L){
  await lifeEvents(L,f);
  if(c.tw)await twYear(L,f);
  await storyYear(L);
+ await foreshadowYear(L);
  if(L.age==65&&L.job){say(L,`從${L.job}退休，一共做了 ${L.jobYears} 年。`);L.lastJob=L.job;L.job=null;
   if(L.money>L.inc*3){L.happy+=6;say(L,"存款足夠，退休生活過得安穩。")}else if(L.kids){say(L,"存款不多，退休後靠孩子接濟。")}else{L.happy-=10;L.health-=5;say(L,"存款不夠，退休後生活拮据，還得打零工。")}}
  if(L.kids&&L.age<55)L.money-=L.inc*.02*L.kids; // 養孩子的開銷
