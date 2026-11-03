@@ -32,6 +32,15 @@ create table if not exists public.town_residents (
   unique (town_id, slot)
 );
 create unique index if not exists town_residents_name on public.town_residents(town_id, lower(name));
+-- 每台裝置一把金鑰（只存雜湊）；舊的 4 位數密碼也還能用
+create table if not exists public.town_devices (
+  id bigint generated always as identity primary key,
+  resident_id bigint not null references public.town_residents(id) on delete cascade,
+  key_hash text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.town_devices enable row level security;
+revoke all on public.town_devices from anon, authenticated;
 create table if not exists public.town_events (
   id bigint generated always as identity primary key,
   town_id text not null references public.town_towns(id) on delete cascade,
@@ -88,6 +97,11 @@ create or replace function public.town_place_name(p text) returns text language 
 $$;
 create or replace function public.town_name_ok(t text) returns boolean language sql immutable as $$
   select char_length(trim(t)) between 1 and 12 and trim(t) !~ '[<>"]' and not public.has_bad_words(t)
+$$;
+
+create or replace function public.town_obj_near(o text, x real, y real, place text) returns boolean language sql immutable as $$
+  select case o when 'vend' then abs(x-19)+abs(y-5) <= 2 when 'trash' then abs(x-8)+abs(y-14) <= 2 when 'stall' then abs(x-22)+abs(y-14) <= 2
+    when 'well' then place = 'plaza' when 'swing' then place = 'park' when 'cat' then place = 'park' else false end
 $$;
 
 -- 好感度 7 階；跨過一階會上小鎮動態
@@ -173,7 +187,8 @@ begin
   select * into r from public.town_residents where id = rid for update;
   if not found then raise exception '找不到這位居民，可能已經搬走了'; end if;
   if r.lock_until is not null and r.lock_until > now() then raise exception '密碼錯太多次，請 10 分鐘後再試'; end if;
-  if extensions.crypt(coalesce(pin,''), r.pin_hash) <> r.pin_hash then
+  if extensions.crypt(coalesce(pin,''), r.pin_hash) <> r.pin_hash
+     and not exists (select 1 from public.town_devices d where d.resident_id = rid and extensions.crypt(coalesce(pin,''), d.key_hash) = d.key_hash) then
     update public.town_residents set fails = fails + 1, lock_until = case when fails + 1 >= 5 then now() + interval '10 minutes' end where id = rid;
     r.id := null; return r;
   end if;
@@ -186,7 +201,7 @@ create or replace function public.town_create(town_name text, my_name text, pin 
 language plpgsql security definer set search_path = public as $$
 declare tid text; inv text := public.town_code(6); d record; rid bigint;
 begin
-  if pin !~ '^\d{4}$' then raise exception '密碼要是 4 位數字'; end if;
+  if pin !~ '^(\d{4}|[A-Za-z0-9]{24,64})$' then raise exception '裝置金鑰格式不對'; end if;
   if char_length(trim(town_name)) not between 1 and 16 or trim(town_name) ~ '[<>"]' or public.has_bad_words(town_name) then raise exception '小鎮名稱要 1～16 個字'; end if;
   if not public.town_name_ok(my_name) then raise exception '名字要 1～12 個字'; end if;
   if (select count(*) from public.town_towns where created_at > now() - interval '1 hour') >= 30 then raise exception '現在建立小鎮的人太多了，晚點再試'; end if;
@@ -209,7 +224,7 @@ begin
   select * into t from public.town_towns where id = upper(trim(tid)) for update;
   if not found then raise exception '找不到這個小鎮'; end if;
   if upper(trim(coalesce(invite,''))) <> t.invite then raise exception '邀請碼不對，請問鎮長'; end if;
-  if pin !~ '^\d{4}$' then raise exception '密碼要是 4 位數字'; end if;
+  if pin !~ '^(\d{4}|[A-Za-z0-9]{24,64})$' then raise exception '裝置金鑰格式不對'; end if;
   if not public.town_name_ok(my_name) then raise exception '名字要 1～12 個字'; end if;
   if exists (select 1 from public.town_residents where town_id = t.id and lower(name) = lower(trim(my_name))) then raise exception '鎮上已經有人叫 %，換一個名字', trim(my_name); end if;
   if (select count(*) from public.town_residents where town_id = t.id) >= 12 then raise exception '小鎮已經住滿 12 人了'; end if;
@@ -227,6 +242,29 @@ begin
   update public.town_residents set place = 'home:' || rid where id = rid;
   insert into public.town_events(town_id,actor,kind,msg) values (t.id, rid, 'join', trim(my_name) || ' 搬進了' || public.town_street(s / 3));
   return json_build_object('town_id',t.id,'resident_id',rid);
+end $$;
+
+alter table public.town_towns add column if not exists fails int not null default 0;
+alter table public.town_towns add column if not exists lock_until timestamptz;
+create or replace function public.town_device(tid text, invite text, rid bigint, key text) returns json
+language plpgsql security definer set search_path = public as $$
+declare t public.town_towns;
+begin
+  select * into t from public.town_towns where id = upper(trim(tid)) for update;
+  if not found then raise exception '找不到這個小鎮'; end if;
+  if t.lock_until is not null and t.lock_until > now() then raise exception '邀請碼錯太多次，請 10 分鐘後再試'; end if;
+  if key !~ '^[A-Za-z0-9]{24,64}$' then raise exception '裝置金鑰格式不對'; end if;
+  if upper(trim(coalesce(invite,''))) <> t.invite then
+    update public.town_towns set fails = fails + 1, lock_until = case when fails + 1 >= 5 then now() + interval '10 minutes' end where id = t.id;
+    return json_build_object('error','邀請碼不對，請問鎮長');
+  end if;
+  if t.fails > 0 then update public.town_towns set fails = 0, lock_until = null where id = t.id; end if;
+  if not exists (select 1 from public.town_residents where id = rid and town_id = t.id) then raise exception '這個小鎮沒有這位居民'; end if;
+  insert into public.town_devices(resident_id, key_hash) values (rid, extensions.crypt(key, extensions.gen_salt('bf')));
+  -- 每人最多留 6 台裝置
+  delete from public.town_devices where resident_id = rid and id not in (select id from public.town_devices where resident_id = rid order by created_at desc limit 6);
+  update public.town_residents set seen_at = now() where id = rid;
+  return json_build_object('ok', true);
 end $$;
 
 -- 登入（也用來換造型）
@@ -287,6 +325,19 @@ begin
        or (dest ~ '^home:\d+$' and exists (select 1 from public.town_residents where id = substr(dest,6)::bigint and town_id = r.town_id))) then raise exception '去不了那裡'; end if;
     if px is null or py is null or px < 0 or px > 34 or py < 0 or py > 40 then raise exception '位置不對'; end if;
     r.x := px; r.y := py; r.place := dest;
+    -- 隨機事件：出門走到外面的地方時偶爾發生（家裡不會）
+    if dest !~ '^home:' and random() < .12 then
+      pa := random();
+      if pa < .25 then n := 5 + floor(random()*26)::int; r.money := r.money + n; tn := r.name || ' 在路上撿到 €' || n || ' 💰';
+      elsif pa < .40 then r.hygiene := r.hygiene - 20; tn := r.name || ' 一不小心踩到狗屎 💩';
+      elsif pa < .52 then r.hygiene := r.hygiene - 15; tn := r.name || ' 被鳥大便打中頭 🐦';
+      elsif pa < .67 then r.fun := r.fun + 10; tn := r.name || ' 遇到街頭藝人表演，看得很開心 🎸';
+      elsif pa < .80 then r.hygiene := r.hygiene - 10; r.fun := r.fun - 5; tn := r.name || ' 突然下大雨，被淋成落湯雞 🌧️';
+      elsif pa < .90 then r.items := jsonb_set(r.items, '{snack}', to_jsonb(coalesce((r.items->>'snack')::int,0) + 1)); tn := r.name || ' 在路上被試吃攤送了一包零食 🍪';
+      elsif pa < .97 then r.energy := r.energy - 10; tn := r.name || ' 被野狗追著跑了一條街 🐕';
+      else r.money := r.money + 300; tn := r.name || ' 買刮刮樂中了 €300！🎉'; end if;
+      insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', tn); tn := null;
+    end if;
     if dest in ('plaza','restaurant','market','park') then
       select string_agg(name, '、') into others from public.town_residents where town_id = r.town_id and place = dest and id <> rid and not sleeping;
       if others is not null and not exists (select 1 from public.town_events e where e.actor = rid and e.kind = 'meet' and e.at > now() - interval '2 hours') then
@@ -302,6 +353,30 @@ begin
     elsif act = 'tv' then r.fun := r.fun + 25; r.energy := r.energy - 3;
     elsif act = 'sleep' then r.sleeping := true; end if;
   elsif act = 'wake' then r.sleeping := false;
+  elsif act = 'obj' then
+    if not public.town_obj_near(item, r.x, r.y, r.place) then raise exception '要走到旁邊才能用'; end if;
+    if (r.items->'cd'->>item) is not null and (r.items->'cd'->>item)::timestamptz > now() - interval '20 minutes' then raise exception '剛剛才用過，等一下再來'; end if;
+    r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object(item, now()));
+    pa := random();
+    if item = 'vend' then
+      if r.money < 10 then raise exception '錢不夠，一罐 €10'; end if; r.money := r.money - 10; r.energy := r.energy + 12; r.fun := r.fun + 3;
+      if pa < .08 then r.energy := r.energy + 12; insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 投了一罐飲料，結果掉出兩罐 🥤🥤'); end if;
+    elsif item = 'trash' then r.fun := r.fun + 4;
+      if pa < .05 then r.items := jsonb_set(r.items, '{gift}', to_jsonb(coalesce((r.items->>'gift')::int,0) + 1)); insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 撿垃圾時發現一個沒拆的禮物 🎁');
+      elsif pa < .25 then n := 10 + floor(random()*21)::int; r.money := r.money + n; insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 撿垃圾時撿到 €' || n || ' 💰'); end if;
+    elsif item = 'stall' then
+      if r.money < 8 then raise exception '錢不夠，烤地瓜 €8'; end if; r.money := r.money - 8; r.hunger := r.hunger + 25; r.fun := r.fun + 3;
+    elsif item = 'well' then
+      if r.money < 1 then raise exception '連 €1 都沒有了'; end if; r.money := r.money - 1;
+      if pa < .1 then r.fun := r.fun + 20; r.money := r.money + 50; insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 在小豬噴水池許願，願望成真，天上掉下 €50 ✨');
+      else r.fun := r.fun + 2; end if;
+    elsif item = 'swing' then r.fun := r.fun + 12; r.energy := r.energy - 3;
+    elsif item = 'cat' then
+      if coalesce((r.items->>'snack')::int,0) > 0 and note = 'feed' then
+        r.items := jsonb_set(r.items, '{snack}', to_jsonb((r.items->>'snack')::int - 1)); r.fun := r.fun + 15;
+        insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 餵了公園的流浪貓，牠一直蹭過來 🐱');
+      else r.fun := r.fun + 8; if pa < .15 then r.hygiene := r.hygiene - 10; insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 想摸流浪貓，被抓了一下 🐱💢'); end if; end if;
+    else raise exception '這裡沒有這個東西'; end if;
   elsif act = 'snack' then
     if coalesce((r.items->>'snack')::int,0) < 1 then raise exception '背包裡沒有零食，去超市買'; end if;
     r.items := jsonb_set(r.items, '{snack}', to_jsonb((r.items->>'snack')::int - 1)); r.hunger := r.hunger + 20; r.fun := r.fun + 3;
@@ -463,5 +538,8 @@ revoke all on function public.town_tick(public.town_residents), public.town_pub(
   public.town_code(int), public.town_door(int), public.town_street(int), public.town_place_name(text), public.town_name_ok(text) from public, anon, authenticated;
 revoke all on function public.town_state(text), public.town_create(text,text,text,jsonb), public.town_join(text,text,text,text,jsonb,int),
   public.town_login(bigint,text,jsonb), public.town_mayor(bigint,text,text,bigint), public.town_act(bigint,text,text,bigint,real,real,text,text,text) from public;
+revoke all on function public.town_device(text,text,bigint,text) from public;
+grant execute on function public.town_device(text,text,bigint,text) to anon, authenticated;
+revoke all on function public.town_obj_near(text,real,real,text) from public, anon, authenticated;
 grant execute on function public.town_state(text), public.town_create(text,text,text,jsonb), public.town_join(text,text,text,text,jsonb,int),
   public.town_login(bigint,text,jsonb), public.town_mayor(bigint,text,text,bigint), public.town_act(bigint,text,text,bigint,real,real,text,text,text) to anon, authenticated;
