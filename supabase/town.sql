@@ -40,6 +40,17 @@ create table if not exists public.town_events (
   msg text not null check (char_length(msg) <= 120)
 );
 create index if not exists town_events_town_at on public.town_events(town_id, at desc);
+-- 背包（禮物、零食）與兩人之間的好感度（a < b，-100～100）
+alter table public.town_residents add column if not exists items jsonb not null default '{}'::jsonb;
+create table if not exists public.town_bonds (
+  town_id text not null references public.town_towns(id) on delete cascade,
+  a bigint not null references public.town_residents(id) on delete cascade,
+  b bigint not null references public.town_residents(id) on delete cascade,
+  score int not null default 0 check (score between -100 and 100),
+  primary key (a, b), check (a < b)
+);
+alter table public.town_bonds enable row level security;
+revoke all on public.town_bonds from anon, authenticated;
 
 alter table public.town_towns enable row level security;
 alter table public.town_residents enable row level security;
@@ -66,6 +77,11 @@ create or replace function public.town_place_name(p text) returns text language 
 $$;
 create or replace function public.town_name_ok(t text) returns boolean language sql immutable as $$
   select char_length(trim(t)) between 1 and 12 and trim(t) !~ '[<>"]' and not public.has_bad_words(t)
+$$;
+
+create or replace function public.town_bond(tid text, x bigint, y bigint, d int) returns void language sql as $$
+  insert into public.town_bonds(town_id,a,b,score) values (tid, least(x,y), greatest(x,y), greatest(-100, least(100, d)))
+  on conflict (a,b) do update set score = greatest(-100, least(100, public.town_bonds.score + d))
 $$;
 
 -- 需求隨時間變化（每小時）；醒著掉得快、睡覺時精力回升。累到 0 會原地睡著、膀胱到 0 會尿褲子
@@ -96,7 +112,7 @@ end $$;
 create or replace function public.town_pub(r public.town_residents) returns json language sql stable as $$
   select json_build_object('id',r.id,'name',r.name,'mayor',r.mayor,'slot',r.slot,'look',r.look,'x',r.x,'y',r.y,'place',r.place,
     'sleeping',r.sleeping,'hunger',r.hunger,'energy',r.energy,'bladder',r.bladder,'hygiene',r.hygiene,'fun',r.fun,
-    'money',r.money,'updated_at',r.updated_at,'seen_at',r.seen_at)
+    'money',r.money,'items',r.items,'updated_at',r.updated_at,'seen_at',r.seen_at)
 $$;
 
 -- 讀整個小鎮（順便把每個人的需求更新到現在）＋最近的動態
@@ -112,6 +128,7 @@ begin
     acc := acc || public.town_pub(r);
   end loop;
   return json_build_object('now',now(),'town',json_build_object('id',t.id,'name',t.name,'rows',t.rows),'residents',array_to_json(acc),
+    'bonds',(select coalesce(json_agg(json_build_object('a',a,'b',b,'s',score)),'[]') from public.town_bonds where town_id = t.id),
     'events',(select coalesce(json_agg(e order by e.at desc, e.id desc),'[]') from
       (select id,at,actor,target,kind,msg from public.town_events where town_id = t.id order by at desc, id desc limit 60) e));
 end $$;
@@ -212,20 +229,22 @@ begin
   return json_build_object('ok',true,'invite',inv);
 end $$;
 
--- 所有動作：移動、自己家裡的事、公共場所、對朋友做的事
-create or replace function public.town_act(rid bigint, pin text, act text, target bigint default null, px real default null, py real default null, dest text default null) returns json
+-- 所有動作：移動、自己家裡的事、公共場所、對朋友做的事（朋友不在家也能留言、放禮物）、道謝、擊掌
+drop function if exists public.town_act(bigint,text,text,bigint,real,real,text);
+create or replace function public.town_act(rid bigint, pin text, act text, target bigint default null, px real default null, py real default null, dest text default null, item text default null, note text default null) returns json
 language plpgsql security definer set search_path = public as $$
-declare r public.town_residents; t public.town_residents; others text; tn text;
+declare r public.town_residents; t public.town_residents; others text; tn text; n int; pub text[] := array['plaza','restaurant','market','park','office'];
 begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
+  if r.sleeping and act not in ('wake') then raise exception '你在睡覺，先起床'; end if;
   if act = 'move' then
     if dest is null or not (dest in ('plaza','restaurant','market','office','park','street')
        or (dest ~ '^home:\d+$' and exists (select 1 from public.town_residents where id = substr(dest,6)::bigint and town_id = r.town_id))) then raise exception '去不了那裡'; end if;
     if px is null or py is null or px < 0 or px > 34 or py < 0 or py > 40 then raise exception '位置不對'; end if;
-    r.x := px; r.y := py; r.place := dest; r.sleeping := false;
+    r.x := px; r.y := py; r.place := dest;
     if dest in ('plaza','restaurant','market','park') then
-      select string_agg(name, '、') into others from public.town_residents where town_id = r.town_id and place = dest and id <> rid;
+      select string_agg(name, '、') into others from public.town_residents where town_id = r.town_id and place = dest and id <> rid and not sleeping;
       if others is not null and not exists (select 1 from public.town_events e where e.actor = rid and e.kind = 'meet' and e.at > now() - interval '2 hours') then
         insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'meet', r.name || ' 在' || public.town_place_name(dest) || '遇到了 ' || others);
         r.fun := r.fun + 10;
@@ -239,43 +258,86 @@ begin
     elsif act = 'tv' then r.fun := r.fun + 25; r.energy := r.energy - 3;
     elsif act = 'sleep' then r.sleeping := true; end if;
   elsif act = 'wake' then r.sleeping := false;
+  elsif act = 'snack' then
+    if coalesce((r.items->>'snack')::int,0) < 1 then raise exception '背包裡沒有零食，去超市買'; end if;
+    r.items := jsonb_set(r.items, '{snack}', to_jsonb((r.items->>'snack')::int - 1)); r.hunger := r.hunger + 20; r.fun := r.fun + 3;
+  elsif act = 'buy' then
+    if r.place <> 'market' then raise exception '要在超市才能買'; end if;
+    if item not in ('gift','snack') then raise exception '超市沒有賣這個'; end if;
+    n := case item when 'gift' then 20 else 15 end;
+    if r.money < n then raise exception '錢不夠，去公司打工吧'; end if;
+    if coalesce((r.items->>item)::int,0) >= 9 then raise exception '背包放不下了'; end if;
+    r.money := r.money - n; r.items := jsonb_set(r.items, array[item], to_jsonb(coalesce((r.items->>item)::int,0) + 1)); r.fun := r.fun + 3;
   elsif act in ('dine','work','play','browse') then
     if (act = 'dine' and r.place <> 'restaurant') or (act = 'work' and r.place <> 'office') or (act = 'play' and r.place not in ('park','plaza')) or (act = 'browse' and r.place <> 'market') then raise exception '不在那個地方'; end if;
     if act = 'dine' then if r.money < 30 then raise exception '錢不夠，去公司打工吧'; end if; r.hunger := r.hunger + 55; r.fun := r.fun + 10; r.money := r.money - 30;
     elsif act = 'work' then if r.energy < 15 then raise exception '太累了，先回家睡覺'; end if; r.money := r.money + 120; r.energy := r.energy - 15; r.fun := r.fun - 10; r.hunger := r.hunger - 8;
     elsif act = 'play' then r.fun := r.fun + 20; r.energy := r.energy - 5;
     else r.fun := r.fun + 6; end if;
-  elsif act in ('feed','wash','wakeup','visit','prank') then
+    -- 有人在同一個地方：大家一起做，在場的人心情都變好
+    if act in ('dine','play','work') then
+      select string_agg(name, '、') into others from public.town_residents where town_id = r.town_id and place = r.place and id <> rid and not sleeping;
+      if others is not null then
+        update public.town_residents set fun = least(100, fun + 5) where town_id = r.town_id and place = r.place and id <> rid and not sleeping;
+        r.fun := r.fun + 5;
+        if not exists (select 1 from public.town_events e where e.actor = rid and e.kind = 'together' and e.at > now() - interval '2 hours') then
+          insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'together', r.name || ' 和 ' || others || ' 一起' || case act when 'dine' then '在餐廳吃飯' when 'work' then '加班' else '在' || public.town_place_name(r.place) || '玩' end);
+        end if;
+      end if;
+    end if;
+  elsif act in ('feed','wash','wakeup','visit','prank','gift','note','thank','greet') then
     if target is null or target = rid then raise exception '要選一位朋友'; end if;
     select * into t from public.town_residents where id = target and town_id = r.town_id for update;
     if not found then raise exception '找不到這位鄰居'; end if;
-    if r.place <> 'home:' || target then raise exception '要先走到他家'; end if;
-    if t.place <> 'home:' || target then raise exception '% 不在家，在%', t.name, public.town_place_name(t.place); end if;
-    if exists (select 1 from public.town_events e where e.actor = rid and e.target = t.id and e.kind = act and e.at > now() - interval '2 hours') then raise exception '剛剛才做過，等一下再來'; end if;
+    if exists (select 1 from public.town_events e where e.actor = rid and e.target = t.id and e.kind = act and e.at > now() - case act when 'thank' then interval '12 hours' else interval '2 hours' end) then raise exception '剛剛才做過，等一下再來'; end if;
     t := public.town_tick(t); tn := t.name;
-    if act = 'feed' then if r.money < 10 then raise exception '錢不夠買食材'; end if; t.hunger := t.hunger + 35; r.money := r.money - 10; r.fun := r.fun + 5;
-      insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 煮了一餐給 ' || tn || ' 吃');
-    elsif act = 'wash' then t.hygiene := t.hygiene + 45;
-      insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 幫 ' || tn || ' 洗了澡');
-    elsif act = 'wakeup' then if not t.sleeping then raise exception '% 醒著', tn; end if; t.sleeping := false; t.fun := t.fun - 5;
-      insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 把 ' || tn || ' 叫醒了');
-    elsif act = 'visit' then t.fun := t.fun + 15; r.fun := r.fun + 15;
-      insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 去 ' || tn || ' 家串門子');
-    else t.fun := t.fun - 8; r.fun := r.fun + 12;
-      insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 在 ' || tn || ' 家門口放了一個臭屁');
+    if act = 'thank' then
+      -- 道謝：對方三天內有照顧過你才能謝
+      if not exists (select 1 from public.town_events e where e.actor = t.id and e.target = rid and e.kind in ('feed','wash','visit','gift','note','greet') and e.at > now() - interval '3 days') then raise exception '% 最近沒有照顧你', tn; end if;
+      t.fun := t.fun + 8; perform public.town_bond(r.town_id, rid, t.id, 2);
+      insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 謝謝 ' || tn || ' 的照顧 💗');
+    elsif act = 'greet' then
+      if not (r.place = any(pub) and t.place = r.place and not t.sleeping) then raise exception '要和 % 在同一個公共場所', tn; end if;
+      t.fun := t.fun + 8; r.fun := r.fun + 8; perform public.town_bond(r.town_id, rid, t.id, 2);
+      insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 和 ' || tn || ' 在' || public.town_place_name(r.place) || '擊掌 🙌');
+    else
+      if r.place <> 'home:' || target then raise exception '要先走到他家'; end if;
+      if act = 'gift' then
+        if coalesce((r.items->>'gift')::int,0) < 1 then raise exception '背包裡沒有禮物，去超市買'; end if;
+        r.items := jsonb_set(r.items, '{gift}', to_jsonb((r.items->>'gift')::int - 1)); t.fun := t.fun + 20; r.fun := r.fun + 5; perform public.town_bond(r.town_id, rid, t.id, 5);
+        insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || case when t.place = 'home:' || target then ' 送了一份禮物給 ' || tn || ' 🎁' else ' 在 ' || tn || ' 家門口放了一份禮物 🎁' end);
+      elsif act = 'note' then
+        note := trim(coalesce(note,''));
+        if char_length(note) not between 1 and 30 or note ~ '[<>]' or public.has_bad_words(note) then raise exception '留言要 1～30 個字'; end if;
+        perform public.town_bond(r.town_id, rid, t.id, 1);
+        insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 在 ' || tn || ' 家門口留言：「' || note || '」');
+      else
+        if t.place <> 'home:' || target then raise exception '% 不在家，在%。可以留言或放禮物', tn, public.town_place_name(t.place); end if;
+        if act = 'feed' then if r.money < 10 then raise exception '錢不夠買食材'; end if; t.hunger := t.hunger + 35; r.money := r.money - 10; r.fun := r.fun + 5; perform public.town_bond(r.town_id, rid, t.id, 4);
+          insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 煮了一餐給 ' || tn || ' 吃');
+        elsif act = 'wash' then t.hygiene := t.hygiene + 45; perform public.town_bond(r.town_id, rid, t.id, 4);
+          insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 幫 ' || tn || ' 洗了澡');
+        elsif act = 'wakeup' then if not t.sleeping then raise exception '% 醒著', tn; end if; t.sleeping := false; t.fun := t.fun - 5; perform public.town_bond(r.town_id, rid, t.id, -1);
+          insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 把 ' || tn || ' 叫醒了');
+        elsif act = 'visit' then if t.sleeping then raise exception '% 在睡覺，不方便串門子', tn; end if; t.fun := t.fun + 15; r.fun := r.fun + 15; perform public.town_bond(r.town_id, rid, t.id, 3);
+          insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 去 ' || tn || ' 家串門子');
+        else t.fun := t.fun - 8; r.fun := r.fun + 12; perform public.town_bond(r.town_id, rid, t.id, -3);
+          insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 在 ' || tn || ' 家門口放了一個臭屁');
+        end if;
+      end if;
     end if;
     update public.town_residents set hunger=least(100,t.hunger),energy=t.energy,bladder=t.bladder,hygiene=least(100,t.hygiene),fun=least(100,greatest(0,t.fun)),sleeping=t.sleeping,updated_at=t.updated_at where id=t.id;
   else raise exception '不知道要做什麼';
   end if;
-  update public.town_residents set x=r.x,y=r.y,place=r.place,sleeping=r.sleeping,
+  update public.town_residents set x=r.x,y=r.y,place=r.place,sleeping=r.sleeping,items=r.items,
     hunger=least(100,greatest(0,r.hunger)),energy=least(100,greatest(0,r.energy)),bladder=least(100,greatest(0,r.bladder)),
     hygiene=least(100,greatest(0,r.hygiene)),fun=least(100,greatest(0,r.fun)),money=greatest(0,r.money),updated_at=now(),seen_at=now() where id=rid;
   return public.town_state(r.town_id);
 end $$;
 
-revoke all on function public.town_tick(public.town_residents), public.town_pub(public.town_residents), public.town_auth(bigint,text),
+revoke all on function public.town_tick(public.town_residents), public.town_pub(public.town_residents), public.town_auth(bigint,text), public.town_bond(text,bigint,bigint,int),
   public.town_code(int), public.town_door(int), public.town_street(int), public.town_place_name(text), public.town_name_ok(text) from public, anon, authenticated;
 revoke all on function public.town_state(text), public.town_create(text,text,text,jsonb), public.town_join(text,text,text,text,jsonb,int),
-  public.town_login(bigint,text,jsonb), public.town_mayor(bigint,text,text,bigint), public.town_act(bigint,text,text,bigint,real,real,text) from public;
+  public.town_login(bigint,text,jsonb), public.town_mayor(bigint,text,text,bigint), public.town_act(bigint,text,text,bigint,real,real,text,text,text) from public;
 grant execute on function public.town_state(text), public.town_create(text,text,text,jsonb), public.town_join(text,text,text,text,jsonb,int),
-  public.town_login(bigint,text,jsonb), public.town_mayor(bigint,text,text,bigint), public.town_act(bigint,text,text,bigint,real,real,text) to anon, authenticated;
+  public.town_login(bigint,text,jsonb), public.town_mayor(bigint,text,text,bigint), public.town_act(bigint,text,text,bigint,real,real,text,text,text) to anon, authenticated;
