@@ -261,6 +261,7 @@ body{font-size:15px;line-height:1.6}
 <section id="home">
 <p class="mut">v1.0 · 免費人生模擬 · 依 170 個國家與地區的公開統計概估 · 15 歲以上</p>
 <h1>人生模擬器</h1>
+<p id="plays" class="mut" style="margin:0"></p>
 <p><button onclick="location.href='football/'" style="background:#2f8a3e;color:#fff;border:3px solid #05050f;box-shadow:3px 3px 0 #05050f;padding:6px 12px;font-weight:700">⚽ 新遊戲：足球員模擬器 ▶</button></p><p class="blink" style="font-family:var(--px);font-size:.7rem;color:var(--y)">— 按下「出生」開始 —</p>
 <p>此刻每秒約有四個嬰兒誕生，你會是其中一個，一路活到最後。出生在哪、父母是誰，你沒得選——當初的你也一樣。</p>
 <div class="grid card"><div><span class="big" id="born">0</span><div class="mut">你打開本頁後出生的嬰兒</div></div><div><span class="big" id="died">0</span><div class="mut">同一段時間離世的人</div></div></div>
@@ -340,15 +341,15 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=75"></script>
-<script src="events.js?v=75"></script>
-<script src="life.js?v=75"></script>
-<script src="pixel.js?v=75"></script>
-<script src="story.js?v=75"></script>
-<script src="realism.js?v=75"></script>
-<script src="events2.js?v=75"></script>
-<script src="taiwan.js?v=75"></script>
-<script src="foreshadow.js?v=75"></script>
+<script src="countries.js?v=76"></script>
+<script src="events.js?v=76"></script>
+<script src="life.js?v=76"></script>
+<script src="pixel.js?v=76"></script>
+<script src="story.js?v=76"></script>
+<script src="realism.js?v=76"></script>
+<script src="events2.js?v=76"></script>
+<script src="taiwan.js?v=76"></script>
+<script src="foreshadow.js?v=76"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
 const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
@@ -389,7 +390,11 @@ $("twYear").innerHTML=`<option value="r">隨機（1950～2025）</option>`+Array
 document.querySelectorAll(".w").forEach(b=>b.addEventListener("click",()=>$("twopt").classList.toggle("hide",b.dataset.v!=="tw")));
 ["w","m","l"].forEach(k=>document.querySelectorAll("."+k).forEach(b=>b.onclick=()=>{document.querySelectorAll("."+k).forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg[k]=k=="l"?+b.dataset.v:b.dataset.v}));
 // 追思館：存在 Supabase（公開金鑰只能讀、新增和點蠟燭，不能改或刪別人的資料）
-const SB="https://gerqdagicybtyilihvvm.supabase.co",SBK="sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y";
+const SB="https://gerqdagicybtyilihvvm.supabase.co",SBK="sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y",SB_RPC=SB+"/rest/v1/rpc/",GAME="life";
+// 遊玩人數：只記「今天第幾局」，不記任何個人資料
+const playHit=k=>{try{fetch(SB_RPC+"play_hit",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify({g:GAME,k}),keepalive:true}).catch(()=>{})}catch(e){}};
+const playStats=()=>fetch(SB_RPC+"play_stats",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify({g:GAME})}).then(r=>r.json()).then(x=>{const el=document.getElementById("plays");if(el&&x&&x.total_start)el.textContent=`👥 今天有 ${x.today_start.toLocaleString()} 局${GAME=="life"?"人生":"生涯"}開始，累計 ${x.total_start.toLocaleString()} 局、${x.total_finish.toLocaleString()} 局走到結局`}).catch(()=>{});
+playStats();
 const sb=(path,opt={})=>fetch(SB+"/rest/v1/"+path,{...opt,headers:{apikey:SBK,"Content-Type":"application/json",...(opt.headers||{})}}).then(r=>r.ok?r.json().catch(()=>null):Promise.reject(r.status));
 function lit(){try{return JSON.parse(localStorage.getItem("candles-lit")||"[]")}catch{return []}}
 function renderHalls(){
@@ -456,7 +461,7 @@ start.onclick=()=>{start.disabled=true;
  who.textContent=`${P.name}（${P.sex}）`;
  $("origin").textContent=`${P.c.y0} 年，出生在${P.c.name}${P.fam.urban?P.c.city:"的鄉村"}一個${CLS[P.cls]}階層的家庭，是個${P.sex=="男"?"男孩":"女孩"}。當地平均壽命 ${Math.round(P.ex)} 歲。`;
  renderFocus();
- log.innerHTML="";say(P,`${P.name}誕生了。${familyLine(P)}`);setupGame();loop();
+ log.innerHTML="";say(P,`${P.name}誕生了。${familyLine(P)}`);playHit("start");setupGame();loop();
 };
 function setupGame(){
  $("spend").value=spend;$("spend").onchange=e=>{spend=+e.target.value;toast(`花錢習慣：${["節省","普通","大方"][spend]}`)};
@@ -740,7 +745,7 @@ function story(L){
  t.push(`${L.age} 歲時因${L.cause}離開了人世。`);return t.join("");
 }
 function title(L){const j=L.lastJob||L.job;return L.dreamDone?`實現夢想成為${L.dream}的人生`:L.politician?`一邊工作，一邊擔任地方議員的人生`:L.abroad?`從${L.c.name}移居${L.abroad}的人生`:j&&L.jobYears>10?`當了 ${L.jobYears} 年${j}的人生`:L.age<5?`在${L.c.name}出生，也在那裡長眠。`:`在${L.c.name}度過的 ${L.age} 年`}
-async function finish(){
+async function finish(){playHit("finish");
  clearSave();try{await playReview(P)}catch(e){}
  game.classList.add("hide");end.classList.remove("hide");scrollTo(0,0);
  setTimeout(()=>{const cv=$("endAvatar");if(cv)drawAvatarLCD(cv,P);$("msg").oninput=e=>{$("dcEpi").textContent=e.target.value.trim()?"「"+e.target.value.trim()+"」":"在下方留一句話給這個人，會刻在這裡。"}},0);

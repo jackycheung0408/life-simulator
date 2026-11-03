@@ -48,7 +48,7 @@ function tour(i=0,only=false){const old=document.querySelector(".tour-hi");if(ol
 function start(p){P=p;$("home").classList.add("hide");$("game").classList.remove("hide");scrollTo(0,0);renderPlan();render();loop();let seen=null;try{seen=localStorage.getItem("fb-tour")||localStorage.getItem("fb-played")}catch{}if(!seen)setTimeout(()=>tour(0),400)}
 $("draw").onclick=drawCard;$("redraw").onclick=()=>{if(!redraws)return;redraws--;draws=3;drawn.length=0;cfg.card=null;renderCards();toast(`重抽！還剩 ${redraws} 次機會`)};$("noCard").onclick=()=>{cfg.card=null;renderCards()};renderCards();
 $("go").onclick=async()=>{const p=newPlayer(cfg.w,cfg.pos);p.mode=cfg.mode;
- if(cfg.card!==null&&drawn[cfg.card]){const d=drawn[cfg.card];p.pot=d.pot;p.talent=Math.max(30,d.pot-12);p.card=d.r;p.flair=d.flair}p.id=Date.now()+"";starsInit(p,cfg.stars);P=p;await reveal(p);say(`${p.name}出生在${p.c}。`,1);start(p)};
+ if(cfg.card!==null&&drawn[cfg.card]){const d=drawn[cfg.card];p.pot=d.pot;p.talent=Math.max(30,d.pot-12);p.card=d.r;p.flair=d.flair}p.id=Date.now()+"";starsInit(p,cfg.stars);P=p;await reveal(p);say(`${p.name}出生在${p.c}。`,1);playHit("start");start(p)};
 function loadSlot(s){if(s.plan)plan=s.plan;const p=s.P;try{starsTopUp(p)}catch(e){}p.h=Math.round(hAt(p,p.age)*10)/10; // 舊存檔可能有錯誤的身高，載入時重新計算
  if(!p.s){p.s={};SUBS.forEach(k=>p.s[k]=30)}attachA(p);if(p.club)p.clubObj=CLUBS.find(c=>c.name==p.club);$("log").innerHTML=p.log.slice(-60).reverse().map(([a,t,h])=>`<p class="${h?"hi":""}"><span class="y">${a}歲</span>${t}</p>`).join("");start(p)}
 // 舊版只有一個存檔，搬到多存檔
@@ -80,5 +80,5 @@ $("achWall").innerHTML=achWall();
 $("gbCtry").innerHTML=`<option value="">其他國家…</option>`+COUNTRIES.map(c=>`<option>${c[0]}</option>`).join("");
 const gbSet=c=>{gbCountry=c;document.querySelectorAll(".gbt").forEach(x=>x.classList.toggle("on",x.dataset.c===c));loadBoard()};
 document.querySelectorAll(".gbt").forEach(b=>b.onclick=()=>{$("gbCtry").value="";gbSet(b.dataset.c)});$("gbCtry").onchange=e=>{if(e.target.value)gbSet(e.target.value)};loadBoard();
-drawPitch(0,0);
+drawPitch(0,0);playStats();
 applyTheme();$("themeBtn").onclick=cycleTheme;try{matchMedia("(prefers-color-scheme: light)").addEventListener("change",applyTheme)}catch{}

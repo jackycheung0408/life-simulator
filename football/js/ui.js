@@ -285,7 +285,7 @@ function save(){const all=slots();P.id=P.id||Date.now()+"";all[P.id]={P:slim(P),
  Object.keys(all).sort((a,b)=>all[b].t-all[a].t).slice(6).forEach(k=>delete all[k]);
  for(let i=0;i<5;i++){try{localStorage.setItem("fb-saves",JSON.stringify(all));return}catch{const old=Object.keys(all).filter(k=>k!=P.id).sort((a,b)=>all[a].t-all[b].t)[0];if(old)delete all[old];else P.log=P.log.slice(-300)}}}
 function score(p){return Math.round(p.peak*1.2+p.trophies.length*8+p.awards.length*12+p.caps*.3+p.goals*.15+(p.wc||0)*6)}
-function finish(){try{localStorage.setItem("fb-played","1")}catch{}
+function finish(){try{localStorage.setItem("fb-played","1")}catch{}if(!auto)playHit("finish");
  try{const all=slots();delete all[P.id];localStorage.setItem("fb-saves",JSON.stringify(all))}catch{}
  const p=P;$("game").classList.add("hide");$("end").classList.remove("hide");scrollTo(0,0);
  const sc=score(p),title=p.awards.some(a=>a[1]=="世界足球先生")?"世界足球先生":p.trophies.some(t=>t[1]=="世界盃冠軍")?"世界冠軍":p.peak>=85?"一代球星":p.peak>=75?"職業好手":p.debut?"職業球員":p.footEnd?({青訓:"青訓營畢業生",業餘:"業餘球員",學校隊:"學校隊隊員",少年隊:"少年隊球員"}[p.stage]||"踢過球的孩子"):"追夢的人";
@@ -383,7 +383,11 @@ function sharePlayer(){const p=P;if(!p||p.age<p.touchAge){toast("還沒開始踢
  const x=$("cpX");const old=x.onclick;x.onclick=()=>{old();paused=wasPaused}}
 
 // ── 全球排行榜（Supabase）：只能新增與讀取；資料庫端有數值上限、髒話過濾、送出頻率限制，檢舉 3 次自動隱藏 ──
-const SB="https://gerqdagicybtyilihvvm.supabase.co/rest/v1/",SBK="sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y",SBH={apikey:SBK,"Content-Type":"application/json"};
+const SB="https://gerqdagicybtyilihvvm.supabase.co/rest/v1/",SBK="sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y",SBH={apikey:SBK,"Content-Type":"application/json"},SB_RPC=SB+"rpc/",GAME="football";
+// 遊玩人數：只記「今天第幾局」，不記任何個人資料
+const playHit=k=>{try{fetch(SB_RPC+"play_hit",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify({g:GAME,k}),keepalive:true}).catch(()=>{})}catch(e){}};
+const playStats=()=>fetch(SB_RPC+"play_stats",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify({g:GAME})}).then(r=>r.json()).then(x=>{const el=document.getElementById("plays");if(el&&x&&x.total_start)el.textContent=`👥 今天有 ${x.today_start.toLocaleString()} 局${GAME=="life"?"人生":"生涯"}開始，累計 ${x.total_start.toLocaleString()} 局、${x.total_finish.toLocaleString()} 局走到結局`}).catch(()=>{});
+
 function devId(){let d=null;try{d=localStorage.getItem("fb-dev")}catch{}if(!d){d="d"+Math.random().toString(36).slice(2)+Date.now().toString(36);try{localStorage.setItem("fb-dev",d)}catch{}}return d}
 async function uploadCareer(p){const b=$("upload");if(b.dataset.done)return;b.disabled=true;b.textContent="上傳中…";
  const row={device:devId(),name:p.name.slice(0,24),country:p.c.slice(0,12),pos:p.pos,title:String(p._title||"").slice(0,30),peak:Math.min(99,Math.round(p.peak)),apps:Math.min(1200,p.apps),goals:Math.min(1500,p.goals),trophies:Math.min(60,p.trophies.length),awards:Math.min(80,p.awards.length),score:Math.min(2500,p._sc||0),born:p.y0,died:p.y0+p.age};
