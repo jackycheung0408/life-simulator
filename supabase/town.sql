@@ -238,7 +238,7 @@ begin
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if new_look is not null and pg_column_size(new_look) < 800 then
     -- 特別款要買過或達成條件
-    if exists (select 1 from public.town_shop w where w.kind = 'wear' and w.id in (new_look->>'hair', new_look->>'top', new_look->>'acc')
+    if exists (select 1 from public.town_shop w where w.kind = 'wear' and w.id in (new_look->>'style', new_look->>'top', new_look->>'acc')
        and not (coalesce(r.items->'w','[]'::jsonb) ? w.id)
        and not (w.unlock = 'bandage' and (select count(*) from public.town_events e where e.target = rid and e.kind = 'fight') >= 10)
        and not (w.unlock = 'couple' and exists (select 1 from public.town_bonds b where (b.a = rid or b.b = rid) and b.score >= 30))) then

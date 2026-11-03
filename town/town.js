@@ -51,7 +51,8 @@ function init(){
 const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const toast=t=>{const el=$("toast");el.textContent=t;el.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove("on"),2600)};
 const SKIN=["#f1c9a5","#e0ac7e","#c68a5a","#8d5a3a"],HAIR=["#222222","#5a3a1a","#a0522d","#d9b26a","#c0c0c0","#c0392b"],SHIRT=["#d9534f","#3b7dd8","#b45cc4","#8b5a2b","#2e9e5b","#d8901a","#333a44","#f0f0f0"],STYLE=["短髮","長髮","光頭","帽子"];
-const randLook=()=>({skin:SKIN[Math.floor(Math.random()*SKIN.length)],hair:HAIR[Math.floor(Math.random()*HAIR.length)],shirt:SHIRT[Math.floor(Math.random()*SHIRT.length)],style:STYLE[Math.floor(Math.random()*2)]});
+const rp=a=>a[Math.floor(Math.random()*a.length)];
+const randLook=()=>({skin:rp(SKIN),hair:rp(HAIR),shirt:rp(SHIRT),style:rp(["短髮","長髮","馬尾","捲髮","瀏海"]),eyes:rp(["圓眼","瞇眼","眼鏡"]),top:rp(["T恤","帽T","襯衫"]),pants:rp(["#2b2b3a","#3b5a8a","#6b4a2b"]),bottom:rp(["長褲","短褲","裙子"]),acc:"無"});
 const TID=(new URLSearchParams(location.search).get("t")||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);
 let S=null,R={},offset=0,me=null,pin=null,sel=null,zoomFar=false,camFree=false,busy=false,lastSeen=null;
 const walkers={};// 每個人畫面上的位置與正在走的路
@@ -101,7 +102,7 @@ function apply(st){S=st;offset=Date.parse(st.now)-Date.now();setRows(st.town.row
  st.residents.forEach(r=>{R[r.id]=r;const w=walkers[r.id];
   if(!w)walkers[r.id]={x:r.x,y:r.y,path:[],tx:r.x,ty:r.y};else if(r.id!=me&&(Math.abs(w.tx-r.x)>.01||Math.abs(w.ty-r.y)>.01)){const p=bfs([Math.round(w.x),Math.round(w.y)],[Math.round(r.x),Math.round(r.y)]);w.path=p?p.slice(1):[[r.x,r.y]]}
   walkers[r.id].tx=r.x;walkers[r.id].ty=r.y});
- const key=st.town.rows+"|"+st.residents.map(r=>r.id+":"+r.slot+":"+r.name).join(",");if(key!=mapKey){mapKey=key;maps={}}
+ const key=st.town.rows+"|"+st.residents.map(r=>r.id+":"+r.slot+":"+r.name+":"+JSON.stringify([(r.items||{}).roof,(r.items||{}).wall,(r.items||{}).d])).join(",");if(key!=mapKey){mapKey=key;maps={}}
  $("title").textContent="🐷 "+st.town.name;if(me&&!R[me]){toast("你已經搬離這個小鎮");dropMine(TID);setTimeout(()=>go(""),1200)}
  renderFeed();renderPanel();renderNeeds()}
 let mapKey="";
@@ -129,10 +130,33 @@ function joinStep(){const free=[];for(let s=0;s<12;s++)if(!bySlot(s))free.push(s
   if(!inv){$("lerr").textContent="填鎮長給你的邀請碼";return}if(!mn){$("lerr").textContent="填你的名字";return}if(!/^\d{4}$/.test(p)){$("lerr").textContent="密碼要是 4 位數字";return}
   $("go").disabled=true;try{const r=await rpc("town_join",{tid:TID,invite:inv,my_name:mn,pin:p,look,want_slot:slot});me=r.resident_id;pin=p;lastSeen=null;saveMine({tid:TID,name:S.town.name,rid:me,pin:p,me:mn});await enter()}
   catch(e){$("lerr").textContent=e.message;$("go").disabled=false}}}
-function lookPicker(el,look,cb){const row=(k,arr,label)=>`<div class="lrow"><span>${label}</span>${arr.map(v=>k=="style"?`<button class="sw${look[k]==v?" on":""}" data-k="${k}" data-v="${v}">${v}</button>`:`<button class="sw dot${look[k]==v?" on":""}" data-k="${k}" data-v="${v}" style="background:${v}" aria-label="${label}"></button>`).join("")}</div>`;
- const draw=()=>{el.innerHTML=`<div class="lookbox"><canvas id="lkcv" width="80" height="88"></canvas><div>${row("skin",SKIN,"膚色")}${row("hair",HAIR,"髮色")}${row("style",STYLE,"髮型")}${row("shirt",SHIRT,"衣服")}</div></div>`;
-  miniPerson(el.querySelector("canvas"),look);el.querySelectorAll(".sw[data-k]").forEach(b=>b.onclick=()=>{look={...look,[b.dataset.k]:b.dataset.v};cb(look);draw()})};draw()}
-async function enter(){await refresh();refreshBell().catch(()=>{});autoPush().catch(()=>{});$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
+// ── 造型目錄（和資料庫 town_shop 一致）：[代號, 名稱, 價格, 解鎖條件]；沒價格的是基本款 ──
+const WEAR={
+ style:[["短髮"],["長髮"],["光頭"],["馬尾"],["捲髮"],["包頭"],["瀏海"],["twintail","雙馬尾",100],["mohawk","刺蝟頭",100]],
+ eyes:[["圓眼"],["瞇眼"],["眼鏡"],["墨鏡"]],
+ top:[["T恤"],["帽T"],["襯衫"],["suit","西裝",250],["jersey","球衣",150],["dress","洋裝",150],["couple","情侶 T",0,"有好麻吉就解鎖"]],
+ bottom:[["長褲"],["短褲"],["裙子"]],
+ acc:[["無"],["棒球帽"],["毛帽"],["crown","皇冠",300],["pigears","小豬耳朵",80],["headphones","耳機",120],["scarf","圍巾",60],["bandage","繃帶頭",0,"被扁 10 次解鎖"]]};
+const DECO=[["flowers","花圃",40],["mailbox","信箱",30],["lamp","路燈",60],["bench","長椅",80],["tree","小樹",50],["pigstatue","小豬雕像",200]];
+const PANTS=["#2b2b3a","#3b5a8a","#6b4a2b","#7a7a7a","#c0392b","#e8e0cc"];
+const ROOF_C=["#d9534f","#3b7dd8","#b45cc4","#8b5a2b","#2e9e5b","#d8901a","#e0779b","#2a9d8f","#34495e","#9a9a9a"],WALL_C=["#f4ead6","#fff3e0","#e8f1ff","#fde2ea","#e6f4e6","#f0e6ff","#e0e0e0","#ffe8b0"];
+const wInfo=(k,v)=>WEAR[k].find(a=>a[0]==v)||[v];
+const isPremium=(k,v)=>{const x=wInfo(k,v);return !!(x[2]||x[3])};
+// 舊存檔的「帽子」髮型改成配件
+const normLook=L=>{const o={skin:"#f1c9a5",hair:"#5a3a1a",style:"短髮",eyes:"圓眼",shirt:"#3b7dd8",top:"T恤",pants:"#2b2b3a",bottom:"長褲",acc:"無",...(L||{})};if(o.style=="帽子"){o.style="短髮";if(o.acc=="無")o.acc="棒球帽"}return o};
+function lookPicker(el,look,cb,items){look=normLook(look);const owned=new Set(((items||{}).w)||[]);
+ const tag=(k,v)=>{const x=wInfo(k,v);if(!isPremium(k,v))return "";if(owned.has(v))return " ✔";return x[3]?` 🔒`:` €${x[2]}`};
+ const opts=(k,label)=>`<div class="lrow"><span>${label}</span>${WEAR[k].filter(a=>items||!isPremium(k,a[0])).map(a=>`<button class="sw${look[k]==a[0]?" on":""}${isPremium(k,a[0])&&!owned.has(a[0])?" lock":""}" data-k="${k}" data-v="${a[0]}" title="${a[3]||""}">${a[1]||a[0]}${tag(k,a[0])}</button>`).join("")}</div>`;
+ const dots=(k,arr,label)=>`<div class="lrow"><span>${label}</span>${arr.map(v=>`<button class="sw dot${look[k]==v?" on":""}" data-k="${k}" data-v="${v}" style="background:${v}" aria-label="${label}"></button>`).join("")}</div>`;
+ const tog=(k,label)=>`<button class="sw${look[k]?" on":""}" data-t="${k}">${label}</button>`;
+ const draw=()=>{el.innerHTML=`<div class="lookbox"><canvas width="96" height="120"></canvas><div class="lookopts">
+   ${dots("skin",SKIN,"膚色")}${opts("style","髮型")}${dots("hair",HAIR,"髮色")}${opts("eyes","眼睛")}<div class="lrow"><span>細節</span>${tog("blush","腮紅")}${tog("beard","鬍子")}</div>
+   ${opts("top","上衣")}${dots("shirt",SHIRT,"顏色")}${opts("bottom","下身")}${dots("pants",PANTS,"顏色")}${opts("acc","配件")}
+   ${items?`<p class="mut" style="margin:6px 0 0">€ 的款式在超市「🛍️ 造型與擺飾」買；🔒 要達成條件（滑過去看）。可以先試穿看看。</p>`:""}</div></div>`;
+  miniPerson(el.querySelector("canvas"),look);
+  el.querySelectorAll(".sw[data-k]").forEach(b=>b.onclick=()=>{look={...look,[b.dataset.k]:b.dataset.v};cb(look);draw()});
+  el.querySelectorAll(".sw[data-t]").forEach(b=>b.onclick=()=>{look={...look,[b.dataset.t]:!look[b.dataset.t]};cb(look);draw()})};cb(look);draw()}
+async function enter(){$("menuBtn").classList.remove("hide");await refresh();refreshBell().catch(()=>{});autoPush().catch(()=>{});$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
  const w=walkers[me];cam.x=w.x*T;cam.y=w.y*T;resize();$("mayor").classList.toggle("hide",!R[me].mayor);
  const ent=mine().find(x=>x.tid==TID);if(ent&&ent.invite){shareModal(ent.invite,true);delete ent.invite;saveMine(ent);return}
  const mineEv=(S.events||[]).filter(e=>e.target==me&&(!lastSeen||e.at>lastSeen));
@@ -169,7 +193,7 @@ const btn=(label,sub,fn)=>({label,sub,fn});let lastPanel="",panelFns=[];
 function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),p=r.place,list=[];let title="",note="";
  if(walkers[me]&&walkers[me].path.length){title="走路中…";note="到了就可以做事"}
  else if(r.sleeping){title=`在${placeName(p)}睡覺 💤`;list.push(btn("起床","",()=>act("wake")))}
- else if(p=="home:"+me){title="你家";list.push(btn("吃飯","飽足 +40 · €10",()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),btn("洗澡","清潔回滿",()=>act("shower")),btn("看電視","心情 +25",()=>act("tv")),btn("睡覺","精力慢慢回來",()=>act("sleep")))}
+ else if(p=="home:"+me){title="你家";list.push(btn("吃飯","飽足 +40 · €10",()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),btn("洗澡","清潔回滿",()=>act("shower")),btn("看電視","心情 +25",()=>act("tv")),btn("睡覺","精力慢慢回來",()=>act("sleep")),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal()))}
  else if(p&&p.startsWith("home:")&&R[p.slice(5)]){const id=+p.slice(5),t=tickLocal(R[id],now());title=`${t.name} 家`;
   const gifts=(r.items||{}).gift||0,giftB=gifts?btn("送禮物",`他心情 +20 · 背包 🎁${gifts}`,()=>act("gift",{target:id})):btn("送禮物","先去超市買",()=>toast("背包沒有禮物，去超市買一份"));
   if(t.place!=p){note=`${t.name} 不在家，在${placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(btn("留言","寫一句話給他",()=>noteModal(id)),giftB,btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})))}
@@ -178,10 +202,10 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
    if(t.sleeping)list.push(btn("叫醒他","",()=>act("wakeup",{target:id})));
    if(!t.sleeping)list.push(btn("串門子","兩人心情 +15",()=>act("visit",{target:id})));list.push(btn("留言","寫一句話給他",()=>noteModal(id)),btn("惡作劇","放個臭屁 💨 · 好感 −3",()=>act("prank",{target:id})),btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})));
    if(!t.sleeping)list.push(...faceActs(id))}}
- else if(p=="restaurant"){title="餐廳";list.push(btn("吃一頓","飽足 +55 · 心情 +10 · €30",()=>act("dine")))}
- else if(p=="office"){title="公司";list.push(btn("打工","+€120 · 累",()=>act("work")))}
+ else if(p=="restaurant"){title="餐廳";list.push(btn("吃一頓","飽足 +55 · 心情 +10 · €30",()=>act("dine")));note="朋友也在的話，點他可以請吃大餐"}
+ else if(p=="office"){title="公司";list.push(btn("打工","+€120 · 累",()=>act("work")));note="有同事在的話，點他可以一起加班，薪水加倍"}
  else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")))}
- else if(p=="market"){title="超市";list.push(btn("買禮物 🎁","€20 · 送朋友心情 +20",()=>act("buy",{item:"gift"})),btn("買零食 🍪","€15 · 隨時吃，飽足 +20",()=>act("buy",{item:"snack"})),btn("逛逛","心情 +6",()=>act("browse")))}
+ else if(p=="market"){title="超市";list.push(btn("買禮物 🎁","€20 · 送朋友心情 +20",()=>act("buy",{item:"gift"})),btn("買零食 🍪","€15 · 隨時吃，飽足 +20",()=>act("buy",{item:"snack"})),btn("🛍️ 造型與擺飾","新衣服、家門口擺飾",()=>shopModal()),btn("逛逛","心情 +6",()=>act("browse")))}
  else{title="路上";note="點地圖上的房子或地點，就會走過去"}
  // 公共場所遇到人：可以擊掌；一起吃飯、玩、加班時在場的人心情都會變好
  if(!r.sleeping&&["plaza","restaurant","market","park","office"].includes(p)&&!(walkers[me]&&walkers[me].path.length)){const here=Object.values(R).filter(o=>o.id!=me&&o.place==p&&!o.sleeping);
@@ -196,13 +220,23 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  panelFns=list;if(html!=lastPanel){lastPanel=html;$("acts").innerHTML=html;$("acts").querySelectorAll("button").forEach(b=>b.onclick=()=>panelFns[b.dataset.i].fn())}}
 function renderNeeds(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now());
  $("needs").innerHTML=NEEDS.map(k=>{const v=Math.round(r[k]),[ic,nm]=NEED_INFO[k];return `<div class="need${v<20?" low":""}" title="${nm} ${v}"><span>${ic}</span><i><b style="width:${v}%;background:${v<20?"var(--bad)":v<50?"var(--warn)":"var(--good)"}"></b></i><small>${nm} ${v}</small></div>`}).join("")+`<div class="need money"><span>💰</span><small>€${r.money}${(r.items||{}).gift?` · 🎁${r.items.gift}`:""}${(r.items||{}).snack?` · 🍪${r.items.snack}`:""}</small></div>`}
-function renderFeed(){const ev=(S&&S.events)||[];const fmt=a=>{const d=new Date(Date.parse(a)+8*36e5),t=new Date(now()+8*36e5);const hm=`${String(d.getUTCHours()).padStart(2,"0")}:${String(d.getUTCMinutes()).padStart(2,"0")}`;return d.toISOString().slice(0,10)==t.toISOString().slice(0,10)?hm:`${d.getUTCMonth()+1}/${d.getUTCDate()} ${hm}`};
+// 每週排行（最近 7 天）
+function renderRank(){const w=(S&&S.week)||{},med=["🥇","🥈","🥉"],cat=[["work","💼 最勤勞","次打工"],["popular","💗 最受歡迎","次被照顧"],["kind","🤲 最愛照顧人","次照顧別人"],["punched","🤕 最欠扁","次被欺負"]];
+ $("tab-rank").innerHTML=`<p class="mut">最近 7 天</p>`+cat.map(([k,t,u])=>`<div class="rank"><b>${t}</b>${(w[k]||[]).length?(w[k]).map((x,i)=>`<p>${med[i]} ${esc((R[x.id]||{}).name||"搬走的鄰居")} <small class="mut">${x.n} ${u}</small></p>`).join(""):`<p class="mut">還沒有人上榜</p>`}</div>`).join("")}
+function renderPeople(){const list=Object.values(R).filter(o=>o.id!=me).map(o=>({o,v:bondWith(o.id)})).sort((a,b)=>b.v-a.v);
+ $("tab-ppl").innerHTML=(list.length?list.map(({o,v})=>`<div class="mrow"><span><b>${esc(o.name)}</b> <small class="mut">${bondLabel(v)} · ${v>0?"+":""}${v}</small><i class="bond"><b style="left:50%;width:${Math.abs(v)/2}%;${v<0?`left:${50-Math.abs(v)/2}%;background:var(--bad)`:"background:var(--good)"}"></b></i><small class="mut">${tierHint(v)} · 在${placeName(o.place)}</small></span><button data-w="${o.id}">找他</button></div>`).join(""):`<p class="mut">鎮上還沒有其他人，邀請朋友搬進來吧。</p>`)
+  +`<p class="mut" style="margin-top:10px">送禮 +5、煮飯洗澡 +4、請吃大餐 +4、串門子一起加班 +3、道謝擊掌 +2、留言 +1；叫醒 −1、丟雞蛋 −2、惡作劇 −3、扁人 −6、和好 +8。好麻吉以上照顧對方效果 ×1.3。</p>`;
+ $("tab-ppl").querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{walkToPerson(+b.dataset.w);$("stage").scrollIntoView({behavior:"smooth"})})}
+function renderFeed(){renderRank();renderPeople();const ev=(S&&S.events)||[];const fmt=a=>{const d=new Date(Date.parse(a)+8*36e5),t=new Date(now()+8*36e5);const hm=`${String(d.getUTCHours()).padStart(2,"0")}:${String(d.getUTCMinutes()).padStart(2,"0")}`;return d.toISOString().slice(0,10)==t.toISOString().slice(0,10)?hm:`${d.getUTCMonth()+1}/${d.getUTCDate()} ${hm}`};
  const ok=new Set(me?thankable().map(e=>e.id):[]),bad=new Set(me?grudges().map(e=>e.id):[]),shown=new Set();
  $("feed").innerHTML=ev.length?ev.slice(0,30).map(e=>{const t=ok.has(e.id)&&!shown.has(e.actor);if(t)shown.add(e.actor);const g=bad.has(e.id)&&!shown.has("g"+e.actor);if(g)shown.add("g"+e.actor);return `<p class="${e.target==me?"mine":""}"><span>${fmt(e.at)}</span>${esc(e.msg)}${t?` <button class="thx" data-t="${e.actor}">💗 謝謝</button>`:""}${g?` <button class="thx" data-g="${e.actor}">😤 報仇</button>`:""}</p>`}).join(""):`<p class="mut">小鎮還很安靜。</p>`;
  $("feed").querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>act("thank",{target:+b.dataset.t}));
  $("feed").querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{walkToPerson(+b.dataset.g);toast("走過去找他算帳，到了就能扁他（報仇有加成）");$("stage").scrollIntoView({behavior:"smooth"})})}
 // 面對面才能做的事：擊掌、扁他、和好
-function faceActs(id){const t=R[id],b=bondWith(id),out=[btn(`和 ${t.name} 擊掌 🙌`,"兩人心情 +8 · 好感 +2",()=>act("greet",{target:id})),
+function faceActs(id){const t=R[id],b=bondWith(id),mp=R[me].place,coop=[];
+ if(mp=="office"&&t.place=="office")coop.push(btn(`和 ${t.name} 一起加班 💼`,"兩人各 +€200 · 4 小時一次",()=>act("cowork",{target:id})));
+ if(mp=="restaurant"&&t.place=="restaurant")coop.push(btn(`請 ${t.name} 吃大餐 🍖`,"€60 · 兩人飽足 +70",()=>act("feast",{target:id})));
+ const out=[...coop,btn(`和 ${t.name} 擊掌 🙌`,"兩人心情 +8 · 好感 +2",()=>act("greet",{target:id})),
   btn(`扁 ${t.name} 👊`,b>=30?"好麻吉之間是打打鬧鬧 · 好感 +1":"比精力、心情和運氣 · 好感 −6",()=>act("fight",{target:id}))];
  if(b<0)out.push(btn(`和 ${t.name} 和好 🤝`,"好感 +8",()=>act("makeup",{target:id})));return out}
 // 走到某人身邊：他在室內就走到那個地點的門口，在路上就走到他旁邊
@@ -212,6 +246,20 @@ function bondsModal(){const list=Object.values(R).filter(o=>o.id!=me).map(o=>({o
  $("mbody").innerHTML=`<h2>👥 人際關係</h2>${list.length?list.map(({o,v})=>`<div class="mrow"><span><b>${esc(o.name)}</b> <small class="mut">${bondLabel(v)} · ${v>0?"+":""}${v}</small><i class="bond"><b style="left:50%;width:${Math.abs(v)/2}%;${v<0?`left:${50-Math.abs(v)/2}%;background:var(--bad)`:"background:var(--good)"}"></b></i><small class="mut">${tierHint(v)}</small></span><button data-w="${o.id}">找他</button></div>`).join(""):`<p class="mut">鎮上還沒有其他人，邀請朋友搬進來吧。</p>`}
   <p class="mut" style="margin-top:10px">送禮 +5、煮飯洗澡 +4、串門子 +3、道謝擊掌 +2、留言 +1；叫醒 −1、丟雞蛋 −2、惡作劇 −3、扁人 −6、和好 +8。好麻吉以上照顧對方效果 ×1.3。</p><div class="row"><button id="mc">關閉</button></div>`;
  $("mc").onclick=()=>$("modal").classList.add("hide");$("mbody").querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{$("modal").classList.add("hide");walkToPerson(+b.dataset.w)})}
+// 超市：造型與擺飾
+function shopModal(){const it=R[me].items||{},w=new Set(it.w||[]),d=new Set(it.d||[]);$("modal").classList.remove("hide");
+ const row=(id,name,price,has,kind)=>`<div class="mrow"><span><b>${name}</b> <small class="mut">€${price}</small></span>${has?`<small class="mut">✔ 已擁有</small>`:`<button data-b="${kind}:${id}">買</button>`}</div>`;
+ $("mbody").innerHTML=`<h2>🛍️ 造型與擺飾</h2><p class="mut">你有 €${R[me].money}。買了的造型到「👗 換造型」穿；擺飾會自動放在你家門口（最多 4 樣）。</p>
+  <h3>造型</h3>${["style","top","acc"].map(k=>WEAR[k].filter(a=>a[2]).map(a=>row(a[0],a[1],a[2],w.has(a[0]),"w")).join("")).join("")}
+  <p class="mut">🔒 情侶 T：和人變成好麻吉就能穿。繃帶頭：被扁 10 次就能戴。</p>
+  <h3>門口擺飾</h3>${DECO.map(([id,n,pr])=>row(id,n,pr,d.has(id),"d")).join("")}<div class="row"><button id="mc">關閉</button></div>`;
+ $("mc").onclick=()=>$("modal").classList.add("hide");$("mbody").querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{b.disabled=true;await act("buy",{item:b.dataset.b});shopModal()})}
+// 在家裝潢：換屋頂、牆壁顏色（€50）
+function paintModal(){const it=R[me].items||{};$("modal").classList.remove("hide");
+ const pal=(k,arr,cur)=>`<div class="houses">${arr.map(c=>`<button class="sw dot${cur==c?" on":""}" data-p="${k}:${c}" style="background:${c}" aria-label="${k}"></button>`).join("")}</div>`;
+ $("mbody").innerHTML=`<h2>🎨 裝潢</h2><p class="mut">換一次 €50，你有 €${R[me].money}。</p><h3>屋頂</h3>${pal("roof",ROOF_C,it.roof||ROOFS[R[me].slot])}<h3>牆壁</h3>${pal("wall",WALL_C,it.wall||"#f4ead6")}
+  <h3>門口擺飾</h3><p class="mut">${(it.d||[]).map(x=>(DECO.find(a=>a[0]==x)||[x,x])[1]).join("、")||"還沒有，去超市買"}</p><div class="row"><button id="mc">關閉</button></div>`;
+ $("mc").onclick=()=>$("modal").classList.add("hide");$("mbody").querySelectorAll("[data-p]").forEach(b=>b.onclick=async()=>{await act("paint",{item:b.dataset.p});paintModal()})}
 function noteModal(id){const t=R[id];$("modal").classList.remove("hide");const quick=["記得吃飯！🍚","晚安 🌙","今天加油！💪","想你了 🥺","快去洗澡 🛁","下次一起吃飯？"];
  $("mbody").innerHTML=`<h2>留言給 ${esc(t.name)}</h2><div class="houses">${quick.map(q=>`<button class="sw" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div><input id="ntx" maxlength="30" placeholder="或自己寫（最多 30 字）" style="margin-top:10px"><p class="err" id="nerr"></p>
   <div class="row"><button id="mc">取消</button><button class="pri" id="ms">留在門口</button></div>`;
@@ -221,6 +269,14 @@ function noteModal(id){const t=R[id];$("modal").classList.remove("hide");const q
 // ── 畫面：靜態地圖畫一次（白天、晚上各一張，房子或人數變了才重畫），動態的人與噴水池每幀畫 ──
 const cv=$("cv"),g=cv.getContext("2d"),cam={x:0,y:0,s:1};let maps={};
 const grassV=(()=>{let s=7;const r=()=>(s=(s*9301+49297)%233280)/233280;return [...Array(40)].map(()=>[...Array(COLS)].map(r))})();
+// 門口擺飾
+function deco(m,d,x,y,night){const R=(a,b,w,h,c)=>{m.fillStyle=c;m.fillRect(x+a,y+b,w,h)};
+ if(d=="flowers"){R(-10,2,22,6,"#6b4423");[["#e74c3c",-8],["#f1c40f",-2],["#e0779b",4],["#9b59b6",9]].forEach(([c,a])=>{R(a,-4,4,4,c);R(a+1,0,2,3,"#2e7d32")})}
+ if(d=="mailbox"){R(-1,-6,3,14,"#6b4423");R(-6,-14,13,9,"#c0392b");R(7,-14,2,5,"#f1c40f")}
+ if(d=="lamp"){R(-1,-22,3,30,"#444");R(-5,-26,11,6,night?"#ffd76a":"#ddd");if(night){m.fillStyle="rgba(255,215,106,.25)";m.beginPath();m.arc(x,y-22,18,0,7);m.fill()}}
+ if(d=="bench"){R(-12,-4,26,4,"#8b5a2b");R(-12,-10,26,3,"#8b5a2b");R(-10,0,3,6,"#5a3a1a");R(9,0,3,6,"#5a3a1a")}
+ if(d=="tree"){R(-2,-2,4,10,"#6b4423");m.fillStyle=night?"#2f6b3a":"#4caf50";m.beginPath();m.arc(x,y-8,10,0,7);m.fill()}
+ if(d=="pigstatue"){R(-8,2,16,6,"#9a9a9a");m.fillStyle="#f6a5c0";m.beginPath();m.arc(x,y-6,9,0,7);m.fill();R(-8,-16,4,4,"#ec7fa6");R(4,-16,4,4,"#ec7fa6");R(-4,-6,8,5,"#ec7fa6");R(-4,-11,2,2,"#222");R(2,-11,2,2,"#222")}}
 function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas");c.width=COLS*T;c.height=ROWS*T;const m=c.getContext("2d");
  const sign=(t,x,y,bg)=>{m.font="600 14px sans-serif";const w=m.measureText(t).width+14;m.fillStyle=bg||"rgba(20,20,20,.8)";m.fillRect(x-w/2,y-11,w,22);m.fillStyle="#fff";m.textAlign="center";m.textBaseline="middle";m.fillText(t,x,y+1)};
  const win=(x,y,lit)=>{m.fillStyle=night&&lit!==false?"#ffd76a":"#bfe3ff";m.fillRect(x,y,16,14);m.fillStyle="rgba(255,255,255,.5)";m.fillRect(x,y,16,3);m.fillStyle="#3a3a3a";m.fillRect(x+7,y,2,14)};
@@ -230,10 +286,11 @@ function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas")
  for(let j=0;j<ROWS*T;j+=36)if(!(j>=8*T&&j<15*T))m.fillRect(17*T-1,j,3,18);
  const [px,py,pw,ph]=PLACES.plaza.r;for(let j=py;j<py+ph;j++)for(let i=px;i<px+pw;i++){m.fillStyle=(i+j)%2?"#cbbf9f":"#d9cfb4";m.fillRect(i*T,j*T,T,T)}
  m.fillStyle="#5aa84f";const [qx,qy,qw,qh]=PLACES.park.r;m.fillRect(qx*T,qy*T,qw*T,qh*T);m.fillStyle="#d9cfb4";m.fillRect(qx*T,19*T+10,qw*T,12);m.fillStyle="#8b5a2b";m.fillRect(30*T,18*T+4,44,10);m.fillRect(30*T+4,18*T+14,4,8);m.fillRect(30*T+36,18*T+14,4,8);
- for(let s=0;s<NR*3;s++){const [hx,hy]=homeXY(s),X=hx*T,Y=hy*T,W=5*T,o=bySlot(s);m.fillStyle="rgba(0,0,0,.18)";m.fillRect(X+8,Y+T+10,W,3*T);m.fillStyle=o?"#f4ead6":"#e2ddd2";m.fillRect(X,Y+T,W,3*T-6);
-  m.fillStyle=o?ROOFS[s]:"#9a9a9a";m.fillRect(X-8,Y,W+16,T+14);m.fillStyle="rgba(0,0,0,.15)";for(let k=0;k<W+16;k+=12)m.fillRect(X-8+k,Y,6,T+14);m.fillStyle="rgba(255,255,255,.25)";m.fillRect(X-8,Y,W+16,4);
+ for(let s=0;s<NR*3;s++){const [hx,hy]=homeXY(s),X=hx*T,Y=hy*T,W=5*T,o=bySlot(s);m.fillStyle="rgba(0,0,0,.18)";m.fillRect(X+8,Y+T+10,W,3*T);const it=(o&&o.items)||{};m.fillStyle=o?(it.wall||"#f4ead6"):"#e2ddd2";m.fillRect(X,Y+T,W,3*T-6);
+  m.fillStyle=o?(it.roof||ROOFS[s]):"#9a9a9a";m.fillRect(X-8,Y,W+16,T+14);m.fillStyle="rgba(0,0,0,.15)";for(let k=0;k<W+16;k+=12)m.fillRect(X-8+k,Y,6,T+14);m.fillStyle="rgba(255,255,255,.25)";m.fillRect(X-8,Y,W+16,4);
   win(X+20,Y+T+26,!!o);win(X+W-36,Y+T+26,!!o);m.fillStyle="#7a4a24";m.fillRect(X+W/2-11,Y+3*T+4,22,T-10);m.fillStyle="#e0b050";m.fillRect(X+W/2+5,Y+3*T+18,3,3);m.fillStyle="#cbbf9f";m.fillRect(X+W/2-10,Y+4*T,20,T);
-  sign(o?o.name+" 的家":"空屋",X+W/2,Y+T/2+6,o?null:"rgba(90,90,90,.85)")}
+  sign(o?o.name+" 的家":"空屋",X+W/2,Y+T/2+6,o?null:"rgba(90,90,90,.85)");
+  ((it.d)||[]).slice(0,4).forEach((d,i)=>deco(m,d,X+[16,48,144,172][i],Y+4*T+18,night))}
  const bld=(k,wall,roof,deco)=>{const [x,y,w,h]=PLACES[k].r,X=x*T,Y=y*T,W=w*T,H=h*T;m.fillStyle="rgba(0,0,0,.18)";m.fillRect(X+8,Y+16,W,H);m.fillStyle=wall;m.fillRect(X,Y+14,W,H-14);m.fillStyle=roof;m.fillRect(X-6,Y,W+12,20);deco(X,Y,W,H)};
  bld("office","#b8c4cf","#5f6b78",(X,Y,W,H)=>{for(let a=0;a<5;a++)for(let b=0;b<3;b++)win(X+16+a*40,Y+36+b*40);m.fillStyle="#555";m.fillRect(X+W/2-14,Y+H-36,28,36)});
  bld("restaurant","#fff3e0","#c0392b",(X,Y,W,H)=>{for(let k=0;k<W;k+=24){m.fillStyle=(k/24)%2?"#fff":"#e74c3c";m.fillRect(X+k,Y+20,24,16)}win(X+20,Y+60);win(X+W-36,Y+60);m.fillStyle="#7a4a24";m.fillRect(X+W/2-12,Y+H-44,24,44)});
@@ -245,24 +302,47 @@ function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas")
  sign("公司",29.5*T,10);sign("餐廳",5*T,9*T+10);sign("超市",28*T,9*T+10);sign("公園",29.5*T,17*T+12);sign("小豬廣場",17*T,8*T+14);
  if(night){m.fillStyle="rgba(18,28,78,.45)";m.fillRect(0,0,c.width,c.height)}
  return c}
-function person(x,y,look,tk,moving,label,isMe,state){const u=1.6,b=moving?Math.floor(tk/7)%2:0,L=look&&look.skin?look:{skin:"#f1c9a5",hair:"#999",shirt:"#bbb",style:"短髮"};
+// 畫一個角色：(x,y) 是身體中心，u 是一格像素的大小
+function drawChar(c,x,y,u,L0,st,tk){const L=normLook(L0),b=st.moving?Math.floor(tk/7)%2:0,R=(cx,cy,w,h,col)=>{c.fillStyle=col;c.fillRect(x+cx*u,y+cy*u,w*u,h*u)},H=L.hair;
+ if(st.sleeping){R(-9,2,14,7,"#7fa8d8");for(let i=-8;i<5;i+=3)R(i,2,1,7,"#5d86b8");R(5,2,7,7,L.skin);R(10,2,2,7,H);return}// 睡衣
+ const bare=L.bottom!="長褲"||L.top=="dress",leg=bare?L.skin:L.pants;
+ R(-4,5,3,6-b*2,leg);R(1,5,3,4+b*2,leg);R(-4,11-b*2,3,1,"#3a2a20");R(1,9+b*2,3,1,"#3a2a20");
+ if(L.top!="dress"){if(L.bottom=="短褲")R(-4,5,8,3,L.pants);if(L.bottom=="裙子")R(-5,5,10,3,L.pants)}
+ const sc=L.top=="suit"?"#2c3140":L.top=="couple"?"#f06b9b":L.shirt;R(-5,-3,10,9,sc);
+ if(L.top=="dress")R(-6,4,12,4,sc);if(L.top=="帽T"){R(-4,-3,8,1.5,"rgba(0,0,0,.25)");R(-2,2,4,2,"rgba(0,0,0,.18)")}
+ if(L.top=="襯衫")R(-1.5,-3,3,2,"#fff");if(L.top=="suit"){R(-1,-3,2,6,"#fff");R(-.5,-2,1,4,"#c0392b")}
+ if(L.top=="jersey"){R(-5,-1,10,1,"#fff");R(-1,1,2,3,"#fff")}if(L.top=="couple"){R(-1.5,0,1.5,1.5,"#fff");R(0,0,1.5,1.5,"#fff");R(-.75,1.2,1.5,1,"#fff")}
+ if(st.dirty){R(-3,0,2,1,"#6b4a2b");R(2,2,1,1,"#6b4a2b");R(-1,4,2,1,"#6b4a2b")}
+ R(-4,-11,8,8,L.skin);
+ const hs={短髮:()=>R(-4,-12,8,3,H),長髮:()=>{R(-5,-12,10,3,H);R(-5,-10,2,8,H);R(3,-10,2,8,H)},光頭:()=>{},馬尾:()=>{R(-4,-12,8,3,H);R(4,-10,2,5,H)},
+  捲髮:()=>{R(-5,-12,10,2,H);R(-5,-10,1,3,H);R(4,-10,1,3,H);R(-3,-13,2,1,H);R(1,-13,2,1,H)},包頭:()=>{R(-4,-12,8,2,H);R(-2,-14,4,2,H)},瀏海:()=>{R(-4,-12,8,3,H);R(-4,-9,5,1,H)},
+  twintail:()=>{R(-4,-12,8,3,H);R(-6,-10,2,6,H);R(4,-10,2,6,H)},mohawk:()=>R(-1,-14,2,4,H)};(hs[L.style]||hs.短髮)();
+ const ey={圓眼:()=>{R(-2,-8,1,2,"#222");R(2,-8,1,2,"#222")},瞇眼:()=>{R(-3,-7,2,.8,"#222");R(1,-7,2,.8,"#222")},
+  眼鏡:()=>{R(-3,-9,3,.6,"#222");R(1,-9,3,.6,"#222");R(-3,-9,.6,2.4,"#222");R(3.4,-9,.6,2.4,"#222");R(-2,-8,1,1.4,"#222");R(2,-8,1,1.4,"#222")},墨鏡:()=>R(-3.5,-8.5,7.5,2,"#111")};(ey[L.eyes]||ey.圓眼)();
+ if(L.blush){R(-4,-6,1.5,1,"#ff9fb0");R(2.5,-6,1.5,1,"#ff9fb0")}if(L.beard)R(-4,-5,8,2,H);
+ if(st.bruised){R(1,-9,3,3,"#6b3fa0");R(-4,-6,4,1,"#fff");R(-3,-7,1,3,"#fff")}
+ const ac={棒球帽:()=>{R(-5,-13,10,3,"#c0392b");R(-6,-10.5,7,1.2,"#a02a20")},毛帽:()=>{R(-5,-14,10,4,"#e67e22");R(-1,-15,2,1,"#fff")},
+  crown:()=>{R(-4,-15,8,2.5,"#f1c40f");R(-4,-16.5,1.2,1.5,"#f1c40f");R(-.6,-17,1.2,2,"#f1c40f");R(2.8,-16.5,1.2,1.5,"#f1c40f");R(-.5,-14.5,1,1,"#e74c3c")},
+  pigears:()=>{R(-5,-14.5,3,3,"#f6a5c0");R(2,-14.5,3,3,"#f6a5c0");R(-4.3,-13.8,1.5,1.5,"#ec7fa6");R(2.8,-13.8,1.5,1.5,"#ec7fa6")},
+  headphones:()=>{R(-5,-13.2,10,1,"#333");R(-6,-9,2,3,"#333");R(4,-9,2,3,"#333")},scarf:()=>{R(-5,-4,10,2,"#c0392b");R(2,-2,2,3,"#c0392b")},bandage:()=>{R(-4,-11,8,1.5,"#fff");R(2,-12.5,2,1.5,"#fff")}};(ac[L.acc]||(()=>{}))()}
+function person(x,y,look,tk,moving,label,isMe,state){const u=1.6;
  if(isMe){g.strokeStyle="#ffd23f";g.lineWidth=3;g.beginPath();g.ellipse(x,y+12*u,11*u,4*u,0,0,7);g.stroke()}
- g.fillStyle="rgba(0,0,0,.25)";g.fillRect(x-5*u,y+10*u,10*u,3*u);
- if(state.sleeping){g.fillStyle=L.shirt;g.fillRect(x-9*u,y+2*u,14*u,7*u);g.fillStyle=L.skin;g.fillRect(x+5*u,y+2*u,7*u,7*u);g.fillStyle=L.hair;g.fillRect(x+10*u,y+2*u,2*u,7*u);g.font="bold 16px sans-serif";g.fillStyle="#fff";g.fillText("Zz",x+14*u,y-6*u+Math.sin(tk/20)*3)}
- else{g.fillStyle="#2b2b3a";g.fillRect(x-4*u,y+5*u,3*u,(6-b*2)*u);g.fillRect(x+1*u,y+5*u,3*u,(4+b*2)*u);g.fillStyle=L.shirt;g.fillRect(x-5*u,y-3*u,10*u,9*u);g.fillStyle=L.skin;g.fillRect(x-4*u,y-11*u,8*u,8*u);
-  g.fillStyle=L.hair;if(L.style=="長髮"){g.fillRect(x-5*u,y-12*u,10*u,3*u);g.fillRect(x-5*u,y-10*u,2*u,8*u);g.fillRect(x+3*u,y-10*u,2*u,8*u)}else if(L.style=="帽子"){g.fillRect(x-5*u,y-13*u,10*u,3*u);g.fillRect(x-6*u,y-10*u,12*u,2*u)}else if(L.style!="光頭")g.fillRect(x-4*u,y-12*u,8*u,3*u);
-  g.fillStyle="#222";g.fillRect(x-2*u,y-8*u,u,2*u);g.fillRect(x+2*u,y-8*u,u,2*u);
-  if(state.bruised){g.fillStyle="#6b3fa0";g.fillRect(x+1*u,y-9*u,3*u,3*u);g.fillStyle="#fff";g.fillRect(x-4*u,y-6*u,4*u,u);g.fillRect(x-3*u,y-7*u,u,3*u)}}
- if(state.stink){g.strokeStyle="#7bd36b";g.lineWidth=2;for(let k=-1;k<=1;k++){g.beginPath();for(let s=0;s<10;s++)g.lineTo(x+k*8*u+Math.sin(tk/6+s)*2,y-14*u-s*2.2);g.stroke()}}
- g.font="600 13px sans-serif";g.textAlign="center";g.textBaseline="middle";const tag=label+(state.bruised?" 🤕":"")+(state.hungry?" 🍚":""),w=g.measureText(tag).width+10;g.fillStyle=isMe?"rgba(160,110,0,.9)":"rgba(0,0,0,.65)";g.fillRect(x-w/2,y-30*u,w,18);g.fillStyle="#fff";g.fillText(tag,x,y-30*u+9)}
-function miniPerson(c,L){const m=c.getContext("2d");m.clearRect(0,0,c.width,c.height);m.save();m.scale(c.width/40,c.width/40);
- m.fillStyle="#2b2b3a";m.fillRect(14,32,5,8);m.fillRect(21,32,5,8);m.fillStyle=L.shirt;m.fillRect(12,20,16,14);m.fillStyle=L.skin;m.fillRect(13,6,14,14);m.fillStyle=L.hair;
- if(L.style=="長髮"){m.fillRect(11,4,18,5);m.fillRect(11,8,3,14);m.fillRect(26,8,3,14)}else if(L.style=="帽子"){m.fillRect(11,2,18,5);m.fillRect(9,7,22,3)}else if(L.style!="光頭")m.fillRect(13,4,14,5);m.fillStyle="#222";m.fillRect(17,12,2,3);m.fillRect(22,12,2,3);m.restore()}
+ g.fillStyle="rgba(0,0,0,.25)";g.fillRect(x-5*u,y+10*u,10*u,3*u);drawChar(g,x,y,u,look,{...state,moving},tk);
+ if(state.sleeping){g.font="bold 16px sans-serif";g.fillStyle="#fff";g.fillText("Zz",x+14*u,y-6*u+Math.sin(tk/20)*3)}
+ if(state.stink){g.strokeStyle="#7bd36b";g.lineWidth=2;for(let k=-1;k<=1;k++){g.beginPath();for(let s=0;s<10;s++)g.lineTo(x+k*8*u+Math.sin(tk/6+s)*2,y-16*u-s*2.2);g.stroke()}}
+ g.font="600 13px sans-serif";g.textAlign="center";g.textBaseline="middle";const tag=label+(state.bruised?" 🤕":"")+(state.hungry?" 🍚":""),w=g.measureText(tag).width+10,ty=y-32*u;g.fillStyle=isMe?"rgba(160,110,0,.9)":"rgba(0,0,0,.65)";g.fillRect(x-w/2,ty,w,18);g.fillStyle="#fff";g.fillText(tag,x,ty+9);
+ // 心情泡泡
+ if(state.bubble){g.font="500 12px sans-serif";const bw=g.measureText(state.bubble).width+14,by=ty-26;g.fillStyle="rgba(255,255,255,.95)";g.beginPath();g.roundRect?g.roundRect(x-bw/2,by,bw,22,8):g.rect(x-bw/2,by,bw,22);g.fill();g.beginPath();g.moveTo(x-5,by+22);g.lineTo(x+5,by+22);g.lineTo(x,by+28);g.fill();g.fillStyle="#2c2620";g.fillText(state.bubble,x,by+11)}}
+function miniPerson(c,L){const m=c.getContext("2d"),u=c.height/30;m.clearRect(0,0,c.width,c.height);drawChar(m,c.width/2,17.5*u,u,L,{},0)}
 let W=0,Hh=0,dpr=1;
 function resize(){const box=$("stage");dpr=Math.min(2,devicePixelRatio||1);W=box.clientWidth;Hh=Math.round(Math.min(innerHeight*.58,Math.max(300,W*.8)));cv.width=W*dpr;cv.height=Hh*dpr;cv.style.height=Hh+"px";
  cam.s=zoomFar?Math.min(W/(COLS*T),Hh/(mapRows()*T)):W/((W<600?11:17)*T)}
 addEventListener("resize",resize);
-let tk=0,last=performance.now();
+let tk=0,last=performance.now();const bubbles={};
+// 心情泡泡：依狀態說一句話
+function moodLine(id,r){const c=[];if(r.hunger<25)c.push("好餓…🍚","肚子在叫了");if(r.bladder<25)c.push("要尿尿了😣");if(r.hygiene<25)c.push("好像有點臭…");if(r.energy<20)c.push("好睏…😪");
+ if(r.bruised)c.push("誰扁我的給我出來😤","臉好痛…");if(r.fun>80)c.push("今天心情超好✨","耶～");if(id!=me&&bondWith(id)<=-20)c.push("哼！","看什麼看");if(id!=me&&bondWith(id)>=30)c.push("嗨麻吉！💞");
+ if(c.length&&Math.random()<.7)return rp(c);return rp(["好想吃火鍋…","今天天氣真好","有人要一起吃飯嗎？","想去公園走走","上班好累…","🎵～","晚餐吃什麼？","想睡午覺","有人在嗎？"])}
 function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimationFrame(frame);if(!S||!me||!R[me]||$("game").classList.contains("hide"))return;
  const night=isNight(),key=night?"n":"d";if(!maps[key])maps[key]=buildMap(night);const MW=COLS*T,MH=mapRows()*T;
  for(const id in walkers){const w=walkers[id];if(!R[id]||!w.path.length)continue;const [nx,ny]=w.path[0],dx=nx-w.x,dy=ny-w.y,d=Math.hypot(dx,dy),sp=4.5*dt;w.moving=true;
@@ -275,7 +355,8 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
  g.fillStyle="#bfe6ff";g.fillRect(fx-1,fy-26-((tk%30)/30)*16,3,5);
  // 人：依 y 排序，前面的蓋住後面的；在家睡覺的人在屋裡看不到，改在屋頂畫 💤；晚上有人在家的窗戶亮燈
  const list=Object.values(R).map(r=>({id:r.id,w:walkers[r.id],r:tickLocal(r,now())})).filter(o=>!(o.r.sleeping&&o.r.place=="home:"+o.id&&!o.w.path.length)).sort((a,b)=>a.w.y-b.w.y);
- for(const o of list)person((o.w.x+.5)*T,(o.w.y+.5)*T,o.r.look,tk,o.w.moving,o.r.name,o.id==me,{sleeping:o.r.sleeping&&!o.w.path.length,stink:o.r.hygiene<25,hungry:o.r.hunger<20,bruised:o.r.bruised});
+ const nowMs=Date.now();for(const o of list){const bb=bubbles[o.id]||(bubbles[o.id]={next:nowMs+2e3+Math.random()*15e3});if(nowMs>bb.next){bb.text=Math.random()<.6?moodLine(o.id,o.r):null;bb.until=nowMs+4500;bb.next=nowMs+18e3+Math.random()*25e3}
+  person((o.w.x+.5)*T,(o.w.y+.5)*T,o.r.look,tk,o.w.moving,o.r.name,o.id==me,{sleeping:o.r.sleeping&&!o.w.path.length,stink:o.r.hygiene<25,dirty:o.r.hygiene<25,hungry:o.r.hunger<20,bruised:o.r.bruised,bubble:!o.r.sleeping&&bb.text&&nowMs<bb.until?bb.text:null})}
  for(const r of Object.values(R)){if(r.place!="home:"+r.id)continue;const [hx,hy]=homeXY(r.slot);if(night){g.fillStyle="rgba(255,215,106,.35)";g.fillRect(hx*T+16,hy*T+T+22,24,22);g.fillRect(hx*T+5*T-40,hy*T+T+22,24,22)}
   if(r.sleeping){g.font="bold 18px sans-serif";g.fillStyle="#fff";g.textAlign="center";g.fillText("💤",hx*T+4.2*T,hy*T+T+4+Math.sin(tk/25)*4)}}
  if(tk%30==0){renderNeeds();if(!walkers[me].path.length)renderPanel()}}
@@ -295,9 +376,11 @@ $("home").onclick=()=>{camFree=false};
 $("logout").onclick=()=>{if(!confirm("登出後要再輸入密碼才能進來。確定嗎？"))return;dropMine(TID);me=null;pin=null;townLogin()};
 $("towns").onclick=()=>go("");
 $("invite").onclick=async()=>{if(R[me].mayor){try{shareModal((await rpc("town_mayor",{rid:me,pin,act:"invite"})).invite)}catch(e){toast(e.message)}}else{const text=`來「${S.town.name}」當鄰居！🐷\n${townURL()}\n（邀請碼請問鎮長）`;try{await navigator.clipboard.writeText(text);toast("已複製網址，邀請碼請鎮長給")}catch(e){toast(townURL())}}};
-$("mayor").onclick=mayorPanel;$("bonds").onclick=bondsModal;
-$("relook").onclick=()=>{let look={...R[me].look};$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>換造型</h2><div id="lk2"></div><div class="row"><button id="mc">取消</button><button class="pri" id="ms">儲存</button></div>`;
- lookPicker($("lk2"),look,l=>look=l);$("mc").onclick=()=>$("modal").classList.add("hide");$("ms").onclick=async()=>{try{await rpc("town_login",{rid:me,pin,new_look:look});mapKey="";await refresh();$("modal").classList.add("hide");toast("換好了")}catch(e){toast(e.message)}}};
+$("mayor").onclick=mayorPanel;
+document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("on",x==b));["feed","rank","ppl"].forEach(k=>$("tab-"+k).classList.toggle("hide",k!=b.dataset.tab))});
+$("menuBtn").onclick=()=>$("menu").classList.toggle("hide");$("menu").addEventListener("click",e=>{if(e.target.closest("button"))$("menu").classList.add("hide")});
+$("relook").onclick=()=>{let look=normLook(R[me].look);$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>換造型</h2><div id="lk2"></div><div class="row"><button id="mc">取消</button><button class="pri" id="ms">儲存</button></div>`;
+ lookPicker($("lk2"),look,l=>look=l,R[me].items||{});$("mc").onclick=()=>$("modal").classList.add("hide");$("ms").onclick=async()=>{try{await rpc("town_login",{rid:me,pin,new_look:look});mapKey="";await refresh();$("modal").classList.add("hide");toast("換好了")}catch(e){toast(e.message)}}};
 $("report").onclick=report;
 // 切到背景或關掉頁面：走到一半的路直接算到達，回來時人已經在目的地
 const flush=()=>{const w=me&&walkers[me];if(w&&w.dest&&w.path.length){const [gx,gy]=w.goal;w.x=gx;w.y=gy;w.path=[];arrived(w)}};
