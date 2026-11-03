@@ -29,7 +29,7 @@ begin
   if turn_on then
     if p256dh is null or auth is null then raise exception '訂閱資料不完整'; end if;
     insert into public.town_push(endpoint,resident_id,p256dh,auth) values (town_push_sub.endpoint, rid, town_push_sub.p256dh, town_push_sub.auth)
-      on conflict (endpoint) do update set resident_id = rid, p256dh = excluded.p256dh, auth = excluded.auth;
+      on conflict on constraint town_push_pkey do update set resident_id = rid, p256dh = excluded.p256dh, auth = excluded.auth;
     delete from public.town_push where resident_id = rid and town_push.endpoint not in
       (select p.endpoint from public.town_push p where p.resident_id = rid order by p.created_at desc limit 5);
   else
