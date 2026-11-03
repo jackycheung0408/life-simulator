@@ -45,7 +45,7 @@ function styleOf(p){if(p.age<13)return "還沒定型";const avg=ATTR.reduce((t,k
 // 不改動能力，估算這份課表一季大概會讓各能力變多少（給課表面板用）
 function planEstimate(p){const sh=planShare(),age=p.age,o=ovr(p),room=Math.max(0,p.pot-o);let base=(age<17?3.2:age<21?2.4:age<25?1.4:age<29?.4:age<32?-.8:-(age-29)*.9);
  if(age>=12&&age<29)base*=.6+.6*Math.min(1,room/12)+.6*.4;const fat=p.fat||0,tired=(fat>80?.55:fat>60?.85:1);const e={};
- ATTR.forEach(k=>{let d=base>0?base*(.4+7.5*sh[k])*tired:base+2.2*sh[k]*tired;if(age>=15&&age<=34)d+=3.2*(sh[k]-1/6)*tired;if((k=="速度"||k=="體能")&&age>=29)d-=(age-28)*.25;
+ ATTR.forEach(k=>{let d=base>0?base*(.8+4*sh[k])*tired:base+2.2*sh[k]*tired;if(age>=15&&age<=34)d+=1.6*(sh[k]-1/6)*tired;if((k=="速度"||k=="體能")&&age>=29)d-=(age-28)*.25;
   if(room<=0&&d>0&&base>0)d*=.35;e[k]=d});return e}
 function grow(p,minutes,frac=1){
  if(p.age<p.touchAge)return;
@@ -54,11 +54,11 @@ function grow(p,minutes,frac=1){
  let base=(age<8?2.6:age<12?3.4:age<17?3.2:age<21?2.4:age<25?1.4:age<29?.4:age<32?-.8:-(age-29)*.9);if(base>0)base*=env;
  if(age>=12&&age<29)base*=.6+.6*Math.min(1,room/12)+minutes*.4;
  const tired=(fat>80?.55:fat>60?.85:1)*(1+.05*T(p,"職業態度")+.05*T(p,"苦練")-.08*T(p,"夜生活"));
- for(const k of ATTR){let d=base>0?base*frac*(.7+R()*.6)*(.4+7.5*sh[k])*tired:base*frac*(.7+R()*.6)+frac*2.2*sh[k]*tired;
+ for(const k of ATTR){let d=base>0?base*frac*(.7+R()*.6)*(.8+4*sh[k])*tired:base*frac*(.7+R()*.6)+frac*2.2*sh[k]*tired;
   if((k=="速度"||k=="體能")&&age>=29)d-=frac*(age-28)*.25*(sh.體能>.15?.6:1)*(1-.12*T(p,"自律"));
   if(base<0)d*=1-.1*T(p,"球商");
   // 此消彼長：練得多的能力往上、沒練的慢慢退，讓課表真的決定你的風格
-  if(age>=15&&age<=34)d+=frac*3.2*(sh[k]-1/6)*tired;
+  if(age>=15&&age<=34)d+=frac*1.6*(sh[k]-1/6)*tired;
   if(p.pos=="GK"&&k=="射門")d*=.2;p.a[k]=clamp(p.a[k]+d,5,99)}
  if(age>=13){p.focus=p.focus||{};ATTR.forEach(k=>{p.focus[k]=Math.max(0,(p.focus[k]||0)*(1-.08*frac)+(sh[k]-1/6)*frac*2)})}
  if(base>0)p.s.反應=clamp(p.s.反應+base*frac*(.3+minutes*.6),1,99);

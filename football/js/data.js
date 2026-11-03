@@ -90,7 +90,7 @@ function attachA(p){p.a=new Proxy({},{get:(_,k)=>{const m=faceMap(p,k);return m?
  ownKeys:()=>ATTR,getOwnPropertyDescriptor:()=>({enumerable:true,configurable:true})});return p}
 function ovr(p){const w=DPW[dpOf(p)];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return Math.round(t/sw)}
 function bestDp(p){return Object.keys(DPW).filter(d=>d!="GK").sort((a,b)=>{const o=x=>{const w=DPW[x];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return t/sw};return o(b)-o(a)})[0]}
-function value(p){const o=ovr(p),agef=p.age<21?1.6:p.age<25?1.3:p.age<29?1:p.age<32?.55:.2;const mk=p.clubObj?{5:1,4:.55,3:.3,2:.2,1:.07}[p.clubObj.tier]:.05,pf=1+clamp(((p.pop??50)-50)/250,-.15,.2);return Math.max(.005,.25*Math.pow(1.165,o-50)*agef*mk*pf)} // 身價依聯賽等級，參考 Transfermarkt 區間：台灣企甲約 €2.5～20 萬、日職約 €30～100 萬、英冠約 €100～500 萬、英超平均約 €3,000 萬 // 百萬歐元：能力 80 約 €25M，90 約 €110M
+function value(p){const o=ovr(p),agef=p.age<21?1.6:p.age<25?1.3:p.age<29?1:p.age<32?.55:.2;const mk=p.clubObj?{5:1,4:.75,3:.5,2:.35,1:.15}[p.clubObj.tier]:.05,pf=1+clamp(((p.pop??50)-50)/250,-.15,.2);return Math.max(.005,.25*Math.pow(1.165,o-50)*agef*mk*pf)} // 身價依聯賽等級，參考 Transfermarkt 區間：台灣企甲約 €2.5～20 萬、日職約 €30～100 萬、英冠約 €100～500 萬、英超平均約 €3,000 萬 // 百萬歐元：能力 80 約 €25M，90 約 €110M
 function eur(m){return m>=1?`€${m>=100?Math.round(m):m.toFixed(1)}M`:m>=.001?`€${Math.round(m*1000)}K`:`€${Math.round(m*1e6).toLocaleString()}`}
 // 出身：家族背景、體型、性格，各自帶不同的起點與事件
 const BG=[["普通家庭",50,""],["足球世家",8,"爸爸以前是職業球員"],["移民家庭",10,"爸媽從國外搬來，你有機會拿雙重國籍"],["單親家庭",12,"媽媽一個人把你帶大"],["富裕家庭",8,"家裡請得起私人教練"],["街頭長大",12,"在巷子和空地學會踢球"]];
