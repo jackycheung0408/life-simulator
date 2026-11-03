@@ -11,16 +11,16 @@
 /* Layout: arcade cabinet shelf — big marquee header, three game "cartridges" in a wrapping grid */
 :root{
   --bg:#f3f1fa; --panel:#ffffff; --ink:#1d1a2e; --muted:#6b6584; --line:#d9d4ea;
-  --life:#e0528a; --fb:#1f9d63; --town:#e08a1f;
+  --life:#e0528a; --fb:#1f9d63; --town:#e08a1f; --chord:#4a63d9;
   --pixel:"Silkscreen",ui-monospace,monospace;
   --body:"Noto Sans TC","PingFang TC",system-ui,sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#14121f; --panel:#1f1c30; --ink:#f1eefb; --muted:#a39dbd; --line:#34304a;
-  --life:#ff77aa; --fb:#3fd08c; --town:#ffb04a; color-scheme:dark}}
+  --life:#ff77aa; --fb:#3fd08c; --town:#ffb04a; --chord:#8a9cff; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#14121f; --panel:#1f1c30; --ink:#f1eefb; --muted:#a39dbd; --line:#34304a;
-  --life:#ff77aa; --fb:#3fd08c; --town:#ffb04a; color-scheme:dark}
+  --life:#ff77aa; --fb:#3fd08c; --town:#ffb04a; --chord:#8a9cff; color-scheme:dark}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.6}
 .wrap{max-width:1040px;margin:0 auto;padding-block:48px 64px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
@@ -39,12 +39,12 @@ h1 .px{font-family:var(--pixel);font-weight:700;color:var(--life)}
 .hint{font-size:13px;color:var(--muted)}
 .hint kbd{font-family:var(--pixel);border:1px solid var(--line);border-radius:3px;padding:0 5px}
 @media (hover:none){.hint{display:none}}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px}
 .game{--c:var(--life);display:grid;grid-template-rows:auto 1fr auto;gap:16px;
   background:var(--panel);border:2px solid var(--line);border-radius:6px;padding:22px;
   text-decoration:none;color:inherit;transition:transform .15s,border-color .15s,box-shadow .15s}
 .game:hover,.game:focus-visible,.game.pick{transform:translateY(-4px);border-color:var(--c);box-shadow:6px 6px 0 var(--c);outline:none}
-.game.fb{--c:var(--fb)} .game.town{--c:var(--town)}
+.game.fb{--c:var(--fb)} .game.town{--c:var(--town)} .game.chord{--c:var(--chord)}
 .screen{aspect-ratio:16/9;max-width:100%;border-radius:4px;background:var(--c);display:grid;place-items:center;
   font-family:var(--pixel);font-size:44px;color:var(--panel);position:relative;overflow:hidden}
 .screen::after{content:"";position:absolute;inset:0;
@@ -65,12 +65,12 @@ footer{font-size:13px;color:var(--muted);font-family:var(--pixel);letter-spacing
 <body>
 <div class="wrap">
   <header>
-    <div class="eyebrow">INSERT COIN · 3 GAMES</div>
+    <div class="eyebrow">INSERT COIN · 4 MACHINES</div>
     <h1>Jacky 的<span class="px">小遊戲</span>大全</h1>
-    <p class="lede">三款瀏覽器模擬遊戲，手機打開就能玩，不用下載。挑一台機台，或讓命運幫你選。</p>
+    <p class="lede">三款模擬遊戲加一個樂團和弦譜，手機打開就能用，不用下載。挑一台機台，或讓命運幫你選。</p>
     <div class="actions">
       <button id="random" type="button">隨機來一款</button>
-      <span class="hint">鍵盤按 <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> 直接開玩</span>
+      <span class="hint">鍵盤按 <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> 直接打開</span>
     </div>
   </header>
 
@@ -107,6 +107,16 @@ footer{font-size:13px;color:var(--muted);font-family:var(--pixel);letter-spacing
       </div>
       <div class="play"><span>PLAY</span><span>▶</span></div>
     </a>
+    <a class="game chord" href="https://jackycheung0408.github.io/chordbook/#/" target="_blank" rel="noopener">
+      <div class="screen"><span class="key">4P</span>CHORD</div>
+      <div>
+        <div class="tag">樂團 · 工具</div>
+        <h2>和弦室 ChordRoom</h2>
+        <p>樂團的共用和弦譜，團員一起找譜、改譜，練團時直接打開看。</p>
+        <ul class="chips"><li>找譜</li><li>移調</li><li>看指型</li><li>一起改譜</li></ul>
+      </div>
+      <div class="play"><span>OPEN</span><span>▶</span></div>
+    </a>
   </main>
 
   <footer>© JACKY CHEUNG · GAME OVER? PRESS START AGAIN</footer>
@@ -119,11 +129,11 @@ document.getElementById('random').addEventListener('click',()=>{
   let i=0;const n=9+Math.floor(Math.random()*3);
   const t=setInterval(()=>{
     games.forEach(g=>g.classList.remove('pick'));
-    const g=games[i%3];g.classList.add('pick');
+    const g=games[i%games.length];g.classList.add('pick');
     if(++i>n){clearInterval(t);setTimeout(()=>{g.classList.remove('pick');go(g)},450)}
   },90);
 });
-addEventListener('keydown',e=>{const k=+e.key;if(k>=1&&k<=3&&!e.metaKey&&!e.ctrlKey)go(games[k-1])});
+addEventListener('keydown',e=>{const k=+e.key;if(k>=1&&k<=games.length&&!e.metaKey&&!e.ctrlKey)go(games[k-1])});
 </script>
 </body>
 </html>
