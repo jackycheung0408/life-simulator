@@ -1,5 +1,6 @@
 -- 小豬鎮手機通知：訂閱存在 town_push；有新動態就呼叫推播程式（supabase/functions/town-push），每 30 分鐘檢查一次需求
 -- 先執行 town.sql，再執行這個檔案；可以重複執行
+-- apikey 是公開的 publishable key（網頁本來就在用）：Edge Functions 的入口一定要帶它
 
 create extension if not exists pg_net;
 create extension if not exists pg_cron;
@@ -45,7 +46,7 @@ language plpgsql security definer set search_path = public as $$
 begin
   if new.target is not null and exists (select 1 from public.town_push where resident_id = new.target) then
     perform net.http_post(url := 'https://gerqdagicybtyilihvvm.supabase.co/functions/v1/town-push',
-      body := jsonb_build_object('event_id', new.id), headers := '{"Content-Type":"application/json"}'::jsonb);
+      body := jsonb_build_object('event_id', new.id), headers := '{"Content-Type":"application/json","apikey":"sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y"}'::jsonb);
   end if;
   return new;
 end $$;
@@ -55,4 +56,4 @@ create trigger town_push_after after insert on public.town_events for each row e
 -- 每 30 分鐘檢查一次需求
 select cron.unschedule(jobid) from cron.job where jobname = 'town-push-needs';
 select cron.schedule('town-push-needs', '*/30 * * * *',
-  $c$ select net.http_post(url := 'https://gerqdagicybtyilihvvm.supabase.co/functions/v1/town-push', body := '{"check":true}'::jsonb, headers := '{"Content-Type":"application/json"}'::jsonb) $c$);
+  $c$ select net.http_post(url := 'https://gerqdagicybtyilihvvm.supabase.co/functions/v1/town-push', body := '{"check":true}'::jsonb, headers := '{"Content-Type":"application/json","apikey":"sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y"}'::jsonb) $c$);
