@@ -92,7 +92,7 @@ begin
     acc := acc || public.town_pub(r);
   end loop;
   return json_build_object('now',now(),'residents',array_to_json(acc),
-    'events',(select coalesce(json_agg(e order by e.at desc),'[]') from (select id,at,actor,target,kind,msg from public.town_events order by at desc limit 60) e));
+    'events',(select coalesce(json_agg(e order by e.at desc, e.id desc),'[]') from (select id,at,actor,target,kind,msg from public.town_events order by at desc, id desc limit 60) e));
 end $$;
 
 -- 驗證密碼：連錯 5 次鎖 10 分鐘
