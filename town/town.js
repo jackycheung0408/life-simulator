@@ -112,7 +112,7 @@ function apply(st){S=st;if(me)(st.events||[]).filter(e=>e.kind=="luck"&&e.actor=
   walkers[r.id].tx=r.x;walkers[r.id].ty=r.y});
  const key=st.town.rows+"|"+st.residents.map(r=>r.id+":"+r.slot+":"+r.name+":"+JSON.stringify([(r.items||{}).roof,(r.items||{}).wall,(r.items||{}).d])).join(",");if(key!=mapKey){mapKey=key;maps={}}
  $("title").textContent="🐷 "+st.town.name;if(me&&!R[me]){toast("你已經搬離這個小鎮");dropMine(TID);setTimeout(()=>go(""),1200)}
- renderFeed();renderPanel();renderNeeds()}
+ renderFeed();renderPanel();renderNeeds();if(me)renderStrip()}
 let mapKey="";
 function townLogin(){$("login").classList.remove("hide");$("game").classList.add("hide");const res=Object.values(R),full=res.length>=12;
  $("lg").innerHTML=`<p class="mut">小鎮代碼 <b>${esc(TID)}</b> · 住了 ${res.length} 人</p>
@@ -191,14 +191,19 @@ async function mayorPanel(){let inv="";try{inv=(await rpc("town_mayor",{rid:me,p
    try{await rpc("town_mayor",{rid:me,pin,act:"kick",target:r.id});await refresh();toast(`${r.name} 搬走了`);draw()}catch(e){toast(e.message)}})};draw()}
 
 // ── 動作 ──
-async function act(a,extra={}){if(busy)return;busy=true;renderPanel();try{const st=await rpc("town_act",{rid:me,pin,act:a,...extra});apply(st)}catch(e){toast(e.message)}busy=false;renderPanel()}
+const floaters=[];
+async function act(a,extra={}){if(busy)return;busy=true;renderPanel();const b0=tickLocal(R[me],now());try{const st=await rpc("town_act",{rid:me,pin,act:a,...extra});apply(st);
+  const b1=tickLocal(R[me],now()),ic={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"€"};let k=0;
+  for(const f of ["money",...NEEDS]){const d=Math.round(b1[f]-b0[f]);if(Math.abs(d)>=1&&a!="move")floaters.push({t:f=="money"?`${d>0?"+":"−"}€${Math.abs(d)}`:`${ic[f]} ${d>0?"+":""}${d}`,good:d>0,born:performance.now()+k++*180})}}
+ catch(e){toast(e.message)}busy=false;renderPanel()}
 function walkTo(dest,d){const w=walkers[me],p=bfs([Math.round(w.x),Math.round(w.y)],d);if(!p){toast("走不到那裡");return}
  w.path=p.slice(1);w.dest=dest;w.goal=d;camFree=false;if(!w.path.length)arrived(w);renderPanel()}
 function arrived(w){const d=w.dest;w.dest=null;act("move",{px:w.goal[0],py:w.goal[1],dest:d})}
 const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀請朋友搬進來吧`);return}walkTo("home:"+o.id,o.id==me?door(s):visitSpot(s))};
 
 // ── 下方面板：依所在地點顯示可以做的事 ──
-const btn=(label,sub,fn)=>({label,sub,fn});let lastPanel="",panelFns=[];
+const btn=(label,sub,fn,g)=>({label,sub,fn,g});
+const GROUP={self:"照顧自己",friend:"在他家",place:"在這裡",face:"面對面",online:"線上 · 在哪都能做",move:"移動"};let lastPanel="",panelFns=[];
 function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),p=r.place,list=[];let title="",note="";
  if(walkers[me]&&walkers[me].path.length){title="走路中…";note="到了就可以做事"}
  else if(r.sleeping){title=`在${placeName(p)}睡覺 💤`;list.push(btn("起床","",()=>act("wake")))}
@@ -219,8 +224,8 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  // 公共場所遇到人：可以擊掌；一起吃飯、玩、加班時在場的人心情都會變好
  if(!r.sleeping&&["plaza","restaurant","market","park","office"].includes(p)&&!(walkers[me]&&walkers[me].path.length)){const here=Object.values(R).filter(o=>o.id!=me&&o.place==p&&!o.sleeping);
   if(here.length&&!(sel&&R[sel]))note=(note?note+" · ":"")+`${here.map(o=>o.name).join("、")} 也在這裡：一起做事大家心情都 +5，點他可以擊掌或扁他`}
- if(!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const k in OBJS)if(objNear(k,walkers[me].x,walkers[me].y,p))for(const [l,sub,v] of OBJS[k].acts)list.push(btn(l,`${OBJS[k].name} · ${sub}`,()=>act("obj",{item:k,note:v||null})));
- if(!r.sleeping&&(r.items||{}).snack&&!(walkers[me]&&walkers[me].path.length))list.push(btn("吃零食 🍪",`飽足 +20 · 還有 ${(r.items||{}).snack} 包`,()=>act("snack")));
+ if(!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const k in OBJS)if(objNear(k,walkers[me].x,walkers[me].y,p))for(const [l,sub,v] of OBJS[k].acts)list.push(btn(l,`${OBJS[k].name} · ${sub}`,()=>act("obj",{item:k,note:v||null}),"place"));
+ if(!r.sleeping&&(r.items||{}).snack&&!(walkers[me]&&walkers[me].path.length))list.push(btn("吃零食 🍪",`飽足 +20 · 還有 ${(r.items||{}).snack} 包`,()=>act("snack"),"self"));
  if(sel&&R[sel]&&sel!=me){const t=tickLocal(R[sel],now());note=`${t.name}：在${placeName(t.place)}${t.sleeping?"睡覺":""} · 飽足 ${Math.round(t.hunger)} · 清潔 ${Math.round(t.hygiene)} · 心情 ${Math.round(t.fun)} · ${bondLabel(bondWith(t.id))}`;
   const face=isNear(t.id)&&!t.sleeping&&!r.sleeping;title=`和 ${t.name} 互動`;
   list.length=0;if(face)list.push(...faceActs(t.id));list.push(...onlineActs(t.id));
@@ -228,7 +233,9 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
   list.push(btn(`去 ${t.name} 家`,"煮飯、洗澡、串門子要到他家",()=>{sel=null;goHouse(t.slot)}),btn("取消","",()=>{sel=null;lastPanel="";renderPanel()}))}
  $("here").textContent=title;$("note").textContent=note;
  // 內容沒變就不重畫，避免按到一半按鈕被換掉
- const html=list.map((b,i)=>`<button data-i="${i}" ${busy?"disabled":""}><b>${b.label}</b>${b.sub?`<small>${b.sub}</small>`:""}</button>`).join("");
+ const dg=p=="home:"+me?"self":p&&p.startsWith("home:")?"friend":"place";list.forEach(b=>{if(!b.g)b.g=/^(走|去 |取消)/.test(b.label)?"move":dg});
+ const order=[...new Set(list.map(b=>b.g))],multi=order.length>1;
+ const html=order.map(g=>(multi?`<div class="grp">${GROUP[g]}</div>`:"")+list.map((b,i)=>b.g!=g?"":`<button data-i="${i}" ${busy?"disabled":""}><b>${b.label}</b>${b.sub?`<small>${b.sub}</small>`:""}</button>`).join("")).join("");
  panelFns=list;if(html!=lastPanel){lastPanel=html;$("acts").innerHTML=html;$("acts").querySelectorAll("button").forEach(b=>b.onclick=()=>panelFns[b.dataset.i].fn())}}
 function renderNeeds(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now());
  $("needs").innerHTML=NEEDS.map(k=>{const v=Math.round(r[k]),[ic,nm]=NEED_INFO[k];return `<div class="need${v<20?" low":""}" title="${nm} ${v}"><span>${ic}</span><i><b style="width:${v}%;background:${v<20?"var(--bad)":v<50?"var(--warn)":"var(--good)"}"></b></i><small><em>${nm} </em>${v}</small></div>`}).join("")+`<div class="need money"><span>💰</span><small>€${r.money}${(r.items||{}).gift?` · 🎁${r.items.gift}`:""}${(r.items||{}).snack?` · 🍪${r.items.snack}`:""}</small></div>`}
@@ -255,11 +262,13 @@ function renderFeed(){renderRank();renderPeople();const all=((S&&S.events)||[]).
  $("feed").innerHTML=ev.length?ev.slice(0,40).map(e=>{const d=day(e.at);let head="";if(d!=lastDay){lastDay=d;head=`<div class="day">${d==today?"今天":d==yest?"昨天":d.slice(5).replace("-","/")}</div>`}
   const t=ok.has(e.id)&&!shown.has(e.actor);if(t)shown.add(e.actor);const g=bad.has(e.id)&&!shown.has("g"+e.actor);if(g)shown.add("g"+e.actor);
   const cls=e.target==me&&e.actor!=me?(BADK.includes(e.kind)?" bad":" mine"):"";
-  return head+`<div class="ev${cls}"><span class="ic">${KIND_ICON[e.kind]||"•"}</span><span class="tx">${bold(e.msg)}</span><span class="tm">${hm(e.at)}</span>${t||g?`<span class="ea">${t?`<button class="thx" data-t="${e.actor}">💗 謝謝</button>`:""}${g?`<button class="thx" data-g="${e.actor}">😤 報仇</button>`:""}</span>`:""}</div>`}).join(""):`<p class="mut">${feedFilter=="all"?"小鎮還很安靜。":"沒有符合的動態。"}</p>`;
+  const who=e.actor==me?e.target:e.actor;return head+`<div class="ev${cls}${who&&who!=me&&R[who]?" tap":""}" ${who&&who!=me&&R[who]?`data-who="${who}"`:""}><span class="ic">${KIND_ICON[e.kind]||"•"}</span><span class="tx">${bold(e.msg)}</span><span class="tm">${hm(e.at)}</span>${t||g?`<span class="ea">${t?`<button class="thx" data-t="${e.actor}">💗 謝謝</button>`:""}${g?`<button class="thx" data-g="${e.actor}">😤 報仇</button>`:""}</span>`:""}</div>`}).join(""):`<p class="mut">${feedFilter=="all"?"小鎮還很安靜。":"沒有符合的動態。"}</p>`;
+ $("feed").querySelectorAll(".ev[data-who]").forEach(el=>el.onclick=e=>{if(e.target.closest("button"))return;focusPerson(+el.dataset.who)});
  $("feed").querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>act("thank",{target:+b.dataset.t}));
  $("feed").querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{walkToPerson(+b.dataset.g);toast("走過去找他算帳，到了就能扁他（報仇有加成）");$("stage").scrollIntoView({behavior:"smooth"})})}
 // 面對面才能做的事：擊掌、扁他、和好
-function faceActs(id){const t=R[id],b=bondWith(id),mp=R[me].place,coop=[];
+function faceActs(id){return faceActs0(id).map(b=>({...b,g:"face"}))}
+function faceActs0(id){const t=R[id],b=bondWith(id),mp=R[me].place,coop=[];
  if(mp=="office"&&t.place=="office")coop.push(btn(`和 ${t.name} 一起加班 💼`,"兩人各 +€200 · 4 小時一次",()=>act("cowork",{target:id})));
  if(mp=="restaurant"&&t.place=="restaurant")coop.push(btn(`請 ${t.name} 吃大餐 🍖`,"€60 · 兩人飽足 +70",()=>act("feast",{target:id})));
  const out=[...coop,btn(`和 ${t.name} 擊掌 🙌`,"兩人心情 +8 · 好感 +2",()=>act("greet",{target:id})),
@@ -268,12 +277,20 @@ function faceActs(id){const t=R[id],b=bondWith(id),mp=R[me].place,coop=[];
 // 走到某人身邊：他在室內就走到那個地點的門口，在路上就走到他旁邊
 function walkToPerson(id){const t=R[id];if(!t)return;sel=id;if(t.place.startsWith("home:")){const o=R[t.place.slice(5)];if(o){walkTo(t.place,o.id==me?door(o.slot):visitSpot(o.slot));return}}
  if(PLACES[t.place]){walkTo(t.place,PLACES[t.place].door);return}const w=walkers[id],g=[Math.round(w.x),Math.round(w.y)],nb=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>[g[0]+dx,g[1]+dy]).find(p=>!blocked(...p))||g;walkTo("street",nb)}
+// 鏡頭移到某人身上，並打開跟他互動的按鈕
+function focusPerson(id){if(!R[id]||!walkers[id])return;sel=id==me?null:id;const w=walkers[id];camFree=true;cam.x=(w.x+.5)*T;cam.y=(w.y+.5)*T;lastPanel="";renderPanel();$("stage").scrollIntoView({behavior:"smooth",block:"start"})}
+// 地圖角落一排大頭貼：10 分鐘內有動作的人算在線上
+let stripKey="";function renderStrip(){const list=Object.values(R).sort((a,b)=>(b.id==me)-(a.id==me)||a.slot-b.slot),on=r=>r.id==me||Date.parse(r.seen_at)>now()-10*6e4;
+ const key=list.map(r=>r.id+":"+on(r)+":"+JSON.stringify(r.look)).join("|");if(key==stripKey)return;stripKey=key;
+ $("strip").innerHTML=list.map(r=>`<button data-p="${r.id}" class="${on(r)?"on":"off"}" title="${esc(r.name)}${on(r)?" · 在線上":""}"><canvas width="28" height="34"></canvas><span>${esc(r.name.slice(0,4))}</span></button>`).join("");
+ $("strip").querySelectorAll("[data-p]").forEach((b,i)=>{miniPerson(b.querySelector("canvas"),list[i].look);b.onclick=()=>focusPerson(+b.dataset.p)})}
 function bondsModal(){const list=Object.values(R).filter(o=>o.id!=me).map(o=>({o,v:bondWith(o.id)})).sort((a,b)=>b.v-a.v);$("modal").classList.remove("hide");
  $("mbody").innerHTML=`<h2>👥 人際關係</h2>${list.length?list.map(({o,v})=>`<div class="mrow"><span><b>${esc(o.name)}</b> <small class="mut">${bondLabel(v)} · ${v>0?"+":""}${v}</small><i class="bond"><b style="left:50%;width:${Math.abs(v)/2}%;${v<0?`left:${50-Math.abs(v)/2}%;background:var(--bad)`:"background:var(--good)"}"></b></i><small class="mut">${tierHint(v)}</small></span><button data-w="${o.id}">互動</button></div>`).join(""):`<p class="mut">鎮上還沒有其他人，邀請朋友搬進來吧。</p>`}
   <p class="mut" style="margin-top:10px">送禮 +5、煮飯洗澡 +4、串門子 +3、道謝擊掌 +2、留言 +1；叫醒 −1、丟雞蛋 −2、惡作劇 −3、扁人 −6、和好 +8。好麻吉以上照顧對方效果 ×1.3。</p><div class="row"><button id="mc">關閉</button></div>`;
  $("mc").onclick=()=>$("modal").classList.add("hide");$("mbody").querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{$("modal").classList.add("hide");walkToPerson(+b.dataset.w)})}
 // 線上互動：用手機就能做，在哪裡都可以
-function onlineActs(id){const t=R[id],gifts=((R[me].items||{}).gift)||0;return [
+function onlineActs(id){return onlineActs0(id).map(b=>({...b,g:"online"}))}
+function onlineActs0(id){const t=R[id],gifts=((R[me].items||{}).gift)||0;return [
   btn(`📱 傳訊息給 ${t.name}`,"在哪都能傳 · 好感 +1",()=>noteModal(id)),
   btn(`📞 打電話給 ${t.name}`,t.sleeping?"他在睡覺，會被你吵醒 · 好感 −1":"兩人心情 +5 · 好感 +1",()=>act("call",{target:id})),
   btn(`🛵 幫 ${t.name} 叫外送`,"€25 · 他飽足 +30 · 好感 +3",()=>act("delivery",{target:id})),
@@ -398,6 +415,9 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
   person((o.w.x+.5)*T,(o.w.y+.5)*T,o.r.look,tk,o.w.moving,o.r.name,o.id==me,{sleeping:o.r.sleeping&&!o.w.path.length,stink:o.r.hygiene<25,dirty:o.r.hygiene<25,hungry:o.r.hunger<20,bruised:o.r.bruised,bubble:!o.r.sleeping&&bb.text&&nowMs<bb.until?bb.text:null})}
  for(const r of Object.values(R)){if(r.place!="home:"+r.id)continue;const [hx,hy]=homeXY(r.slot);if(night){g.fillStyle="rgba(255,215,106,.35)";g.fillRect(hx*T+16,hy*T+T+22,24,22);g.fillRect(hx*T+5*T-40,hy*T+T+22,24,22)}
   if(r.sleeping){g.font="bold 18px sans-serif";g.fillStyle="#fff";g.textAlign="center";g.fillText("💤",hx*T+4.2*T,hy*T+T+4+Math.sin(tk/25)*4)}}
+ // 飄字：剛做完的動作讓數值變多少
+ {const mw2=walkers[me],nowp=performance.now();for(let i=floaters.length-1;i>=0;i--){const f=floaters[i],age=(nowp-f.born)/1400;if(age>1){floaters.splice(i,1);continue}if(age<0)continue;
+  g.globalAlpha=1-age;g.font="700 15px sans-serif";g.textAlign="center";g.lineWidth=4;g.strokeStyle="rgba(0,0,0,.6)";const fx2=(mw2.x+.5)*T+(i%2?14:-14),fy2=(mw2.y+.5)*T-70-age*40;g.strokeText(f.t,fx2,fy2);g.fillStyle=f.good?"#7CFC8A":"#ff8a80";g.fillText(f.t,fx2,fy2);g.globalAlpha=1}}
  if(tk%30==0){renderNeeds();if(!walkers[me].path.length)renderPanel()}}
 requestAnimationFrame(frame);
 
@@ -415,7 +435,7 @@ $("home").onclick=()=>{camFree=false};
 $("logout").onclick=()=>{if(!confirm("登出後要再輸入一次邀請碼才能進來。確定嗎？"))return;dropMine(TID);me=null;pin=null;townLogin()};
 $("towns").onclick=()=>go("");
 $("invite").onclick=async()=>{if(R[me].mayor){try{shareModal((await rpc("town_mayor",{rid:me,pin,act:"invite"})).invite)}catch(e){toast(e.message)}}else{const text=`來「${S.town.name}」當鄰居！🐷\n${townURL()}\n（邀請碼請問鎮長）`;try{await navigator.clipboard.writeText(text);toast("已複製網址，邀請碼請鎮長給")}catch(e){toast(townURL())}}};
-$("mayor").onclick=mayorPanel;
+$("mayor").onclick=mayorPanel;$("grip").onclick=()=>$("panel").classList.toggle("min");
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("on",x==b));["feed","rank","ppl"].forEach(k=>$("tab-"+k).classList.toggle("hide",k!=b.dataset.tab));if(b.dataset.tab=="feed")markSeen()});
 document.querySelectorAll("[data-ff]").forEach(b=>b.onclick=()=>{feedFilter=b.dataset.ff;document.querySelectorAll("[data-ff]").forEach(x=>x.classList.toggle("on",x==b));renderFeed()});
 // 看過動態就清掉未讀（記在這台手機）

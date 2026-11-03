@@ -65,6 +65,12 @@ textarea{width:100%;font:inherit;color:var(--fg);background:var(--btn);border:1p
 .tabs{display:flex;background:var(--btn);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px;margin-bottom:10px}.tabs button{flex:1;padding:7px 4px;font-size:14px;border:none;background:transparent;border-radius:9px}.tabs button.on{background:var(--ac);color:#fff;font-weight:700}
 .rank{margin-bottom:10px}.rank p{margin:2px 0}h3{font-size:15px;margin:12px 0 6px}
 .sw.lock{opacity:.75;border-style:dashed}.lookopts{min-width:0;flex:1}.lookbox canvas{width:96px;height:120px}
+#strip{position:absolute;left:8px;bottom:8px;right:8px;display:flex;gap:4px;overflow:hidden;pointer-events:none}#strip button{pointer-events:auto;padding:2px 3px 1px;background:rgba(0,0,0,.55);border:none;border-radius:8px;display:flex;flex-direction:column;align-items:center;color:#fff;font-size:10px;line-height:1.1}
+#strip canvas{width:22px;height:27px}#strip .off{opacity:.5;filter:grayscale(1)}#strip .on span::before{content:"● ";color:#4cd964}
+.grp{grid-column:1/-1;font-size:12px;font-weight:700;color:var(--mut);margin:4px 0 -2px;letter-spacing:1px}.ev.tap{cursor:pointer}.ev.tap:hover{background:var(--btnh)}
+#grip{display:none}
+@media (max-width:520px){#panel{position:sticky;bottom:0;z-index:6;margin:12px -16px 0;border-radius:18px 18px 0 0;max-height:44vh;overflow:auto;box-shadow:0 -8px 24px rgba(0,0,0,.35);padding-top:6px}
+ #grip{display:block;width:44px;height:5px;margin:0 auto 8px;padding:0;border:none;border-radius:3px;background:var(--line)}#panel.min #acts,#panel.min #note{display:none}#panel.min{max-height:none}}
 @media (max-width:520px){#needs{grid-template-columns:repeat(6,1fr);gap:4px}.need{padding:4px 2px}.need em{display:none}.need span{font-size:16px}.need.money small{font-size:11px;margin-top:4px}.who{grid-template-columns:repeat(2,1fr)}.lookbox{flex-direction:column;align-items:flex-start}}
 </style>
 </head>
@@ -76,14 +82,14 @@ textarea{width:100%;font:inherit;color:var(--fg);background:var(--btn);border:1p
  <section id="game" class="hide">
   <div id="away" class="card hide"></div>
   <div id="needs"></div>
-  <div id="stage"><canvas id="cv"></canvas><div class="tools"><button id="home">📍 我</button><button id="zoom">🗺️ 看全鎮</button></div></div>
-  <div class="card"><div id="here"></div><div id="note" class="mut"></div><div id="acts"></div></div>
+  <div id="stage"><canvas id="cv"></canvas><div class="tools"><button id="home">📍 我</button><button id="zoom">🗺️ 看全鎮</button></div><div id="strip"></div></div>
+  <div class="card" id="panel"><button id="grip" aria-label="收合"></button><div id="here"></div><div id="note" class="mut"></div><div id="acts"></div></div>
   <div class="card"><div class="tabs" role="tablist"><button data-tab="feed" class="on">動態<i id="feedBadge" class="badge hide"></i></button><button data-tab="rank">本週排行</button><button data-tab="ppl">人際</button></div>
    <div id="tab-feed"><div class="chips"><button data-ff="all" class="on">全部</button><button data-ff="me">跟我有關</button><button data-ff="good">好事</button><button data-ff="bad">壞事</button><button id="report" class="chip-r">🖼️ 日報圖</button></div><div id="feed"></div></div><div id="tab-rank" class="hide"></div><div id="tab-ppl" class="hide"></div></div>
  </section>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide"><div class="card" id="mbody"></div></div>
-<script src="town.js?v=13"></script>
+<script src="town.js?v=14"></script>
 </body>
 </html>
