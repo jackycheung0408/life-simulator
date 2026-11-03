@@ -132,7 +132,7 @@ function joinStep(){const free=[];for(let s=0;s<12;s++)if(!bySlot(s))free.push(s
 function lookPicker(el,look,cb){const row=(k,arr,label)=>`<div class="lrow"><span>${label}</span>${arr.map(v=>k=="style"?`<button class="sw${look[k]==v?" on":""}" data-k="${k}" data-v="${v}">${v}</button>`:`<button class="sw dot${look[k]==v?" on":""}" data-k="${k}" data-v="${v}" style="background:${v}" aria-label="${label}"></button>`).join("")}</div>`;
  const draw=()=>{el.innerHTML=`<div class="lookbox"><canvas id="lkcv" width="80" height="88"></canvas><div>${row("skin",SKIN,"膚色")}${row("hair",HAIR,"髮色")}${row("style",STYLE,"髮型")}${row("shirt",SHIRT,"衣服")}</div></div>`;
   miniPerson(el.querySelector("canvas"),look);el.querySelectorAll(".sw[data-k]").forEach(b=>b.onclick=()=>{look={...look,[b.dataset.k]:b.dataset.v};cb(look);draw()})};draw()}
-async function enter(){await refresh();refreshBell().catch(()=>{});$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
+async function enter(){await refresh();refreshBell().catch(()=>{});autoPush().catch(()=>{});$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
  const w=walkers[me];cam.x=w.x*T;cam.y=w.y*T;resize();$("mayor").classList.toggle("hide",!R[me].mayor);
  const ent=mine().find(x=>x.tid==TID);if(ent&&ent.invite){shareModal(ent.invite,true);delete ent.invite;saveMine(ent);return}
  const mineEv=(S.events||[]).filter(e=>e.target==me&&(!lastSeen||e.at>lastSeen));
@@ -344,10 +344,20 @@ async function bell(){const ios=/iPhone|iPad|iPod/i.test(navigator.userAgent);
  if(cur&&Notification.permission=="granted"){if(!confirm("要關掉這支手機的通知嗎？"))return;
   try{await rpc("town_push_sub",{rid:me,pin,endpoint:cur.endpoint,turn_on:false});await cur.unsubscribe();toast("已關掉通知")}catch(e){toast(e.message)}refreshBell();return}
  const perm=await Notification.requestPermission();if(perm!="granted"){toast("沒有允許通知。要開的話，到手機設定裡允許這個網站通知");return}
+ await subscribe(cur,false)}
+async function subscribe(cur,quiet){
  try{const k=await fetch(PUSH,{headers:{apikey:SBK}}).then(r=>{if(!r.ok)throw new Error("通知服務還沒準備好，請稍後再試");return r.json()});
   const reg=await navigator.serviceWorker.ready,sub=cur||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64(k.key)}),j=sub.toJSON();
   await rpc("town_push_sub",{rid:me,pin,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,turn_on:true});
-  toast("通知開好了：有人對你做了什麼、或你快撐不住時會通知你");}catch(e){toast(e.message||"開啟通知失敗")}refreshBell()}
+  if(!quiet)toast("通知開好了：有人對你做了什麼、或你快撐不住時會通知你");}catch(e){if(!quiet)toast(e.message||"開啟通知失敗")}refreshBell()}
+// 進小鎮時：之前允許過就自動開；還沒問過就主動問一次（瀏覽器規定一定要本人按允許）
+async function autoPush(){if(!pushOK()||!me)return;const cur=await pushState().catch(()=>null);
+ if(Notification.permission=="granted"){await subscribe(cur,true);return}
+ let asked=null;try{asked=localStorage.getItem("town-push-asked")}catch(e){}
+ if(Notification.permission!="default"||asked)return;try{localStorage.setItem("town-push-asked","1")}catch(e){}
+ setTimeout(()=>{if(!$("modal").classList.contains("hide"))return;$("modal").classList.remove("hide");
+  $("mbody").innerHTML=`<h2>🔔 開啟通知？</h2><p>有人來你家煮飯、留言、送禮、丟雞蛋或扁你，或是你快餓昏、快憋不住時，手機會通知你。</p><p class="mut">晚上 11 點到早上 8 點不吵你。之後可以隨時按「🔔 通知開著」關掉。</p><div class="row"><button id="mc">之後再說</button><button class="pri" id="ms">開啟通知</button></div>`;
+  $("mc").onclick=()=>$("modal").classList.add("hide");$("ms").onclick=async()=>{$("modal").classList.add("hide");await bell()}},2500)}
 $("bell").onclick=bell;
 
 // ── 開始：沒有代碼就是首頁；有代碼就讀小鎮，這台手機住過就自動登入；每 15 秒同步一次 ──
