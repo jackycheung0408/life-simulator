@@ -552,13 +552,16 @@ function render(){try{renderBoards()}catch(e){}
 // 選項格式：[文字, 動作, 說明?, 需要的存款(USD)?]；存款不夠的選項會反灰並寫出門檻
 // 剛做了重大決定（留學、北漂、外派、創業……）的這段期間，不會再冒出其他機會型的抉擇
 const MUST_ASK=/要找什麼樣的工作|生了一場病|癌症|兵役|孩子出生|結婚|嫁妝|聘禮|父母|爸媽|畢業|要考|暫停/;
-function ask(L,q,opts,info){
+// 抉擇排隊：視窗一次只開一個；還沒選完時新的抉擇會排在後面，不會蓋掉
+let askQ=Promise.resolve(),askWait=0;
+function ask(L,q,opts,info){if(L!==P||auto)return askNow(L,q,opts,info);askWait++;const run=askQ.then(()=>{askWait--;return askNow(L,q,opts,info)});askQ=run.catch(()=>{});return run}
+function askNow(L,q,opts,info){
  if(L.lockUntil>L.age&&!MUST_ASK.test(q))return Promise.resolve();
  if(opts.length<3&&typeof EXTRA_OPTS!="undefined"&&EXTRA_OPTS[q])opts=opts.concat(EXTRA_OPTS[q].map(([a,fn,h])=>[a,()=>fn(L),h]));
  const ok=o=>!o[3]||L.money>=o[3],avail=opts.filter(ok);
  if(L!==P||auto){const o=pick(avail.length?avail:opts);if(L===P)say(L,q+" → "+o[0]);o[1]();return Promise.resolve()}
  if(ffwd){ffwd=false;$("ffwd").textContent="⏭︎ 下一個抉擇";$("ffwd").classList.remove("on")}render();
- return new Promise(res=>{openModal(`重大抉擇 · ${L.age} 歲 · ${L.c.y0+L.age} 年`);
+ return new Promise(res=>{openModal(`重大抉擇 · ${L.age} 歲 · ${L.c.y0+L.age} 年${askWait?`　·　還有 ${askWait} 個抉擇等你`:""}`);
   choice.innerHTML=`<h2>${q}</h2>${info?`<p class="mut">${info}</p>`:""}`+opts.map((o,i)=>`<button class="opt" data-i="${i}" ${ok(o)?"":"disabled"}>${o[0]}${o[2]?`<small>${o[2]}</small>`:""}${ok(o)?"":`<small>存款不夠 · 需要約 ${money(o[3])}</small>`}</button>`).join("");
   choice.querySelectorAll("button").forEach(b=>b.onclick=()=>{
    const o=opts[b.dataset.i],before=snap(L);
