@@ -232,7 +232,7 @@ const MGR=[
  ["宣布最後一季","這季踢完就退休",p=>p.club&&p.age>=28&&!p.lastSeason,async p=>{await ask("確定這是最後一季嗎？",[["確定，好好告別",()=>{p.lastSeason=p.age;p.fame+=5;say("宣布這是職業生涯的最後一季，各地球迷都來送行。",1)},"季末退休"],["再想想",()=>{}]])}],
 ];
 // 不能使用時說明原因
-const MGR_WHY={申請外租:p=>p.loanTo?"租借中":p.role=="主力"?"你已經是主力":"",宣布最後一季:p=>p.age<28?"28 歲以後才能宣布":p.lastSeason?"已經宣布了":"",要求轉會:p=>p.loanTo?"租借中不能轉會":"",國家隊:p=>p.age<18?"18 歲以後":""};
+const MGR_WHY={申請外租:p=>p.loanTo?"租借中":p.role=="主力"?"你已經是主力":"",宣布最後一季:p=>p.age<28?"28 歲以後才能宣布":p.lastSeason?"已經宣布了":"",要求轉會:p=>p.loanTo?"租借中不能轉會":"",國家隊:p=>p.age<18?"18 歲以後":"",改踢位置:p=>p.pos=="GK"?"門將不能改踢場上位置":!p.club?"要先有球隊":"",休假充電:p=>(p.fat||0)<=20?"疲勞不高，不需要休假":"",私人特訓:p=>p.money<.01?"存款不夠":"",找教練談話:p=>!p.club?"要先有球隊":""};
 MGR.push(
  ["私人特訓","自費加強一項能力",p=>p.age>=15&&p.money>=.01,async p=>{const cost=Math.max(.01,Math.min(.5,p.wage*.06));await ask(`請私人教練一對一特訓（花費約 ${eur(cost)}）`,ATTR.map(k=>[`加強${k}`,()=>{p.money-=cost;p.a[k]+=1.5+R()*1.5;p.focus=p.focus||{};p.focus[k]=(p.focus[k]||0)+.8;capAttrs(p);say(`請私人教練加強${k}，${k}進步到 ${Math.round(p.a[k])}。`,1)},`目前 ${Math.round(p.a[k])}`]).concat([["算了",()=>{}]]))}],
  ["改踢位置","向教練要求換位置",p=>p.club&&p.age>=16&&p.pos!="GK",async p=>{const cur=rateAt(p,dpOf(p)),now=posName(p);
