@@ -10,8 +10,18 @@ function askNow(q,opts,info){
  return new Promise(res=>{$("mtag").textContent=`${P.age} 歲 · ${P.y0+P.age} 年`;$("mctx").textContent=(P.retired?"退休後":P.club?`${P.club}${P.phase?" · "+P.phase:""}`:P.stage||"")+(modalWait?`　·　還有 ${modalWait} 個抉擇等你`:"");$("modal").classList.remove("hide");
   $("choice").innerHTML=`<h2 style="margin-top:10px">${q}</h2>${info?`<p class="mut">${info}</p>`:""}`+opts.map((o,i)=>{const ok=!o[3]||o[3]();return `<button class="opt" data-i="${i}" ${ok?"":"disabled"}>${o[0]}${o[2]?`<small>${o[2]}</small>`:""}</button>`}).join("");
   $("choice").querySelectorAll(".opt").forEach(b=>b.onclick=()=>{const o=opts[b.dataset.i],before=ovr(P);b.classList.add("picked");$("choice").querySelectorAll(".opt").forEach(x=>x.disabled=true);
-   say(`${q} → ${o[0]}`);o[1]();setTimeout(()=>{$("modal").classList.add("hide");render();const d=ovr(P)-before;toast(d?`${o[0]}：能力 ${d>0?"+":""}${d}`:`選擇了「${o[0]}」`);res()},380)})});
+   const go=forced=>{say(`${q} → ${o[0]}`);o[1](forced);setTimeout(()=>{$("modal").classList.add("hide");render();const d=ovr(P)-before;toast(d?`${o[0]}：能力 ${d>0?"+":""}${d}`:`選擇了「${o[0]}」`);res()},380)};
+   if(o[4]!=null)chanceMeter(o[4],o[0]).then(go);else go()})});
 }
+// ── 機率動畫：綠色區域＝成功率；按「出腳！」讓指針停下。結果在按下時依成功率擲骰，指針只是把結果演出來，不看反應速度 ──
+function chanceMeter(c,label){return new Promise(res=>{const w=c*100,s=R()*(100-w),box=document.createElement("div");box.className="meterbox";
+ box.innerHTML=`<p><b>${label}</b></p><div class="meter"><div class="mz" style="left:${s}%;width:${w}%"></div><i class="mn"></i></div><p class="mres mut">綠色區域＝成功率 ${Math.round(w)}%</p><button class="pri" id="mstop">⚽ 出腳！</button>`;
+ $("choice").appendChild(box);box.scrollIntoView({block:"nearest"});const nd=box.querySelector(".mn");let x=R()*100,v=(1.1+R()*.6)*(R()<.5?-1:1),run=true,last=performance.now();
+ const tick=now=>{if(!run)return;const dt=Math.min(50,now-last)/16;last=now;x+=v*dt;if(x<0||x>100){v=-v;x=clamp(x,0,100)}nd.style.left=x+"%";requestAnimationFrame(tick)};requestAnimationFrame(tick);
+ let done=false;const stop=()=>{if(done)return;done=true;run=false;const btn=box.querySelector("#mstop");btn.disabled=true;
+  const ok=R()<c,lo=[0,s],hi=[s+w,100],seg=ok?[s,s+w]:(s<=0?hi:s+w>=100?lo:(R()<s/(100-w)?lo:hi)),to=seg[0]+(seg[1]-seg[0])*(.15+R()*.7),from=x,t0=performance.now();
+  const ease=now=>{const k=Math.min(1,(now-t0)/650),e=1-Math.pow(1-k,3);nd.style.left=(from+(to-from)*e)+"%";if(k<1)requestAnimationFrame(ease);else{box.classList.add(ok?"win":"lose");box.querySelector(".mres").innerHTML=ok?"<b style='color:var(--g)'>成功！</b>":"<b style='color:var(--ac)'>沒有成功</b>";setTimeout(()=>res(ok),750)}};requestAnimationFrame(ease)};
+ box.querySelector("#mstop").onclick=stop;setTimeout(stop,9000)})}
 
 // ── 成長：訓練重心 + 天賦上限 + 上場時間 + 年齡 ──
 // ── 人際：教練、經紀人、最好的隊友、伴侶，各有名字與關係值（0～100）──
@@ -176,7 +186,7 @@ async function keyMoment(st){
  const av=(...k)=>k.reduce((t,x)=>t+(S[x]||0),0)/k.length+(/射手|殺手|前鋒/.test(styleOf(p))&&k.some(x=>/射|跑位/.test(x))?8:/組織|節拍|傳中/.test(styleOf(p))&&k.some(x=>/傳|視野/.test(x))?8:/硬漢|後衛/.test(styleOf(p))&&k.some(x=>/搶斷|盯人|強壯/.test(x))?8:/突破|快馬/.test(styleOf(p))&&k.some(x=>/盤帶|敏捷/.test(x))?8:0);
  // o(文字, 基礎機率, 能力值, 成功描述, 失敗描述, 成功效果, 額外說明)
  const o=(label,base,att,good,bad,fx,extra,foot)=>{const c=clamp(base+att/220-fat+bonus+(foot?(p.wf-3)*.04:0)+(extra=="花式"?(p.sm-3)*.04:0),.05,.95);
-  return [label,()=>{const ok=R()<c;p.edge=0;p._ok=ok;say(ok?good:bad,ok);if(ok){fx&&fx();p.morale+=3;p.fame+=2}else p.morale-=2;toast(ok?"成功！":"沒有成功")},`成功率約 ${Math.round(c*100)}%${extra&&extra!="花式"?" · "+extra:""}`]};
+  return [label,forced=>{const ok=forced??R()<c;p.edge=0;p._ok=ok;say(ok?good:bad,ok);if(ok){fx&&fx();p.morale+=3;p.fame+=2}else p.morale-=2;toast(ok?"成功！":"沒有成功")},`成功率約 ${Math.round(c*100)}%${extra&&extra!="花式"?" · "+extra:""}`,undefined,c]};
  const G=()=>st.goals++,A=()=>st.assists++,C=()=>st.cleans++;
  const SC={
   FW:[["下半場，你單刀面對門將",[o("大力抽射近角",.2,av("射術","射門力量"),"一腳抽射直入近角！","球打在門柱上彈出。",G,"",1),o("挑射過門將",.12,av("盤帶技術","控球"),"輕輕一挑，球越過門將落網！","挑太高，球飛出橫樑。",()=>{G();p.fame+=2},"花式"),o("傳給包抄的隊友",.3,av("短傳","視野"),"橫傳給隊友推空門，助攻一次！","傳球被後衛攔截。",A),o("假動作晃過門將",.15,av("敏捷","盤帶技術"),"晃過門將推射空門！","被門將撲到腳下。",G,"花式")]],
