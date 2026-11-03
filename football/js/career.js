@@ -263,14 +263,15 @@ async function transferWindow(rating,share){
  const p=P,o=ovr(p),c=p.clubObj;
  const seen=x=>x.ct==p.c||((x.tier>=2||p.age>=26)&&(p.fame>(p.cs<65?60:25)||o>=x.str-(p.cs<65?0:2)));
  const up=poolFor(P).filter(x=>x.name!=c.name&&x.str>c.str&&x.str<=o+4&&seen(x)).sort(()=>R()-.5),side=poolFor(P).filter(x=>x.name!=c.name&&Math.abs(x.str-o)<5).sort(()=>R()-.5),money=poolFor(P).filter(x=>x.ct=="沙烏地阿拉伯"||x.ct=="美國");
- const offers=[];if(rating>=7&&up[0])offers.push(up[0]);if(share<.4&&side[0])offers.push(side[0]);if(p.age>=29&&o>=72&&R()<.4)offers.push(pick(money));
+ const offers=[];if(up[0]&&(rating>=7||(rating>=6.5&&R()<.4)))offers.push(up[0]);if(side[0]&&(share<.4||R()<.2))offers.push(side[0]);if(p.age>=29&&o>=72&&R()<.4)offers.push(pick(money));
  if(p.contract<=0){if(p.goHome){const h=poolFor(p).filter(x=>x.ct==p.c).sort((a,b)=>b.str-a.str)[0];if(h)offers.unshift(h);p.goHome=0}if(!offers.length&&side[0])offers.push(side[0]);
   const stay=c.str<=o+6;
   // 合約到期：多一兩支球隊來詢問，讓你比較
   side.slice(1,3).forEach(x=>{if(!offers.includes(x)&&offers.length<4)offers.push(x)});
   const OF=offers.filter(Boolean).slice(0,4).map(x=>offerOf(x,p));let pickO=null;
   await ask(RV(`和${c.name}的合約到期了`,`合約走到最後一年，${c.name}找你談未來`,`${c.name}的合約要結束了，經紀人問你的打算`,`合約到期，你成為自由球員`),[...(stay?[[`和${c.name}續約`,()=>{p.contract=3;p.wage=wageOf(c,p);say(`和${c.name}續約 3 年，年薪 ${eur(p.wage)}。`)},`年薪約 ${eur(wageOf(c,p))} · 預估${roleOf(p,c)}`]]:[]),...OF.map(o=>[`和${o.c.name}談`,()=>{pickO=o},offerLine(o,p.wage)])].concat(stay||offers.length?[]:[["降到低級別聯賽",()=>sign(poolFor(P).filter(x=>x.str<=o+6).sort((a,b)=>b.str-a.str)[0]||CLUBS[CLUBS.length-1],2),""]]),stay?"":`${c.name}沒有打算續約。`);if(pickO&&!(await negotiate(pickO,0))){const alt=OF.find(o=>o!==pickO);if(alt){say(`轉而和${alt.c.name}簽約。`);sign(alt.c,alt.yrs);p.wage=alt.w}else if(stay){p.contract=2;p.wage=wageOf(c,p);say(`只好回頭和${c.name}續約。`)}}return}
- if(!offers.length&&p.role!="主力"&&R()<.12){const to=poolFor(p).filter(x=>x.name!=c.name&&Math.abs(x.str-o)<6).sort(()=>R()-.5)[0];if(to){const fee=value(p)*(.7+R()*.3);p._fee=fee;say(`${c.name}為了清理陣容，把你以 ${eur(fee)} 賣給${to.name}。`,1);sign(to,3);return}}
+ if(!offers.length&&p.role!="主力"&&R()<.12){const to=poolFor(p).filter(x=>x.name!=c.name&&Math.abs(x.str-o)<6).sort(()=>R()-.5)[0];if(to){const fee=value(p)*(.7+R()*.3);let gone=false;
+  await ask(`${c.name}想清理陣容，已經和${to.name}談好 ${eur(fee)} 的轉會費`,[[`同意轉去${to.name}`,()=>{p._fee=fee;gone=true;say(`${c.name}為了清理陣容，把你以 ${eur(fee)} 賣給${to.name}。`,1);sign(to,3)},`${to.lg} · 實力 ${to.str} · 預估${roleOf(p,to)}`],["拒絕，留下來證明自己",()=>{p.morale-=5;if(R()<.4){p.contract=Math.min(p.contract,1);say("拒絕轉會，被教練放進冷宮。")}},"可能被冷凍"]],"球員不同意，轉會就不能成立");if(gone)return}}
  if(!offers.length)return;
  const fee=value(p)*(1+R()*.4);
  const OF=offers.filter(Boolean).slice(0,3).map(x=>offerOf(x,p));let pickO=null;
