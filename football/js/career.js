@@ -217,27 +217,35 @@ async function youthYear(minutes){
 async function national(rating){
  const p=P,need=Math.max(55,p.cs-4);
  if(!p.intlRetired&&ovr(p)>=need&&rating>=6.3&&p.role!="預備隊"&&p.age>=18){const g=p.pos=="FW"?Math.round(R()*4*Math.max(0,(ovr(p)-60)/30)):p.pos=="MF"?Math.round(R()*1.5):0;const caps=4+Math.round(R()*6);
-  if(!p.caps)say(`第一次入選${p.c}國家隊！`,1);(p.stars||[]).filter(s=>s.active&&s.c==p.c&&s.o>=72&&!s.nat).forEach(s=>{s.nat=1;say(`在國家隊和 ${s.n} 成為隊友。`,1)});p.caps+=caps;p.intlGoals+=g;(p.intl=p.intl||[]).push({y:p.y0+p.age,age:p.age,caps,g});p.fame+=caps*.5;
+  if(!p.caps)say(`第一次入選${p.c}國家隊！`,1);(p.stars||[]).filter(s=>s.active&&s.c==p.c&&s.o>=72&&!s.nat).forEach(s=>{s.nat=1;say(`在國家隊和 ${s.n} 成為隊友。`,1)});p.caps+=caps;p.intlGoals+=g;const E={y:p.y0+p.age,age:p.age,caps,g,t:p.c,ev:[]};if(!p.caps)E.ev.push("首次入選");(p.intl=p.intl||[]).push(E);p._natE=E;p.fame+=caps*.5;
   const y=p.y0+p.age;
   if(y%4==2){const strength=p.cs+(ovr(p)-p.cs)*.15;let stage=strength>=86?pick(["八強","四強","亞軍","冠軍","十六強"]):strength>=80?pick(["小組賽","十六強","八強","四強"]):strength>=72?pick(["小組賽","小組賽","十六強"]):"沒有晉級會內賽";
    if(stage!="沒有晉級會內賽"&&!toEnd){const r=await bigMatch({name:`${y} 世界盃淘汰賽`,team:p.c,opp:pick(COUNTRIES.filter(x=>x[0]!=p.c&&Math.abs(x[2]-p.cs)<8).map(x=>x[0]).concat(["地主國"])),ko:1,fame:8},p.cs,strength);
     const order=["小組賽","十六強","八強","四強","亞軍","冠軍"];let i=order.indexOf(stage);i=r.res=="勝"?Math.min(5,i+1):Math.max(0,i-1);stage=order[i]}
-   if(stage=="沒有晉級會內賽")say(`${p.c}在${y}年世界盃資格賽止步。`);else{say(`⚽ 代表${p.c}出戰 ${y} 年世界盃，最後打到${stage}。`,1);p.wc=(p.wc||0)+1;if(stage=="冠軍"){p.trophies.push([y,"世界盃冠軍"]);p.fame+=40}}}
+   if(stage=="沒有晉級會內賽"){say(`${p.c}在${y}年世界盃資格賽止步。`);p._natE.ev.push("世界盃資格賽止步")}else{p._natE.ev.push(`世界盃${stage}`);say(`⚽ 代表${p.c}出戰 ${y} 年世界盃，最後打到${stage}。`,1);p.wc=(p.wc||0)+1;if(stage=="冠軍"){p.trophies.push([y,"世界盃冠軍"]);p.fame+=40}}}
   await natTourney(p,y,rating);
   // 資深國腳可能被選為國家隊隊長
-  if(!p.natCap&&p.caps>=40&&p.age>=26&&ovr(p)>=need+4&&R()<.35){p.natCap=1;p.fame+=6;say(`被任命為${p.c}國家隊隊長！`,1)}
+  if(!p.natCap&&p.caps>=40&&p.age>=26&&ovr(p)>=need+4&&R()<.35){p.natCap=1;p._natE.ev.push("任命隊長");p.fame+=6;say(`被任命為${p.c}國家隊隊長！`,1)}
  }
 }
+// ── 歸化：依真實規定，旅居滿 5 年（現在效力的國家）或有祖父母血統，才能選；國家越強，國家隊越難進 ──
+function natOptions(p){const cs=n=>(COUNTRIES.find(c=>c[0]==n)||[])[2],out=[];
+ const here=p.clubObj&&p.clubObj.ct;if(here&&here!=p.c&&cs(here)){const yrs=p.seasons.filter(s=>(CLUBS.find(c=>c.name==s.club)||{}).ct==here).length;out.push([here,yrs>=5?`在當地踢了 ${yrs} 年，符合居住年限`:`在當地 ${yrs} 年，還差 ${5-yrs} 年`,yrs>=5])}
+ p.ances=p.ances||COUNTRIES.filter(c=>c[0]!=p.c&&c[0]!=here).sort(()=>R()-.5).slice(0,2).map(c=>c[0]);
+ p.ances.forEach((n,i)=>out.push([n,i?"外婆是這裡人":"祖父是這裡人",true]));return out.map(([n,why,ok])=>({n,why,ok,cs:cs(n)}))}
+async function naturalize(p){if(p.caps||p.age>27){say(p.caps?"已經代表過國家隊出賽，依規定不能再換國家。":"超過 27 歲，歸化的機會不大了。");return}
+ const op=natOptions(p);await ask("想代表哪個國家？",op.map(o=>[`${o.n}（國家隊門檻約 ${Math.max(55,o.cs-4)}）`,()=>{if(!o.ok){say(`${o.why}，申請被退回。`);return}
+   p.bornC=p.bornC||p.c;p.c=o.n;p.cs=o.cs;say(`取得${o.n}國籍（${o.why}），之後可以入選${o.n}國家隊。`,1)},o.ok?`${o.why} · 你的能力 ${ovr(p)}`:o.why]).concat([["還是代表自己的國家",()=>{p.morale+=3}]]))}
 // ── 國家隊洲際賽事：歐國盃、美洲盃、亞洲盃、非洲國家盃、金盃，照真實週期 ──
 const CONF={歐:["英格蘭","法國","西班牙","德國","義大利","葡萄牙","荷蘭","比利時","克羅埃西亞","瑞士","丹麥","奧地利","塞爾維亞","土耳其","瑞典","波蘭","烏克蘭","挪威","捷克","匈牙利","蘇格蘭","希臘","威爾斯","愛爾蘭"],南美:["巴西","阿根廷","烏拉圭","哥倫比亞","厄瓜多","智利","秘魯","巴拉圭","委內瑞拉"],中北美:["美國","墨西哥","加拿大","哥斯大黎加"],亞:["日本","韓國","沙烏地阿拉伯","中國","台灣","澳洲","伊朗","卡達","越南","泰國","印尼","馬來西亞","印度","菲律賓","香港"],非:["奈及利亞","塞內加爾","摩洛哥","迦納","埃及","象牙海岸","喀麥隆","南非","阿爾及利亞","突尼西亞"]};
 const NT={歐:["歐洲國家盃",y=>y%4==0],南美:["美洲盃",y=>y%4==0],中北美:["中北美金盃",y=>y%2==1],亞:["亞洲盃",y=>y%4==3],非:["非洲國家盃",y=>y%2==1]};
 async function natTourney(p,y,rating){const cf=Object.keys(CONF).find(k=>CONF[k].includes(p.c));if(!cf)return;const [tn,when]=NT[cf];if(!when(y))return;
  const rivals=CONF[cf].filter(x=>x!=p.c),str=p.cs+(ovr(p)-p.cs)*.15,top=Math.max(...rivals.map(x=>(COUNTRIES.find(c=>c[0]==x)||[,,60])[2]));
- if(p.cs<62&&R()<.8){say(`${p.c}在${y}年${tn}資格賽止步。`);return}
+ if(p.cs<62&&R()<.8){say(`${p.c}在${y}年${tn}資格賽止步。`);p._natE&&p._natE.ev.push(`${tn}資格賽止步`);return}
  const order=["小組賽","八強","四強","亞軍","冠軍"];let i=clamp(Math.round((str-top+12)/6+R()*1.5),0,3);
  if(!toEnd){const opp=pick(rivals.filter(x=>Math.abs(((COUNTRIES.find(c=>c[0]==x)||[,,60])[2])-p.cs)<10).concat(rivals.slice(0,1))),os=(COUNTRIES.find(c=>c[0]==opp)||[,,p.cs])[2];
   const r=await bigMatch({name:`${y} ${tn}${i>=2?"決賽":"淘汰賽"}`,team:p.c,opp,ko:1,fame:5},os,str);i=r.res=="勝"?(i>=2?4:i+1):Math.max(0,i)}
- const stage=order[i];say(`⚽ 代表${p.c}出戰 ${y} 年${tn}，最後打到${stage}。`,1);
+ const stage=order[i];say(`⚽ 代表${p.c}出戰 ${y} 年${tn}，最後打到${stage}。`,1);p._natE&&p._natE.ev.push(`${tn}${stage}`);
  if(stage=="冠軍"){p.trophies.push([y,tn+"冠軍"]);p.fame+=cf=="歐"||cf=="南美"?25:12;if(rating>=7.1&&R()<.4){p.awards.push([y,`${tn}最佳球員`]);say(`🥇 獲選${tn}最佳球員！`,1)}}}
 // ── 轉會談判：比較每個報價（年薪、預估角色、球隊實力），選了之後還可以討價還價 ──
 function offerOf(x,p){const w=wageOf(x,p)*(.85+R()*.45);return {c:x,w,role:roleOf(p,x),yrs:2+Math.floor(R()*3)}}
