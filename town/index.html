@@ -42,7 +42,7 @@ label{display:block;margin:10px 0}
 #toast.on{transform:translateX(-50%) translateY(0)}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:40;padding:16px}
 #modal .card{max-width:520px;width:100%;max-height:92vh;overflow:auto}
-@media (max-width:520px){#needs{grid-template-columns:repeat(3,1fr)}.who{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){#needs{grid-template-columns:repeat(3,1fr)}.who{grid-template-columns:repeat(2,1fr)}.lookbox{flex-direction:column;align-items:flex-start}}
 </style>
 </head>
 <body>
@@ -60,6 +60,6 @@ label{display:block;margin:10px 0}
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide"><div class="card" id="mbody"></div></div>
-<script src="town.js?v=1"></script>
+<script src="town.js?v=2"></script>
 </body>
 </html>

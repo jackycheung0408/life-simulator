@@ -5,7 +5,7 @@ const rpc=(fn,body={})=>fetch(SB+fn,{method:"POST",headers:{apikey:SBK,"Content-
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 // ── 地圖：34×22 格。房子 5×4 格，門在房子正下方 ──
-const T=32,COLS=34,ROWS=22;
+const T=32,COLS=34,ROWS=23;
 const IDS=["jacky","abel","cerina","bear","mike","rafael"];
 const HOMES={jacky:[2,1],abel:[9,1],cerina:[20,1],bear:[2,17],mike:[9,17],rafael:[20,17]};
 const ROOF={jacky:"#d9534f",abel:"#3b7dd8",cerina:"#b45cc4",bear:"#8b5a2b",mike:"#2e9e5b",rafael:"#d8901a"};
@@ -39,9 +39,11 @@ const NEED_INFO={hunger:["🍚","飽足"],energy:["⚡","精力"],bladder:["🚽
 function tickLocal(r,now){if(!r.joined)return r;const h=Math.min(72,Math.max(0,(now-Date.parse(r.updated_at))/36e5)),o={...r};
  if(o.sleeping){o.energy+=14*h;o.hunger-=1.5*h;o.bladder-=1.5*h;o.hygiene-=.5*h;o.fun-=.3*h}else{o.hunger-=4*h;o.energy-=3*h;o.bladder-=5*h;o.hygiene-=2.5*h;o.fun-=2*h}
  NEEDS.forEach(k=>o[k]=clamp(o[k],0,100));return o}
+// 去朋友家站在門口旁邊一格，不要和主人疊在一起
+const visitSpot=id=>{const d=door(id);return [d[0]+1,d[1]]};
 const placeName=(p,R)=>p&&p.startsWith("home:")?((R&&R[p.slice(5)]||{}).name||"")+" 家":(PLACES[p]||{}).name||"路上";
 
-if(typeof module!=="undefined")module.exports={T,COLS,ROWS,IDS,HOMES,PLACES,door,blocked,bfs,placeAt,tickLocal,isRoad};
+if(typeof module!=="undefined")module.exports={T,COLS,ROWS,IDS,HOMES,PLACES,door,visitSpot,blocked,bfs,placeAt,tickLocal,isRoad};
 if(typeof document!=="undefined")addEventListener("DOMContentLoaded",init);
 
 function init(){
@@ -108,7 +110,7 @@ function renderPanel(){if(!S||!me)return;const r=tickLocal(R[me],now()),p=r.plac
  else if(p=="market"){title="超市";list.push(btn("逛逛","心情 +6",()=>act("browse")));note="買東西、送禮下一版開放"}
  else{title="路上";note="點地圖上的房子或地點，就會走過去"}
  if(sel&&sel!=me){const t=tickLocal(R[sel],now());note=`${t.name}：在${placeName(t.place,R)}${t.sleeping?"睡覺":""} · 飽足 ${Math.round(t.hunger)} · 清潔 ${Math.round(t.hygiene)} · 心情 ${Math.round(t.fun)}`;
-  list.unshift(btn(`走去 ${t.name} 家`,"",()=>{sel=null;walkTo("home:"+t.id,door(t.id))}))}
+  list.unshift(btn(`走去 ${t.name} 家`,"",()=>{sel=null;walkTo("home:"+t.id,visitSpot(t.id))}))}
  $("here").textContent=title;$("note").textContent=note;
  // 內容沒變就不重畫，避免按到一半按鈕被換掉
  const html=list.map((b,i)=>`<button data-i="${i}" ${busy?"disabled":""}><b>${b.label}</b>${b.sub?`<small>${b.sub}</small>`:""}</button>`).join("");
@@ -188,7 +190,7 @@ cv.addEventListener("pointerup",e=>{if(!down)return;const d=down;down=null;if(d.
  const hit=IDS.find(id=>id!=me&&R[id]&&R[id].joined&&Math.hypot((walkers[id].x+.5)*T-wx,(walkers[id].y+.2)*T-wy)<T*.8);
  if(hit){sel=sel==hit?null:hit;renderPanel();return}sel=null;
  if(R[me].sleeping){toast("先起床才能出門");return}
- const p=placeAt(tx,ty);if(!p){toast("那裡走不過去");return}walkTo(p.dest,p.door)});
+ const p=placeAt(tx,ty);if(!p){toast("那裡走不過去");return}walkTo(p.dest,p.dest.startsWith("home:")&&p.dest!="home:"+me?visitSpot(p.dest.slice(5)):p.door)});
 $("zoom").onclick=()=>{zoomFar=!zoomFar;$("zoom").textContent=zoomFar?"🔍 拉近":"🗺️ 看全鎮";camFree=zoomFar;resize()};
 $("home").onclick=()=>{camFree=false};
 $("logout").onclick=()=>{try{localStorage.removeItem("town-auth")}catch(e){}me=null;pin=null;showLogin()};

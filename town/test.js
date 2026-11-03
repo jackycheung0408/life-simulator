@@ -3,6 +3,7 @@
 const M=require("./town.js"),fails=[];const check=(ok,msg)=>{if(!ok)fails.push(msg)};
 const doors=[...M.IDS.map(id=>["home:"+id,M.door(id)]),...Object.entries(M.PLACES).map(([k,p])=>[k,p.door])];
 for(const [n,d] of doors)check(!M.blocked(...d),`${n} 的門在牆裡`);
+for(const id of M.IDS){const v=M.visitSpot(id);check(!M.blocked(...v)&&M.bfs(M.door("jacky"),v),`${id} 家門口旁邊站不了人`)}
 for(const [a,da] of doors)for(const [b,db] of doors)if(a!=b)check(M.bfs(da,db),`${a} 走不到 ${b}`);
 // 點房子要對到自己的家
 for(const id of M.IDS){const [hx,hy]=M.HOMES[id],p=M.placeAt(hx+1,hy+1);check(p&&p.dest=="home:"+id,`點 ${id} 的房子沒有對到他家`)}
