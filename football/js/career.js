@@ -2,8 +2,9 @@
 // ── 一季 ──
 async function season(){
  const p=P;p.age++;
- heightYear(p);await starsYear(p);if(p.age>=13)await resolveSeeds(p);
+ heightYear(p);await starsYear(p);if(p.age>=13)await resolveSeeds(p);if(p.age>=16&&(p.turns||0)<2&&R()<.04)await turningPoint(p);if(p.club&&!p.retired)await dualChoice(p);await worldYear(p);
  if(p.age<13){await childhood(p);p.ovrHist[p.age]=ovr(p);if(p.age>=p.touchAge)(p.yhist=p.yhist||[]).push({age:p.age,a:{...p.a},ovr:ovr(p),val:0,wage:0,money:p.money,h:p.h,fat:p.fat||0,club:p.stage});return}
+ if(p.age==13&&!p.originDone){p.originDone=1;applyOrigin(p)}
  if(p.age==13){await academy();say("開始有正式的訓練課表了：射門、防守、戰術都能排進每週計劃。");toast("育成計劃解鎖更多訓練項目")}
  if(p.age>=17&&p.age<=22&&!p.club&&!p.retired)await firstContract();
  if(p.club&&!p.retired)await proSeason();else if(!p.retired){await youthYear(p.stage=="青訓"?.6:.3);await academyReview();if(p.age>=19&&!p.club){await amateur()}if(p.age==13&&p.stage=="學校隊"&&R()<.5)await ask("同學們都在準備升學考試，你還要繼續踢球嗎？",[["收心讀書，把足球當興趣",()=>endFootball("13 歲收心讀書，足球變成假日的興趣。",pick(["大學生，後來當上工程師","大學生，後來當上老師"])),"結束足球生涯"],["繼續踢，參加業餘球隊",()=>{p.stage="業餘"},"堅持"]]);}
@@ -88,7 +89,7 @@ const TAC={控球:["傳球","盤帶"],防守反擊:["速度","防守"],高位壓
 function clubStyle(c){let h=0;for(const ch of c.name)h=(h*31+ch.charCodeAt(0))%997;return Object.keys(TAC)[h%6]}
 function styleFit(p,st){const k=TAC[st];if(!k||p.pos=="GK")return 0;const avg=ATTR.reduce((t,a)=>t+p.a[a],0)/6;return clamp(((p.a[k[0]]+p.a[k[1]])/2-avg)/3,-3,3)}
 function roleOf(p,c){const st=p.club==c.name&&p.coachStyle?p.coachStyle:clubStyle(c);const g=styleFit(p,st)+ovr(p)-c.str+(rel(p,"coach")-50)/10+T(p,"職業態度")+T(p,"領袖")-T(p,"火爆");return p.age<17||g<-10?"預備隊":g<-5?"替補":g<0?"輪換":"主力"}
-function wageOf(c,p){return Math.max(.003,(1+(rel(p,"agent")-50)/250)*c.pay*Math.pow(1.12,ovr(p)-c.str)*(1+Math.min(3,p.fame/150)))} // 百萬歐元／年：頂級聯賽一般球員約 €5M，巨星可到 €30M 以上
+function wageOf(c,p){const W=(P&&P.world)||{},wm=(W.crisis&&W.crisis.until>=p.age&&W.crisis.lg==c.lg?.7:1)*(W.boom&&W.boom.until>=p.age&&W.boom.ct==c.ct?2:1);return wm*Math.max(.003,(1+(rel(p,"agent")-50)/250)*c.pay*Math.pow(1.12,ovr(p)-c.str)*(1+Math.min(3,p.fame/150)))} // 百萬歐元／年：頂級聯賽一般球員約 €5M，巨星可到 €30M 以上
 function sign(c,yrs){const p=P;p.coachStyle=clubStyle(c);setTimeout(()=>{if(P===p&&p.club==c.name&&p._styleSaid!=c.name+p.coachStyle&&(p._styleSaid=c.name+p.coachStyle))say(`${c.name}的總教練偏好「${p.coachStyle}」，看重${TAC[p.coachStyle].join("、")}${styleFit(p,p.coachStyle)>=1?"，正好是你的強項":styleFit(p,p.coachStyle)<=-1?"，不是你的強項":""}。`)},0);meet(p,"coach",null,50+3*T(p,"職業態度")-3*T(p,"火爆"));if(!p.rel?.mate||R()<.5)meet(p,"mate",null,45+R()*15);(p.moves=p.moves||[]).push({y:p.y0+p.age,age:p.age,from:p.club||p.stage,to:c.name,lg:c.lg,fee:p._fee||0,type:p._fee?"轉會":p.club?"自由轉會":"首份合約",yrs});p._fee=0;if(p.club&&p.club!==c.name)say(`離開${p.club}。`);p.club=c.name;p.clubObj=c;p.contract=yrs;p.wage=wageOf(c,p);if(!p.clubsPlayed.includes(c.name))p.clubsPlayed.push(c.name);say(`和${c.name}簽下 ${yrs} 年合約，年薪 ${eur(p.wage)}。`,1)}
 // ── 現實的淘汰關卡：大多數孩子會在某一關停下來 ──
 function proRescue(p){const o=ovr(p),home=poolFor(P).filter(c=>c.ct==p.c).sort((a,b)=>a.str-b.str)[0],any=poolFor(P).filter(x=>x.tier>=Math.min(2,p.ctier)||x.ct==p.c).sort((a,b)=>Math.abs(a.str-o-8)-Math.abs(b.str-o-8))[0],c=home&&home.str<=o+14?home:any;
@@ -124,7 +125,7 @@ async function proSeason(){
  else if(!p.debut){p.debut=p.age;say(`${c.name}一線隊初登場！`,1);p.fame+=3}
  if(p.injuryLeft>0){share*=p.injuryLeft>1?.1:.5;p.injuryLeft--;p.missG=0}
  if(p._starBlock&&role!="預備隊"){share*=.8;say(`和 ${p._starBlock} 搶同一個位置，上場時間變少了。`)}p._starBlock=null;
- share=clamp(share*(.85+R()*.3)*(p.morale<35?.8:1),0,1);
+ share=clamp(share*(.85+R()*.3)*(p.morale<35?.8:1)*(p.world&&p.world.short==p.age?.7:1),0,1);
  const reserve=role=="預備隊"?20+Math.round(R()*8):0,apps=Math.round(38*share),rate={FW:.62,MF:.22,DF:.05,GK:0}[p.pos]*Math.max(.05,(ovr(p)-48)/38),st={apps:0,goals:0,assists:0,cleans:0};
  const capsB=p.caps;p.table=makeTable(p,c);if(role!="預備隊")await seasonGoal(p,apps,rate,c);
  for(let ph=0;ph<4&&!toEnd;ph++){
@@ -378,6 +379,38 @@ function tableAt(t,frac){const g=Math.round(t.games*frac);t.rows.forEach(r=>{con
  const s=t.rows.slice().sort((a,b)=>b.pts-a.pts);s.forEach((r,i)=>r.pos=i+1);return s}
 function tableHTML(t,sorted){const me=sorted.find(r=>r.me),show=sorted.filter(r=>r.pos<=4||Math.abs(r.pos-me.pos)<=1||r.pos>t.N-3);let last=0;
  return `<div class="tbl"><table class="lgt"><tr><th>#</th><th style="text-align:left">${esc(t.lg)}</th><th>場</th><th>積分</th></tr>${show.map(r=>{const gap=r.pos-last>1?`<tr><td colspan="4" class="mut" style="text-align:center">⋯</td></tr>`:"";last=r.pos;return gap+`<tr class="${r.me?"me":""}${r.pos>t.N-3?" rel":""}"><td>${r.pos}</td><td style="text-align:left">${esc(r.n)}</td><td>${r.gp}</td><td>${r.pts}</td></tr>`}).join("")}</table></div>`}
+// ── 人生轉折：機率很低、影響很大的事，會在報表的「伏筆」分頁留下紀錄 ──
+const TURNS=[
+ p=>ask("🌀 你隨手買的彩券中了頭獎！",[["全部存起來",()=>{p.money+=2+R()*3;say("中了大獎，存款一夜暴增。",1)},"存款↑↑"],["幫家人買房子、還清債務",()=>{p.money+=.5;p.morale+=12;say("讓爸媽搬進新房子，這是你最開心的一天。",1)},"心情↑↑"],["成立青少年足球基金",()=>{p.fame+=10;tag(p,"正直");say("用獎金成立了青少年足球基金。",1)},"名氣↑ 形象↑"]]),
+ p=>ask(`🌀 ${g("family")}被診斷出重病`,[["請長假回家陪伴",()=>{p.missG=(p.missG||0)+12;p.morale+=4;rel(p,"coach",-5);say("暫停足球，陪家人度過最難的日子。",1)},"缺席 12 場"],["把悲傷化成力量繼續踢",()=>{p.morale-=8;p.edge=1;say("每次進球都指向天空。",1)},"心情↓ 下一個關鍵時刻成功率↑"],["花錢找最好的醫院",()=>{p.money=Math.max(0,p.money-.3);p.morale+=2;say("花了一大筆錢，家人的病情穩定下來。",1)},"存款↓"]]),
+ p=>{if(T(p,"自律")>=2)return null;const loss=p.money*.4;p.money-=loss;say(`🌀 被朋友介紹的投資騙了，損失 ${eur(loss)}。`,1);return Promise.resolve()},
+ p=>{if(p.cs>=78)return null;return ask(`🌀 ${p.c}政局動盪，國內聯賽宣布停擺`,[["到國外找球隊",()=>{const to=pick(poolFor(p).filter(x=>x.ct!=p.c&&x.str<=ovr(p)+3));if(to){p._fee=0;sign(to,2);say(`被迫離鄉，轉到${to.name}。`,1)}},"換到國外"],["留在家鄉等待",()=>{p.missG=(p.missG||0)+20;p.morale-=6},"整季可能沒比賽"]])},
+ p=>{if(p.age>27)return null;const n=newName({region:pick(Object.keys(NM))});say(`🌀 一位退休的傳奇教練 ${n} 看了你的比賽，決定親自指導你。`,1);meet(p,"coach",n,85);potUp(p,3+R()*3,"傳奇教練的指點讓你看見全新的可能");return Promise.resolve()},
+ p=>{p.injuries++;p.missG=(p.missG||0)+18;p.health-=20;ATTR.forEach(k=>p.a[k]-=1.5);say("🌀 下雨天發生車禍，雖然撿回一命，但要休養很久。",1);return Promise.resolve()},
+ p=>ask("🌀 一場比賽後，你突然對足球失去熱情",[["休息一段時間，找回初心",()=>{p.missG=(p.missG||0)+6;p.morale+=10;say("回到家鄉的空地踢球，想起小時候為什麼愛足球。",1)},"心情↑↑"],["找運動心理師",()=>{p.money-=.02;tag(p,"自律");p.morale+=6},"自律"],["硬撐下去",()=>{p.morale-=10},"心情↓"]]),
+];
+async function turningPoint(p){for(const f of TURNS.slice().sort(()=>R()-.5)){const r=f(p);if(r){p.turns=(p.turns||0)+1;await r;(p.arcs=p.arcs||[]).push({y:p.y0+p.age,from:p.y0+p.age,txt:"人生轉折："+(p.log[p.log.length-1]||[,""])[1].replace(/^🌀 /,"")});return}}}
+// ── 世界局勢：足壇大事會改變薪水、轉會、賽程 ──
+const WORLD=[
+ p=>{const lg=pick(["英格蘭冠軍聯賽","義大利甲級聯賽","法國甲級聯賽","巴西甲級聯賽","荷蘭甲級聯賽"]);p.world.crisis={lg,until:p.age+3};return `${lg}爆發財政危機，多支球隊欠薪，接下來幾年薪水縮水。`},
+ p=>{const ct=pick(["沙烏地阿拉伯","美國","中國"]);p.world.boom={ct,until:p.age+4};return `${ct}聯賽開始砸大錢簽球星，開出的年薪是歐洲的兩倍。`},
+ p=>{p.world.short=p.age;return "全球流行病爆發，本季賽程縮短，比賽大多空場進行。"},
+ p=>pick(["國際足總宣布越位改用半自動判定。","歐洲聯賽改成 36 隊大聯賽制，比賽變多了。","國際足總限制每季出賽上限，球員工會表示歡迎。","世界盃擴大成 64 隊，小國也有機會參賽。"]),
+];
+async function worldYear(p){p.world=p.world||{};if(p.age<14||R()>.07)return;const t=pick(WORLD)(p);if(t)say("🌍 足壇大事："+t,1)}
+// ── 出身兌現：13 歲進青訓時，家庭背景、體型、性格開始影響能力與事件 ──
+function applyOrigin(p){const s=p.s,add=(k,v)=>{s[k]=clamp(s[k]+v,1,99)};
+ ({足球世家:()=>{add("視野",4);add("跑位",3);p.pot=Math.min(99,p.pot+2);p.fame+=3;say("爸爸當年的隊友來看你踢球：「跟你爸一樣有球感。」",1)},
+   移民家庭:()=>{p.dual=1;say("你同時擁有兩個國籍，之後可以選擇代表哪一國。",1)},
+   單親家庭:()=>{tag(p,"苦練");p.money-=.001;say("媽媽兼兩份工作供你踢球，你比誰都拚。",1)},
+   富裕家庭:()=>{ATTR.forEach(k=>p.a[k]+=1);p.money+=.05;say("家裡幫你請了私人體能教練。",1)},
+   街頭長大:()=>{add("盤帶技術",5);add("控球",3);if(p.sm<5)p.sm++;say("街頭練出來的腳下功夫，花式動作特別多。",1)}}[p.bg]||(()=>{}))();
+ ({瘦高:()=>{p.hT+=5;add("頭球",4);add("彈跳",4);add("敏捷",-2)},壯碩:()=>{p.hT+=1;add("強壯",6);add("衝刺速度",-2)},矮小靈活:()=>{p.hT-=6;add("敏捷",6);add("盤帶技術",3);add("強壯",-4)}}[p.body]||(()=>{}))();
+ ({好勝:()=>tag(p,"拚命"),冷靜:()=>tag(p,"球商"),外向:()=>{p.fame+=2;p.pop=60},內向:()=>tag(p,"自律")}[p.mind]||(()=>{}))();
+ capAttrs(p)}
+// 移民家庭：國家隊可以選另一國
+async function dualChoice(p){if(!p.dual||p.dualDone||p.age<19||p.caps)return;p.dualDone=1;const other=pick(COUNTRIES.filter(c=>c[0]!=p.c&&c[2]>=p.cs-6&&c[2]<=p.cs+12));if(!other)return;
+ await ask(`${other[0]}足協打電話來，希望你代表他們出賽`,[[`代表${other[0]}`,()=>{p.c2=p.c;p.c=other[0];p.cs=other[2];say(`決定代表${other[0]}國家隊。`,1)},`國家隊強度 ${other[2]}`],[`留在${p.c}`,()=>{p.morale+=2},`國家隊強度 ${p.cs}`]])}
 // ── 伏筆：重要選擇會在幾年後回收，並寫明「因為當年……」──
 function plant(p,k,wait,extra){(p.seeds=p.seeds||[]).push({k,at:p.age+wait,y:p.y0+p.age,club:p.club,...extra})}
 const SEEDS={

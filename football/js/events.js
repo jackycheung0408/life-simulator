@@ -106,12 +106,17 @@ async function bigMatch(kind,oppStr,myStr){
   // 聯賽比賽找同聯賽、盃賽找同國家、歐冠找歐洲球隊
   const pool=CLUBS.filter(c=>c.name!=p.club&&(kind.scope=="league"?c.lg==me.lg:kind.scope=="cup"?c.ct==me.ct:kind.scope=="cont"?CONT[c.ct]==CONT[me.ct]&&contOk(c):true));
   const near=pool.filter(c=>Math.abs(c.str-oppStr)<8);return (near.length?pick(near):pool.length?pick(pool):{name:kind.scope=="league"?"聯賽對手":"對手"}).name})();
+ // 比賽日變數：每場都不一樣，影響雙方實力與你的關鍵時刻
+ const wx=pick(["晴朗","晴朗","大雨","強風","酷熱","濃霧"]),venue=kind.team?pick(["中立場地","中立場地","主場"]):pick(["主場","客場"]),ref=pick(["判罰寬鬆","判罰嚴格","哨音很多","偏袒主隊"]),form=pick(["狀態火熱","正常","陣容疲憊","主將傷缺"]);
+ myStr+=(venue=="主場"?2:venue=="客場"?-2:0)+(ref=="偏袒主隊"?(venue=="主場"?2:venue=="客場"?-2:0):0);oppStr+=form=="狀態火熱"?3:form=="陣容疲憊"?-2:form=="主將傷缺"?-4:0;
+ p._md={wx,km:(wx=="大雨"||wx=="強風"?-.05:0)+(wx=="酷熱"?-.03:0)+(ref=="判罰嚴格"&&p.pos=="DF"?-.05:0)+(venue=="主場"?.03:0)};
+ const gr=wx=="大雨"||wx=="濃霧"?.85:1;say(`比賽日：${wx}・${venue}・裁判${ref}・對手${form}`);
  let us=0,them=0,fx=null;sfx("whistle");const moments=[15+Math.floor(R()*20),45+Math.floor(R()*20),75+Math.floor(R()*12)].slice(0,R()<.5?2:3);
  say(`⚽ 大比賽｜${kind.name}：${kind.team||p.club} vs ${opp}`,1);
  const os=(p.stars||[]).find(s=>s.active&&(s.club==opp||(kind.team&&s.c==opp)));if(os)say(`對方陣中有 ${os.n}。`);
  for(let m=0;m<=90;m+=5){const u0=us,t0=them;
   // 雙方依實力隨機進球
-  if(R()<.055*(1+(myStr-oppStr)/40))us++;if(R()<.055*(1+(oppStr-myStr)/40))them++;
+  if(R()<.055*gr*(1+(myStr-oppStr)/40))us++;if(R()<.055*gr*(1+(oppStr-myStr)/40))them++;
   if(moments.includes(m)||moments.some(x=>x>m-5&&x<m)){const ok=await keyMoment(Object.assign(st,{label:`${kind.name} · 第 ${m} 分鐘 · ${us}:${them}`}));
    if(ok&&(p.pos=="FW"||p.pos=="MF"))us++;else if(!ok&&(p.pos=="GK"||p.pos=="DF"))them++}
   $("ticker").textContent=`${kind.name}｜${kind.team||p.club} ${us} : ${them} ${opp}｜第 ${m} 分鐘`;
@@ -128,7 +133,7 @@ async function bigMatch(kind,oppStr,myStr){
   else if(kind.revenge&&res=="敗"){p.morale-=5;say(`又輸給了${opp}，${p.rivalP||"對手"}賽後還在社群上嘲諷你。`)}
   else if(!p.nemesis&&h.l>=2&&h.l>h.w){p.nemesis=opp;p.rivalP=newName({region:pick(Object.keys(NM))});say(`${opp}已經讓你輸了 ${h.l} 次，他們的 ${p.rivalP} 每次都盯死你。${opp}成為你的宿敵。`,1)}}
  p.bigGames=(p.bigGames||0)+1;if(res=="勝"){p.bigWins=(p.bigWins||0)+1;if(st.goals+st.assists>0&&R()<.3)potUp(p,1+R(),"大賽中的亮眼表現讓你找到新的自信");p.fame+=kind.fame||3;p.morale+=4;rel(p,"coach",3)}else p.morale-=3;
- if(!kind.team&&p.club)await pressTalk(res,opp);
+ p._md=null;if(!kind.team&&p.club)await pressTalk(res,opp);
  return {res,goals:st.goals,assists:st.assists};
 }
 // ── 球迷與媒體：粉絲數（萬人）、球迷支持度、賽後記者會 ──
@@ -163,7 +168,7 @@ async function mediaYear(rating){const p=P;const _ask=ask;p.pop=p.pop??50;p.fans
 function fansTxt(n){return n>=1e4?`${(n/1e4).toFixed(1)} 億`:n>=1?`${n>=100?Math.round(n):n.toFixed(1)} 萬`:`${Math.round(n*1e4)}`}
 // ── 關鍵時刻：依位置隨機抽一個情境，每個選項顯示成功率（看對應的細項能力、疲勞、特質）──
 async function keyMoment(st){
- const p=P,S=p.s,fat=(p.fat||0)/400,bonus=.02*((rel(p,"mate")-50)/25)+(p.edge?.15:0)+.04*T(p,"球商")+.03*T(p,"拚命");
+ const p=P,S=p.s,fat=(p.fat||0)/400,bonus=.02*((rel(p,"mate")-50)/25)+(p.edge?.15:0)+.04*T(p,"球商")+.03*T(p,"拚命")+((p._md&&p._md.km)||0);
  const av=(...k)=>k.reduce((t,x)=>t+(S[x]||0),0)/k.length+(/射手|殺手|前鋒/.test(styleOf(p))&&k.some(x=>/射|跑位/.test(x))?8:/組織|節拍|傳中/.test(styleOf(p))&&k.some(x=>/傳|視野/.test(x))?8:/硬漢|後衛/.test(styleOf(p))&&k.some(x=>/搶斷|盯人|強壯/.test(x))?8:/突破|快馬/.test(styleOf(p))&&k.some(x=>/盤帶|敏捷/.test(x))?8:0);
  // o(文字, 基礎機率, 能力值, 成功描述, 失敗描述, 成功效果, 額外說明)
  const o=(label,base,att,good,bad,fx,extra,foot)=>{const c=clamp(base+att/220-fat+bonus+(foot?(p.wf-3)*.04:0)+(extra=="花式"?(p.sm-3)*.04:0),.05,.95);
@@ -282,7 +287,10 @@ const G={
  family:["阿公","阿嬤","媽媽","爸爸","哥哥","姊姊","舅舅"],
  trouble:["住院開刀","生意失敗欠了錢","心情很低落","要搬家","身體不太好"],
 };
-const g=k=>pick(G[k]);
+// 天氣依國家氣候（英格蘭不會有沙塵暴、巴西不會下大雪）
+const CLIMATE={熱:["熱浪","午後雷陣雨","颱風","暴雨"],乾:["沙塵暴","熱浪","乾燥強風"],溫:["寒流","暴雨","濃霧","強風"],冷:["大雪","寒流","結冰的草皮","強風"]};
+const CT_CLIMATE={巴西:"熱",阿根廷:"溫",英格蘭:"溫",法國:"溫",西班牙:"熱",德國:"冷",義大利:"溫",葡萄牙:"溫",荷蘭:"溫",美國:"溫",墨西哥:"熱",日本:"溫",韓國:"冷",中國:"溫",台灣:"熱",沙烏地阿拉伯:"乾",奈及利亞:"熱",埃及:"乾",摩洛哥:"乾",塞內加爾:"熱",迦納:"熱",比利時:"溫",克羅埃西亞:"溫",烏拉圭:"溫",哥倫比亞:"熱"};
+const g=k=>k=="weather"&&P?pick(CLIMATE[CT_CLIMATE[(P.clubObj&&P.clubObj.ct)||P.c]||"溫"]):pick(G[k]);
 // 每個模板回傳一個抉擇；效果也帶隨機
 const GEN={
  kid:[
