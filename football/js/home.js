@@ -21,6 +21,11 @@ document.querySelectorAll(".p").forEach(b=>b.onclick=()=>{document.querySelector
 document.querySelectorAll(".s").forEach(b=>b.onclick=()=>{document.querySelectorAll(".s").forEach(x=>x.classList.remove("on"));b.classList.add("on");secPerSeason=+b.dataset.v});
 document.querySelectorAll(".sp").forEach(b=>b.onclick=()=>{document.querySelectorAll(".sp").forEach(x=>x.classList.remove("on"));b.classList.add("on");mult=+b.dataset.m});
 document.querySelectorAll(".st").forEach(b=>b.onclick=()=>{document.querySelectorAll(".st").forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg.stars=b.dataset.v});
+// ── 出生年份：1950 到 2026；之前的年份會遇到那個年代的真實球星和足壇大事 ──
+function renderYear(){$("yNow").textContent=BIRTH_Y;const ok=BIRTH_Y<REAL_LAST;$("yTip").textContent=ok?`${BIRTH_Y} 年出生：同世代是那個年代的真實球星；到 ${REAL_LAST} 年之前會遇到真實的足壇大事和世界盃，之後是平行世界。`:`${BIRTH_Y} 年出生：同世代是現役球星重新走一次，未來的足壇大事隨機發生。`;
+ document.querySelectorAll(".yq").forEach(b=>b.classList.toggle("on",+b.dataset.y==BIRTH_Y))}
+document.querySelectorAll(".yb").forEach(b=>b.onclick=()=>{BIRTH_Y=clamp(BIRTH_Y+ +b.dataset.d,1950,2026);renderYear()});
+document.querySelectorAll(".yq").forEach(b=>b.onclick=()=>{BIRTH_Y=+b.dataset.y;renderYear()});renderYear();
 $("tourBtn").onclick=()=>tour(0);
 const muteTxt=()=>{$("muteBtn").textContent=muted?"🔇":"🔊"};muteTxt();$("muteBtn").onclick=()=>{muted=!muted;try{localStorage.setItem("fb-mute",muted?"1":"0")}catch{}muteTxt();if(!muted)sfx("kick")};
 $("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"▶ 繼續":"⏸ 暫停"};

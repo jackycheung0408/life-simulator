@@ -188,12 +188,16 @@ button.on{background:var(--y);color:var(--ink)}
  <h2>出生在哪裡？</h2>
  <p><select id="ctry" style="min-width:220px"></select></p>
  <p class="mut">足球世界隨機：依各國的足球人口抽選，巴西、阿根廷、歐洲各國比較容易抽到。這個遊戲模擬的是「從小認真踢球的孩子」，成功率比一般人高，但仍然要過青訓、預備隊、一線隊一關一關往上爬。</p><details class="mut" style="font-size:13px;margin-bottom:10px"><summary>真實世界各國踢上職業的機率（概估）</summary><div id="oddsTbl"></div></details>
+ <h2>哪一年出生？</h2>
+ <p><button class="yb" data-d="-10">−10</button><button class="yb" data-d="-1">−1</button> <b id="yNow" style="font-size:22px;display:inline-block;min-width:64px;text-align:center">2026</b> <button class="yb" data-d="1">+1</button><button class="yb" data-d="10">+10</button></p>
+ <p><button class="yq" data-y="1960">1960</button><button class="yq" data-y="1970">1970</button><button class="yq" data-y="1980">1980</button><button class="yq" data-y="1987">1987</button><button class="yq" data-y="1998">1998</button><button class="yq" data-y="2007">2007</button><button class="yq on" data-y="2026">2026</button></p>
+ <p class="mut" id="yTip"></p>
  <h2>遊戲模式</h2>
  <p><button class="md on" data-v="real">現實模式</button><button class="md" data-v="pro">保送職業模式</button></p>
  <p class="mut" id="mdTip">現實模式：大多數孩子會在青訓評估或試訓時被淘汰，足球生涯隨時可能結束。</p>
  <h2>同世代球星</h2>
  <p><button class="st on" data-v="real">真名</button><button class="st" data-v="alias">化名</button><button class="st" data-v="off">關閉</button></p>
- <p class="mut">平行世界裡，30 人和你同年出生、各自重新走一次生涯：5 位巨星、10 位一線球星（真實球員），加上 15 位虛構的同期，其中 5 位是你的青訓同學。他們可能當你隊友、對手、搶金球獎，也可能早早放棄。結局會列出同世代排名和同國排名。</p>
+ <p class="mut">平行世界裡，30 人和你同一個年代出生（依出生年份挑選）、各自重新走一次生涯：5 位巨星、10 位一線球星（真實球員），加上 15 位虛構的同期，其中 5 位是你的青訓同學。他們可能當你隊友、對手、搶金球獎，也可能早早放棄。結局會列出同世代排名和同國排名。</p>
  <h2>你想踢什麼位置？</h2>
  <p id="posSel"><button class="p on" data-v="FW">前鋒</button><button class="p" data-v="MF">中場</button><button class="p" data-v="DF">後衛</button><button class="p" data-v="GK">門將</button><button class="p" data-v="?">讓命運決定</button></p>
  <h2>天賦卡（可選）</h2>
@@ -245,8 +249,8 @@ button.on{background:var(--y);color:var(--ink)}
 <button id="themeBtn" title="切換深色／淺色"></button><div id="tip"></div><div id="modal" class="hide"><div class="sheet"><span class="tag" id="mtag"></span><span id="mctx"></span><div id="choice"></div></div></div>
 <div id="toast"></div>
 
-<script src="js/data.js?v=35"></script>
-<script src="js/events.js?v=35"></script>
-<script src="js/career.js?v=35"></script>
-<script src="js/ui.js?v=35"></script>
-<script src="js/home.js?v=35"></script></body></html>
+<script src="js/data.js?v=36"></script>
+<script src="js/events.js?v=36"></script>
+<script src="js/career.js?v=36"></script>
+<script src="js/ui.js?v=36"></script>
+<script src="js/home.js?v=36"></script></body></html>

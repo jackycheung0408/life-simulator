@@ -349,9 +349,27 @@ const STARS=[["梅西","阿根廷","FW",93,97],["C羅","葡萄牙","FW",92,96],[
  ["李康仁","韓國","MF",79,84],["黃喜燦","韓國","FW",78,82],["武磊","中國","FW",72,77],["艾克森","中國","FW",72,76],["厄德高","挪威","MF",85,89],["艾瑞克森","丹麥","MF",83,87],["恰爾汗奧盧","土耳其","MF",83,86],["弗拉霍維奇","塞爾維亞","FW",83,87],["馬赫雷斯","阿爾及利亞","FW",84,87],["奧納納","喀麥隆","GK",82,86],["凱西","象牙海岸","MF",81,85],["塔雷米","伊朗","FW",80,84],["扎卡","瑞士","MF",82,85],["凱塞多","厄瓜多","MF",83,87],["阿方索戴維斯","加拿大","DF",83,87],["陳柏良","台灣","MF",62,67],["朱恩樂","台灣","MF",60,66]];
 const FIC_JOB=["在家鄉開了一間早餐店","當上體育老師","在乙級聯賽踢到 33 歲","轉行當健身教練","成了業餘球隊的隊長","去讀大學，後來當工程師","接手家裡的生意","在青訓營當教練","當上外送員，週末還在踢球","移民到國外，在餐廳工作"];
 const STAR_EN={"梅西": "Lionel Messi", "C羅": "Cristiano Ronaldo", "姆巴佩": "Kylian Mbappé", "哈蘭德": "Erling Haaland", "亞馬爾": "Lamine Yamal", "內馬爾": "Neymar", "德布勞內": "Kevin De Bruyne", "貝林厄姆": "Jude Bellingham", "萊萬多夫斯基": "Robert Lewandowski", "范戴克": "Virgil van Dijk", "莫德里奇": "Luka Modrić", "諾伊爾": "Manuel Neuer", "本澤馬": "Karim Benzema", "蘇亞雷斯": "Luis Suárez", "薩拉赫": "Mohamed Salah", "凱恩": "Harry Kane", "維尼修斯": "Vinícius Júnior", "羅德里": "Rodri", "庫爾圖瓦": "Thibaut Courtois", "拉莫斯": "Sergio Ramos", "克羅斯": "Toni Kroos", "坎特": "N'Golo Kanté", "阿利森": "Alisson", "佩德里": "Pedri", "穆夏拉": "Jamal Musiala", "孫興慜": "Son Heung-min", "馬內": "Sadio Mané", "勞塔羅": "Lautaro Martínez", "唐納魯瑪": "Gianluigi Donnarumma", "魯迪格": "Antonio Rüdiger", "阿諾德": "Trent Alexander-Arnold", "奧斯梅恩": "Victor Osimhen", "哈基米": "Achraf Hakimi", "金玟哉": "Kim Min-jae", "薩卡": "Bukayo Saka", "福登": "Phil Foden", "萊斯": "Declan Rice", "維爾茨": "Florian Wirtz", "瓦爾韋德": "Federico Valverde", "巴雷拉": "Nicolò Barella", "巴斯托尼": "Alessandro Bastoni", "基耶薩": "Federico Chiesa", "格列茲曼": "Antoine Griezmann", "琴丹尼": "Aurélien Tchouaméni", "薩利巴": "William Saliba", "B費爾南德斯": "Bruno Fernandes", "B席爾瓦": "Bernardo Silva", "迪亞斯": "Rúben Dias", "萊奧": "Rafael Leão", "德容": "Frenkie de Jong", "加克波": "Cody Gakpo", "德利赫特": "Matthijs de Ligt", "盧卡庫": "Romelu Lukaku", "多庫": "Jérémy Doku", "格瓦迪奧爾": "Joško Gvardiol", "羅德里戈": "Rodrygo", "卡塞米羅": "Casemiro", "馬奎尼奧斯": "Marquinhos", "埃德森": "Ederson", "麥卡利斯特": "Alexis Mac Allister", "恩佐": "Enzo Fernández", "迪馬利亞": "Ángel Di María", "E馬丁內斯": "Emiliano Martínez", "J阿瓦雷茲": "Julián Álvarez", "哈梅斯": "James Rodríguez", "路易斯迪亞斯": "Luis Díaz", "洛薩諾": "Hirving Lozano", "普利西奇": "Christian Pulisic", "奧喬亞": "Guillermo Ochoa", "齊耶赫": "Hakim Ziyech", "阿姆拉巴特": "Sofyan Amrabat", "庫利巴利": "Kalidou Koulibaly", "門迪": "Édouard Mendy", "奧斯曼": "Ademola Lookman", "帕提": "Thomas Partey", "三笘薰": "Kaoru Mitoma", "久保建英": "Takefusa Kubo", "遠藤航": "Wataru Endo", "李康仁": "Lee Kang-in", "黃喜燦": "Hwang Hee-chan", "武磊": "Wu Lei", "艾克森": "Elkeson", "厄德高": "Martin Ødegaard", "艾瑞克森": "Christian Eriksen", "恰爾汗奧盧": "Hakan Çalhanoğlu", "弗拉霍維奇": "Dušan Vlahović", "馬赫雷斯": "Riyad Mahrez", "奧納納": "André Onana", "凱西": "Franck Kessié", "塔雷米": "Mehdi Taremi", "扎卡": "Granit Xhaka", "凱塞多": "Moisés Caicedo", "阿方索戴維斯": "Alphonso Davies", "陳柏良": "Chen Po-liang", "朱恩樂": "Emilio Estevez"};
+// 各年代的傳奇球星：選較早的出生年份時，同世代會換成那個年代的人
+const LEGENDS=[["比利","巴西","FW",93,97,"Pelé",1940],["馬拉度納","阿根廷","FW",93,97,"Diego Maradona",1960],["克魯伊夫","荷蘭","FW",92,95,"Johan Cruyff",1947],["碧根鮑華","德國","DF",92,95,"Franz Beckenbauer",1945],
+ ["尤西比奧","葡萄牙","FW",90,94,"Eusébio",1942],["蓋德穆勒","德國","FW",90,94,"Gerd Müller",1945],["普拉蒂尼","法國","MF",91,94,"Michel Platini",1955],["濟科","巴西","MF",90,93,"Zico",1953],
+ ["魯梅尼格","德國","FW",87,90,"Karl-Heinz Rummenigge",1955],["肯佩斯","阿根廷","FW",86,89,"Mario Kempes",1954],["蘇格拉底","巴西","MF",87,90,"Sócrates",1954],["羅西","義大利","FW",85,89,"Paolo Rossi",1956],["車範根","韓國","FW",80,85,"Cha Bum-kun",1953],
+ ["范巴斯滕","荷蘭","FW",91,94,"Marco van Basten",1964],["馬特烏斯","德國","MF",89,92,"Lothar Matthäus",1961],["古利特","荷蘭","MF",89,92,"Ruud Gullit",1962],["巴雷西","義大利","DF",87,90,"Franco Baresi",1960],
+ ["萊因克爾","英格蘭","FW",85,88,"Gary Lineker",1960],["克林斯曼","德國","FW",86,89,"Jürgen Klinsmann",1964],["舒米高","丹麥","GK",87,90,"Peter Schmeichel",1963],
+ ["巴喬","義大利","FW",89,93,"Roberto Baggio",1967],["羅馬里奧","巴西","FW",89,93,"Romário",1966],["馬爾蒂尼","義大利","DF",89,92,"Paolo Maldini",1968],["巴蒂斯圖塔","阿根廷","FW",87,90,"Gabriel Batistuta",1969],["卡恩","德國","GK",87,90,"Oliver Kahn",1969],
+ ["席丹","法國","MF",92,95,"Zinedine Zidane",1972],["羅納度","巴西","FW",92,96,"Ronaldo Nazário",1976],["菲戈","葡萄牙","FW",88,92,"Luís Figo",1972],["里瓦爾多","巴西","FW",88,92,"Rivaldo",1972],["內德維德","捷克","MF",86,89,"Pavel Nedvěd",1972],
+ ["卡洛斯","巴西","DF",86,89,"Roberto Carlos",1973],["卡納瓦羅","義大利","DF",87,90,"Fabio Cannavaro",1973],["碧咸","英格蘭","MF",86,89,"David Beckham",1975],["舍甫琴科","烏克蘭","FW",88,92,"Andriy Shevchenko",1976],["托蒂","義大利","FW",87,90,"Francesco Totti",1976],
+ ["亨利","法國","FW",89,93,"Thierry Henry",1977],["勞爾","西班牙","FW",86,90,"Raúl",1977],["中田英壽","日本","MF",80,84,"Hidetoshi Nakata",1977],["布馮","義大利","GK",88,92,"Gianluigi Buffon",1978],["蘭帕德","英格蘭","MF",86,89,"Frank Lampard",1978],["德羅巴","象牙海岸","FW",86,90,"Didier Drogba",1978],
+ ["皮爾洛","義大利","MF",87,90,"Andrea Pirlo",1979],["羅納迪尼奧","巴西","MF",90,94,"Ronaldinho",1980],["傑拉德","英格蘭","MF",87,90,"Steven Gerrard",1980],["哈維","西班牙","MF",88,91,"Xavi",1980],
+ ["卡卡","巴西","MF",89,93,"Kaká",1982],["卡西利亞斯","西班牙","GK",87,91,"Iker Casillas",1981],["伊布拉希莫維奇","瑞典","FW",87,91,"Zlatan Ibrahimović",1981],["埃托奧","喀麥隆","FW",86,90,"Samuel Eto'o",1981],["朴智星","韓國","MF",80,84,"Park Ji-sung",1981],
+ ["伊涅斯塔","西班牙","MF",88,92,"Andrés Iniesta",1984],["羅本","荷蘭","FW",86,90,"Arjen Robben",1984],["施魏因施泰格","德國","MF",86,89,"Bastian Schweinsteiger",1984],["魯尼","英格蘭","FW",87,91,"Wayne Rooney",1985],["貝爾","威爾斯","FW",85,89,"Gareth Bale",1989]];
+// 現役球星的真實出生年
+const STAR_BORN={"梅西":1987,"C羅":1985,"姆巴佩":1998,"哈蘭德":2000,"亞馬爾":2007,"內馬爾":1992,"德布勞內":1991,"貝林厄姆":2003,"萊萬多夫斯基":1988,"范戴克":1991,"莫德里奇":1985,"諾伊爾":1986,"本澤馬":1987,"蘇亞雷斯":1987,"薩拉赫":1992,"凱恩":1993,"維尼修斯":2000,"羅德里":1996,"庫爾圖瓦":1992,"拉莫斯":1986,"克羅斯":1990,"坎特":1991,"阿利森":1992,"佩德里":2002,"穆夏拉":2003,"孫興慜":1992,"馬內":1992,"勞塔羅":1997,"唐納魯瑪":1999,"魯迪格":1993,"阿諾德":1998,"奧斯梅恩":1998,"哈基米":1998,"金玟哉":1996,"薩卡":2001,"福登":2000,"萊斯":1999,"維爾茨":2003,"瓦爾韋德":1998,"巴雷拉":1997,"巴斯托尼":1999,"基耶薩":1997,"格列茲曼":1991,"琴丹尼":2000,"薩利巴":2001,"B費爾南德斯":1994,"B席爾瓦":1994,"迪亞斯":1997,"萊奧":1999,"德容":1997,"加克波":1999,"德利赫特":1999,"盧卡庫":1993,"多庫":2002,"格瓦迪奧爾":2002,"羅德里戈":2001,"卡塞米羅":1992,"馬奎尼奧斯":1994,"埃德森":1993,"麥卡利斯特":1998,"恩佐":2001,"迪馬利亞":1988,"E馬丁內斯":1992,"J阿瓦雷茲":2000,"哈梅斯":1991,"路易斯迪亞斯":1997,"洛薩諾":1995,"普利西奇":1998,"奧喬亞":1985,"齊耶赫":1993,"阿姆拉巴特":1996,"庫利巴利":1991,"門迪":1992,"奧斯曼":1997,"帕提":1993,"三笘薰":1997,"久保建英":2001,"遠藤航":1993,"李康仁":2001,"黃喜燦":1996,"武磊":1991,"艾克森":1989,"厄德高":1998,"艾瑞克森":1992,"恰爾汗奧盧":1994,"弗拉霍維奇":2000,"馬赫雷斯":1991,"奧納納":1996,"凱西":1996,"塔雷米":1992,"扎卡":1992,"凱塞多":2001,"阿方索戴維斯":2000,"陳柏良":1988,"朱恩樂":1991};
+LEGENDS.forEach(x=>{STAR_EN[x[0]]=x[5];STAR_BORN[x[0]]=x[6]});
+const ALL_STARS=[...STARS,...LEGENDS.map(x=>x.slice(0,5))];
 function starsInit(p,mode){if(mode=="off")return;
- const sh=a=>a.slice().sort(()=>R()-.5),top=sh(STARS.filter(x=>x[4]>=93)).slice(0,5),homeR=sh(STARS.filter(x=>x[1]==p.c&&!top.includes(x))).slice(0,2),
-  mid=[...homeR,...sh(STARS.filter(x=>x[4]<93&&!homeR.includes(x)))].slice(0,10);
+ const y0=p.y0||2026,near=a=>a.map(x=>[x,Math.abs((STAR_BORN[x[0]]||1998)-y0)+R()*3]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+ const top=near(ALL_STARS.filter(x=>x[4]>=93)).slice(0,5),homeR=near(ALL_STARS.filter(x=>x[1]==p.c&&!top.includes(x))).filter(x=>Math.abs((STAR_BORN[x[0]]||1998)-y0)<=8).slice(0,2),
+  mid=[...homeR,...near(ALL_STARS.filter(x=>x[4]<93&&!homeR.includes(x)))].slice(0,10);
  const real=[...top.map(x=>[x,"巨星"]),...mid.map(x=>[x,"一線"])].map(([[n,c,pos,lo,hi],tier])=>{const reg=(COUNTRIES.find(x=>x[0]==c)||[,,,,"歐"])[4];let pot=lo+R()*(hi-lo),fate="";
   // 平行世界：有些人會走歪
   if(R()<.25){pot-=6+R()*12;fate=pick(["青訓時期受了重傷","被球探錯過","少年時沉迷夜生活","家裡出事，晚了兩年才開始正式訓練"])}
@@ -361,7 +379,7 @@ function starsInit(p,mode){if(mode=="off")return;
   return {n:newName({region:cc[4]}),tier:i<5?"青訓同學":"同期",fic:1,c:cc[0],pos:pick(["FW","MF","DF","GK"]),pot:Math.min(cc[2]<60?66:cc[2]<72?76:95,talent+6+Math.abs(gauss())*8),o:0,club:null,active:true,goals:0,apps:0,tro:0,aw:0,caps:0,peak:0,ret:31+Math.floor(R()*6),fate:"",moves:[]}});
  p.stars=[...real,...fic]}
 // 舊存檔只有 10 位球星：補到 30 人，並把新加入的人模擬到目前年齡
-function starsTopUp(p){if(!p.stars)return;p.stars.forEach(s=>{if(s.n==s.real&&STAR_EN[s.real])s.n=STAR_EN[s.real]});p.stars.forEach(s=>{s.tier=s.tier||((STARS.find(x=>x[0]==s.real)||[])[4]>=93?"巨星":"一線")});if(p.stars.length>=30)return;const tmp={c:p.c};starsInit(tmp,p.stars.some(s=>s.n!=s.real&&!s.fic)?"alias":"real");
+function starsTopUp(p){if(!p.stars)return;p.stars.forEach(s=>{if(s.n==s.real&&STAR_EN[s.real])s.n=STAR_EN[s.real]});p.stars.forEach(s=>{s.tier=s.tier||((ALL_STARS.find(x=>x[0]==s.real)||[])[4]>=93?"巨星":"一線")});if(p.stars.length>=30)return;const tmp={c:p.c,y0:p.y0};starsInit(tmp,p.stars.some(s=>s.n!=s.real&&!s.fic)?"alias":"real");
  const have=new Set(p.stars.map(s=>s.real||s.n)),add=tmp.stars.filter(s=>s.fic?true:!have.has(s.real)).filter(s=>!s.fic||true);
  const need=30-p.stars.length,realN=Math.max(0,15-p.stars.filter(s=>!s.fic).length),pick2=[...add.filter(s=>!s.fic).slice(0,realN),...add.filter(s=>s.fic)].slice(0,need);
  pick2.forEach(s=>{for(let a=16;a<=p.age;a++)starStep(s,a)});p.stars.push(...pick2)}
@@ -458,7 +476,19 @@ const WORLD=[
  p=>{p.world.short=p.age;return "全球流行病爆發，本季賽程縮短，比賽大多空場進行。"},
  p=>pick(["國際足總宣布越位改用半自動判定。","歐洲聯賽改成 36 隊大聯賽制，比賽變多了。","國際足總限制每季出賽上限，球員工會表示歡迎。","世界盃擴大成 64 隊，小國也有機會參賽。"]),
 ];
-async function worldYear(p){p.world=p.world||{};if(p.age<14||R()>.07)return;p.world.seen=p.world.seen||[];const left=WORLD.map((_,i)=>i).filter(i=>!p.world.seen.includes(i));if(!left.length)return;const i=pick(left);p.world.seen.push(i);const t=WORLD[i](p);if(t)say("🌍 足壇大事："+t,1)}
+// 真實足壇大事（依年份）：[內容, 效果]
+const REAL_WC={1950:["巴西","烏拉圭"],1954:["瑞士","西德"],1958:["瑞典","巴西"],1962:["智利","巴西"],1966:["英格蘭","英格蘭"],1970:["墨西哥","巴西"],1974:["西德","西德"],1978:["阿根廷","阿根廷"],1982:["西班牙","義大利"],1986:["墨西哥","阿根廷"],1990:["義大利","西德"],1994:["美國","巴西"],1998:["法國","法國"],2002:["日本、韓國","巴西"],2006:["德國","義大利"],2010:["南非","西班牙"],2014:["巴西","德國"],2018:["俄羅斯","法國"],2022:["卡達","阿根廷"],2026:["美國、加拿大、墨西哥",null]};
+const REAL_EV={1958:["17 歲的比利在世界盃決賽梅開二度，全世界認識了巴西足球。"],1970:["世界盃第一次彩色電視轉播，紅黃牌也在這屆開始使用。"],1982:["世界盃擴大成 24 隊。"],1986:["馬拉度納在世界盃對英格蘭打進「上帝之手」和「世紀進球」。"],
+ 1992:["英格蘭超級聯賽成立，歐洲冠軍盃改名歐洲冠軍聯賽；門將也不能再用手接隊友的回傳球。"],1993:["日本 J 聯賽開幕，亞洲職業足球開始起飛。"],1994:["世界盃開始採用贏球得 3 分。"],1995:["博斯曼裁決：合約到期的球員可以自由轉會，歐盟球員不再佔外援名額。"],1996:["美國職業大聯盟（MLS）開打。"],1998:["世界盃擴大成 32 隊。"],
+ 2004:["希臘爆冷拿下歐洲國家盃。"],2006:["義大利爆發「電話門」假球案，尤文圖斯被降級。",p=>{p.world.crisis={lg:"義大利甲級聯賽",until:p.age+2}}],2008:["全球金融海嘯，多家球會財務吃緊。"],2016:["中國超級聯賽砸大錢簽外援，開出的年薪是歐洲的好幾倍。",p=>{p.world.boom={ct:"中國",until:p.age+3}}],
+ 2018:["世界盃第一次使用 VAR 影像輔助判決。"],2020:["新冠疫情爆發，聯賽停擺後空場復賽，換人名額增為 5 人。",p=>{p.world.short=p.age}],2021:["歐洲超級聯賽宣布成立，不到 48 小時就宣告瓦解。"],2023:["沙烏地職業聯賽開始砸大錢簽歐洲球星。",p=>{p.world.boom={ct:"沙烏地阿拉伯",until:p.age+4}}],
+ 2024:["歐冠改成 36 隊聯賽制，比賽變多了。"],2025:["世界俱樂部盃擴大成 32 隊。"],2026:["世界盃擴大成 48 隊。"]};
+const REAL_LAST=2026;
+function realYear(p){const y=p.y0+p.age;if(p.age<5)return;const e=REAL_EV[y];if(e){if(e[1])e[1](p);say(`🌍 ${y} 年足壇大事：${e[0]}`,p.age>=14)}
+ const w=REAL_WC[y];if(w)say(`🌍 ${y} 年世界盃在${w[0]}舉行。`);
+ // 去年的世界盃冠軍：你自己踢了那屆就不再重複
+ const lw=REAL_WC[y-1];if(lw&&lw[1]){const played=(p.intl||[]).some(i=>i.y==y-1&&(i.ev||[]).some(t=>/^世界盃/.test(t)));if(!played)say(`🏆 ${y-1} 年世界盃由${lw[1]}奪冠。`)}}
+async function worldYear(p){p.world=p.world||{};if(p.y0+p.age<=REAL_LAST){realYear(p);return}if(p.age<14||R()>.07)return;p.world.seen=p.world.seen||[];const left=WORLD.map((_,i)=>i).filter(i=>!p.world.seen.includes(i));if(!left.length)return;const i=pick(left);p.world.seen.push(i);const t=WORLD[i](p);if(t)say("🌍 足壇大事："+t,1)}
 // ── 出身兌現：13 歲進青訓時，家庭背景、體型、性格開始影響能力與事件 ──
 function applyOrigin(p){const s=p.s,add=(k,v)=>{s[k]=clamp(s[k]+v,1,99)};
  ({足球世家:()=>{add("視野",4);add("跑位",3);p.pot=Math.min(99,p.pot+2);p.fame+=3;say("爸爸當年的隊友來看你踢球：「跟你爸一樣有球感。」",1)},

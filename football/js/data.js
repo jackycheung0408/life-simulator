@@ -1,3 +1,4 @@
+let BIRTH_Y=2026; // 首頁選的出生年份
 // 資料：國家、聯賽、球隊、能力公式、球員產生
 const $=id=>document.getElementById(id),R=Math.random,pick=a=>a[Math.floor(R()*a.length)];
 const wpick=(a,w)=>{let t=a.reduce((s,x)=>s+w(x),0),r=R()*t;for(const x of a){r-=w(x);if(r<=0)return x}return a[0]};
@@ -121,7 +122,7 @@ function newPlayer(world,pos){
  const fam={dad:pick(JOB),mom:pick(JOB),fan,sib,cls};
  const hT=({拉:175,歐:181,英:179,非:177,亞:172,中:175,華:173}[c[4]])+gauss()*6.5; // 成年身高目標（男性）
  const _bg=wpick(BG,x=>x[1]),_body=wpick(BODY,x=>x[1])[0],_mind=wpick(MIND,x=>x[1])[0];
- return attachA({bg:_bg[0],bgNote:_bg[2],body:_body,mind:_mind,s:sub,wf:wpick([1,2,3,4,5],x=>[5,30,45,15,5][x-1]),sm:wpick([1,2,3,4,5],x=>[10,35,35,15,5][x-1]),dp:({FW:"ST",MF:"CM",DF:"CB",GK:"GK"}[position]),name:pick(nm.男)+" "+pick(nm.姓),c:c[0],cs:c[2],ctier:c[3],region:c[4],pos:position,dreamPos:position,talent,pot:Math.min(pot,potCap),a,age:0,y0:2026,cls,fam,h:50,hT,bloom:gauss()*.9,touchAge:fan||sib?3+Math.floor(R()*2):4+Math.floor(R()*3),grade:55+R()*20,
+ return attachA({bg:_bg[0],bgNote:_bg[2],body:_body,mind:_mind,s:sub,wf:wpick([1,2,3,4,5],x=>[5,30,45,15,5][x-1]),sm:wpick([1,2,3,4,5],x=>[10,35,35,15,5][x-1]),dp:({FW:"ST",MF:"CM",DF:"CB",GK:"GK"}[position]),name:pick(nm.男)+" "+pick(nm.姓),c:c[0],cs:c[2],ctier:c[3],region:c[4],pos:position,dreamPos:position,talent,pot:Math.min(pot,potCap),a,age:0,y0:BIRTH_Y,cls,fam,h:50,hT,bloom:gauss()*.9,touchAge:fan||sib?3+Math.floor(R()*2):4+Math.floor(R()*3),grade:55+R()*20,
   ver:2,club:null,stage:"嬰兒",money:0,fame:0,morale:60,health:100,caps:0,intlGoals:0,apps:0,goals:0,assists:0,cleans:0,trophies:[],awards:[],injuries:0,seasons:[],ovrHist:[],log:[],alive:true,retired:false,contract:0,wage:0,partner:null,kids:0,after:null,clubsPlayed:[],peak:0,maxValue:0});
 }
 function say(t,hi){const p=document.createElement("p");if(hi)p.className="hi";p.innerHTML=`<span class="y">${P.age}歲</span>${t}`;const L=$("log");L.prepend(p);while(L.children.length>150)L.lastChild.remove();P.log.push([P.age,t,!!hi])} // 畫面只留最近 150 則，完整紀錄在報表的生平
