@@ -2,7 +2,7 @@
 // ── 一季 ──
 async function season(){
  const p=P;p.age++;
- heightYear(p);await starsYear(p);if(p.age>=13)await resolveSeeds(p);if(p.age>=16&&(p.turns||0)<2&&R()<.04)await turningPoint(p);if(p.club&&!p.retired)await dualChoice(p);await worldYear(p);
+ heightYear(p);await starsYear(p);if(p.age>=13)await resolveSeeds(p);if(p.age>=16&&!p.retired&&(p.turns||0)<2&&R()<.04)await turningPoint(p);if(p.club&&!p.retired)await dualChoice(p);if(!p.retired)await worldYear(p);
  if(p.age<13){await childhood(p);p.ovrHist[p.age]=ovr(p);if(p.age>=p.touchAge)(p.yhist=p.yhist||[]).push({age:p.age,a:{...p.a},ovr:ovr(p),val:0,wage:0,money:p.money,h:p.h,fat:p.fat||0,club:p.stage});return}
  if(p.age==13&&!p.originDone){p.originDone=1;applyOrigin(p)}
  if(p.age==13){await academy();say("開始有正式的訓練課表了：射門、防守、戰術都能排進每週計劃。");toast("育成計劃解鎖更多訓練項目")}
@@ -291,6 +291,8 @@ async function ceremony(p){if(!p.debut)return;p.honors=p.honors||[];
 async function afterLife(){
  const p=P;p.fame*=.95;p.money=Math.max(0,p.money-Math.max(.02,p.money*.03));if(!p.ceremonyDone){p.ceremonyDone=1;await ceremony(p)}
  if(!p.after){await ask("退休後，你想做什麼？",[["當教練",()=>{p.after="教練";say("考取教練證照，從青訓教練做起。",1)},T(p,"領袖")?"你有領袖特質，執教更順利":"從青訓開始"],["當球評、名嘴",()=>{p.after="球評";p.fame+=3;say("成為電視台的球評。",1)},"需要名氣",()=>p.fame>40||T(p,"媒體寵兒")>0],["當球探",()=>{p.after="球探";say("加入球探部門，到處看比賽找天才。",1)},T(p,"球商")?"你的球商讓你更會看人":"到處跑"],["開足球學校",()=>{p.after="足球學校";p.money*=.8;say("在家鄉開了一間兒童足球學校。",1)},"花一筆錢"],["好好休息，陪家人",()=>{p.after="陪伴家人";p.morale+=10},""]].concat(p.mateDream?[[`和 ${p.rel?.mate?.name||"老隊友"} 一起開足球學校`,()=>{p.after="和老隊友開足球學校";say("實現了當年的約定，和老隊友一起開了足球學校。",1)},"當年的約定"]]:[]));return}
+ // 選好退休後的路，再問要不要快轉
+ if(p.after&&!p.postMode)await ask("退休後的日子要怎麼過？",[["⏩ 快轉到人生結局",()=>{p.postMode="fast";toEnd=true;say("快轉退休後的人生……")},"直接看最後的生涯證書與報表"],["經歷幾個重要時刻",()=>{p.postMode="live"},"大約 3 個抉擇，其他自動進行"]]);
  if(p.age<71)await postCareer(p);
  if(p.after=="足球學校"&&R()<.06)say("足球學校有一個學生入選了國家青年隊。",1);
  if(p.age>=50&&R()<.05)say(pick(["受邀回老東家參加傳奇賽，球迷全場起立鼓掌。","膝蓋的舊傷讓走路越來越吃力。","和當年的隊友聚餐，聊起那些年的比賽。"]));
@@ -449,9 +451,12 @@ function goalCheck(p,r){const g=p.goal;if(!g)return;p.goal=null;
  else{p.morale-=g.hard;say(`本季目標「${g.txt}」沒有達成（${g.t=="rating"?r.rating.toFixed(1):v} / ${g.n}）。`)}}
 // ── 第二人生：教練、球評、球探各有自己的升遷與抉擇 ──
 const CLV=["青訓教練","低級別球隊總教練","職業隊助理教練","職業隊總教練","豪門總教練","國家隊總教練"];
+// 退休後只留少數重要抉擇（最多 3 次、至少隔 5 年），其餘自動決定，避免一直按下一步
+function postAsk(p,q,opts,info){if(p.postMode=="live"&&(p.postAsks||0)<3&&p.age>=(p.lastPostAsk||0)+5){p.postAsks=(p.postAsks||0)+1;p.lastPostAsk=p.age;return ask(q,opts,info)}
+ const av=opts.filter(o=>!o[3]||o[3]()),o=pick(av.length?av:opts);say(`${q} → ${o[0]}`);o[1]();return Promise.resolve()}
 async function postCareer(p){
  if(p.after=="教練"){p.cLv=p.cLv||0;p.cMax=Math.max(p.cMax||0,p.cLv);
-  if(R()<.45)await ask(pick([`${CLV[p.cLv]}的第 ${p.age-p.retireAge} 年，開季三連敗，董事會開始施壓`,`你帶的球隊更衣室裡有大牌球員不服你`,`有一份新的執教工作在等你決定`]),[
+  if(R()<.45)await postAsk(p,pick([`${CLV[p.cLv]}的第 ${p.age-p.retireAge} 年，開季三連敗，董事會開始施壓`,`你帶的球隊更衣室裡有大牌球員不服你`,`有一份新的執教工作在等你決定`]),[
    ["堅持自己的戰術",()=>{p.cBoost=R()<.5?.25:-.25},"成敗看運氣"],["大膽起用年輕球員",()=>{p.cBoost=.08;if(R()<.3)say("你提拔的一位 18 歲小將一戰成名。",1)},"穩定加分"],
    ["跳槽到更高一級的球隊",()=>{if(p.cLv<5&&R()<.4+.1*T(p,"領袖")){p.cLv++;say(`升任${CLV[p.cLv]}。`,1)}else say("面試沒有通過，只好留下。")},"可能升遷"],["請辭，休息一年",()=>{p.cLv=Math.max(0,p.cLv-1);p.morale+=5;p.health+=3},"層級↓ 心情↑"]]);
   const perf=R()+.07*T(p,"領袖")+.05*T(p,"球商")+(p.peak-70)/250+(p.cBoost||0);p.cBoost=0;
@@ -461,12 +466,12 @@ async function postCareer(p){
   p.money+=[.03,.08,.15,.5,3,1.5][p.cLv];p.cMax=Math.max(p.cMax,p.cLv);p.afterDetail=`教練，最高做到${CLV[p.cMax]}${p.cTitles?`，奪冠 ${p.cTitles} 次`:""}`;
   if(p.age>=66){say(`${p.age} 歲，結束教練生涯。`,1);p.after="退休的教練"}}
  else if(p.after=="球評"){p.money+=.03+p.fame*.0008;
-  if(R()<.4)await ask(pick(["直播中被問到一位當紅球星的表現","世界盃轉播單位想找你當主播搭檔","網路節目邀請你開一個個人頻道"]),[
+  if(R()<.4)await postAsk(p,pick(["直播中被問到一位當紅球星的表現","世界盃轉播單位想找你當主播搭檔","網路節目邀請你開一個個人頻道"]),[
    ["說真話，不怕得罪人",()=>{p.fame+=3;if(R()<.35){p.pop=clamp((p.pop??50)-6,0,100);say("一句「他根本不會防守」被球迷洗版罵了一週。")}else say("犀利的評論被大量轉發。",1)},"名氣↑ 可能被罵"],
    ["專業分析，不帶情緒",()=>{p.fame+=1;p.money+=.01},"穩定"],["接下來，多賺一點",()=>{p.money+=.05;p.health-=2},"收入↑ 很累"]]);
   p.afterDetail=`球評、名嘴，人氣 ${Math.round(p.fame)}`;if(p.age>=70)p.after="退休的球評"}
  else if(p.after=="球探"){p.found=p.found||[];
-  if(R()<.35)await ask(`在${pick(["一場鄉下的少年賽","街頭五人制","一間小學的校隊","鄰國的青年盃"])}看到一個 14 歲的孩子，球感驚人`,[
+  if(R()<.35)await postAsk(p,`在${pick(["一場鄉下的少年賽","街頭五人制","一間小學的校隊","鄰國的青年盃"])}看到一個 14 歲的孩子，球感驚人`,[
    ["強力推薦俱樂部簽下他",()=>{const n=newName({region:pick(Object.keys(NM))});p.found.push({n,y:p.age,ok:R()<.25+.08*T(p,"球商")});say(`推薦簽下 ${n}。`,1)},"可能看走眼"],
    ["再觀察一年",()=>{},""],["覺得他太瘦小，放棄",()=>{if(R()<.15)say("幾年後那個孩子在別的球隊成了明星，你後悔了好久。")},""]]);
   p.found.filter(x=>!x.told&&p.age-x.y>=6).forEach(x=>{x.told=1;if(x.ok){p.scoutHits=(p.scoutHits||0)+1;p.fame+=4;say(`你當年發掘的 ${x.n} 入選國家隊，媒體稱你是「伯樂」。`,1)}else say(`你推薦的 ${x.n} 沒能踢上職業隊。`)});
