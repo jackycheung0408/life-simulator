@@ -3,7 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>小豬鎮</title>
+<title>小豬鎮｜和朋友住在同一個小鎮</title>
+<meta name="description" content="和朋友住在同一個像素小鎮：照顧自己吃飯睡覺洗澡，去朋友家幫忙、送禮、惡作劇，或扁他一頓。手機打開就能玩，不用下載。">
+<meta property="og:type" content="website"><meta property="og:url" content="https://jackycheung0408.github.io/life-simulator/town/">
+<meta property="og:title" content="🐷 小豬鎮：和朋友住在同一個小鎮">
+<meta property="og:description" content="照顧自己吃飯睡覺洗澡，去朋友家幫忙、送禮、惡作劇，或扁他一頓。手機打開就能玩。">
+<meta property="og:image" content="https://jackycheung0408.github.io/life-simulator/town/og.png"><meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.png" type="image/png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#f6a5c0">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="小豬鎮"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 :root{--bg:#f3efe6;--fg:#2c2620;--mut:#7a6d60;--card:#fffaf2;--line:#e3d9c8;--btn:#fff;--btnh:#f6ecdc;--ac:#e0779b;--good:#3fa34d;--warn:#e0a020;--bad:#d9453f}
 @media (prefers-color-scheme:dark){:root{--bg:#1c1a17;--fg:#f1ebe0;--mut:#a89c8d;--card:#27241f;--line:#3a352e;--btn:#2f2b25;--btnh:#3a352e;--ac:#f08bb0}}
@@ -36,7 +44,7 @@ label{display:block;margin:10px 0}
 #acts{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
 #acts button{display:flex;flex-direction:column;align-items:flex-start;text-align:left}#acts small{color:var(--mut);font-size:12px}
 #feed p{margin:0;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}#feed p span{color:var(--mut);font-size:12px;margin-right:8px}#feed p.mine{color:var(--ac);font-weight:600}
-#away{border-color:var(--ac)}.thx{padding:2px 8px;font-size:12px;margin-left:6px}#away p{margin:4px 0}
+#away{border-color:var(--ac)}.thx{padding:2px 8px;font-size:12px;margin-left:6px}.bond{display:block;position:relative;height:6px;background:var(--line);border-radius:3px;margin:4px 0;width:160px}.bond b{position:absolute;top:0;bottom:0;border-radius:3px}#away p{margin:4px 0}
 .bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;align-items:center}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:#2c2620;color:#fff;padding:10px 16px;border-radius:12px;transition:transform .25s;z-index:50;max-width:90vw}
 #toast.on{transform:translateX(-50%) translateY(0)}
@@ -60,11 +68,11 @@ textarea{width:100%;font:inherit;color:var(--fg);background:var(--btn);border:1p
   <div id="stage"><canvas id="cv"></canvas><div class="tools"><button id="home">📍 我</button><button id="zoom">🗺️ 看全鎮</button></div></div>
   <div class="card"><div id="here"></div><div id="note" class="mut"></div><div id="acts"></div></div>
   <div class="card"><div class="bar"><h2>小鎮動態</h2><button id="report">📰 今日日報</button></div><div id="feed"></div></div>
-  <div class="row"><button id="mayor" class="hide">🏛️ 鎮長</button><button id="invite">邀請朋友</button><button id="relook">換造型</button><button id="towns">我的小鎮</button><button id="logout">登出</button></div>
+  <div class="row"><button id="mayor" class="hide">🏛️ 鎮長</button><button id="install" class="hide">📲 加到主畫面</button><button id="bonds">👥 人際</button><button id="invite">邀請朋友</button><button id="relook">換造型</button><button id="towns">我的小鎮</button><button id="logout">登出</button></div>
  </section>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide"><div class="card" id="mbody"></div></div>
-<script src="town.js?v=4"></script>
+<script src="town.js?v=5"></script>
 </body>
 </html>

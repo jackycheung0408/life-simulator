@@ -1,6 +1,6 @@
 // 小豬鎮：任何人都能建立自己的小鎮，拿邀請碼的朋友搬進來；需求隨現實時間下降，所有改動都經過 Supabase 的資料庫函式
 const SB="https://gerqdagicybtyilihvvm.supabase.co/rest/v1/rpc/",SBK="sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y";
-const rpc=(fn,body={})=>fetch(SB+fn,{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify(body)})
+const rpc=(fn,body={})=>fetch(SB+fn,{method:"POST",keepalive:true,headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify(body)})
  .then(async r=>{const j=await r.json().catch(()=>null);if(!r.ok)throw new Error((j&&j.message)||"連不上小鎮，等一下再試");if(j&&j.error)throw new Error(j.error);return j});
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
@@ -61,7 +61,14 @@ const isNight=()=>{const h=taipeiHour();return h>=19||h<6};
 const bySlot=s=>Object.values(R).find(r=>r.slot==s);
 const placeName=p=>p&&p.startsWith("home:")?((R[p.slice(5)]||{}).name||"空屋")+" 家":(PLACES[p]||{}).name||"路上";
 const bondWith=id=>{const a=Math.min(me,id),b=Math.max(me,id),x=((S&&S.bonds)||[]).find(o=>o.a==a&&o.b==b);return x?x.s:0};
-const bondLabel=v=>v>=30?"💞 好麻吉":v>=10?"😊 好朋友":v<=-10?"😤 死對頭":v<0?"😒 有點不爽":"🙂 普通鄰居";
+// 和資料庫 town_tier 一樣的 7 階
+const bondLabel=v=>v>=60?"🤝 生死之交":v>=30?"💞 好麻吉":v>=10?"😊 好朋友":v<=-50?"⚔️ 宿敵":v<=-20?"😤 死對頭":v<=-5?"😒 有點不爽":"🙂 普通鄰居";
+const NEXT_TIER=[[60,"生死之交"],[30,"好麻吉"],[10,"好朋友"]];
+const tierHint=v=>{const n=NEXT_TIER.slice().reverse().find(([x])=>v<x);return n?`再 ${n[0]-v} 分變成「${n[1]}」`:"已經是最高等級"};
+// 面對面：在同一個地方（不算路上），或在路上距離 2 格以內
+const isNear=id=>{const a=R[me],b=R[id],wa=walkers[me],wb=walkers[id];if(!a||!b)return false;return (a.place==b.place&&a.place!="street"&&!(wa&&wa.path.length))||(Math.abs(wa.x-wb.x)+Math.abs(wa.y-wb.y)<=2.5)};
+const BAD=["prank","egg","fight"];
+const grudges=()=>{const done=new Set((S.events||[]).filter(e=>e.actor==me&&e.kind=="fight"&&Date.parse(e.at)>now()-6*36e5).map(e=>e.target));return (S.events||[]).filter(e=>e.target==me&&BAD.includes(e.kind)&&R[e.actor]&&Date.parse(e.at)>now()-3*864e5&&!done.has(e.actor))};
 const THANKABLE=["feed","wash","visit","gift","note","greet"];
 const thankable=()=>{const done=new Set((S.events||[]).filter(e=>e.actor==me&&e.kind=="thank"&&Date.parse(e.at)>now()-12*36e5).map(e=>e.target));return (S.events||[]).filter(e=>e.target==me&&THANKABLE.includes(e.kind)&&R[e.actor]&&Date.parse(e.at)>now()-3*864e5&&!done.has(e.actor))};
 const houseName=s=>`${STREETS[Math.floor(s/3)]} ${s%3+1} 號`;
@@ -76,10 +83,11 @@ const go=tid=>{location.search="?t="+tid};
 function landing(){$("title").textContent="🐷 小豬鎮";$("game").classList.add("hide");$("login").classList.remove("hide");const list=mine();
  $("lg").innerHTML=`<p class="mut">和朋友一起住在小鎮裡：照顧自己吃飯睡覺洗澡，也可以去朋友家幫忙或惡作劇。手機打開就能玩。</p>
   ${list.length?`<h2>我住的小鎮</h2><div class="list">${list.map(x=>`<button data-go="${esc(x.tid)}"><b>${esc(x.name||x.tid)}</b><small>${esc(x.me||"")} · 代碼 ${esc(x.tid)}</small></button>`).join("")}</div>`:""}
+  ${standalone?"":`<div class="row" style="justify-content:flex-start"><button id="inst2">📲 加到手機主畫面，像 App 一樣打開</button></div>`}
   <h2>加入朋友的小鎮</h2><div class="inline"><input id="code" placeholder="小鎮代碼，例如 ABC234" maxlength="8" autocomplete="off" style="text-transform:uppercase"><button class="pri" id="join">前往</button></div><p class="err" id="jerr"></p>
   <h2>建立自己的小鎮</h2><label>小鎮名稱<input id="tn" maxlength="16" placeholder="例如：我們的小豬鎮"></label><label>你的名字<input id="mn" maxlength="12" placeholder="鎮上大家怎麼叫你"></label>
   <label>4 位數密碼（之後登入用）<input id="np" inputmode="numeric" maxlength="4" autocomplete="off"></label><div id="lk"></div><p class="err" id="cerr"></p><div class="row"><button class="pri" id="create">建立小鎮，當鎮長</button></div>`;
- $("lg").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));
+ $("lg").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));if($("inst2"))$("inst2").onclick=installHelp;
  $("join").onclick=()=>{const c=$("code").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.length<4){$("jerr").textContent="代碼是 6 個英文或數字";return}go(c)};
  let look=randLook();lookPicker($("lk"),look,l=>look=l);
  $("create").onclick=async()=>{const tn=$("tn").value.trim(),mn=$("mn").value.trim(),p=$("np").value.trim();
@@ -164,11 +172,12 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  else if(p=="home:"+me){title="你家";list.push(btn("吃飯","飽足 +40 · €10",()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),btn("洗澡","清潔回滿",()=>act("shower")),btn("看電視","心情 +25",()=>act("tv")),btn("睡覺","精力慢慢回來",()=>act("sleep")))}
  else if(p&&p.startsWith("home:")&&R[p.slice(5)]){const id=+p.slice(5),t=tickLocal(R[id],now());title=`${t.name} 家`;
   const gifts=(r.items||{}).gift||0,giftB=gifts?btn("送禮物",`他心情 +20 · 背包 🎁${gifts}`,()=>act("gift",{target:id})):btn("送禮物","先去超市買",()=>toast("背包沒有禮物，去超市買一份"));
-  if(t.place!=p){note=`${t.name} 不在家，在${placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(btn("留言","寫一句話給他",()=>noteModal(id)),giftB)}
+  if(t.place!=p){note=`${t.name} 不在家，在${placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(btn("留言","寫一句話給他",()=>noteModal(id)),giftB,btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})))}
   else{note=`${t.name}${t.sleeping?" 在睡覺":""}：飽足 ${Math.round(t.hunger)}、清潔 ${Math.round(t.hygiene)}、心情 ${Math.round(t.fun)} · ${bondLabel(bondWith(id))}`;list.push(giftB);
    list.push(btn("煮飯給他","他飽足 +35 · €10",()=>act("feed",{target:id})),btn("幫他洗澡","他清潔 +45",()=>act("wash",{target:id})));
    if(t.sleeping)list.push(btn("叫醒他","",()=>act("wakeup",{target:id})));
-   if(!t.sleeping)list.push(btn("串門子","兩人心情 +15",()=>act("visit",{target:id})));list.push(btn("留言","寫一句話給他",()=>noteModal(id)),btn("惡作劇","放個臭屁 💨 · 好感 −3",()=>act("prank",{target:id})))}}
+   if(!t.sleeping)list.push(btn("串門子","兩人心情 +15",()=>act("visit",{target:id})));list.push(btn("留言","寫一句話給他",()=>noteModal(id)),btn("惡作劇","放個臭屁 💨 · 好感 −3",()=>act("prank",{target:id})),btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})));
+   if(!t.sleeping)list.push(...faceActs(id))}}
  else if(p=="restaurant"){title="餐廳";list.push(btn("吃一頓","飽足 +55 · 心情 +10 · €30",()=>act("dine")))}
  else if(p=="office"){title="公司";list.push(btn("打工","+€120 · 累",()=>act("work")))}
  else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")))}
@@ -176,10 +185,11 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  else{title="路上";note="點地圖上的房子或地點，就會走過去"}
  // 公共場所遇到人：可以擊掌；一起吃飯、玩、加班時在場的人心情都會變好
  if(!r.sleeping&&["plaza","restaurant","market","park","office"].includes(p)&&!(walkers[me]&&walkers[me].path.length)){const here=Object.values(R).filter(o=>o.id!=me&&o.place==p&&!o.sleeping);
-  if(here.length){note=(note?note+" · ":"")+`${here.map(o=>o.name).join("、")} 也在這裡，一起做事大家心情都 +5`;here.forEach(o=>list.push(btn(`和 ${o.name} 擊掌 🙌`,"兩人心情 +8",()=>act("greet",{target:o.id}))))}}
+  if(here.length&&!(sel&&R[sel]))note=(note?note+" · ":"")+`${here.map(o=>o.name).join("、")} 也在這裡：一起做事大家心情都 +5，點他可以擊掌或扁他`}
  if(!r.sleeping&&(r.items||{}).snack&&!(walkers[me]&&walkers[me].path.length))list.push(btn("吃零食 🍪",`飽足 +20 · 還有 ${(r.items||{}).snack} 包`,()=>act("snack")));
  if(sel&&R[sel]&&sel!=me){const t=tickLocal(R[sel],now());note=`${t.name}：在${placeName(t.place)}${t.sleeping?"睡覺":""} · 飽足 ${Math.round(t.hunger)} · 清潔 ${Math.round(t.hygiene)} · 心情 ${Math.round(t.fun)} · ${bondLabel(bondWith(t.id))}`;
-  list.unshift(btn(`走去 ${t.name} 家`,"",()=>{sel=null;goHouse(t.slot)}))}
+  if(isNear(t.id)&&!t.sleeping&&!r.sleeping)list.unshift(...faceActs(t.id));else list.unshift(btn(`走到 ${t.name} 旁邊`,`他在${placeName(t.place)}`,()=>walkToPerson(t.id)));
+  list.push(btn(`去 ${t.name} 家`,"",()=>{sel=null;goHouse(t.slot)}))}
  $("here").textContent=title;$("note").textContent=note;
  // 內容沒變就不重畫，避免按到一半按鈕被換掉
  const html=list.map((b,i)=>`<button data-i="${i}" ${busy?"disabled":""}><b>${b.label}</b>${b.sub?`<small>${b.sub}</small>`:""}</button>`).join("");
@@ -187,9 +197,21 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
 function renderNeeds(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now());
  $("needs").innerHTML=NEEDS.map(k=>{const v=Math.round(r[k]),[ic,nm]=NEED_INFO[k];return `<div class="need${v<20?" low":""}" title="${nm} ${v}"><span>${ic}</span><i><b style="width:${v}%;background:${v<20?"var(--bad)":v<50?"var(--warn)":"var(--good)"}"></b></i><small>${nm} ${v}</small></div>`}).join("")+`<div class="need money"><span>💰</span><small>€${r.money}${(r.items||{}).gift?` · 🎁${r.items.gift}`:""}${(r.items||{}).snack?` · 🍪${r.items.snack}`:""}</small></div>`}
 function renderFeed(){const ev=(S&&S.events)||[];const fmt=a=>{const d=new Date(Date.parse(a)+8*36e5),t=new Date(now()+8*36e5);const hm=`${String(d.getUTCHours()).padStart(2,"0")}:${String(d.getUTCMinutes()).padStart(2,"0")}`;return d.toISOString().slice(0,10)==t.toISOString().slice(0,10)?hm:`${d.getUTCMonth()+1}/${d.getUTCDate()} ${hm}`};
- const ok=new Set(me?thankable().map(e=>e.id):[]),shown=new Set();
- $("feed").innerHTML=ev.length?ev.slice(0,30).map(e=>{const t=ok.has(e.id)&&!shown.has(e.actor);if(t)shown.add(e.actor);return `<p class="${e.target==me?"mine":""}"><span>${fmt(e.at)}</span>${esc(e.msg)}${t?` <button class="thx" data-t="${e.actor}">💗 謝謝</button>`:""}</p>`}).join(""):`<p class="mut">小鎮還很安靜。</p>`;
- $("feed").querySelectorAll(".thx").forEach(b=>b.onclick=()=>act("thank",{target:+b.dataset.t}))}
+ const ok=new Set(me?thankable().map(e=>e.id):[]),bad=new Set(me?grudges().map(e=>e.id):[]),shown=new Set();
+ $("feed").innerHTML=ev.length?ev.slice(0,30).map(e=>{const t=ok.has(e.id)&&!shown.has(e.actor);if(t)shown.add(e.actor);const g=bad.has(e.id)&&!shown.has("g"+e.actor);if(g)shown.add("g"+e.actor);return `<p class="${e.target==me?"mine":""}"><span>${fmt(e.at)}</span>${esc(e.msg)}${t?` <button class="thx" data-t="${e.actor}">💗 謝謝</button>`:""}${g?` <button class="thx" data-g="${e.actor}">😤 報仇</button>`:""}</p>`}).join(""):`<p class="mut">小鎮還很安靜。</p>`;
+ $("feed").querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>act("thank",{target:+b.dataset.t}));
+ $("feed").querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{walkToPerson(+b.dataset.g);toast("走過去找他算帳，到了就能扁他（報仇有加成）");$("stage").scrollIntoView({behavior:"smooth"})})}
+// 面對面才能做的事：擊掌、扁他、和好
+function faceActs(id){const t=R[id],b=bondWith(id),out=[btn(`和 ${t.name} 擊掌 🙌`,"兩人心情 +8 · 好感 +2",()=>act("greet",{target:id})),
+  btn(`扁 ${t.name} 👊`,b>=30?"好麻吉之間是打打鬧鬧 · 好感 +1":"比精力、心情和運氣 · 好感 −6",()=>act("fight",{target:id}))];
+ if(b<0)out.push(btn(`和 ${t.name} 和好 🤝`,"好感 +8",()=>act("makeup",{target:id})));return out}
+// 走到某人身邊：他在室內就走到那個地點的門口，在路上就走到他旁邊
+function walkToPerson(id){const t=R[id];if(!t)return;sel=id;if(t.place.startsWith("home:")){const o=R[t.place.slice(5)];if(o){walkTo(t.place,o.id==me?door(o.slot):visitSpot(o.slot));return}}
+ if(PLACES[t.place]){walkTo(t.place,PLACES[t.place].door);return}const w=walkers[id],g=[Math.round(w.x),Math.round(w.y)],nb=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>[g[0]+dx,g[1]+dy]).find(p=>!blocked(...p))||g;walkTo("street",nb)}
+function bondsModal(){const list=Object.values(R).filter(o=>o.id!=me).map(o=>({o,v:bondWith(o.id)})).sort((a,b)=>b.v-a.v);$("modal").classList.remove("hide");
+ $("mbody").innerHTML=`<h2>👥 人際關係</h2>${list.length?list.map(({o,v})=>`<div class="mrow"><span><b>${esc(o.name)}</b> <small class="mut">${bondLabel(v)} · ${v>0?"+":""}${v}</small><i class="bond"><b style="left:50%;width:${Math.abs(v)/2}%;${v<0?`left:${50-Math.abs(v)/2}%;background:var(--bad)`:"background:var(--good)"}"></b></i><small class="mut">${tierHint(v)}</small></span><button data-w="${o.id}">找他</button></div>`).join(""):`<p class="mut">鎮上還沒有其他人，邀請朋友搬進來吧。</p>`}
+  <p class="mut" style="margin-top:10px">送禮 +5、煮飯洗澡 +4、串門子 +3、道謝擊掌 +2、留言 +1；叫醒 −1、丟雞蛋 −2、惡作劇 −3、扁人 −6、和好 +8。好麻吉以上照顧對方效果 ×1.3。</p><div class="row"><button id="mc">關閉</button></div>`;
+ $("mc").onclick=()=>$("modal").classList.add("hide");$("mbody").querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{$("modal").classList.add("hide");walkToPerson(+b.dataset.w)})}
 function noteModal(id){const t=R[id];$("modal").classList.remove("hide");const quick=["記得吃飯！🍚","晚安 🌙","今天加油！💪","想你了 🥺","快去洗澡 🛁","下次一起吃飯？"];
  $("mbody").innerHTML=`<h2>留言給 ${esc(t.name)}</h2><div class="houses">${quick.map(q=>`<button class="sw" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div><input id="ntx" maxlength="30" placeholder="或自己寫（最多 30 字）" style="margin-top:10px"><p class="err" id="nerr"></p>
   <div class="row"><button id="mc">取消</button><button class="pri" id="ms">留在門口</button></div>`;
@@ -229,9 +251,10 @@ function person(x,y,look,tk,moving,label,isMe,state){const u=1.6,b=moving?Math.f
  if(state.sleeping){g.fillStyle=L.shirt;g.fillRect(x-9*u,y+2*u,14*u,7*u);g.fillStyle=L.skin;g.fillRect(x+5*u,y+2*u,7*u,7*u);g.fillStyle=L.hair;g.fillRect(x+10*u,y+2*u,2*u,7*u);g.font="bold 16px sans-serif";g.fillStyle="#fff";g.fillText("Zz",x+14*u,y-6*u+Math.sin(tk/20)*3)}
  else{g.fillStyle="#2b2b3a";g.fillRect(x-4*u,y+5*u,3*u,(6-b*2)*u);g.fillRect(x+1*u,y+5*u,3*u,(4+b*2)*u);g.fillStyle=L.shirt;g.fillRect(x-5*u,y-3*u,10*u,9*u);g.fillStyle=L.skin;g.fillRect(x-4*u,y-11*u,8*u,8*u);
   g.fillStyle=L.hair;if(L.style=="長髮"){g.fillRect(x-5*u,y-12*u,10*u,3*u);g.fillRect(x-5*u,y-10*u,2*u,8*u);g.fillRect(x+3*u,y-10*u,2*u,8*u)}else if(L.style=="帽子"){g.fillRect(x-5*u,y-13*u,10*u,3*u);g.fillRect(x-6*u,y-10*u,12*u,2*u)}else if(L.style!="光頭")g.fillRect(x-4*u,y-12*u,8*u,3*u);
-  g.fillStyle="#222";g.fillRect(x-2*u,y-8*u,u,2*u);g.fillRect(x+2*u,y-8*u,u,2*u)}
+  g.fillStyle="#222";g.fillRect(x-2*u,y-8*u,u,2*u);g.fillRect(x+2*u,y-8*u,u,2*u);
+  if(state.bruised){g.fillStyle="#6b3fa0";g.fillRect(x+1*u,y-9*u,3*u,3*u);g.fillStyle="#fff";g.fillRect(x-4*u,y-6*u,4*u,u);g.fillRect(x-3*u,y-7*u,u,3*u)}}
  if(state.stink){g.strokeStyle="#7bd36b";g.lineWidth=2;for(let k=-1;k<=1;k++){g.beginPath();for(let s=0;s<10;s++)g.lineTo(x+k*8*u+Math.sin(tk/6+s)*2,y-14*u-s*2.2);g.stroke()}}
- g.font="600 13px sans-serif";g.textAlign="center";g.textBaseline="middle";const tag=label+(state.hungry?" 🍚":""),w=g.measureText(tag).width+10;g.fillStyle=isMe?"rgba(160,110,0,.9)":"rgba(0,0,0,.65)";g.fillRect(x-w/2,y-30*u,w,18);g.fillStyle="#fff";g.fillText(tag,x,y-30*u+9)}
+ g.font="600 13px sans-serif";g.textAlign="center";g.textBaseline="middle";const tag=label+(state.bruised?" 🤕":"")+(state.hungry?" 🍚":""),w=g.measureText(tag).width+10;g.fillStyle=isMe?"rgba(160,110,0,.9)":"rgba(0,0,0,.65)";g.fillRect(x-w/2,y-30*u,w,18);g.fillStyle="#fff";g.fillText(tag,x,y-30*u+9)}
 function miniPerson(c,L){const m=c.getContext("2d");m.clearRect(0,0,c.width,c.height);m.save();m.scale(c.width/40,c.width/40);
  m.fillStyle="#2b2b3a";m.fillRect(14,32,5,8);m.fillRect(21,32,5,8);m.fillStyle=L.shirt;m.fillRect(12,20,16,14);m.fillStyle=L.skin;m.fillRect(13,6,14,14);m.fillStyle=L.hair;
  if(L.style=="長髮"){m.fillRect(11,4,18,5);m.fillRect(11,8,3,14);m.fillRect(26,8,3,14)}else if(L.style=="帽子"){m.fillRect(11,2,18,5);m.fillRect(9,7,22,3)}else if(L.style!="光頭")m.fillRect(13,4,14,5);m.fillStyle="#222";m.fillRect(17,12,2,3);m.fillRect(22,12,2,3);m.restore()}
@@ -252,7 +275,7 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
  g.fillStyle="#bfe6ff";g.fillRect(fx-1,fy-26-((tk%30)/30)*16,3,5);
  // 人：依 y 排序，前面的蓋住後面的；在家睡覺的人在屋裡看不到，改在屋頂畫 💤；晚上有人在家的窗戶亮燈
  const list=Object.values(R).map(r=>({id:r.id,w:walkers[r.id],r:tickLocal(r,now())})).filter(o=>!(o.r.sleeping&&o.r.place=="home:"+o.id&&!o.w.path.length)).sort((a,b)=>a.w.y-b.w.y);
- for(const o of list)person((o.w.x+.5)*T,(o.w.y+.5)*T,o.r.look,tk,o.w.moving,o.r.name,o.id==me,{sleeping:o.r.sleeping&&!o.w.path.length,stink:o.r.hygiene<25,hungry:o.r.hunger<20});
+ for(const o of list)person((o.w.x+.5)*T,(o.w.y+.5)*T,o.r.look,tk,o.w.moving,o.r.name,o.id==me,{sleeping:o.r.sleeping&&!o.w.path.length,stink:o.r.hygiene<25,hungry:o.r.hunger<20,bruised:o.r.bruised});
  for(const r of Object.values(R)){if(r.place!="home:"+r.id)continue;const [hx,hy]=homeXY(r.slot);if(night){g.fillStyle="rgba(255,215,106,.35)";g.fillRect(hx*T+16,hy*T+T+22,24,22);g.fillRect(hx*T+5*T-40,hy*T+T+22,24,22)}
   if(r.sleeping){g.font="bold 18px sans-serif";g.fillStyle="#fff";g.textAlign="center";g.fillText("💤",hx*T+4.2*T,hy*T+T+4+Math.sin(tk/25)*4)}}
  if(tk%30==0){renderNeeds();if(!walkers[me].path.length)renderPanel()}}
@@ -272,10 +295,13 @@ $("home").onclick=()=>{camFree=false};
 $("logout").onclick=()=>{if(!confirm("登出後要再輸入密碼才能進來。確定嗎？"))return;dropMine(TID);me=null;pin=null;townLogin()};
 $("towns").onclick=()=>go("");
 $("invite").onclick=async()=>{if(R[me].mayor){try{shareModal((await rpc("town_mayor",{rid:me,pin,act:"invite"})).invite)}catch(e){toast(e.message)}}else{const text=`來「${S.town.name}」當鄰居！🐷\n${townURL()}\n（邀請碼請問鎮長）`;try{await navigator.clipboard.writeText(text);toast("已複製網址，邀請碼請鎮長給")}catch(e){toast(townURL())}}};
-$("mayor").onclick=mayorPanel;
+$("mayor").onclick=mayorPanel;$("bonds").onclick=bondsModal;
 $("relook").onclick=()=>{let look={...R[me].look};$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>換造型</h2><div id="lk2"></div><div class="row"><button id="mc">取消</button><button class="pri" id="ms">儲存</button></div>`;
  lookPicker($("lk2"),look,l=>look=l);$("mc").onclick=()=>$("modal").classList.add("hide");$("ms").onclick=async()=>{try{await rpc("town_login",{rid:me,pin,new_look:look});mapKey="";await refresh();$("modal").classList.add("hide");toast("換好了")}catch(e){toast(e.message)}}};
 $("report").onclick=report;
+// 切到背景或關掉頁面：走到一半的路直接算到達，回來時人已經在目的地
+const flush=()=>{const w=me&&walkers[me];if(w&&w.dest&&w.path.length){const [gx,gy]=w.goal;w.x=gx;w.y=gy;w.path=[];arrived(w)}};
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState=="hidden")flush();else if(S)refresh().catch(()=>{})});addEventListener("pagehide",flush);
 
 // ── 今日日報：做成一張圖，長按儲存或下載後貼到 WeChat ──
 function report(){const c=document.createElement("canvas");c.width=1080;c.height=1350;const m=c.getContext("2d"),day=new Date(now()+8*36e5).toISOString().slice(0,10);
@@ -294,8 +320,20 @@ function report(){const c=document.createElement("canvas");c.width=1080;c.height
  $("mc").onclick=()=>$("modal").classList.add("hide");$("mdl").onclick=()=>{const a=document.createElement("a");a.href=url;a.download=`小豬鎮日報-${day}.png`;a.click()};
  $("mcp").onclick=()=>c.toBlob(async b=>{try{await navigator.clipboard.write([new ClipboardItem({"image/png":b})]);toast("已複製，可以貼到 WeChat")}catch(e){toast("這個瀏覽器不能複製圖片，請長按圖片儲存")}})}
 
+// ── 加到主畫面：Android 直接安裝；iPhone 要用 Safari 的分享選單；WeChat 要先用瀏覽器打開 ──
+const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone;let installEvt=null;
+addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e});
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+function installHelp(){if(installEvt){installEvt.prompt();installEvt.userChoice.then(c=>{if(c.outcome=="accepted")toast("裝好了，從主畫面打開小豬鎮吧");installEvt=null});return}
+ const ua=navigator.userAgent,wx=/MicroMessenger/i.test(ua),ios=/iPhone|iPad|iPod/i.test(ua);$("modal").classList.remove("hide");
+ $("mbody").innerHTML=`<h2>📲 加到主畫面</h2>${wx?`<p>在 WeChat 裡不能直接安裝：</p><ol><li>點右上角「⋯」</li><li>選「在瀏覽器打開」${ios?"（Safari）":"（Chrome）"}</li><li>再按一次「📲 加到主畫面」</li></ol>`
+  :ios?`<ol><li>用 <b>Safari</b> 打開這個網址</li><li>點下方的分享按鈕 <b>⬆️</b></li><li>往下滑，選「<b>加入主畫面</b>」</li><li>按「新增」</li></ol>`
+  :`<ol><li>點瀏覽器右上角「⋮」</li><li>選「<b>安裝應用程式</b>」或「<b>加到主畫面</b>」</li></ol>`}
+  <p class="mut">裝好後主畫面會有小豬圖示，打開就直接進你的小鎮，畫面沒有網址列，像一般 App。</p><div class="row"><button id="mc">知道了</button></div>`;$("mc").onclick=()=>$("modal").classList.add("hide")}
+if(!standalone){$("install").classList.remove("hide");$("install").onclick=installHelp}
+
 // ── 開始：沒有代碼就是首頁；有代碼就讀小鎮，這台手機住過就自動登入；每 15 秒同步一次 ──
-(async()=>{if(!TID){landing();return}
+(async()=>{if(!TID){const l=mine();if(standalone&&l.length==1){go(l[0].tid);return}landing();return}
  try{await refresh()}catch(e){$("lg").innerHTML=`<p class="err">${esc(e.message)}</p><div class="row" style="justify-content:flex-start"><button id="home3">← 小豬鎮首頁</button></div>`;$("home3").onclick=()=>go("");return}
  const a=mine().find(x=>x.tid==TID);
  if(a&&R[a.rid]){try{const res=await rpc("town_login",{rid:a.rid,pin:a.pin});me=a.rid;pin=a.pin;lastSeen=res.last_seen;await enter()}catch(e){townLogin()}}else townLogin();
