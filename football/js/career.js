@@ -2,7 +2,7 @@
 // ── 一季 ──
 async function season(){
  const p=P;p.age++;
- heightYear(p);await starsYear(p);if(p.age>=13)await resolveSeeds(p);if(p.age>=16&&!p.retired&&(p.turns||0)<2&&R()<.04)await turningPoint(p);if(p.club&&!p.retired)await dualChoice(p);if(!p.retired)await worldYear(p);
+ heightYear(p);await starsYear(p);if(p.age>=13)await resolveSeeds(p);if(p.age>=16&&!p.retired&&(p.turns||0)<2&&R()<.04)await turningPoint(p);if(p.club&&!p.retired)await dualChoice(p);await storyYear(p);if(!p.retired)await worldYear(p);
  if(p.age<13){await childhood(p);p.ovrHist[p.age]=ovr(p);if(p.age>=p.touchAge)(p.yhist=p.yhist||[]).push({age:p.age,a:{...p.a},ovr:ovr(p),val:0,wage:0,money:p.money,h:p.h,fat:p.fat||0,club:p.stage});return}
  if(p.age==13&&!p.originDone){p.originDone=1;applyOrigin(p)}
  if(p.age==13){await academy();say("開始有正式的訓練課表了：射門、防守、戰術都能排進每週計劃。");toast("育成計劃解鎖更多訓練項目")}
@@ -256,12 +256,12 @@ async function transferWindow(rating,share){
   const stay=c.str<=o+6;
   // 合約到期：多一兩支球隊來詢問，讓你比較
   side.slice(1,3).forEach(x=>{if(!offers.includes(x)&&offers.length<4)offers.push(x)});
-  const OF=offers.slice(0,4).map(x=>offerOf(x,p));let pickO=null;
+  const OF=offers.filter(Boolean).slice(0,4).map(x=>offerOf(x,p));let pickO=null;
   await ask(RV(`和${c.name}的合約到期了`,`合約走到最後一年，${c.name}找你談未來`,`${c.name}的合約要結束了，經紀人問你的打算`,`合約到期，你成為自由球員`),[...(stay?[[`和${c.name}續約`,()=>{p.contract=3;p.wage=wageOf(c,p);say(`和${c.name}續約 3 年，年薪 ${eur(p.wage)}。`)},`年薪約 ${eur(wageOf(c,p))} · 預估${roleOf(p,c)}`]]:[]),...OF.map(o=>[`和${o.c.name}談`,()=>{pickO=o},offerLine(o,p.wage)])].concat(stay||offers.length?[]:[["降到低級別聯賽",()=>sign(poolFor(P).filter(x=>x.str<=o+6).sort((a,b)=>b.str-a.str)[0]||CLUBS[CLUBS.length-1],2),""]]),stay?"":`${c.name}沒有打算續約。`);if(pickO&&!(await negotiate(pickO,0))){const alt=OF.find(o=>o!==pickO);if(alt){say(`轉而和${alt.c.name}簽約。`);sign(alt.c,alt.yrs);p.wage=alt.w}else if(stay){p.contract=2;p.wage=wageOf(c,p);say(`只好回頭和${c.name}續約。`)}}return}
  if(!offers.length&&p.role!="主力"&&R()<.12){const to=poolFor(p).filter(x=>x.name!=c.name&&Math.abs(x.str-o)<6).sort(()=>R()-.5)[0];if(to){const fee=value(p)*(.7+R()*.3);p._fee=fee;say(`${c.name}為了清理陣容，把你以 ${eur(fee)} 賣給${to.name}。`,1);sign(to,3);return}}
  if(!offers.length)return;
  const fee=value(p)*(1+R()*.4);
- const OF=offers.slice(0,3).map(x=>offerOf(x,p));let pickO=null;
+ const OF=offers.filter(Boolean).slice(0,3).map(x=>offerOf(x,p));let pickO=null;
  await ask(RV("轉會窗開啟，有球隊報價",`轉會窗開啟，${OF.length} 支球隊對你有興趣`,"經紀人帶來了幾份報價"),[...OF.map(o=>[`和${o.c.name}談`,()=>{pickO=o},offerLine(o,p.wage)+` · 轉會費約 ${eur(fee)}`]),["留下來，忠於球隊",()=>{p.morale+=3;p.fame+=1;plant(p,"loyal",3+Math.floor(R()*2))},`目前年薪 ${eur(p.wage)} · ${p.role||""} · 會影響未來`]]);
  if(pickO&&!(await negotiate(pickO,fee))){p.morale-=2}
 }
@@ -418,6 +418,25 @@ const TURNS=[
  p=>ask("🌀 一場比賽後，你突然對足球失去熱情",[["休息一段時間，找回初心",()=>{p.missG=(p.missG||0)+6;p.morale+=10;say("回到家鄉的空地踢球，想起小時候為什麼愛足球。",1)},"心情↑↑"],["找運動心理師",()=>{p.money-=.02;tag(p,"自律");p.morale+=6},"自律"],["硬撐下去",()=>{p.morale-=10},"心情↓"]]),
 ];
 async function turningPoint(p){for(const f of TURNS.slice().sort(()=>R()-.5)){const r=f(p);if(r){p.turns=(p.turns||0)+1;await r;(p.arcs=p.arcs||[]).push({y:p.y0+p.age,from:p.y0+p.age,txt:"人生轉折："+(p.log[p.log.length-1]||[,""])[1].replace(/^🌀 /,"")});return}}}
+// ── 人際故事線：和最好的隊友、恩師、經紀人的關係會延續好幾年，一步步發展 ──
+async function storyYear(p){p.arc=p.arc||{};const A=p.arc,yr=p.y0+p.age,note=t=>{say("🤝 "+t,1);(p.arcs=p.arcs||[]).push({y:yr,from:yr,txt:t})};
+ // 1. 最好的隊友：搶位置 → 分開 → 各自發展 → 老了再相聚
+ const m=p.rel&&p.rel.mate;if(m&&!p.retired&&p.club){const st=A.mate||(A.mate={s:0,name:m.name,since:p.age});if(st.name!=m.name){A.mate={s:0,name:m.name,since:p.age};}
+  const M=A.mate;
+  if(M.s==0&&p.age-M.since>=2&&R()<.3){M.s=1;await ask(`教練說這季先發只剩一個位置，你和 ${M.name} 都在搶`,[["公平競爭，誰表現好誰上",()=>{rel(p,"mate",4);M.fair=1},"友情不變"],["私下找教練爭取",()=>{rel(p,"coach",5);rel(p,"mate",-15);M.hurt=1},"教練好感↑ 友情↓"],["主動把位置讓給他",()=>{rel(p,"mate",15);p.morale-=3;M.owe=1},"友情↑↑ 上場時間可能變少"]])}
+  else if(M.s==1&&R()<.25){M.s=2;M.club=pick(CLUBS.filter(c=>c.name!=p.club&&c.tier>=2)).name;note(`${M.name} 轉會到${M.club}。臨走前他說：「${M.hurt?"我不會忘記你那時候做的事。":M.owe?"那次你讓位，我一輩子記得。":"下次在場上見，別手下留情。"}」`)}
+  else if(M.s==2&&R()<.2){M.s=3;if(M.hurt){note(`在一場比賽裡又碰到 ${M.name}，他全場都在針對你。`);p.morale-=3}else await ask(`${M.name} 從${M.club}打電話來，邀你參加他的婚禮`,[["推掉比賽也要去",()=>{rel(p,"mate",10);p.morale+=6;rel(p,"coach",-3);say(`在 ${M.name} 的婚禮上當伴郎，兩個人聊到天亮。`,1)},"友情↑ 教練不太高興"],["寄禮物和影片祝福",()=>{rel(p,"mate",3)},""],["賽季太忙，沒回覆",()=>{rel(p,"mate",-8)},"友情↓"]])}
+  else if(M.s==3&&p.age>=33&&R()<.3){M.s=4;if(rel(p,"mate")>=55){note(`${M.name} 退休了，邀你一起踢他的告別賽。你們又穿上同一件球衣，像回到二十歲。`);p.morale+=8}else note(`聽說 ${M.name} 退休了，你們已經很多年沒聯絡。`)}}
+ // 2. 恩師：關係很好的總教練離開 → 當上國家隊總教練徵召你 → 多年後離世
+ const c=p.rel&&p.rel.coach;if(c&&rel(p,"coach")>=70&&!A.mentor&&!p.retired){A.mentor={s:0,name:c.name}}
+ const T2=A.mentor;if(T2){
+  if(T2.s==0&&R()<.25&&!p.retired){T2.s=1;note(`恩師 ${T2.name} 離開了球隊。他跟你說：「你會比我想像的走得更遠。」`)}
+  else if(T2.s==1&&R()<.2&&!p.retired&&p.age<=33){T2.s=2;p.cs=Math.max(40,p.cs-4);note(`${T2.name} 當上${p.c}國家隊總教練，第一件事就是把你列進名單。`);p.morale+=5}
+  else if(T2.s>=1&&T2.s<3&&p.age>=45&&R()<.15){T2.s=3;await ask(`恩師 ${T2.name} 過世了`,[["回去參加告別式，上台致詞",()=>{p.morale-=4;p.fame+=3;say(`在告別式上說：「沒有他，就沒有今天的我。」全場落淚。`,1)},""],["寄花圈表達心意",()=>{p.morale-=2},""]])}}
+ // 3. 經紀人：關係差會出事、關係好會幫你圓夢
+ const ag=p.rel&&p.rel.agent;if(ag&&!p.retired&&p.club&&!A.agent){
+  if(rel(p,"agent")<35&&R()<.15){A.agent=1;await ask(`你發現經紀人 ${ag.name} 背著你跟其他球隊談條件，還多收了一筆佣金`,[["立刻解約，找律師",()=>{p.money=Math.max(0,p.money-.02);delete p.rel.agent;say("和經紀人鬧上法院，最後解約。",1)},"花錢 · 沒有經紀人"],["當面談清楚，再給一次機會",()=>{rel(p,"agent",15)},"關係修復"],["睜一隻眼閉一隻眼",()=>{p.wage*=.92;p.morale-=3},"年薪被抽走一點"]])}
+  else if(rel(p,"agent")>=75&&ovr(p)>=p.clubObj.str&&R()<.12){A.agent=1;const to=poolFor(p).filter(x=>x.str>p.clubObj.str&&x.str<=ovr(p)+5).sort((a,b)=>b.str-a.str)[0];if(to)await ask(`經紀人 ${ag.name} 熬夜談了三個月，幫你拿到${to.name}的合約`,[["圓夢，加盟！",()=>{p._fee=value(p);sign(to,4);say(`在經紀人幫助下加盟${to.name}。`,1)},`${to.lg} · 實力 ${to.str}`],["謝謝他，但還想留下",()=>{rel(p,"agent",-5)},""]])}}}
 // ── 世界局勢：足壇大事會改變薪水、轉會、賽程 ──
 const WORLD=[
  p=>{const lg=pick(["英格蘭冠軍聯賽","義大利甲級聯賽","法國甲級聯賽","巴西甲級聯賽","荷蘭甲級聯賽"]);p.world.crisis={lg,until:p.age+3};return `${lg}爆發財政危機，多支球隊欠薪，接下來幾年薪水縮水。`},
