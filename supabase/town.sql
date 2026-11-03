@@ -86,7 +86,8 @@ language plpgsql security definer set search_path = public as $$
 declare r public.town_residents; acc json[] := '{}';
 begin
   for r in select * from public.town_residents order by id for update loop
-    r := public.town_tick(r);
+    -- 還沒入住的人不扣需求
+    if r.pin_hash is null then r.updated_at := now(); else r := public.town_tick(r); end if;
     update public.town_residents set hunger=r.hunger,energy=r.energy,bladder=r.bladder,hygiene=r.hygiene,fun=r.fun,sleeping=r.sleeping,updated_at=r.updated_at where id=r.id;
     acc := acc || public.town_pub(r);
   end loop;
@@ -123,7 +124,8 @@ begin
   if r.pin_hash is null then
     select v into inv from public.town_config where k = 'invite';
     if inv is null or invite is null or extensions.crypt(upper(trim(invite)), inv) <> inv then raise exception '邀請碼不對，請問 Jacky'; end if;
-    update public.town_residents set pin_hash = extensions.crypt(pin, extensions.gen_salt('bf')), updated_at = now() where id = rid;
+    update public.town_residents set pin_hash = extensions.crypt(pin, extensions.gen_salt('bf')), updated_at = now(),
+      hunger = 80, energy = 80, bladder = 80, hygiene = 80, fun = 80, sleeping = false where id = rid;
     insert into public.town_events(actor,kind,msg) values (rid,'join', r.name || ' 搬進了小豬鎮');
     first := true;
   else
