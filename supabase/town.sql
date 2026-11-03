@@ -345,7 +345,7 @@ begin
         end if;
       end if;
     end if;
-  elsif act in ('feed','wash','wakeup','visit','prank','gift','note','thank','greet','fight','egg','makeup','cowork','feast') then
+  elsif act in ('feed','wash','wakeup','visit','prank','gift','note','thank','greet','fight','egg','makeup','cowork','feast','call','delivery') then
     if target is null or target = rid then raise exception '要選一位朋友'; end if;
     select * into t from public.town_residents where id = target and town_id = r.town_id for update;
     if not found then raise exception '找不到這位鄰居'; end if;
@@ -396,6 +396,29 @@ begin
       if not near or t.sleeping then raise exception '要和 % 面對面，而且他醒著', tn; end if;
       t.fun := t.fun + 8; r.fun := r.fun + 8; perform public.town_bond(r.town_id, rid, t.id, 2);
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 和 ' || tn || ' 在' || public.town_place_name(r.place) || '擊掌 🙌');
+    elsif act in ('note','call','delivery') or (act = 'gift' and r.place <> 'home:' || target) then
+      -- 線上互動：用手機就能做，不用走過去（像現實生活：傳訊息、打電話、叫外送、寄禮物）
+      if act = 'note' then
+        note := trim(coalesce(note,''));
+        if char_length(note) not between 1 and 30 or note ~ '[<>]' or public.has_bad_words(note) then raise exception '訊息要 1～30 個字'; end if;
+        perform public.town_bond(r.town_id, rid, t.id, 1);
+        insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 傳訊息給 ' || tn || '：「' || note || '」');
+      elsif act = 'call' then
+        if t.sleeping then t.sleeping := false; t.fun := t.fun - 3; perform public.town_bond(r.town_id, rid, t.id, -1);
+          insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 打電話把 ' || tn || ' 吵醒了 📞');
+        else t.fun := t.fun + 5; r.fun := r.fun + 5; perform public.town_bond(r.town_id, rid, t.id, 1);
+          insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 和 ' || tn || ' 講了一通電話 📞');
+        end if;
+      elsif act = 'delivery' then
+        if r.money < 25 then raise exception '錢不夠，外送要 €25'; end if;
+        r.money := r.money - 25; t.hunger := t.hunger + 30; perform public.town_bond(r.town_id, rid, t.id, 3);
+        insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 幫 ' || tn || ' 叫了外送 🛵');
+      else
+        if coalesce((r.items->>'gift')::int,0) < 1 then raise exception '背包裡沒有禮物，去超市買'; end if;
+        if r.money < 5 then raise exception '寄送要 €5 運費'; end if;
+        r.items := jsonb_set(r.items, '{gift}', to_jsonb((r.items->>'gift')::int - 1)); r.money := r.money - 5; t.fun := t.fun + 20; perform public.town_bond(r.town_id, rid, t.id, 5);
+        insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 寄了一份禮物給 ' || tn || ' 📦');
+      end if;
     else
       if r.place <> 'home:' || target then raise exception '要先走到他家'; end if;
       if act = 'gift' then
