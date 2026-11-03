@@ -267,6 +267,15 @@ begin
   return json_build_object('ok', true);
 end $$;
 
+-- 用小鎮代碼或邀請碼找到小鎮（兩組碼都是 6 碼，很容易搞混）
+create or replace function public.town_find(code text) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('town_id', id, 'by_invite', id <> upper(trim(code)))
+  from public.town_towns where id = upper(trim(code)) or invite = upper(trim(code)) order by (id = upper(trim(code))) desc limit 1
+$$;
+revoke all on function public.town_find(text) from public;
+grant execute on function public.town_find(text) to anon, authenticated;
+
 -- 登入（也用來換造型）
 create or replace function public.town_login(rid bigint, pin text, new_look jsonb default null) returns json
 language plpgsql security definer set search_path = public as $$
