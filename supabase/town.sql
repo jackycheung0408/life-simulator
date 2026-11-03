@@ -93,7 +93,7 @@ declare o int := public.town_bond_get(x,y); n int := greatest(-100, least(100, o
 begin
   insert into public.town_bonds(town_id,a,b,score) values (tid, least(x,y), greatest(x,y), n) on conflict (a,b) do update set score = n;
   if public.town_tier(o) <> public.town_tier(n) and public.town_tier(n) <> '普通鄰居' then
-    select name into na from public.town_residents where id = x; select name into nb from public.town_residents where id = y;
+    select name into na from public.town_residents where id = town_bond.x; select name into nb from public.town_residents where id = town_bond.y;
     insert into public.town_events(town_id,actor,target,kind,msg) values (tid, x, y, 'tier',
       na || ' 和 ' || nb || case when n > o then ' 的關係升級成「' else ' 的關係變成「' end || public.town_tier(n) || '」' ||
       case public.town_tier(n) when '生死之交' then ' 🤝' when '好麻吉' then ' 💞' when '好朋友' then ' 😊' when '宿敵' then ' ⚔️' when '死對頭' then ' 😤' else ' 😒' end);
