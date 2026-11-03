@@ -41,8 +41,12 @@ label{display:block;margin:10px 0}
 #cv{display:block;width:100%}
 .tools{position:absolute;right:8px;top:8px;display:flex;gap:6px}.tools button{background:rgba(0,0,0,.55);color:#fff;border:none;font-size:13px;padding:6px 10px}
 #here{font-weight:700;font-size:17px}#note{font-size:13px;margin:2px 0 8px}
-#acts{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
-#acts button{display:flex;flex-direction:column;align-items:flex-start;text-align:left}#acts small{color:var(--mut);font-size:12px}
+#acts{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}@media (max-width:520px){#acts{grid-template-columns:1fr 1fr}}
+#acts .act{display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px;border-radius:12px;min-height:56px}
+#acts .ai{font-size:24px;line-height:1;flex:none;width:30px;text-align:center}#acts .at{display:flex;flex-direction:column;min-width:0}#acts .at b{font-size:15px}
+#acts small{color:var(--mut);font-size:12px;line-height:1.35}#acts .act:active{transform:scale(.97)}
+#acts .bad{border-color:color-mix(in srgb,var(--bad) 45%,var(--line));background:color-mix(in srgb,var(--bad) 8%,var(--btn))}#acts .bad small{color:color-mix(in srgb,var(--bad) 70%,var(--mut))}
+#acts .poor{opacity:.55}#acts .poor small{color:var(--bad)}#acts .ghost{background:transparent;border-style:dashed;min-height:44px}
 .ev{display:grid;grid-template-columns:24px 1fr auto;gap:2px 8px;align-items:start;padding:8px 6px 8px 8px;border-bottom:1px solid var(--line);font-size:14px;line-height:1.45;border-left:3px solid transparent}
 .ev .ic{font-size:16px;line-height:1.3}.ev .tm{color:var(--mut);font-size:12px;white-space:nowrap}.ev .ea{grid-column:2/4;display:flex;gap:6px}.ev b{font-weight:700}
 .ev.mine{border-left-color:var(--good);background:color-mix(in srgb,var(--good) 8%,transparent)}.ev.bad{border-left-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,transparent)}
@@ -90,6 +94,6 @@ textarea{width:100%;font:inherit;color:var(--fg);background:var(--btn);border:1p
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide"><div class="card" id="mbody"></div></div>
-<script src="town.js?v=14"></script>
+<script src="town.js?v=15"></script>
 </body>
 </html>
