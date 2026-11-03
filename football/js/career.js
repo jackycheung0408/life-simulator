@@ -89,6 +89,8 @@ function poolFor(p){if(p.twAge!==p.age){p.twAge=p.age;p.smallOk=p.age>=29&&R()<.
  // 優先：本國、真實常去的國家、頂級聯賽（4 級以上，能力夠才會被考慮）
  const r2=CLUBS.filter(c=>c.ct==p.c||(exp.includes(c.ct)&&c.tier>=2)||c.tier>=4||p.smallOk);if(exp.length&&r2.filter(c=>c.ct!=p.c).length>=6)return r2;
  return r.filter(c=>c.ct!=p.c).length>=6?r:CLUBS.filter(c=>c.ct==p.c||c.tier>=2||p.smallOk)}
+// 每年試訓能不能被簽：依各國真實踢上職業的難度（17～22 歲每年都能再試，所以單次機率要低）
+function scarcity(p){return clamp(150/realOdds(p.c).pro,.025,.4)+.01*(p.academy||0)}
 async function firstContract(){
  const p=P,o=ovr(p);
  if(!p.rel?.agent)await ask(RV("有幾位經紀人想代理你","經紀公司排隊想簽你","一位經紀人在訓練場外等你","爸媽接到好幾通經紀人的電話"),[["簽大牌經紀人（抽成 10%）",()=>{meet(p,"agent",null,75);p.agentCut=.1},"談判力強，挖角機會多"],["讓家人幫你處理",()=>{meet(p,"agent",(p.fam.sib?"哥哥":"爸爸"),55);p.agentCut=.02;p.morale+=3},"可信任，但人脈少"],["找朋友介紹的新手經紀人（抽成 5%）",()=>{meet(p,"agent",null,45+R()*25);p.agentCut=.05},"看運氣"]]);const weak=p.cs<65,seen=c=>c.ct==p.c||(c.tier>=Math.max(2,p.ctier)&&(p.academy==5||(p.scouted&&!weak)||o>=c.str-(weak?3:8))); // 國外球隊要先被球探看到；足球弱國的球員更難被注意
@@ -96,6 +98,8 @@ async function firstContract(){
  const home=offers.filter(c=>c.ct==p.c),abroad=offers.filter(c=>c.ct!=p.c);
  const list=[...new Set([home[0],abroad[0],abroad[1],home[1]].filter(Boolean))].slice(0,3);
  if(!list.length){say("沒有職業球隊開出合約。");return}
+ // 現實模式：職業名額很少，依各國真實踢上職業的難度決定試訓能不能過（台灣、中國、美國很難；英格蘭、巴西相對容易）
+ if(p.mode!="pro"&&R()>scarcity(p)){say(pick(["去了幾支球隊試訓，最後都沒有簽你。","試訓表現不差，但球隊說名額已經滿了。","經紀人跑了一整個夏天，還是沒有球隊開出合約。"]));return}
  await ask(`${p.age} 歲，職業俱樂部遞出合約`,list.map(c=>[`${c.name}（${c.lg}）`,()=>sign(c,3),`球隊實力 ${c.str} · ${roleOf(p,c)}起步 · 週薪約 ${eur(wageOf(c,p)/52)}`]).concat([["先不簽，繼續練一年",()=>{p.a.體能+=2},"之後可能有更好的合約，也可能沒有"]]));
 }
 // 在球隊裡的角色：實力差太多只能待預備隊，不會出賽職業比賽
@@ -114,7 +118,7 @@ async function amateur(){
  const p=P,o=ovr(p);if(p.club||p.footEnd)return;
  if(p.age==19||p.age==21)await ask(`${p.age} 歲，還沒有職業隊願意簽你（目前能力 ${Math.round(o)}）`,[
   ["放棄職業夢，好好讀書或找工作",()=>endFootball(`${p.age} 歲時放棄職業夢。`),"結束足球生涯"],
-  ["去低級別球隊試訓",()=>{const c=poolFor(P).filter(x=>x.str<=o+10&&x.ct==p.c).sort((a,b)=>b.str-a.str)[0]||poolFor(P).filter(x=>x.str<=o+10&&x.tier>=Math.max(2,p.ctier)).sort((a,b)=>b.str-a.str)[0];if(c&&R()<.15+Math.max(0,(o-c.str+8)/40))sign(c,1);else say("試訓沒有通過。")},"成功率不高"],
+  ["去低級別球隊試訓",()=>{const c=poolFor(P).filter(x=>x.str<=o+10&&x.ct==p.c).sort((a,b)=>b.str-a.str)[0]||poolFor(P).filter(x=>x.str<=o+10&&x.tier>=Math.max(2,p.ctier)).sort((a,b)=>b.str-a.str)[0];if(c&&R()<.15+Math.max(0,(o-c.str+8)/40)&&R()<scarcity(p))sign(c,1);else say("試訓沒有通過。")},"成功率不高"],
   ["邊打工邊在業餘隊踢，再拚一年",()=>{p.money+=.005;p.morale-=3;p.a.體能+=1},"堅持"]]);
  if(p.mode=="pro"&&p.age>=19&&!p.club&&!p.footEnd){proRescue(p);return}
  if(p.age>=23&&!p.club&&!p.footEnd)endFootball("一直沒有職業球隊願意簽約，終究沒能成為職業球員。");
