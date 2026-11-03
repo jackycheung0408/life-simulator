@@ -280,7 +280,7 @@ function finish(){
  drawFace($("cface"),p);
  checkAch(p,true);$("endAch").innerHTML=`<b>這段生涯的成就</b><br>${Object.entries(p.achGot||{}).map(([n,t])=>`${TIER[t-1].split(" ")[0]} ${n}`).join("　")||"沒有"}`;drawReport("endReports");const _unused=p.seasons.map(s=>`<div class="row"><span>${s.y}（${s.age}歲）${s.club}</span><span>${s.apps} 場 · ${s.goals} 球 · 評分 ${s.rating}${s.titles.length?" · 🏆":""}</span></div>`).join("")||"<p class='mut'>沒有職業球季。</p>";
  try{const h=JSON.parse(localStorage.getItem("fb-hof")||"[]");h.push({name:p.name,c:p.c,pos:p.pos,sc,title:(p.card?p.card+"・":"")+title,peak:Math.round(p.peak),goals:p.goals,tro:p.trophies.length,y:`${p.y0}–${p.y0+p.age}`});h.sort((a,b)=>b.sc-a.sc);localStorage.setItem("fb-hof",JSON.stringify(h.slice(0,20)))}catch{}
- p._sc=sc;p._title=title;$("cardImg").onclick=()=>shareCard(p);$("upload").onclick=()=>uploadCareer(p);if(!p.debut){$("upload").classList.add("hide")}
+ p._sc=sc;p._title=title;$("cardImg").onclick=()=>shareCard(p);$("upload").onclick=()=>uploadCareer(p);if(!p.debut){$("upload").classList.add("hide")}else if(!p.uploaded){p.uploaded=1;uploadCareer(p)} // 踢上職業的生涯在結局自動上傳（只有球員名字與數據）
  $("share").onclick=async()=>{const text=`我在足球員模擬器踢了一生：${p.name}（${p.c}·${POS[p.pos]}），巔峰能力 ${Math.round(p.peak)}，${p.goals} 球、${p.trophies.length} 座冠軍。${location.href.split("?")[0]}`;try{if(navigator.share)await navigator.share({text});else{await navigator.clipboard.writeText(text);toast("已複製分享文字")}}catch{}};
 }
 
@@ -361,7 +361,7 @@ function devId(){let d=null;try{d=localStorage.getItem("fb-dev")}catch{}if(!d){d
 async function uploadCareer(p){const b=$("upload");if(b.dataset.done)return;b.disabled=true;b.textContent="上傳中…";
  const row={device:devId(),name:p.name.slice(0,24),country:p.c.slice(0,12),pos:p.pos,title:String(p._title||"").slice(0,30),peak:Math.min(99,Math.round(p.peak)),apps:Math.min(1200,p.apps),goals:Math.min(1500,p.goals),trophies:Math.min(60,p.trophies.length),awards:Math.min(80,p.awards.length),score:Math.min(2500,p._sc||0),born:p.y0,died:p.y0+p.age};
  try{const r=await fetch(SB+"fb_careers",{method:"POST",headers:{...SBH,Prefer:"return=minimal"},body:JSON.stringify(row)});
-  if(r.ok){b.dataset.done=1;b.textContent="✔ 已上傳";toast("已上傳到全球排行榜");return}
+  if(r.ok){b.dataset.done=1;b.textContent="✔ 已自動上傳到全球排行榜";toast("已上傳到全球排行榜");try{loadBoard()}catch{}return}
   const e=await r.json().catch(()=>({}));toast({"too fast":"送太快了，請一分鐘後再試","bad words":"名字含有不當字詞，無法上傳",busy:"現在上傳的人太多，請稍後再試"}[e.message]||"資料不符合排行榜規則，無法上傳")}catch{toast("連線失敗，請稍後再試")}
  b.disabled=false;b.textContent="🌍 上傳到全球排行榜"}
 let gbCountry="";
