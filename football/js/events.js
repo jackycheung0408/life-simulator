@@ -107,7 +107,7 @@ async function bigMatch(kind,oppStr,myStr){
   const pool=CLUBS.filter(c=>c.name!=p.club&&(kind.scope=="league"?c.lg==me.lg:kind.scope=="cup"?c.ct==me.ct:kind.scope=="cont"?CONT[c.ct]==CONT[me.ct]&&contOk(c):true));
   const near=pool.filter(c=>Math.abs(c.str-oppStr)<8);return (near.length?pick(near):pool.length?pick(pool):{name:kind.scope=="league"?"聯賽對手":"對手"}).name})();
  let us=0,them=0,fx=null;sfx("whistle");const moments=[15+Math.floor(R()*20),45+Math.floor(R()*20),75+Math.floor(R()*12)].slice(0,R()<.5?2:3);
- say(`⚔ ${kind.name}：${kind.team||p.club} vs ${opp}`,1);
+ say(`⚽ 大比賽｜${kind.name}：${kind.team||p.club} vs ${opp}`,1);
  const os=(p.stars||[]).find(s=>s.active&&(s.club==opp||(kind.team&&s.c==opp)));if(os)say(`對方陣中有 ${os.n}。`);
  for(let m=0;m<=90;m+=5){const u0=us,t0=them;
   // 雙方依實力隨機進球
@@ -325,6 +325,23 @@ GEN.teen.push(
 // 同一種事件最近用過就先跳過，避免連續兩年都是「寒流停課」
 async function genEvent(kind){const p=P,L=GEN[kind];p.genRecent=p.genRecent||[];const fit=L.map((_,i)=>kind+i).filter(k=>evOk(L[+k.slice(kind.length)],p));if(!fit.length)return;const ok=fit.filter(k=>!p.genRecent.includes(k)),k=ok.length?pick(ok):pick(fit);
  p.genRecent.push(k);if(p.genRecent.length>L.length-1)p.genRecent.shift();await L[+k.slice(kind.length)](p)}
+// ── 被動事件：球隊、聯賽、足壇、家人、身體……每個階段都會發生一兩件，讓紀錄更像真的日子 ──
+const NEWS=[
+ p=>p.club&&`${p.club}簽下一名${pick(["年輕的","經驗豐富的","外籍"])}${pick(["前鋒","中場","後衛","門將"])}，${pick(["更衣室多了新面孔","你的位置競爭變激烈了","教練說他是來補強輪換的"])}。`,
+ p=>p.club&&`${pick(["隊長","老門將","主力後衛","球隊的老將"])}${pick(["宣布這季結束後退休","受了重傷要休半季","被賣到中東","和球隊續約三年"])}。`,
+ p=>p.club&&`${p.club}的${pick(["主場草皮重新整修","新訓練中心落成","球衣贊助商換了","老闆說要增資買人","票價調漲，球迷抗議"])}。`,
+ p=>p.club&&`${p.clubObj?.lg||"聯賽"}本週${pick(["爆出冷門，墊底球隊擊敗領頭羊","有球隊換了總教練","有三場比賽因大雨延期","出現一記被選為年度最佳的進球"])}。`,
+ p=>{const s=(p.stars||[]).filter(x=>x.active&&x.club&&!x.fic);if(!s.length)return null;const x=pick(s);return pick([`${x.n}在${x.club}上演帽子戲法，登上各大體育版頭條。`,`${x.n}傳出可能轉會的消息，身價被炒到天價。`,`${x.n}受傷缺陣，${x.club}戰績下滑。`,`${x.n}被選為本月最佳球員。`])},
+ p=>{const s=(p.stars||[]).filter(x=>x.tier=="青訓同學"&&x.active);if(!s.length)return null;const x=pick(s);return x.club?`以前的青訓同學 ${x.n} 在${x.club}${pick(["拿到先發位置","打進了職業生涯第一球","被租借出去"])}。`:`以前的青訓同學 ${x.n} 還在找球隊，傳訊息問你近況。`},
+ p=>`${g("family")}${pick(["打電話來問你吃飽沒","在電視上看到你的比賽，興奮地傳了好多訊息","生日到了，你寄了禮物回家","最近身體不錯，叫你別擔心"])}。`,
+ p=>pick([`${g("weather")}讓訓練改到室內。`,`國際比賽日，球隊放假三天。`,`連續客場，在飯店待了一整週。`,`隊上辦了烤肉聚會。`,`球迷在訓練場外等了兩小時要簽名。`]),
+ p=>p.fame>40&&`${g("media")}${pick(["分析了你最近的比賽數據","把你列進本季值得關注的球員","討論你下一季會不會轉會"])}。`,
+ p=>p.age>=29&&pick(["早上起床膝蓋有點緊，比年輕時多花十分鐘熱身。","新進的年輕球員叫你「前輩」，你才發現自己已經是老將。","隊醫說你的恢復時間比以前長了。"]),
+ p=>p.partner&&pick(["和另一半找到一間喜歡的咖啡店。","另一半來看你比賽，賽後一起去吃宵夜。","休假時陪另一半回老家。"]),
+ p=>p.kids>0&&pick(["孩子在學校說爸爸是足球員，同學都不相信。","帶孩子去公園踢球，他一直搶不到球。","孩子生病了，你整晚沒睡好。"]),
+ p=>!p.club&&p.age>=13&&pick([`學校${pick(["段考成績出來了","辦了運動會","換了新的體育老師"])}。`,`青訓營的${pick(["宿舍冷氣壞了","教練換人了","球場重新畫線"])}。`,`週末和同學去看了一場職業比賽。`]),
+];
+function passiveNews(p){p.newsSeen=p.newsSeen||[];const L=NEWS.map((f,i)=>i).filter(i=>!p.newsSeen.includes(i)).sort(()=>R()-.5);for(const i of L){const t=NEWS[i](p);if(t){p.newsSeen.push(i);if(p.newsSeen.length>6)p.newsSeen.shift();return t}}return null}
 // 事件觸發條件：用題目裡的關鍵字對應，跟現況不符的事件不會被抽到
 // （例如已經是一線隊主力，就不會再有「一線隊缺人，叫你跟去客場」）
 const EV_OK=[
@@ -337,6 +354,8 @@ const EV_OK=[
  ["一線隊的位置被新買的球員卡住",p=>!p.debut||p.role=="預備隊"]];
 const evOk=(f,p)=>{const src=f.toString();for(const [k,c] of EV_OK)if(src.includes(k))return c(p);return true};
 async function phaseEvent(pool){const p=P;p.evSeen=p.evSeen||{};const tag=pool===YOUTH_EVENTS?"y":"p";
+ // 被動發生的事：不用你做決定，但世界一直在動
+ if(R()<.7){const t=passiveNews(p);if(t)say("📰 "+t)}
  if(R()<.25){const ms=MINOR.filter(m=>evOk(m,p));if(ms.length){say(pick(ms)(p));return}}
  if(R()<.45){await genEvent(tag=="y"?"teen":"pro");return}
  const fit=pool.map((f,i)=>i).filter(i=>evOk(pool[i],p));if(!fit.length)return;

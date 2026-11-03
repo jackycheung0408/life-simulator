@@ -25,7 +25,7 @@ const N=+process.argv[2]||40;const fails=[];const check=(ok,msg)=>{if(!ok)fails.
   if(p.debut)pro++;seasons+=p.seasons.length;titles+=p.trophies.filter(t=>/聯賽冠軍/.test(t[1])).length;
   maxSave=Math.max(maxSave,(store["fb-saves"]||"").length);
   // 大比賽對手要在同一個賽事範圍
-  for(const [,t] of p.log){const m=t.match(/⚔ (.+?)：(.+?) vs (.+)$/);if(!m||/世界盃|國家盃|美洲盃|亞洲盃|金盃/.test(m[1]))continue;
+  for(const [,t] of p.log){const m=t.match(/大比賽｜(.+?)：(.+?) vs (.+)$/);if(!m||/世界盃|國家盃|美洲盃|亞洲盃|金盃/.test(m[1]))continue;
    const a=T_CL.find(c=>c.name==m[2]),b=T_CL.find(c=>c.name==m[3]);if(!a||!b)continue;
    const ok=/冠軍聯賽|自由盃|冠軍盃/.test(m[1])?T_CONT[a.ct]==T_CONT[b.ct]:/盃決賽/.test(m[1])?a.ct==b.ct:a.lg==b.lg;if(!ok)badOpp++}
   // 同世代球星不該去不合理的聯賽
