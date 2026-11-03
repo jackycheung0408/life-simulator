@@ -32,6 +32,7 @@ $("skipEnd").onclick=e=>{const b=e.currentTarget;if(!b.dataset.arm){b.dataset.ar
 const TOUR=[[".hud","時間會自己往前走","這裡是年齡和這一年的進度條。可以暫停、加速，或按「下一個抉擇」直接跳到下一個要你做決定的地方。"],
  ["#stats","你的能力","開始踢球後，六大能力（速度、射門……）決定綜合評分。小小的 ▲▼ 是今年的變化。下面還有身價、疲勞、名氣和人際關係。"],
  ["#planCard","每週訓練表","點一天就能換訓練內容（小時候是放學後的時間安排）。練什麼就長什麼，但疲勞超過 70 容易受傷；能力到上限時會提醒你改練別的。"],
+ ["#intentCard","場上意向","點球場上的區域，決定你比賽中主要待在哪裡，再選比賽意識和跑動方式。下方會即時顯示對進球、助攻、零封、疲勞的影響。"],
  ["#mgrCard","生涯管理","想轉會、談加薪、換經紀人，從這裡主動提出。每項每季能用一次。"],
  ["#log","抉擇與紀錄","遇到抉擇時會跳出視窗，選項下方的小字是效果或成功率。你的每個選擇都會影響後面的人生，這裡會記下來。"]];
 function tour(i=0,only=false){const old=document.querySelector(".tour-hi");if(old)old.classList.remove("tour-hi");$("tour")?.remove();
@@ -44,7 +45,7 @@ function tour(i=0,only=false){const old=document.querySelector(".tour-hi");if(ol
  scrollTo({top:Math.max(0,el.getBoundingClientRect().top+scrollY-off),behavior:"smooth"})
  document.body.insertAdjacentHTML("beforeend",`<div id="tour"><h3>${t}</h3><p>${d}</p><div class="tn"><span>${only?"新功能":`${i+1} / ${TOUR.length}`}</span><span><button id="tSkip" class="linkbtn">略過</button> <button id="tNext" class="pri">${only?"知道了":i==TOUR.length-1?"開始踢球":"下一步"}</button></span></div></div>`);
  $("tNext").onclick=()=>tour(only?TOUR.length:i+1);$("tSkip").onclick=()=>tour(TOUR.length)}
-function start(p){P=p;$("home").classList.add("hide");$("game").classList.remove("hide");scrollTo(0,0);renderPlan();render();loop();let seen=null;try{seen=localStorage.getItem("fb-tour")}catch{}if(!seen)setTimeout(()=>tour(0),400)}
+function start(p){P=p;$("home").classList.add("hide");$("game").classList.remove("hide");scrollTo(0,0);renderPlan();render();loop();let seen=null;try{seen=localStorage.getItem("fb-tour")||localStorage.getItem("fb-played")}catch{}if(!seen)setTimeout(()=>tour(0),400)}
 $("draw").onclick=drawCard;$("redraw").onclick=()=>{if(!redraws)return;redraws--;draws=3;drawn.length=0;cfg.card=null;renderCards();toast(`重抽！還剩 ${redraws} 次機會`)};$("noCard").onclick=()=>{cfg.card=null;renderCards()};renderCards();
 $("go").onclick=async()=>{const p=newPlayer(cfg.w,cfg.pos);p.mode=cfg.mode;
  if(cfg.card!==null&&drawn[cfg.card]){const d=drawn[cfg.card];p.pot=d.pot;p.talent=Math.max(30,d.pot-12);p.card=d.r;p.flair=d.flair}p.id=Date.now()+"";starsInit(p,cfg.stars);P=p;await reveal(p);say(`${p.name}出生在${p.c}。`,1);start(p)};

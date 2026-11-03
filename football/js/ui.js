@@ -273,7 +273,7 @@ function renderMgr(){const el=$("mgr");if(!el||!P)return;const p=P;p.mgrUsed=p.m
 async function loop(){
  while(P.alive&&!P.footEnd){
   if(P.club&&!P.retired)await season();else{await quietYear();await season()}
-  pendingSkip=false;checkAch(P);if(!auto&&!toEnd)TOUR.forEach(([sel],i)=>{let f=1;try{f=localStorage.getItem("fb-tour"+sel)}catch{}const el=document.querySelector(sel);if(!f&&el&&el.offsetParent&&!$("tour"))tour(i,true)});render();renderPlan();drawReport("reports");save();
+  pendingSkip=false;checkAch(P);let played=null;try{played=localStorage.getItem("fb-played")}catch{}if(!auto&&!toEnd&&!played)TOUR.forEach(([sel],i)=>{let f=1;try{f=localStorage.getItem("fb-tour"+sel)}catch{}const el=document.querySelector(sel);if(!f&&el&&el.offsetParent&&!$("tour"))tour(i,true)});render();renderPlan();drawReport("reports");save();
  }
  finish();
 }
@@ -285,7 +285,7 @@ function save(){const all=slots();P.id=P.id||Date.now()+"";all[P.id]={P:slim(P),
  Object.keys(all).sort((a,b)=>all[b].t-all[a].t).slice(6).forEach(k=>delete all[k]);
  for(let i=0;i<5;i++){try{localStorage.setItem("fb-saves",JSON.stringify(all));return}catch{const old=Object.keys(all).filter(k=>k!=P.id).sort((a,b)=>all[a].t-all[b].t)[0];if(old)delete all[old];else P.log=P.log.slice(-300)}}}
 function score(p){return Math.round(p.peak*1.2+p.trophies.length*8+p.awards.length*12+p.caps*.3+p.goals*.15+(p.wc||0)*6)}
-function finish(){
+function finish(){try{localStorage.setItem("fb-played","1")}catch{}
  try{const all=slots();delete all[P.id];localStorage.setItem("fb-saves",JSON.stringify(all))}catch{}
  const p=P;$("game").classList.add("hide");$("end").classList.remove("hide");scrollTo(0,0);
  const sc=score(p),title=p.awards.some(a=>a[1]=="世界足球先生")?"世界足球先生":p.trophies.some(t=>t[1]=="世界盃冠軍")?"世界冠軍":p.peak>=85?"一代球星":p.peak>=75?"職業好手":p.debut?"職業球員":p.footEnd?({青訓:"青訓營畢業生",業餘:"業餘球員",學校隊:"學校隊隊員",少年隊:"少年隊球員"}[p.stage]||"踢過球的孩子"):"追夢的人";
