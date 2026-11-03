@@ -301,7 +301,12 @@ function finish(){try{localStorage.setItem("fb-played","1")}catch{}
  <div class="chart" style="margin-top:10px">${chart(p.ovrHist,"能力值變化")}</div>`;
  drawFace($("cface"),p);
  checkAch(p,true);$("endAch").innerHTML=`<b>這段生涯的成就</b><br>${Object.entries(p.achGot||{}).map(([n,t])=>`${TIER[t-1].split(" ")[0]} ${n}`).join("　")||"沒有"}`;drawReport("endReports");const _unused=p.seasons.map(s=>`<div class="row"><span>${s.y}（${s.age}歲）${s.club}</span><span>${s.apps} 場 · ${s.goals} 球 · 評分 ${s.rating}${s.titles.length?" · 🏆":""}</span></div>`).join("")||"<p class='mut'>沒有職業球季。</p>";
- try{const h=JSON.parse(localStorage.getItem("fb-hof")||"[]");h.push({name:p.name,c:p.c,pos:p.pos,sc,title:(p.card?p.card+"・":"")+title,peak:Math.round(p.peak),goals:p.goals,tro:p.trophies.length,y:`${p.y0}–${p.y0+p.age}`});h.sort((a,b)=>b.sc-a.sc);localStorage.setItem("fb-hof",JSON.stringify(h.slice(0,20)))}catch{}
+ try{const h=JSON.parse(localStorage.getItem("fb-hof")||"[]");h.push({name:p.name,c:p.c,pos:p.pos,sc,title:(p.card?p.card+"・":"")+title,peak:Math.round(p.peak),goals:p.goals,tro:p.trophies.length,y:`${p.y0}–${p.y0+p.age}`,
+   // 回顧用的精簡資料（存在這台裝置）
+   d:(()=>{const cnt=a=>{const o={};a.forEach(([,t])=>o[t]=(o[t]||0)+1);return Object.entries(o).sort((x,y)=>y[1]-x[1]).slice(0,10)};const sr=starRank(p);
+    return {apps:p.apps,assists:p.assists,cleans:p.cleans,caps:p.caps,ig:p.intlGoals,clubs:p.clubsPlayed.slice(0,12),tro:cnt(p.trophies),aw:cnt(p.awards),honors:p.honors||[],
+     ss:p.seasons.map(s=>[s.y,s.age,s.club,s.apps,s.goals,s.assists,s.rating,s.ovr,s.pos||null]),arcs:(p.arcs||[]).slice(0,6).map(a=>[a.from,a.y,a.txt.slice(0,80)]),
+     rank:sr?[sr.rank,sr.all.length]:null,after:p.afterDetail||p.after||"",end:p.footEnd||"",bg:p.bg||"",style:p.age>=13?styleOf(p):"",maxV:p.maxValue,inj:p.injuries,dp:posName(p)}})()});h.sort((a,b)=>b.sc-a.sc);localStorage.setItem("fb-hof",JSON.stringify(h.slice(0,20)))}catch{}
  p._sc=sc;p._title=title;$("cardImg").onclick=()=>shareCard(p);$("upload").onclick=()=>uploadCareer(p);if(!p.debut){$("upload").classList.add("hide")}else if(!p.uploaded){p.uploaded=1;uploadCareer(p)} // 踢上職業的生涯在結局自動上傳（只有球員名字與數據）
  $("share").onclick=async()=>{const text=`我在足球員模擬器踢了一生：${p.name}（${p.c}·${POS[p.pos]}），巔峰能力 ${Math.round(p.peak)}，${p.goals} 球、${p.trophies.length} 座冠軍。${location.href.split("?")[0]}`;try{if(navigator.share)await navigator.share({text});else{await navigator.clipboard.writeText(text);toast("已複製分享文字")}}catch{}};
 }

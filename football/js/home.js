@@ -58,7 +58,21 @@ function renderSlots(){const all=slots(),ids=Object.keys(all).filter(k=>all[k].P
  $("resume").querySelectorAll(".rs").forEach(b=>b.onclick=()=>loadSlot(slots()[b.dataset.k]));
  $("resume").querySelectorAll(".del").forEach(b=>b.onclick=()=>{if(!b.dataset.arm){b.dataset.arm=1;b.textContent="確定？";setTimeout(()=>{delete b.dataset.arm;b.textContent="✕"},3000);return}const all=slots();delete all[b.dataset.k];localStorage.setItem("fb-saves",JSON.stringify(all));renderSlots()})}
 try{renderSlots()}catch{}
-try{const h=JSON.parse(localStorage.getItem("fb-hof")||"[]");$("hof").innerHTML=h.length?h.map((x,i)=>`<div class="hcard ${i<3?"m"+(i+1):""}"><div class="hrank">${i<3?["🥇","🥈","🥉"][i]:"#"+(i+1)}</div><div class="hpeak"><b>${x.peak}</b><small>巔峰</small></div><div class="hmain"><div class="hname">${esc(x.name)}</div><div class="htitle">${esc(x.title)}</div><div class="hmeta">${esc(x.c)} · ${POS[x.pos]||x.pos} · ${x.y}</div><div class="hstats"><span>⚽ ${x.goals}</span><span>🏆 ${x.tro}</span><span class="hsc">評分 ${x.sc}</span></div></div></div>`).join(""):"<p class='mut'>還沒有踢完的生涯。</p>"}catch{}
+try{const h=JSON.parse(localStorage.getItem("fb-hof")||"[]");$("hof").innerHTML=h.length?h.map((x,i)=>`<div data-i="${i}" title="點一下看生涯回顧" class="hcard ${i<3?"m"+(i+1):""}"><div class="hrank">${i<3?["🥇","🥈","🥉"][i]:"#"+(i+1)}</div><div class="hpeak"><b>${x.peak}</b><small>巔峰</small></div><div class="hmain"><div class="hname">${esc(x.name)}</div><div class="htitle">${esc(x.title)}</div><div class="hmeta">${esc(x.c)} · ${POS[x.pos]||x.pos} · ${x.y}</div><div class="hstats"><span>⚽ ${x.goals}</span><span>🏆 ${x.tro}</span><span class="hsc">評分 ${x.sc}</span></div></div></div>`).join(""):"<p class='mut'>還沒有踢完的生涯。</p>"}catch{}
+// 傳奇殿堂：點卡片看那段生涯的回顧
+function hofReview(x){const d=x.d,row=(k,v)=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`;
+ const body=!d?`<p class="mut">這是舊版本踢完的生涯，只留下基本資料。之後踢完的生涯都可以完整回顧。</p>`:`
+  <div class="grid">${row("出賽",d.apps)}${row(x.pos=="GK"?"零封":"進球",x.pos=="GK"?d.cleans:x.goals)}${row("助攻",d.assists)}${row("國家隊",`${d.caps} 場 ${d.ig} 球`)}${row("最高身價",eur(d.maxV||0))}${row("受傷",d.inj+" 次")}${d.rank?row("同世代排名",`${d.rank[0]} / ${d.rank[1]}`):""}${row("位置",d.dp||POS[x.pos])}${d.style?row("球風",d.style):""}</div>
+  ${d.bg?`<p class="mut">出身：${esc(d.bg)}${d.end?`　·　${esc(d.end)}`:""}${d.after?`　·　之後：${esc(d.after)}`:""}</p>`:""}
+  <p><b>效力過</b>　${d.clubs.map(esc).join(" → ")||"沒有職業球隊"}</p>
+  ${d.tro.length?`<p><b>🏆 冠軍</b>　${d.tro.map(([t,n])=>`${esc(t)}${n>1?" ×"+n:""}`).join("、")}</p>`:""}
+  ${d.aw.length?`<p><b>🥇 個人獎項</b>　${d.aw.map(([t,n])=>`${esc(t)}${n>1?" ×"+n:""}`).join("、")}</p>`:""}
+  ${d.honors.length?`<p><b>🏛 傳奇榮譽</b>　${d.honors.map(esc).join("、")}</p>`:""}
+  ${d.arcs.length?`<div><b>🔗 關鍵時刻</b>${d.arcs.map(([a,b,t])=>`<div class="arc"><div class="arc-y"><b>${a}</b><span>→</span><b>${b}</b></div><div>${esc(t)}</div></div>`).join("")}</div>`:""}
+  ${d.ss.length?`<div class="tbl"><table><tr><th>年</th><th>歲</th><th style="text-align:left">球隊</th><th>出賽</th><th>進球</th><th>助攻</th><th>評分</th><th>能力</th></tr>${d.ss.map(s=>`<tr><td>${s[0]}</td><td>${s[1]}</td><td style="text-align:left">${esc(s[2])}</td><td>${s[3]}</td><td>${s[4]}</td><td>${s[5]}</td><td>${s[6]}</td><td>${s[7]}</td></tr>`).join("")}</table></div>`:""}`;
+ document.body.insertAdjacentHTML("beforeend",`<div id="hofPv"><div class="sheet"><span class="tag">${esc(x.y)}</span><h2>${esc(x.name)}　<small class="mut">${esc(x.title)} · ${esc(x.c)} · 巔峰 ${x.peak} · 評分 ${x.sc}</small></h2>${body}<button class="opt" id="hofX">關閉</button></div></div>`);
+ const close=()=>$("hofPv").remove();$("hofX").onclick=close;$("hofPv").onclick=e=>{if(e.target.id=="hofPv")close()}}
+try{const h=JSON.parse(localStorage.getItem("fb-hof")||"[]");$("hof").querySelectorAll(".hcard").forEach(c=>c.onclick=()=>hofReview(h[+c.dataset.i]))}catch{}
 $("ctry").innerHTML=`<option value="world">🎲 足球世界隨機（依足球人口）</option>`+COUNTRIES.slice().sort((a,b)=>b[2]-a[2]).map(c=>`<option value="${c[0]}">${c[0]}（國家隊強度 ${c[2]}）</option>`).join("");
 $("ctry").onchange=e=>{cfg.w=e.target.value};
 $("oddsTbl").innerHTML=COUNTRIES.map(c=>c[0]).map(c=>{const o=realOdds(c);return `${c}：職業球員 ${oneIn(o.pro)}、五大聯賽 ${oneIn(o.top5)}`}).join("<br>");
