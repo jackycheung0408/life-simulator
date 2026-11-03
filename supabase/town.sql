@@ -158,9 +158,9 @@ begin
     -- 每週排行（最近 7 天）：最勤勞、最受歡迎、最欠扁、最愛照顧人
     'week',(select json_build_object(
       'work',(select coalesce(json_agg(x),'[]') from (select actor id, count(*) n from public.town_events where town_id = t.id and at > now() - interval '7 days' and kind in ('work','cowork') and actor is not null group by actor order by n desc limit 3) x),
-      'popular',(select coalesce(json_agg(x),'[]') from (select target id, count(*) n from public.town_events where town_id = t.id and at > now() - interval '7 days' and kind in ('feed','wash','visit','gift','note','thank','greet','feast') and target is not null group by target order by n desc limit 3) x),
+      'popular',(select coalesce(json_agg(x),'[]') from (select target id, count(*) n from public.town_events where town_id = t.id and at > now() - interval '7 days' and kind in ('feed','wash','visit','gift','note','thank','greet','feast','delivery','call') and target is not null group by target order by n desc limit 3) x),
       'punched',(select coalesce(json_agg(x),'[]') from (select target id, count(*) n from public.town_events where town_id = t.id and at > now() - interval '7 days' and kind in ('fight','egg','prank') and target is not null group by target order by n desc limit 3) x),
-      'kind',(select coalesce(json_agg(x),'[]') from (select actor id, count(*) n from public.town_events where town_id = t.id and at > now() - interval '7 days' and kind in ('feed','wash','visit','gift','note','feast') and actor is not null group by actor order by n desc limit 3) x))),
+      'kind',(select coalesce(json_agg(x),'[]') from (select actor id, count(*) n from public.town_events where town_id = t.id and at > now() - interval '7 days' and kind in ('feed','wash','visit','gift','note','feast','delivery') and actor is not null group by actor order by n desc limit 3) x))),
     'events',(select coalesce(json_agg(e order by e.at desc, e.id desc),'[]') from
       (select id,at,actor,target,kind,msg from public.town_events where town_id = t.id and kind <> 'work' order by at desc, id desc limit 60) e));
 end $$;
@@ -355,7 +355,7 @@ begin
     near := (r.place = t.place and r.place <> 'street') or (abs(r.x - t.x) + abs(r.y - t.y) <= 2.5);
     if act = 'thank' then
       -- 道謝：對方三天內有照顧過你才能謝
-      if not exists (select 1 from public.town_events e where e.actor = t.id and e.target = rid and e.kind in ('feed','wash','visit','gift','note','greet') and e.at > now() - interval '3 days') then raise exception '% 最近沒有照顧你', tn; end if;
+      if not exists (select 1 from public.town_events e where e.actor = t.id and e.target = rid and e.kind in ('feed','wash','visit','gift','note','greet','delivery','call','feast') and e.at > now() - interval '3 days') then raise exception '% 最近沒有照顧你', tn; end if;
       t.fun := t.fun + 8; perform public.town_bond(r.town_id, rid, t.id, 2);
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 謝謝 ' || tn || ' 的照顧 💗');
     elsif act = 'fight' then
