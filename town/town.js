@@ -132,7 +132,7 @@ function joinStep(){const free=[];for(let s=0;s<12;s++)if(!bySlot(s))free.push(s
 function lookPicker(el,look,cb){const row=(k,arr,label)=>`<div class="lrow"><span>${label}</span>${arr.map(v=>k=="style"?`<button class="sw${look[k]==v?" on":""}" data-k="${k}" data-v="${v}">${v}</button>`:`<button class="sw dot${look[k]==v?" on":""}" data-k="${k}" data-v="${v}" style="background:${v}" aria-label="${label}"></button>`).join("")}</div>`;
  const draw=()=>{el.innerHTML=`<div class="lookbox"><canvas id="lkcv" width="80" height="88"></canvas><div>${row("skin",SKIN,"膚色")}${row("hair",HAIR,"髮色")}${row("style",STYLE,"髮型")}${row("shirt",SHIRT,"衣服")}</div></div>`;
   miniPerson(el.querySelector("canvas"),look);el.querySelectorAll(".sw[data-k]").forEach(b=>b.onclick=()=>{look={...look,[b.dataset.k]:b.dataset.v};cb(look);draw()})};draw()}
-async function enter(){await refresh();$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
+async function enter(){await refresh();refreshBell().catch(()=>{});$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
  const w=walkers[me];cam.x=w.x*T;cam.y=w.y*T;resize();$("mayor").classList.toggle("hide",!R[me].mayor);
  const ent=mine().find(x=>x.tid==TID);if(ent&&ent.invite){shareModal(ent.invite,true);delete ent.invite;saveMine(ent);return}
  const mineEv=(S.events||[]).filter(e=>e.target==me&&(!lastSeen||e.at>lastSeen));
@@ -331,6 +331,24 @@ function installHelp(){if(installEvt){installEvt.prompt();installEvt.userChoice.
   :`<ol><li>點瀏覽器右上角「⋮」</li><li>選「<b>安裝應用程式</b>」或「<b>加到主畫面</b>」</li></ol>`}
   <p class="mut">裝好後主畫面會有小豬圖示，打開就直接進你的小鎮，畫面沒有網址列，像一般 App。</p><div class="row"><button id="mc">知道了</button></div>`;$("mc").onclick=()=>$("modal").classList.add("hide")}
 if(!standalone){$("install").classList.remove("hide");$("install").onclick=installHelp}
+
+// ── 手機通知：有人對你做了什麼、需求快見底時通知（iPhone 要先加到主畫面，iOS 16.4 以上）──
+const PUSH="https://gerqdagicybtyilihvvm.supabase.co/functions/v1/town-push";
+const pushOK=()=>"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
+const b64=s=>{const p="=".repeat((4-s.length%4)%4),raw=atob((s+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)))};
+async function pushState(){if(!pushOK())return null;const reg=await navigator.serviceWorker.ready;return reg.pushManager.getSubscription()}
+async function refreshBell(){const s=await pushState().catch(()=>null);$("bell").textContent=s&&Notification.permission=="granted"?"🔔 通知開著":"🔕 開啟通知"}
+async function bell(){const ios=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+ if(!pushOK()){toast(ios&&!standalone?"iPhone 要先「加到主畫面」，從主畫面打開才能收通知":"這個瀏覽器不支援通知");if(ios&&!standalone)installHelp();return}
+ const cur=await pushState();
+ if(cur&&Notification.permission=="granted"){if(!confirm("要關掉這支手機的通知嗎？"))return;
+  try{await rpc("town_push_sub",{rid:me,pin,endpoint:cur.endpoint,turn_on:false});await cur.unsubscribe();toast("已關掉通知")}catch(e){toast(e.message)}refreshBell();return}
+ const perm=await Notification.requestPermission();if(perm!="granted"){toast("沒有允許通知。要開的話，到手機設定裡允許這個網站通知");return}
+ try{const k=await fetch(PUSH).then(r=>{if(!r.ok)throw new Error("通知服務還沒準備好，請稍後再試");return r.json()});
+  const reg=await navigator.serviceWorker.ready,sub=cur||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64(k.key)}),j=sub.toJSON();
+  await rpc("town_push_sub",{rid:me,pin,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,turn_on:true});
+  toast("通知開好了：有人對你做了什麼、或你快撐不住時會通知你");}catch(e){toast(e.message||"開啟通知失敗")}refreshBell()}
+$("bell").onclick=bell;
 
 // ── 開始：沒有代碼就是首頁；有代碼就讀小鎮，這台手機住過就自動登入；每 15 秒同步一次 ──
 (async()=>{if(!TID){const l=mine();if(standalone&&l.length==1){go(l[0].tid);return}landing();return}
