@@ -347,8 +347,15 @@ function starStep(s,age){if(!s.active||age<16)return;
  const pool=CLUBS.filter(c=>okCt(c)&&c.str<=s.o+3&&c.str>=s.o-7&&(s.o<78||c.tier>=4));const to=pick(pool.length?pool:CLUBS.filter(okCt).sort((a,b)=>Math.abs(a.str-s.o)-Math.abs(b.str-s.o)).slice(0,3));if(to.name!=s.club){s.club=to.name;s.moves.push([age,to.name])}}
  const cl=CLUBS.find(c=>c.name==s.club),ap=s.o>=60?22+Math.floor(R()*14):Math.floor(R()*15);s.apps+=ap;
  s.goals+=Math.max(0,Math.round(ap/34*({FW:(s.o-50)*.75,MF:(s.o-58)*.25,DF:2,GK:0}[s.pos])*(.7+R()*.6)));
- if(R()<clamp((cl.str-64)/80,.02,.6))s.tro++;if(s.o>=Math.max(62,(COUNTRIES.find(x=>x[0]==s.c)||[,,75])[2]-4)&&age>=19)s.caps+=5+Math.floor(R()*5)}
-function starScore(s){return Math.round(s.peak*1.2+s.tro*8+s.aw*12+s.caps*.3+s.goals*.15)}
+ const lp=clamp((cl.str-64)/80,.02,.6);s.tp=s.tp||0;
+ if(R()<lp){s.tro++;s.tp+=TIER_PTS[cl.tier]||1}if(R()<lp*.8){s.tro++;s.tp+=Math.max(1,(TIER_PTS[tierOfCt(cl.ct)]||1)/2)}
+ if(contOk(cl)&&R()<clamp((cl.str-(CONT[cl.ct]=="歐"?80:66))/60,0,.2)){s.tro++;s.tp+=CONT[cl.ct]=="歐"?20:8}if(s.o>=Math.max(62,(COUNTRIES.find(x=>x[0]==s.c)||[,,75])[2]-4)&&age>=19)s.caps+=5+Math.floor(R()*5)}
+// 冠軍依分量計分：世界盃、歐冠遠高於小聯賽；你和球星用同一把尺
+const TIER_PTS={5:10,4:7,3:4,2:2,1:1};
+function tierOfCt(ct){return Math.max(1,...LEAGUES.filter(l=>l[1]==ct).map(l=>l[2]))}
+function trophyPts(t){if(t=="世界盃冠軍")return 30;if(/歐洲國家盃|美洲盃/.test(t))return 15;if(/亞洲盃|非洲國家盃|金盃/.test(t))return 8;if(t.startsWith("歐洲冠軍聯賽"))return 20;if(/自由盃|冠軍聯賽冠軍|冠軍盃冠軍/.test(t))return 8;
+ const lg=LEAGUES.find(l=>t.startsWith(l[0]));if(lg)return TIER_PTS[lg[2]]||1;const ct=Object.keys(CUPS).find(c=>t.startsWith(CUPS[c]));if(ct)return Math.max(1,(TIER_PTS[tierOfCt(ct)]||1)/2);return 2}
+function starScore(s){return Math.round(s.peak*1.2+(s.tp??s.tro*5)+s.aw*12+s.caps*.3+s.goals*.15)}
 async function starsYear(p){if(!p.stars)return;const was=p.stars.filter(s=>s.active);p.stars.forEach(s=>starStep(s,p.age));
  // 青訓同學的近況
  was.filter(s=>!s.active&&s.tier=="青訓同學"&&p.age<=40).forEach(s=>say(`當年一起踢球的 ${s.n} 放棄了足球，${s.job}。`));
@@ -366,8 +373,8 @@ async function starsYear(p){if(!p.stars)return;const was=p.stars.filter(s=>s.act
   ["公開回嗆",()=>{p.fame+=4;p.fans=(p.fans||0)*1.05;if(R()<.3){p.pop=clamp((p.pop??50)-6,0,100);say("口水戰延燒，球迷覺得你太幼稚。")}},"名氣↑ 可能翻車"],
   ["約他一起練球",()=>{p.s.控球+=.6;p.s.視野+=.6;say(`和 ${s.n} 一起練了一週，學到不少。`,1)},"能力小幅↑"]])}}
 function starRank(p){if(!p.stars)return null;// 排名用同一把尺：獎項只算世界足球先生（球星那邊也只記這個），冠軍不算執教冠軍
- const aw=p.awards.filter(a=>a[1]=="世界足球先生").length,tro=p.trophies.filter(t=>!t[1].startsWith("執教")).length;
- const me={n:p.name+"（你）",tier:"你",c:p.c,pos:p.pos,peak:Math.round(p.peak),goals:p.goals,tro,aw,sc:starScore({peak:p.peak,tro,aw,caps:p.caps,goals:p.goals}),me:1};
+ const aw=p.awards.filter(a=>a[1]=="世界足球先生").length,pl=p.trophies.filter(t=>!t[1].startsWith("執教")),tro=pl.length,tp=pl.reduce((a,t)=>a+trophyPts(t[1]),0);
+ const me={n:p.name+"（你）",tier:"你",c:p.c,pos:p.pos,peak:Math.round(p.peak),goals:p.goals,tro,aw,sc:starScore({peak:p.peak,tro,tp,aw,caps:p.caps,goals:p.goals}),me:1};
  const all=[me,...p.stars.map(s=>({n:s.n,tier:s.tier,c:s.c,pos:s.pos,peak:s.peak,goals:s.goals,tro:s.tro,aw:s.aw,sc:starScore(s),fate:s.fate,job:s.job,end:s.endAge,club:s.moves.map(m=>m[1])}))].sort((a,b)=>b.sc-a.sc);
  const home=all.filter(x=>x.c==p.c);return {all,rank:all.findIndex(x=>x.me)+1,home,hrank:home.findIndex(x=>x.me)+1}}
 function starTable(p){const r=starRank(p);if(!r)return `<p class="mut">這局沒有開啟同世代球星。</p>`;
