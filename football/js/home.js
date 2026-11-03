@@ -49,8 +49,15 @@ function start(p){P=p;$("home").classList.add("hide");$("game").classList.remove
 $("draw").onclick=drawCard;$("redraw").onclick=()=>{if(!redraws)return;redraws--;draws=3;drawn.length=0;cfg.card=null;renderCards();toast(`重抽！還剩 ${redraws} 次機會`)};$("noCard").onclick=()=>{cfg.card=null;renderCards()};renderCards();
 $("go").onclick=async()=>{const p=newPlayer(cfg.w,cfg.pos);p.mode=cfg.mode;
  if(cfg.card!==null&&drawn[cfg.card]){const d=drawn[cfg.card];p.pot=d.pot;p.talent=Math.max(30,d.pot-12);p.card=d.r;p.flair=d.flair}p.id=Date.now()+"";starsInit(p,cfg.stars);P=p;await reveal(p);say(`${p.name}出生在${p.c}。`,1);playHit("start");start(p)};
+// 舊存檔載入時套用新的平衡（只做一次）：能力差距收斂、年薪重算
+const SAVE_VER=2;
+function migrate(p){if((p.ver||1)>=SAVE_VER)return;const fixed=[];
+ if(p.pos!="GK"&&p.s){const v=ATTR.map(k=>p.a[k]),mean=v.reduce((a,b)=>a+b,0)/v.length,before=Math.max(...v)-Math.min(...v);
+  if(before>30){ATTR.forEach(k=>{const x=p.a[k];if(x<mean-12)p.a[k]=x+(mean-12-x)*.8});capAttrs(p);const after=Math.max(...ATTR.map(k=>p.a[k]))-Math.min(...ATTR.map(k=>p.a[k]));fixed.push(`沒練到的能力補回一些（六項差距 ${Math.round(before)} → ${Math.round(after)}）`)}}
+ if(p.clubObj&&p.wage&&!p.loanTo){const w=wageOf(p.clubObj,p);if(p.wage>w*1.3){fixed.push(`年薪依新行情調整（${eur(p.wage)} → ${eur(w)}）`);p.wage=w}}
+ p.ver=SAVE_VER;if(fixed.length)setTimeout(()=>{say("📋 遊戲更新：舊存檔已套用新的平衡。"+fixed.join("；")+"。",1)},50)}
 function loadSlot(s){if(s.plan)plan=s.plan;const p=s.P;try{starsTopUp(p)}catch(e){}p.h=Math.round(hAt(p,p.age)*10)/10; // 舊存檔可能有錯誤的身高，載入時重新計算
- if(!p.s){p.s={};SUBS.forEach(k=>p.s[k]=30)}attachA(p);if(p.club)p.clubObj=CLUBS.find(c=>c.name==p.club);$("log").innerHTML=p.log.slice(-60).reverse().map(([a,t,h])=>`<p class="${h?"hi":""}"><span class="y">${a}歲</span>${t}</p>`).join("");start(p)}
+ if(!p.s){p.s={};SUBS.forEach(k=>p.s[k]=30)}attachA(p);if(p.club)p.clubObj=CLUBS.find(c=>c.name==p.club);migrate(p);$("log").innerHTML=p.log.slice(-60).reverse().map(([a,t,h])=>`<p class="${h?"hi":""}"><span class="y">${a}歲</span>${t}</p>`).join("");start(p)}
 // 舊版只有一個存檔，搬到多存檔
 try{const old=JSON.parse(localStorage.getItem("fb-save"));if(old&&old.P&&old.P.alive){const all=slots();old.P.id=old.P.id||"old";all[old.P.id]={...old,t:Date.now()};localStorage.setItem("fb-saves",JSON.stringify(all))}localStorage.removeItem("fb-save")}catch{}
 function renderSlots(){const all=slots(),ids=Object.keys(all).filter(k=>all[k].P&&all[k].P.alive).sort((a,b)=>all[b].t-all[a].t);
