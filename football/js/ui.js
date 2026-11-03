@@ -238,13 +238,20 @@ MGR.push(
  ["改踢位置","向教練要求換位置",p=>p.club&&p.age>=16&&p.pos!="GK",async p=>{const cur=rateAt(p,dpOf(p)),now=posName(p);
    // 列出每個精確位置：綜合評分變化、最看重的三項細項
    const opts=POS9.filter(([d,n])=>n!=now).map(([d,n,side])=>{const r=rateAt(p,d),diff=r-cur,top=Object.entries(DPW[d]).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]).join("、");
-    return [`改踢${n}　${cur} → ${r}（${diff>=0?"+":""}${diff}）`,()=>{if(R()<.4+(rel(p,"coach")-50)/100+(diff>0?.15:0)){setDp(p,d);p.side=side||null;say(`教練同意讓你改踢${n}，綜合評分 ${cur} → ${r}。`,1)}else{rel(p,"coach",-3);say("教練拒絕了，要你先在原位置證明自己。")}},`看重：${top}`]}).sort((a,b)=>{const n=x=>+x[0].match(/（([+-]?\d+)）/)[1];return n(b)-n(a)});
-   await ask(`想改踢哪個位置？（目前 ${now}，綜合 ${cur}，教練關係 ${rel(p,"coach")}）`,opts.concat([["不換",()=>{}]]),"依評分變化排序；評分越高，教練越容易同意")}],
+    return [`改踢${n}　${cur} → ${r}（${diff>=0?"+":""}${diff}）${famPen(p,d)?`　不熟悉 -${famPen(p,d)}`:"　已熟悉"}`,()=>{if(R()<.4+(rel(p,"coach")-50)/100+(diff>0?.15:0)){setDp(p,d);p.side=side||null;say(`教練同意讓你改踢${n}，綜合評分 ${cur} → ${r}。${famPen(p,d)?`還在適應新位置，多踢幾季評分會再回升。`:""}`,1)}else{rel(p,"coach",-3);say("教練拒絕了，要你先在原位置證明自己。")}},`看重：${top} · 熟悉度 ${Math.round((posXP(p)[d]||0)/5*100)}%`]}).sort((a,b)=>{const n=x=>+x[0].match(/（([+-]?\d+)）/)[1];return n(b)-n(a)});
+   await ask(`想改踢哪個位置？（目前 ${now}，綜合 ${cur}，教練關係 ${rel(p,"coach")}）`,opts.concat([["不換",()=>{}]]),"依評分變化排序（已扣掉不熟悉的折扣）；在場上意向常站那個區域，就會慢慢熟悉")}],
  ["找教練談話","爭取上場、請教戰術",p=>!!p.club,async p=>{await ask(`找總教練談話（目前關係 ${rel(p,"coach")}，戰術「${p.coachStyle||"—"}」）`,[["爭取更多上場時間",()=>{if(R()<.35+(rel(p,"coach")-50)/120+(ovr(p)-p.clubObj.str)/40){rel(p,"coach",8);say("教練答應給你更多機會。",1)}else{rel(p,"coach",-5);say("教練覺得你還不夠格。")}},"看教練關係與實力"],["請教戰術要求",()=>{rel(p,"coach",4);const k=TAC[p.coachStyle]||["傳球"];k.forEach(x=>{p.a[x]+=.8});say(`照教練的戰術要求加練${k.join("、")}。`)},"配合戰術，能力小幅↑"],["只是打聲招呼",()=>{rel(p,"coach",2)},""]])}],
  ["休假充電","降低疲勞、回復心情",p=>p.age>=16&&(p.fat||0)>20,async p=>{await ask("想怎麼休息？",[["和家人出國旅行",()=>{p.fat=Math.max(0,(p.fat||0)-35);p.morale+=6;p.money-=.01},"疲勞↓↓ 花點錢"],["在家完全放空一週",()=>{p.fat=Math.max(0,(p.fat||0)-25);p.morale+=3},"疲勞↓"],["去做物理治療",()=>{p.fat=Math.max(0,(p.fat||0)-20);p.health+=6},"健康↑"]])}]);
 // ── 場上意向：9 個區域（後場／中場／前場 × 左／中／右）＋ 比賽意識 ＋ 跑動方式 ──
 const ZONES=[["左後","D","L"],["左中","M","L"],["左前","A","L"],["中後","D","C"],["中中","M","C"],["中前","A","C"],["右後","D","R"],["右中","M","R"],["右前","A","R"]];
 const ZNAME={D:"後場",M:"中場",A:"前場",L:"左路",C:"中路",R:"右路"};
+// 每一格對應的位置：常站在那裡踢，就會慢慢熟悉那個位置
+function zoneDp(p){const z=ZONES.find(x=>x[0]==(p.intent||{}).zone);if(!z)return null;const [,b,l]=z,m=(p.intent||{}).mind;
+ return b=="A"?(l=="C"?"ST":"W"):b=="M"?(l=="C"?(m=="攻"?"CAM":m=="守"?"CDM":"CM"):"W"):(l=="C"?"CB":"FB")}
+function posLearn(p,share){if(p.pos=="GK"||!share)return;const xp=posXP(p),cur=dpOf(p),zd=zoneDp(p),add=(d,v)=>{const b=xp[d]||0;xp[d]=Math.min(5,b+v);if(b<3&&xp[d]>=3&&d!=cur)say(`常在場上踢${DPN[d]}的位置，已經可以勝任${DPN[d]}了。`,1)};
+ add(cur,share*(zd&&zd!=cur?.5:1));if(zd&&zd!=cur)add(zd,share*.8);
+ // 相鄰位置也會沾到一點
+ const NEAR={ST:["W","CAM"],W:["ST","FB"],CAM:["CM","ST"],CM:["CAM","CDM"],CDM:["CM","CB"],FB:["W","CB"],CB:["CDM","FB"]};(NEAR[zd||cur]||[]).forEach(d=>{if((xp[d]||0)<2)add(d,share*.15)})}
 // 依位置建議的區域（選了不符合位置的區域，教練會不太高興）
 function zoneFit(p,z){const d=dpOf(p),[_,band,lane]=ZONES.find(x=>x[0]==z)||[];const want={ST:["A"],W:["A","M"],CAM:["A","M"],CM:["M"],CDM:["M","D"],FB:["D","M"],CB:["D"],GK:["D"]}[d]||["M"];const laneOk=(d=="W"||d=="FB")?lane!="C":d=="CB"||d=="ST"||d=="CDM"||d=="CAM"?lane=="C":true;return want.includes(band)&&laneOk}
 // 各位置平常站的區域：選這格＝照平常踢，數值不變；往前、往後才有增減

@@ -91,7 +91,10 @@ const DPN={ST:"中鋒",W:"邊鋒",CAM:"攻擊中場",CM:"中場",CDM:"防守中�
 const POS9=[["ST","中鋒"],["W","左邊鋒","L"],["W","右邊鋒","R"],["CAM","攻擊中場"],["CM","中場"],["CDM","防守中場"],["FB","左後衛","L"],["FB","右後衛","R"],["CB","中後衛"]];
 function posName(p){const d=dpOf(p);return (d=="W"||d=="FB")&&p.side?(p.side=="L"?"左":"右")+(d=="W"?"邊鋒":"後衛"):DPN[d]}
 function posCode(p){const d=dpOf(p);return d=="W"?(p.side=="R"?"RW":"LW"):d=="FB"?(p.side=="R"?"RB":"LB"):d}
-function rateAt(p,d){const w=DPW[d];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return Math.round(t/sw)}
+// 位置熟悉度：在一個位置踢越多季越熟；沒踢過的位置要適應，評分先打折（最多 -6，約 3 季後消失）
+function posXP(p){if(!p.posXP){p.posXP={};p.posXP[p.dp&&DP2POS[p.dp]==p.pos?p.dp:({FW:"ST",MF:"CM",DF:"CB",GK:"GK"}[p.pos])]=3}return p.posXP}
+function famPen(p,d){if(d=="GK"||!p.s)return 0;return Math.round(Math.max(0,6-2*(posXP(p)[d]||0)))}
+function rateAt(p,d){const w=DPW[d];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return Math.round(t/sw)-famPen(p,d)}
 function dpOf(p){return p.dp&&DP2POS[p.dp]==p.pos?p.dp:({FW:"ST",MF:"CM",DF:"CB",GK:"GK"}[p.pos])}
 function setDp(p,dp){p.dp=dp;p.pos=DP2POS[dp]}
 function faceMap(p,k){return p.pos=="GK"&&k=="防守"?GKFACE:FACE[k]}
@@ -99,7 +102,7 @@ function faceMap(p,k){return p.pos=="GK"&&k=="防守"?GKFACE:FACE[k]}
 function attachA(p){p.a=new Proxy({},{get:(_,k)=>{const m=faceMap(p,k);return m?Object.entries(m).reduce((t,[x,w])=>t+p.s[x]*w,0):undefined},
  set:(_,k,v)=>{const m=faceMap(p,k);if(!m)return true;const d=v-p.a[k];for(const x in m)p.s[x]=clamp(p.s[x]+d*(.75+R()*.5),1,99);p.s.反應=clamp(p.s.反應+d*.12,1,99);return true},
  ownKeys:()=>ATTR,getOwnPropertyDescriptor:()=>({enumerable:true,configurable:true})});return p}
-function ovr(p){const w=DPW[dpOf(p)];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return Math.round(t/sw)}
+function ovr(p){return rateAt(p,dpOf(p))}
 function bestDp(p){return Object.keys(DPW).filter(d=>d!="GK").sort((a,b)=>{const o=x=>{const w=DPW[x];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return t/sw};return o(b)-o(a)})[0]}
 function value(p){const o=ovr(p),agef=p.age<21?1.6:p.age<25?1.3:p.age<29?1:p.age<32?.55:.2;const mk=p.clubObj?{5:1,4:.75,3:.5,2:.35,1:.15}[p.clubObj.tier]:.05,pf=1+clamp(((p.pop??50)-50)/250,-.15,.2);return Math.max(.005,.25*Math.pow(1.165,o-50)*agef*mk*pf)} // 身價依聯賽等級，參考 Transfermarkt 區間：台灣企甲約 €2.5～20 萬、日職約 €30～100 萬、英冠約 €100～500 萬、英超平均約 €3,000 萬 // 百萬歐元：能力 80 約 €25M，90 約 €110M
 function eur(m){return m>=1?`€${m>=100?Math.round(m):m.toFixed(1)}M`:m>=.001?`€${Math.round(m*1000)}K`:`€${Math.round(m*1e6).toLocaleString()}`}
