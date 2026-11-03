@@ -73,6 +73,11 @@ textarea{width:100%;font:inherit;color:var(--fg);background:var(--btn);border:1p
 #strip canvas{width:22px;height:27px}#strip .off{opacity:.5;filter:grayscale(1)}#strip .on span::before{content:"● ";color:#4cd964}
 .grp{grid-column:1/-1;font-size:12px;font-weight:700;color:var(--mut);margin:4px 0 -2px;letter-spacing:1px}.ev.tap{cursor:pointer}.ev.tap:hover{background:var(--btnh)}
 #grip{display:none}
+#acts .cta{grid-column:1/-1;background:var(--ac);border-color:var(--ac);color:#fff;min-height:60px}#acts .cta small{color:#fff;opacity:.9}#acts .cta .ai{font-size:26px}
+.hero{display:flex;gap:14px;align-items:center;margin-bottom:8px}.hero canvas{width:72px;height:90px;flex:none;background:#7cc46a;border-radius:14px}
+.choose{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.big{display:flex;align-items:center;gap:12px;text-align:left;padding:14px;border-radius:14px;min-height:70px}.big .ai{font-size:28px}.big b{display:block;font-size:16px}.big small{display:block;color:var(--mut);font-size:12px}.big.pri small{color:#fff;opacity:.9}
+.list .big{width:100%}.list>button.big{flex-direction:row;align-items:center}button.ghost{background:transparent;border-style:dashed}.tips{border-color:var(--ac)}.tips p{margin:6px 0}
+@media (max-width:520px){.choose{grid-template-columns:1fr}}
 @media (max-width:520px){#panel{position:sticky;bottom:0;z-index:6;margin:12px -16px 0;border-radius:18px 18px 0 0;max-height:44vh;overflow:auto;box-shadow:0 -8px 24px rgba(0,0,0,.35);padding-top:6px}
  #grip{display:block;width:44px;height:5px;margin:0 auto 8px;padding:0;border:none;border-radius:3px;background:var(--line)}#panel.min #acts,#panel.min #note{display:none}#panel.min{max-height:none}}
 @media (max-width:520px){#needs{grid-template-columns:repeat(6,1fr);gap:4px}.need{padding:4px 2px}.need em{display:none}.need span{font-size:16px}.need.money small{font-size:11px;margin-top:4px}.who{grid-template-columns:repeat(2,1fr)}.lookbox{flex-direction:column;align-items:flex-start}}
@@ -84,7 +89,7 @@ textarea{width:100%;font:inherit;color:var(--fg);background:var(--btn);border:1p
  <div id="menu" class="card hide menu"><button id="relook">👗 換造型</button><button id="invite">✉️ 邀請朋友</button><button id="bell">🔕 開啟通知</button><button id="install" class="hide">📲 加到主畫面</button><button id="mayor" class="hide">🏛️ 鎮長</button><button id="towns">🏘️ 我的小鎮</button><button id="logout">登出</button></div>
  <section id="login"><div class="card" id="lg"><p class="mut">載入中…</p></div></section>
  <section id="game" class="hide">
-  <div id="away" class="card hide"></div>
+  <div id="tips" class="card hide tips"></div><div id="away" class="card hide"></div>
   <div id="needs"></div>
   <div id="stage"><canvas id="cv"></canvas><div class="tools"><button id="home">📍 我</button><button id="zoom">🗺️ 看全鎮</button></div><div id="strip"></div></div>
   <div class="card" id="panel"><button id="grip" aria-label="收合"></button><div id="here"></div><div id="note" class="mut"></div><div id="acts"></div></div>
@@ -94,6 +99,6 @@ textarea{width:100%;font:inherit;color:var(--fg);background:var(--btn);border:1p
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide"><div class="card" id="mbody"></div></div>
-<script src="town.js?v=17"></script>
+<script src="town.js?v=18"></script>
 </body>
 </html>

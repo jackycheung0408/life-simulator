@@ -90,12 +90,16 @@ const newKey=()=>{const a="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz2345
 
 // ── 首頁：建立小鎮、用代碼加入、我住的小鎮 ──
 function landing(){$("title").textContent="🐷 小豬鎮";$("game").classList.add("hide");$("login").classList.remove("hide");const list=mine();
- $("lg").innerHTML=`<p class="mut">和朋友一起住在小鎮裡：照顧自己吃飯睡覺洗澡，也可以去朋友家幫忙或惡作劇。手機打開就能玩。</p>
-  ${list.length?`<h2>我住的小鎮</h2><div class="list">${list.map(x=>`<button data-go="${esc(x.tid)}"><b>${esc(x.name||x.tid)}</b><small>${esc(x.me||"")}</small></button>`).join("")}</div>`:""}
-  ${standalone?"":`<div class="row" style="justify-content:flex-start"><button id="inst2">📲 加到手機主畫面，像 App 一樣打開</button></div>`}
-  <h2>加入朋友的小鎮</h2><p class="mut" style="margin:-4px 0 6px">輸入朋友給你的邀請碼。點朋友傳來的邀請連結會自動填好。</p><div class="inline"><input id="code" placeholder="邀請碼，例如 RCDR4V" maxlength="8" autocomplete="off" style="text-transform:uppercase"><button class="pri" id="join">前往</button></div><p class="err" id="jerr"></p>
-  <h2>建立自己的小鎮</h2><label>小鎮名稱<input id="tn" maxlength="16" placeholder="例如：我們的小豬鎮"></label><label>你的名字<input id="mn" maxlength="12" placeholder="鎮上大家怎麼叫你"></label>
-  <div id="lk"></div><p class="err" id="cerr"></p><div class="row"><button class="pri" id="create">建立小鎮，當鎮長</button></div>`;
+ $("lg").innerHTML=`<div class="hero"><canvas id="heroCv" width="96" height="120"></canvas><div><h2 style="margin:0">和朋友住在同一個小鎮</h2><p class="mut" style="margin:4px 0 0">照顧自己吃飯睡覺洗澡，去朋友家幫忙、送禮、惡作劇，或扁他一頓。手機打開就能玩，不用下載。</p></div></div>
+  ${list.length?`<h2>我住的小鎮</h2><div class="list">${list.map(x=>`<button class="big" data-go="${esc(x.tid)}"><span class="ai">🏡</span><span><b>${esc(x.name||x.tid)}</b><small>${esc(x.me||"")} · 點一下回家</small></span></button>`).join("")}</div>`:""}
+  <div class="choose"><button class="big pri" id="cJoin"><span class="ai">💌</span><span><b>加入朋友的小鎮</b><small>有朋友給的邀請碼或連結</small></span></button>
+   <button class="big" id="cNew"><span class="ai">🏛️</span><span><b>建立新小鎮</b><small>自己當鎮長，邀請朋友搬進來</small></span></button></div>
+  <div id="fJoin" class="hide"><h2>加入朋友的小鎮</h2><p class="mut" style="margin:-4px 0 6px">輸入朋友給你的邀請碼。點朋友傳來的邀請連結會自動填好。</p><div class="inline"><input id="code" placeholder="邀請碼，例如 RCDR4V" maxlength="8" autocomplete="off" style="text-transform:uppercase"><button class="pri" id="join">前往</button></div><p class="err" id="jerr"></p></div>
+  <div id="fNew" class="hide"><h2>建立新小鎮</h2><label>小鎮名稱<input id="tn" maxlength="16" placeholder="例如：我們的小豬鎮"></label><label>你的名字<input id="mn" maxlength="12" placeholder="鎮上大家怎麼叫你"></label>
+  <div id="lk"></div><p class="err" id="cerr"></p><div class="row"><button class="pri" id="create">建立小鎮，當鎮長</button></div></div>
+  ${standalone?"":`<p style="margin-top:14px"><button class="ghost" id="inst2">📲 加到手機主畫面，像 App 一樣打開</button></p>`}`;
+ const show=k=>{$("fJoin").classList.toggle("hide",k!="j");$("fNew").classList.toggle("hide",k!="n");$("cJoin").classList.toggle("pri",k!="n");$("cNew").classList.toggle("pri",k=="n");(k=="j"?$("code"):$("tn")).focus()};
+ $("cJoin").onclick=()=>show("j");$("cNew").onclick=()=>show("n");miniPerson($("heroCv"),{skin:"#f1c9a5",hair:"#5a3a1a",style:"短髮",eyes:"圓眼",top:"T恤",shirt:"#e0779b",acc:"pigears",blush:true});
  $("lg").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));if($("inst2"))$("inst2").onclick=installHelp;
  $("join").onclick=async()=>{const c=$("code").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.length<4){$("jerr").textContent="邀請碼是 6 個英文或數字";return}
   // 小鎮代碼或邀請碼都可以；輸入的是邀請碼就記起來，等一下自動填好
@@ -169,7 +173,7 @@ function lookPicker(el,look,cb,items){look=normLook(look);const owned=new Set(((
   miniPerson(el.querySelector("canvas"),look);
   el.querySelectorAll(".sw[data-k]").forEach(b=>b.onclick=()=>{look={...look,[b.dataset.k]:b.dataset.v};cb(look);draw()});
   el.querySelectorAll(".sw[data-t]").forEach(b=>b.onclick=()=>{look={...look,[b.dataset.t]:!look[b.dataset.t]};cb(look);draw()})};cb(look);draw()}
-async function enter(){$("menuBtn").classList.remove("hide");await refresh();refreshBell().catch(()=>{});autoPush().catch(()=>{});$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
+async function enter(){$("menuBtn").classList.remove("hide");await refresh();showTips();refreshBell().catch(()=>{});autoPush().catch(()=>{});$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
  const w=walkers[me];cam.x=w.x*T;cam.y=w.y*T;resize();$("mayor").classList.toggle("hide",!R[me].mayor);
  const ent=mine().find(x=>x.tid==TID);if(ent&&ent.invite){shareModal(ent.invite,true);delete ent.invite;saveMine(ent);return}
  const mineEv=(S.events||[]).filter(e=>e.target==me&&(!lastSeen||e.at>lastSeen));
@@ -208,7 +212,7 @@ const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀
 // ── 下方面板：依所在地點顯示可以做的事 ──
 const btn=(label,sub,fn,g)=>({label,sub,fn,g});
 const ACT_ICON={吃飯:"🍚",上廁所:"🚽",洗澡:"🛁",看電視:"📺",睡覺:"😴",起床:"☀️",吃一頓:"🍽️",打工:"💼",玩一下:"🎈",逛逛:"👀",煮飯給他:"🍳",幫他洗澡:"🧽",叫醒他:"⏰",串門子:"🏠",惡作劇:"💨",送禮物:"🎁",盪鞦韆:"🎠",餵貓吃零食:"🐟",取消:"✖️"};
-const GROUP={self:"照顧自己",friend:"在他家",place:"在這裡",face:"面對面",online:"線上 · 在哪都能做",move:"移動"};let lastPanel="",panelFns=[];
+const GROUP={tip:"建議下一步",self:"照顧自己",friend:"在他家",place:"在這裡",face:"面對面",online:"線上 · 在哪都能做",move:"移動"};let lastPanel="",panelFns=[];
 function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),p=r.place,list=[];let title="",note="";
  if(walkers[me]&&walkers[me].path.length){title="走路中…";note="到了就可以做事"}
  else if(r.sleeping){title=`在${placeName(p)}睡覺 💤`;list.push(btn("起床","",()=>act("wake")))}
@@ -229,7 +233,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  // 公共場所遇到人：可以擊掌；一起吃飯、玩、加班時在場的人心情都會變好
  if(!r.sleeping&&["plaza","restaurant","market","park","office"].includes(p)&&!(walkers[me]&&walkers[me].path.length)){const here=Object.values(R).filter(o=>o.id!=me&&o.place==p&&!o.sleeping);
   if(here.length&&!(sel&&R[sel]))note=(note?note+" · ":"")+`${here.map(o=>o.name).join("、")} 也在這裡：一起做事大家心情都 +5，點他可以擊掌或扁他`}
- if(!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const k in OBJS)if(objNear(k,walkers[me].x,walkers[me].y,p))for(const [l,sub,v] of OBJS[k].acts)list.push(btn(l,`${OBJS[k].name} · ${sub}`,()=>act("obj",{item:k,note:v||null}),"place"));
+ if(!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const k in OBJS)if(objNear(k,walkers[me].x,walkers[me].y,p))for(const [l,sub,v] of OBJS[k].acts)if(v!="feed"||((r.items||{}).snack))list.push(btn(l,`${OBJS[k].name} · ${sub}`,()=>act("obj",{item:k,note:v||null}),"place"));
  if(!r.sleeping&&(r.items||{}).snack&&!(walkers[me]&&walkers[me].path.length))list.push(btn("吃零食 🍪",`飽足 +20 · 還有 ${(r.items||{}).snack} 包`,()=>act("snack"),"self"));
  if(sel&&R[sel]&&sel!=me){const t=tickLocal(R[sel],now());note=`${t.name}：在${placeName(t.place)}${t.sleeping?"睡覺":""} · 飽足 ${Math.round(t.hunger)} · 清潔 ${Math.round(t.hygiene)} · 心情 ${Math.round(t.fun)} · ${bondLabel(bondWith(t.id))}`;
   const face=isNear(t.id)&&!t.sleeping&&!r.sleeping;title=`和 ${t.name} 互動`;
@@ -238,13 +242,14 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
   list.push(btn(`去 ${t.name} 家`,"煮飯、洗澡、串門子要到他家",()=>{sel=null;goHouse(t.slot)}),btn("取消","",()=>{sel=null;lastPanel="";renderPanel()}))}
  $("here").textContent=title;$("note").textContent=note;
  // 內容沒變就不重畫，避免按到一半按鈕被換掉
+ if(!sel){const t=nextStep(r,p);if(t)list.unshift({...t,g:"tip"})}
  const dg=p=="home:"+me?"self":p&&p.startsWith("home:")?"friend":"place";list.forEach(b=>{if(!b.g)b.g=/^(走|去 |取消)/.test(b.label)?"move":dg});
  const order=[...new Set(list.map(b=>b.g))],multi=order.length>1;
  const html=order.map(g=>(multi?`<div class="grp">${GROUP[g]}</div>`:"")+list.map((b,i)=>{if(b.g!=g)return "";
    // 圖示放大在左邊；壞事用紅色；錢不夠就標出來
    const m=b.label.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u)||b.label.match(/^(.*?)\s*(\p{Extended_Pictographic}\uFE0F?)$/u),txt=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[1]:m[2]):b.label,ic=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[2]:m[1]):(ACT_ICON[b.label]||(b.g=="move"?"🚶":"•"));
    const cost=+((b.sub||"").match(/€(\d+)(?!\d)/)||[])[1]||0,poor=cost&&/€\d+/.test(b.sub)&&!/\+€/.test(b.sub)&&r.money<cost,bad=/扁|雞蛋|臭屁|惡作劇|叫醒/.test(b.label);
-   return `<button data-i="${i}" class="act${bad?" bad":""}${poor?" poor":""}${b.g=="move"?" ghost":""}" ${busy?"disabled":""}><span class="ai">${ic}</span><span class="at"><b>${esc(txt)}</b>${b.sub||poor?`<small>${poor?`錢不夠（要 €${cost}）`:b.sub}</small>`:""}</span></button>`}).join("")).join("");
+   return `<button data-i="${i}" class="act${b.g=="tip"?" cta":""}${bad?" bad":""}${poor?" poor":""}${b.g=="move"?" ghost":""}" ${busy?"disabled":""}><span class="ai">${ic}</span><span class="at"><b>${esc(txt)}</b>${b.sub||poor?`<small>${poor?`錢不夠（要 €${cost}）`:b.sub}</small>`:""}</span></button>`}).join("")).join("");
  panelFns=list;if(html!=lastPanel){lastPanel=html;$("acts").innerHTML=html;$("acts").querySelectorAll("button").forEach(b=>b.onclick=()=>panelFns[b.dataset.i].fn())}}
 function renderNeeds(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now());
  $("needs").innerHTML=NEEDS.map(k=>{const v=Math.round(r[k]),[ic,nm]=NEED_INFO[k];return `<div class="need${v<20?" low":""}" title="${nm} ${v}"><span>${ic}</span><i><b style="width:${v}%;background:${v<20?"var(--bad)":v<50?"var(--warn)":"var(--good)"}"></b></i><small><em>${nm} </em>${v}</small></div>`}).join("")+`<div class="need money"><span>💰</span><small>€${r.money}${(r.items||{}).gift?` · 🎁${r.items.gift}`:""}${(r.items||{}).snack?` · 🍪${r.items.snack}`:""}</small></div>`}
@@ -297,6 +302,23 @@ function bondsModal(){const list=Object.values(R).filter(o=>o.id!=me).map(o=>({o
  $("mbody").innerHTML=`<h2>👥 人際關係</h2>${list.length?list.map(({o,v})=>`<div class="mrow"><span><b>${esc(o.name)}</b> <small class="mut">${bondLabel(v)} · ${v>0?"+":""}${v}</small><i class="bond"><b style="left:50%;width:${Math.abs(v)/2}%;${v<0?`left:${50-Math.abs(v)/2}%;background:var(--bad)`:"background:var(--good)"}"></b></i><small class="mut">${tierHint(v)}</small></span><button data-w="${o.id}">互動</button></div>`).join(""):`<p class="mut">鎮上還沒有其他人，邀請朋友搬進來吧。</p>`}
   <p class="mut" style="margin-top:10px">送禮 +5、煮飯洗澡 +4、串門子 +3、道謝擊掌 +2、留言 +1；叫醒 −1、丟雞蛋 −2、惡作劇 −3、扁人 −6、和好 +8。好麻吉以上照顧對方效果 ×1.3。</p><div class="row"><button id="mc">關閉</button></div>`;
  $("mc").onclick=()=>$("modal").classList.add("hide");$("mbody").querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{$("modal").classList.add("hide");walkToPerson(+b.dataset.w)})}
+// 新手提示：第一次進小鎮時顯示，看過就不再出現
+function showTips(){let seen=null;try{seen=localStorage.getItem("town-tips")}catch(e){}if(seen)return;const el=$("tips");el.classList.remove("hide");
+ el.innerHTML=`<b>👋 新手小提示</b><p>🗺️ 點地圖上的房子或地點，角色會自己走過去。</p><p>👆 點地圖上的人，可以傳訊息、打電話；走到他旁邊還能擊掌或扁他。</p><p>🍚 上面的需求會隨現實時間下降，快見底時下方會出現粉紅色的「建議下一步」。</p><div class="row"><button class="pri" id="tipok">知道了</button></div>`;
+ $("tipok").onclick=()=>{el.classList.add("hide");try{localStorage.setItem("town-tips","1")}catch(e){}}}
+// 建議下一步：最缺的需求先處理，其次是錢、道謝、邀請朋友
+function nextStep(r,p){if(r.sleeping||(walkers[me]&&walkers[me].path.length))return null;const atHome=p=="home:"+me,goHome=l=>btn(l,"走回家",()=>goHouse(r.slot));
+ const [k,v]=NEEDS.map(k=>[k,r[k]]).sort((a,b)=>a[1]-b[1])[0];
+ if(v<35){const sub=`${NEED_INFO[k][0]} ${NEED_INFO[k][1]}只剩 ${Math.round(v)}`;
+  if(k=="hunger")return p=="restaurant"?btn("吃一頓 🍽️",sub,()=>act("dine")):atHome?btn("吃飯 🍚",sub,()=>act("eat")):btn("回家吃飯 🍚",sub,()=>goHouse(r.slot));
+  if(k=="bladder")return atHome?btn("上廁所 🚽",sub,()=>act("toilet")):btn("回家上廁所 🚽",sub,()=>goHouse(r.slot));
+  if(k=="hygiene")return atHome?btn("洗澡 🛁",sub,()=>act("shower")):btn("回家洗澡 🛁",sub,()=>goHouse(r.slot));
+  if(k=="energy")return atHome?btn("睡覺 😴",sub,()=>act("sleep")):btn("回家睡覺 😴",sub,()=>goHouse(r.slot));
+  return p=="park"||p=="plaza"?btn("玩一下 🎈",sub,()=>act("play")):btn("去公園走走 🎈",sub,()=>walkTo("park",PLACES.park.door))}
+ if(r.money<30)return p=="office"?btn("打工 💼",`只剩 €${r.money}，賺點錢`,()=>act("work")):btn("去公司打工 💼",`只剩 €${r.money}`,()=>walkTo("office",PLACES.office.door));
+ const th=thankable()[0];if(th&&R[th.actor])return btn(`謝謝 ${R[th.actor].name} 💗`,"他剛照顧過你",()=>act("thank",{target:th.actor}));
+ if(Object.keys(R).length<2&&R[me].mayor)return btn("邀請朋友搬進來 ✉️","小鎮只有你一個人",()=>$("invite").click());
+ return null}
 // 線上互動：用手機就能做，在哪裡都可以
 function onlineActs(id){return onlineActs0(id).map(b=>({...b,g:"online"}))}
 function onlineActs0(id){const t=R[id],gifts=((R[me].items||{}).gift)||0;return [
