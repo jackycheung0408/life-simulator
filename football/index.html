@@ -92,6 +92,10 @@ button.on{background:var(--y);color:var(--ink)}
 .gbs{font-size:12px;white-space:nowrap}.gbsc{color:var(--y);font-weight:900;text-align:right}.gbr{font-size:11px}.gbt.on{background:var(--y);color:var(--ink)}
 @media(max-width:560px){.gbrow{grid-template-columns:28px 34px 1fr 44px}.gbs,.gbr{display:none}}
 #cardPv{position:fixed;inset:0;z-index:80;background:#030805ee;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;overflow:auto}#cardPv img{max-width:min(420px,100%);max-height:68vh;border:3px solid var(--y)}#cardPv .pvb{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:560px}
+.pitchI{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:repeat(3,52px);gap:3px;background:#2f8a3e;border:3px solid var(--ink);padding:6px;position:relative;margin:8px 0;background-image:linear-gradient(90deg,transparent 49.6%,#e8f5e8 49.6% 50.4%,transparent 50.4%)}
+.pitchI button{margin:0;background:#ffffff14;border:2px dashed #ffffff55;color:#fff;font-size:12.5px;box-shadow:none;padding:2px}.pitchI button:hover{background:#ffffff30}.pitchI button.on{background:#ffd23fcc;color:#1d2b20;border:2px solid #050a06;font-weight:900}.pitchI button.fit{border-color:#ffd23f}
+.pitchI .gl,.pitchI .gr{position:absolute;top:50%;width:6px;height:40px;background:#fff;transform:translateY(-50%)}.pitchI .gl{left:-4px}.pitchI .gr{right:-4px}
+.int-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0;font-size:13px}.int-row button{padding:5px 10px;font-size:13px;margin:0}.int-row button.on{background:var(--y);color:var(--ink)}.int-eff{font-size:12.5px;color:var(--mut)}.int-eff b{color:var(--fg)}
 #tour{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(440px,calc(100% - 24px));background:var(--card);border:3px solid var(--ink);box-shadow:inset 0 0 0 3px var(--y),0 12px 40px #000;padding:14px 16px;z-index:60}
 #tour h3{margin:0 0 6px;color:var(--y);font-size:16px}#tour p{margin:0 0 10px;font-size:14px;line-height:1.6}#tour .tn{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mut)}
 .tour-hi{outline:4px solid var(--y)!important;outline-offset:3px;position:relative;z-index:55}
@@ -219,6 +223,7 @@ button.on{background:var(--y);color:var(--ink)}
 <div class="card"><div class="grid" id="stats"></div></div>
 <div class="card" id="planCard"><h2 id="planTitle">育成計劃・每週訓練表</h2><div id="focus"></div><div class="mut" id="focusTip" style="font-size:13px"></div></div>
 
+<div class="card" id="intentCard"><h2>場上意向</h2><div class="mut" style="font-size:13px">點球場上的區域，決定你比賽中主要待在哪裡；再選比賽意識和跑動方式。會影響進球、助攻、零封、能力成長和教練評價。</div><div id="intent"></div></div>
 <div class="card" id="mgrCard"><h2>生涯管理</h2><div class="mut" style="font-size:13px">由你主動決定。每項每個球季可以用一次，按下後遊戲會暫停讓你處理。</div><div id="mgr" class="mgr"></div></div>
 <div class="card"><h2>紀錄</h2><div id="log"></div><button id="logMore" onclick="$('log').classList.toggle('all');this.textContent=$('log').classList.contains('all')?'▴ 只看最近 12 則':'▾ 展開更多紀錄'">▾ 展開更多紀錄</button></div>
 <div class="card"><h2>生涯數據與報表</h2><div class="kstrip" id="career"></div><div id="ovrChart" class="hide"></div><div id="reports"></div></div>
@@ -235,8 +240,8 @@ button.on{background:var(--y);color:var(--ink)}
 <button id="themeBtn" title="切換深色／淺色"></button><div id="tip"></div><div id="modal" class="hide"><div class="sheet"><span class="tag" id="mtag"></span><span id="mctx"></span><div id="choice"></div></div></div>
 <div id="toast"></div>
 
-<script src="js/data.js?v=18"></script>
-<script src="js/events.js?v=18"></script>
-<script src="js/career.js?v=18"></script>
-<script src="js/ui.js?v=18"></script>
-<script src="js/home.js?v=18"></script></body></html>
+<script src="js/data.js?v=19"></script>
+<script src="js/events.js?v=19"></script>
+<script src="js/career.js?v=19"></script>
+<script src="js/ui.js?v=19"></script>
+<script src="js/home.js?v=19"></script></body></html>

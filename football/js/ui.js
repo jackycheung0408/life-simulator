@@ -71,7 +71,7 @@ async function playSeasonVisual(apps,goals){
   $("sFill").style.width=t*100+"%";drawPitch(t,g2)}
 }
 async function quietYear(){if(toEnd||P.retired)return;const total=secPerSeason*(P.age<6?60:P.age<13?120:P.age<16?200:260);/* 童年快轉，16 歲後才是重點 */let w=0,last=performance.now();while(w<total){await new Promise(r=>setTimeout(r,50));const now=performance.now();if(!paused)w+=(now-last)*mult;last=now;if(pendingSkip||toEnd)w=total;$("sFill").style.width=Math.min(100,w/total*100)+"%";if(P.age<13)$("ticker").textContent=P.age<P.touchAge?`${P.age} 歲，還沒碰過足球`:`${P.age} 歲 · ${P.stage} · 身高 ${Math.round(P.h)} 公分`;drawPitch(Math.min(1,w/total),0)}}
-function render(){try{renderMgr()}catch(e){}
+function render(){try{renderMgr();renderIntent()}catch(e){}
  const p=P,o=ovr(p);$("ovr").textContent=p.age<p.touchAge?"??":Math.round(o);$("pos").textContent=p.age<11&&!(p.done&&p.done.pos)?"—":posCode(p);$("nm").textContent=p.name.split(" ").pop();$("age").textContent=p.age;
  $("fut").className="fut"+(o>=75?"":o>=65?" silver":" bronze");$("who").textContent=`${p.name}（${POS[p.pos]}）`;
  $("where").textContent=p.retired?`已退休 · ${p.after||""}`:p.club?`${p.club} · ${p.clubObj.lg} · 合約剩 ${Math.max(0,p.contract)} 年`:`${p.c} · ${p.stage}`;
@@ -242,6 +242,28 @@ MGR.push(
    await ask(`想改踢哪個位置？（目前 ${now}，綜合 ${cur}，教練關係 ${rel(p,"coach")}）`,opts.concat([["不換",()=>{}]]),"依評分變化排序；評分越高，教練越容易同意")}],
  ["找教練談話","爭取上場、請教戰術",p=>!!p.club,async p=>{await ask(`找總教練談話（目前關係 ${rel(p,"coach")}，戰術「${p.coachStyle||"—"}」）`,[["爭取更多上場時間",()=>{if(R()<.35+(rel(p,"coach")-50)/120+(ovr(p)-p.clubObj.str)/40){rel(p,"coach",8);say("教練答應給你更多機會。",1)}else{rel(p,"coach",-5);say("教練覺得你還不夠格。")}},"看教練關係與實力"],["請教戰術要求",()=>{rel(p,"coach",4);const k=TAC[p.coachStyle]||["傳球"];k.forEach(x=>{p.a[x]+=.8});say(`照教練的戰術要求加練${k.join("、")}。`)},"配合戰術，能力小幅↑"],["只是打聲招呼",()=>{rel(p,"coach",2)},""]])}],
  ["休假充電","降低疲勞、回復心情",p=>p.age>=16&&(p.fat||0)>20,async p=>{await ask("想怎麼休息？",[["和家人出國旅行",()=>{p.fat=Math.max(0,(p.fat||0)-35);p.morale+=6;p.money-=.01},"疲勞↓↓ 花點錢"],["在家完全放空一週",()=>{p.fat=Math.max(0,(p.fat||0)-25);p.morale+=3},"疲勞↓"],["去做物理治療",()=>{p.fat=Math.max(0,(p.fat||0)-20);p.health+=6},"健康↑"]])}]);
+// ── 場上意向：9 個區域（後場／中場／前場 × 左／中／右）＋ 比賽意識 ＋ 跑動方式 ──
+const ZONES=[["左後","D","L"],["左中","M","L"],["左前","A","L"],["中後","D","C"],["中中","M","C"],["中前","A","C"],["右後","D","R"],["右中","M","R"],["右前","A","R"]];
+const ZNAME={D:"後場",M:"中場",A:"前場",L:"左路",C:"中路",R:"右路"};
+// 依位置建議的區域（選了不符合位置的區域，教練會不太高興）
+function zoneFit(p,z){const d=dpOf(p),[_,band,lane]=ZONES.find(x=>x[0]==z)||[];const want={ST:["A"],W:["A","M"],CAM:["A","M"],CM:["M"],CDM:["M","D"],FB:["D","M"],CB:["D"],GK:["D"]}[d]||["M"];const laneOk=(d=="W"||d=="FB")?lane!="C":d=="CB"||d=="ST"||d=="CDM"||d=="CAM"?lane=="C":true;return want.includes(band)&&laneOk}
+function intentMods(p){const it=p.intent||{};const z=ZONES.find(x=>x[0]==it.zone);const m={g:1,a:1,c:1,fat:1,grow:{},km:0};if(!z)return m;const [_,band,lane]=z;
+ if(band=="A"){m.g*=lane=="C"?1.25:1.05;m.a*=lane=="C"?.95:1.2;m.c*=.8;m.grow=lane=="C"?{射門:.4}:{速度:.25,傳球:.25}}
+ if(band=="M"){m.g*=.85;m.a*=1.15;m.grow=lane=="C"?{傳球:.4}:{傳球:.2,體能:.2}}
+ if(band=="D"){m.g*=.55;m.a*=.8;m.c*=1.25;m.grow={防守:.4}}
+ if(it.mind=="攻")m.g*=1.15,m.a*=1.05,m.c*=.85,m.fat*=1.1;if(it.mind=="守")m.g*=.85,m.c*=1.15;
+ if(it.move=="自由")m.fat*=1.12,m.km+=.03,m.a*=1.05;if(it.move=="紀律")m.fat*=.92,m.km-=.01;
+ if(!zoneFit(p,it.zone))m.km-=.03;return m}
+function renderIntent(){const el=$("intent");if(!el||!P)return;const p=P;$("intentCard").classList.toggle("hide",p.age<13||p.retired||!!p.footEnd);p.intent=p.intent||{zone:null,mind:"衡",move:"一般"};const it=p.intent;
+ const m=intentMods(p),pct=x=>{const v=Math.round((x-1)*100);return v?`<b style="color:${v>0?"var(--g)":"var(--ac)"}">${v>0?"+":""}${v}%</b>`:"<b>±0</b>"};
+ el.innerHTML=`<div class="pitchI"><i class="gl"></i><i class="gr"></i>${["L","C","R"].map(l=>["D","M","A"].map(b=>{const z=ZONES.find(x=>x[1]==b&&x[2]==l);return `<button class="${it.zone==z[0]?"on":""} ${zoneFit(p,z[0])?"fit":""}" data-z="${z[0]}">${ZNAME[l]}${ZNAME[b]}</button>`}).join("")).join("")}</div>
+  <div class="int-eff">← 自家球門　　　　對方球門 →　　黃框＝適合你目前位置（${posName(p)}）的區域</div>
+  <div class="int-row">比賽意識：${[["攻","積極進攻"],["衡","平衡"],["守","優先防守"]].map(([k,n])=>`<button class="${it.mind==k?"on":""}" data-m="${k}">${n}</button>`).join("")}</div>
+  <div class="int-row">跑動方式：${[["紀律","守住位置"],["一般","一般"],["自由","自由跑位"]].map(([k,n])=>`<button class="${it.move==k?"on":""}" data-v="${k}">${n}</button>`).join("")}</div>
+  <div class="int-eff">${it.zone?`目前：<b>${(z=>ZNAME[z[2]]+ZNAME[z[1]])(ZONES.find(x=>x[0]==it.zone))}</b>　進球 ${pct(m.g)}　助攻 ${pct(m.a)}　零封 ${pct(m.c)}　疲勞 ${pct(m.fat)}　關鍵時刻 ${m.km>=0?"+":""}${Math.round(m.km*100)}%${Object.keys(m.grow).length?`　多練到：${Object.keys(m.grow).join("、")}`:""}${zoneFit(p,it.zone)?"":"　<b style='color:var(--ac)'>不符合你的位置，教練評價會下降</b>"}`:"還沒選區域：照教練的安排踢"}</div>`;
+ el.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{it.zone=it.zone==b.dataset.z?null:b.dataset.z;renderIntent()});
+ el.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{it.mind=b.dataset.m;renderIntent()});
+ el.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{it.move=b.dataset.v;renderIntent()})}
 function renderMgr(){const el=$("mgr");if(!el||!P)return;const p=P;p.mgrUsed=p.mgrUsed||{};
  $("mgrCard").classList.toggle("hide",p.age<16||p.retired||!!p.footEnd);
  el.innerHTML=MGR.map(([n,d,ok],i)=>{const used=p.mgrUsed[n]===p.age,can=ok(p)&&!used;const why=!can&&!used&&MGR_WHY[n]?MGR_WHY[n](p):"";return `<button class="mg" data-i="${i}" ${can?"":"disabled"}><b>${n}</b><small>${used?"本季已使用":why||d}</small></button>`}).join("");

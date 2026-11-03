@@ -15,7 +15,7 @@ function askNow(q,opts,info){
 
 // ── 成長：訓練重心 + 天賦上限 + 上場時間 + 年齡 ──
 // ── 人際：教練、經紀人、最好的隊友、伴侶，各有名字與關係值（0～100）──
-function newName(p){const nm=NM[p.region];return p.region=="華"?pick(nm.姓)+pick(nm.男):pick(nm.男)+" "+pick(nm.姓)}
+function newName(p){const nm=NM[p.region];return pick(nm.男)+" "+pick(nm.姓)}
 function rel(p,k,d){p.rel=p.rel||{};const r=p.rel[k];if(!r)return 50;if(d){r.v=clamp(r.v+d,0,100)}return r.v}
 function meet(p,k,name,v){p.rel=p.rel||{};p.rel[k]={name:name||newName(p),v:v??50};return p.rel[k]}
 const RELN={coach:"總教練",agent:"經紀人",mate:"最好的隊友",partner:"伴侶"};
@@ -172,7 +172,7 @@ async function mediaYear(rating){const p=P;const _ask=ask;p.pop=p.pop??50;p.fans
 function fansTxt(n){return n>=1e4?`${(n/1e4).toFixed(1)} 億`:n>=1?`${n>=100?Math.round(n):n.toFixed(1)} 萬`:`${Math.round(n*1e4)}`}
 // ── 關鍵時刻：依位置隨機抽一個情境，每個選項顯示成功率（看對應的細項能力、疲勞、特質）──
 async function keyMoment(st){
- const p=P,S=p.s,fat=(p.fat||0)/400,bonus=.02*((rel(p,"mate")-50)/25)+(p.edge?.15:0)+.04*T(p,"球商")+.03*T(p,"拚命")+((p._md&&p._md.km)||0);
+ const p=P,S=p.s,fat=(p.fat||0)/400,bonus=.02*((rel(p,"mate")-50)/25)+(p.edge?.15:0)+.04*T(p,"球商")+.03*T(p,"拚命")+((p._md&&p._md.km)||0)+(typeof intentMods=="function"?intentMods(p).km:0);
  const av=(...k)=>k.reduce((t,x)=>t+(S[x]||0),0)/k.length+(/射手|殺手|前鋒/.test(styleOf(p))&&k.some(x=>/射|跑位/.test(x))?8:/組織|節拍|傳中/.test(styleOf(p))&&k.some(x=>/傳|視野/.test(x))?8:/硬漢|後衛/.test(styleOf(p))&&k.some(x=>/搶斷|盯人|強壯/.test(x))?8:/突破|快馬/.test(styleOf(p))&&k.some(x=>/盤帶|敏捷/.test(x))?8:0);
  // o(文字, 基礎機率, 能力值, 成功描述, 失敗描述, 成功效果, 額外說明)
  const o=(label,base,att,good,bad,fx,extra,foot)=>{const c=clamp(base+att/220-fat+bonus+(foot?(p.wf-3)*.04:0)+(extra=="花式"?(p.sm-3)*.04:0),.05,.95);

@@ -13,7 +13,7 @@ const NM={
  非:{男:["Kwame","Sadio","Victor","Moussa","Samuel","Yaw","Ismaila","Chidi","Amadou","Musa"],姓:["Mensah","Diallo","Okafor","Traoré","Koné","Osei","Ndiaye","Eze","Camara","Adeyemi"]},
  亞:{男:["Takumi","Daichi","Min-jun","Ji-ho","Kaoru","Ritsu","Hyun-woo","Sho","Yuto","Seung-ho"],姓:["Tanaka","Kim","Suzuki","Lee","Sato","Park","Ito","Choi","Kubo","Son"]},
  中:{男:["Ahmed","Omar","Youssef","Karim","Hakim","Salem","Ali","Riyad","Hamza","Nabil"],姓:["Hassan","Benali","Al-Farsi","Mansour","Haddad","Ziyech","Saleh","Amrabat","Nasser","Hakimi"]},
- 華:{男:["家豪","冠廷","承恩","宇軒","柏翰","子傑","彥廷","俊宏","志明","睿恩"],姓:["陳","林","黃","張","李","王","吳","劉","蔡","楊"]}};
+ 華:{男:["Chia-Hao","Kuan-Ting","Cheng-En","Yu-Hsuan","Po-Han","Tzu-Chieh","Yen-Ting","Chun-Hung","Chih-Ming","Jui-En","Wei","Hao-Yu"],姓:["Chen","Lin","Huang","Chang","Lee","Wang","Wu","Liu","Tsai","Yang","Hsu","Cheng"]}};
 const COUNTRIES=[
  ["巴西",120,88,3,"拉"],["阿根廷",70,89,3,"拉"],["英格蘭",65,86,5,"英"],["法國",60,88,4,"歐"],["西班牙",55,87,5,"歐"],["德國",55,85,5,"歐"],["義大利",45,83,5,"歐"],
  ["葡萄牙",30,85,3,"歐"],["荷蘭",28,84,3,"歐"],["比利時",18,80,3,"歐"],["克羅埃西亞",10,81,2,"歐"],["烏拉圭",12,80,2,"拉"],["哥倫比亞",30,79,2,"拉"],["墨西哥",40,76,3,"拉"],
@@ -107,7 +107,7 @@ function newPlayer(world,pos){
  const fam={dad:pick(JOB),mom:pick(JOB),fan,sib,cls};
  const hT=({拉:175,歐:181,英:179,非:177,亞:172,中:175,華:173}[c[4]])+gauss()*6.5; // 成年身高目標（男性）
  const _bg=wpick(BG,x=>x[1]),_body=wpick(BODY,x=>x[1])[0],_mind=wpick(MIND,x=>x[1])[0];
- return attachA({bg:_bg[0],bgNote:_bg[2],body:_body,mind:_mind,s:sub,wf:wpick([1,2,3,4,5],x=>[5,30,45,15,5][x-1]),sm:wpick([1,2,3,4,5],x=>[10,35,35,15,5][x-1]),dp:({FW:"ST",MF:"CM",DF:"CB",GK:"GK"}[position]),name:c[4]=="華"?pick(nm.姓)+pick(nm.男):pick(nm.男)+" "+pick(nm.姓),c:c[0],cs:c[2],ctier:c[3],region:c[4],pos:position,dreamPos:position,talent,pot:Math.min(pot,potCap),a,age:0,y0:2026,cls,fam,h:50,hT,bloom:gauss()*.9,touchAge:fan||sib?3+Math.floor(R()*2):4+Math.floor(R()*3),grade:55+R()*20,
+ return attachA({bg:_bg[0],bgNote:_bg[2],body:_body,mind:_mind,s:sub,wf:wpick([1,2,3,4,5],x=>[5,30,45,15,5][x-1]),sm:wpick([1,2,3,4,5],x=>[10,35,35,15,5][x-1]),dp:({FW:"ST",MF:"CM",DF:"CB",GK:"GK"}[position]),name:pick(nm.男)+" "+pick(nm.姓),c:c[0],cs:c[2],ctier:c[3],region:c[4],pos:position,dreamPos:position,talent,pot:Math.min(pot,potCap),a,age:0,y0:2026,cls,fam,h:50,hT,bloom:gauss()*.9,touchAge:fan||sib?3+Math.floor(R()*2):4+Math.floor(R()*3),grade:55+R()*20,
   club:null,stage:"嬰兒",money:0,fame:0,morale:60,health:100,caps:0,intlGoals:0,apps:0,goals:0,assists:0,cleans:0,trophies:[],awards:[],injuries:0,seasons:[],ovrHist:[],log:[],alive:true,retired:false,contract:0,wage:0,partner:null,kids:0,after:null,clubsPlayed:[],peak:0,maxValue:0});
 }
 function say(t,hi){const p=document.createElement("p");if(hi)p.className="hi";p.innerHTML=`<span class="y">${P.age}歲</span>${t}`;const L=$("log");L.prepend(p);while(L.children.length>150)L.lastChild.remove();P.log.push([P.age,t,!!hi])} // 畫面只留最近 150 則，完整紀錄在報表的生平
