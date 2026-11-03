@@ -145,7 +145,7 @@ async function proSeason(){
  if(p.injuryLeft>0){share*=p.injuryLeft>1?.1:.5;p.injuryLeft--;p.missG=0}
  if(p._starBlock&&role!="預備隊"){share*=.8;say(`和 ${p._starBlock} 搶同一個位置，上場時間變少了。`)}p._starBlock=null;
  share=clamp(share*(.85+R()*.3)*(p.morale<35?.8:1)*(p.world&&p.world.short==p.age?.7:1),0,1);
- const reserve=role=="預備隊"?20+Math.round(R()*8):0,apps=Math.round(38*share),rate={FW:.62,MF:.22,DF:.05,GK:0}[p.pos]*Math.max(.05,(ovr(p)-48)/38),st={apps:0,goals:0,assists:0,cleans:0};
+ const reserve=role=="預備隊"?20+Math.round(R()*8):0,apps=Math.round(lgGames(c)*share),rate={FW:.62,MF:.22,DF:.05,GK:0}[p.pos]*Math.max(.05,(ovr(p)-48)/38),st={apps:0,goals:0,assists:0,cleans:0};
  const capsB=p.caps;p.table=makeTable(p,c);if(role!="預備隊")await seasonGoal(p,apps,rate,c);
  for(let ph=0;ph<4&&!toEnd;ph++){
   p.phase=PH[ph];render();renderPlan();
@@ -402,11 +402,11 @@ function starRank(p){if(!p.stars)return null;// 排名用同一把尺：獎項�
 function starTable(p){const r=starRank(p);if(!r)return `<p class="mut">這局沒有開啟同世代球星。</p>`;
  const TC={巨星:"#b07cff",一線:"#ffd23f",青訓同學:"#4cd964",同期:"#a9c2ad",你:"#ff4d4d"};
  return `<p>同世代 ${r.all.length} 人中排第 <b>${r.rank}</b> 名；${p.c} ${r.home.length} 人中排第 <b>${r.hrank}</b> 名。</p><div class="tbl"><table><tr><th>#</th><th style="text-align:left">球員</th><th>國家</th><th>位置</th><th>巔峰</th><th>進球</th><th>冠軍</th><th>獎項</th><th>評分</th></tr>${r.all.map((x,i)=>`<tr${x.me?' style="background:#ffd23f33;font-weight:700"':""}><td>${i+1}</td><td style="text-align:left"><span style="color:${TC[x.tier]};font-size:11px;margin-right:4px">${x.tier}</span>${esc(x.n)}${x.fate?`<br><small class="mut">平行世界：${x.fate}</small>`:""}${x.job?`<br><small class="mut">${x.end} 歲放棄足球，${x.job}</small>`:x.club&&x.club.length?`<br><small class="mut">${esc(x.club.slice(-3).join(" → "))}</small>`:""}</td><td>${x.c}</td><td>${POS[x.pos]}</td><td>${x.peak}</td><td>${x.goals}</td><td>${x.tro}</td><td>${x.aw}</td><td>${x.sc}</td></tr>`).join("")}</table></div>`}
-// ── 聯賽積分榜：18 隊（已知球隊用真名，其他用「聯賽球隊」），名次決定爭冠戰、保級戰和聯賽冠軍 ──
-function makeTable(p,c){const known=CLUBS.filter(x=>x.lg==c.lg),avg=known.reduce((t,x)=>t+x.str,0)/known.length,N=c.tier>=3?18:16;
+// ── 聯賽積分榜：依各聯賽真實隊數（已知球隊用真名，其他用「聯賽球隊」），名次決定爭冠戰、保級戰和聯賽冠軍 ──
+function makeTable(p,c){const known=CLUBS.filter(x=>x.lg==c.lg),avg=known.reduce((t,x)=>t+x.str,0)/known.length,N=Math.max(known.length,lgTeams(c));
  const rows=known.map(x=>({n:x.name,str:x.str+(x.name==c.name?(ovr(p)-c.str)*.25:0),me:x.name==c.name}));
  for(let i=rows.length;i<N;i++)rows.push({n:`${c.lg.replace(/職業|甲級|超級|聯賽/g,"")}球隊 ${String.fromCharCode(65+i-known.length)}`,str:avg-6+gauss()*5});
- rows.forEach(r=>{r.form=gauss()*4});return {lg:c.lg,N,rows,games:(N-1)*2}}
+ rows.forEach(r=>{r.form=gauss()*4});return {lg:c.lg,N,rows,games:lgGames(c)}}
 function tableAt(t,frac){const g=Math.round(t.games*frac);t.rows.forEach(r=>{const per=clamp(1.35+(r.str-60)/30+r.form/20,.4,2.6);r.pts=Math.round(g*per+(r.adj||0)*frac+gauss()*Math.sqrt(g)*.9);r.gp=g});
  const s=t.rows.slice().sort((a,b)=>b.pts-a.pts);s.forEach((r,i)=>r.pos=i+1);return s}
 function tableHTML(t,sorted){const me=sorted.find(r=>r.me),show=sorted.filter(r=>r.pos<=4||Math.abs(r.pos-me.pos)<=1||r.pos>t.N-3);let last=0;
@@ -486,7 +486,7 @@ async function seasonGoal(p,apps,rate,c){
  if(p.pos=="FW"||p.pos=="MF")G.push({t:"goals",n:r(eg*(p.pos=="FW"?1.15:1.3)),l:"進球"});
  if(p.pos!="GK")G.push({t:"assists",n:r(ea*1.2),l:"助攻"});
  if(p.pos=="GK"||p.pos=="DF")G.push({t:"cleans",n:r(ec*1.1),l:"零封"});
- G.push({t:"apps",n:Math.min(38,r(apps*1.15)),l:"出賽"},{t:"rating",n:+(6+(ovr(p)-c.str)/12+.45).toFixed(1),l:"平均評分"});
+ G.push({t:"apps",n:Math.min(lgGames(c),r(apps*1.15)),l:"出賽"},{t:"rating",n:+(6+(ovr(p)-c.str)/12+.45).toFixed(1),l:"平均評分"});
  if(!p.caps&&ovr(p)>=Math.max(55,p.cs-4)-4&&p.age>=18)G.push({t:"caps",n:1,l:"入選國家隊"});
  if(c.str>=70)G.push({t:"titles",n:1,l:"拿下冠軍"});
  const opts=G.sort(()=>R()-.5).slice(0,3).map(g=>{const hard=g.t=="titles"||g.t=="caps"?3:g.t=="rating"?2:R()<.5?2:1;g.hard=hard;return g});
