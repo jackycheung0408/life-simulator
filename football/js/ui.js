@@ -72,7 +72,7 @@ async function playSeasonVisual(apps,goals){
 }
 async function quietYear(){if(toEnd||P.retired)return;const total=secPerSeason*(P.age<6?60:P.age<13?120:P.age<16?200:260);/* 童年快轉，16 歲後才是重點 */let w=0,last=performance.now();while(w<total){await new Promise(r=>setTimeout(r,50));const now=performance.now();if(!paused)w+=(now-last)*mult;last=now;if(pendingSkip||toEnd)w=total;$("sFill").style.width=Math.min(100,w/total*100)+"%";if(P.age<13)$("ticker").textContent=P.age<P.touchAge?`${P.age} 歲，還沒碰過足球`:`${P.age} 歲 · ${P.stage} · 身高 ${Math.round(P.h)} 公分`;drawPitch(Math.min(1,w/total),0)}}
 function render(){try{renderMgr()}catch(e){}
- const p=P,o=ovr(p);$("ovr").textContent=p.age<p.touchAge?"??":Math.round(o);$("pos").textContent=p.age<11&&!(p.done&&p.done.pos)?"—":dpOf(p);$("nm").textContent=p.name.split(" ").pop();$("age").textContent=p.age;
+ const p=P,o=ovr(p);$("ovr").textContent=p.age<p.touchAge?"??":Math.round(o);$("pos").textContent=p.age<11&&!(p.done&&p.done.pos)?"—":posCode(p);$("nm").textContent=p.name.split(" ").pop();$("age").textContent=p.age;
  $("fut").className="fut"+(o>=75?"":o>=65?" silver":" bronze");$("who").textContent=`${p.name}（${POS[p.pos]}）`;
  $("where").textContent=p.retired?`已退休 · ${p.after||""}`:p.club?`${p.club} · ${p.clubObj.lg} · 合約剩 ${Math.max(0,p.contract)} 年`:`${p.c} · ${p.stage}`;
  $("sL").textContent=`${p.age} 歲`;$("sR").textContent=`${p.age+1} 歲`;drawFace($("face"),p);
@@ -85,7 +85,7 @@ function render(){try{renderMgr()}catch(e){}
  const face=p.age<p.touchAge?`<div class="stat" style="grid-column:1/-1"><span>足球能力</span><b>還沒碰過足球</b></div>`:ATTR.map(k=>`<div class="stat" data-tip="${esc(`<b>${k} ${Math.round(p.a[k])}</b>　佔綜合評分 ${Math.round(share[k]*100)}%<br>`+Object.keys(faceMap(p,k)).map(x=>`${x} ${Math.round(p.s[x])}`).join("　"))}"><span>${FIFA[k]} ${k}<em class="wt">${Math.round(share[k]*100)}%</em></span><b>${Math.round(p.a[k])}${(()=>{const d=p.a[k]-((p.yStart||{})[k]??p.a[k]);return Math.abs(d)>=.3?` <small class="${d>0?"up":"down"}">${d>0?"▲":"▼"}${Math.abs(d).toFixed(1)}</small>`:""})()}</b><div class="bar"><i style="width:${p.a[k]}%"></i></div></div>`).join("");
  // 數值等級：一眼看出好壞
  const grade=(k,v)=>k=="名氣"?(v<20?"無名":v<60?"小有名氣":v<130?"全國知名":v<250?"國際球星":"傳奇"):k=="球迷支持"?(v<30?"低迷":v<60?"普通":v<80?"愛戴":"狂熱"):k=="健康"?(v<50?"很差":v<75?"普通":"良好"):k=="疲勞"?(v>70?"危險":v>45?"偏高":"正常"):"";
- const info=[["身高",Math.round(p.h)+" cm"],["位置",p.age<11&&!p.done?.pos?"還沒固定":DPN[dpOf(p)]],["逆足／花式",p.age<10?"未知":`${p.wf}★／${p.sm}★`],["天賦上限",p.age<16?"？？":Math.round(p.pot)],
+ const info=[["身高",Math.round(p.h)+" cm"],["位置",p.age<11&&!p.done?.pos?"還沒固定":posName(p)],["逆足／花式",p.age<10?"未知":`${p.wf}★／${p.sm}★`],["天賦上限",p.age<16?"？？":Math.round(p.pot)],
   ...(p.age<13?[["功課",p.age<6?"還沒上學":Math.round(p.grade||60)],["健康",Math.round(p.health)]]:[["身價",p.club?eur(value(p)):"—"],["年薪",p.club?eur(p.wage):"—"],["存款",eur(Math.max(0,p.money))],["健康",Math.round(p.health)],["疲勞",Math.round(p.fat||0)],["名氣",Math.round(p.fame)],["粉絲",fansTxt(p.fans||0)],["球迷支持",Math.round(p.pop??50)],...(p.nemesis?[["宿敵",p.nemesis]]:[])])]
   .map(([k,v])=>`<div class="chip${MAIN.includes(k)||p.age<13?"":" more"}" data-tip="${esc(CHIP_TIP[k]||k)}"><span>${k}${grade(k,+v)?`<em class="gr g-${grade(k,+v)}">${grade(k,+v)}</em>`:""}</span><b${k=="疲勞"&&v>70?' style="color:var(--ac)"':""}>${v}</b></div>`).join("");
  const rels=p.rel&&Object.keys(p.rel).length?`<div class="relbox">${Object.entries(p.rel).map(([k,r])=>`<div class="relrow"><span>${RELN[k]}<small>${r.name}${k=="coach"&&p.coachStyle?`・${p.coachStyle}`:""}</small></span><i><u style="width:${r.v}%;background:${r.v>=60?"var(--g)":r.v<35?"var(--ac)":"var(--y)"}"></u></i><em>${Math.round(r.v)}</em></div>`).join("")}</div>`:"";
@@ -232,7 +232,11 @@ const MGR=[
 const MGR_WHY={申請外租:p=>p.loanTo?"租借中":p.role=="主力"?"你已經是主力":"",宣布最後一季:p=>p.age<28?"28 歲以後才能宣布":p.lastSeason?"已經宣布了":"",要求轉會:p=>p.loanTo?"租借中不能轉會":"",國家隊:p=>p.age<18?"18 歲以後":""};
 MGR.push(
  ["私人特訓","自費加強一項能力",p=>p.age>=15&&p.money>=.01,async p=>{const cost=Math.max(.01,Math.min(.5,p.wage*.06));await ask(`請私人教練一對一特訓（花費約 ${eur(cost)}）`,ATTR.map(k=>[`加強${k}`,()=>{p.money-=cost;p.a[k]+=1.5+R()*1.5;p.focus=p.focus||{};p.focus[k]=(p.focus[k]||0)+.8;capAttrs(p);say(`請私人教練加強${k}，${k}進步到 ${Math.round(p.a[k])}。`,1)},`目前 ${Math.round(p.a[k])}`]).concat([["算了",()=>{}]]))}],
- ["改踢位置","向教練要求換位置",p=>p.club&&p.age>=16&&p.pos!="GK",async p=>{const opts=Object.keys(DPN).filter(d=>d!="GK"&&d!=dpOf(p));await ask(`想改踢哪個位置？（目前 ${DPN[dpOf(p)]}，教練關係 ${rel(p,"coach")}）`,opts.map(d=>{const w=DPW[d];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}const o=Math.round(t/sw);return [`改踢${DPN[d]}`,()=>{if(R()<.4+(rel(p,"coach")-50)/100){setDp(p,d);say(`教練同意讓你改踢${DPN[d]}。`,1)}else{rel(p,"coach",-3);say("教練拒絕了，要你先在原位置證明自己。")}},`在這個位置的評分 ${o}`]}).concat([["不換",()=>{}]]))}],
+ ["改踢位置","向教練要求換位置",p=>p.club&&p.age>=16&&p.pos!="GK",async p=>{const cur=rateAt(p,dpOf(p)),now=posName(p);
+   // 列出每個精確位置：綜合評分變化、最看重的三項細項
+   const opts=POS9.filter(([d,n])=>n!=now).map(([d,n,side])=>{const r=rateAt(p,d),diff=r-cur,top=Object.entries(DPW[d]).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]).join("、");
+    return [`改踢${n}　${cur} → ${r}（${diff>=0?"+":""}${diff}）`,()=>{if(R()<.4+(rel(p,"coach")-50)/100+(diff>0?.15:0)){setDp(p,d);p.side=side||null;say(`教練同意讓你改踢${n}，綜合評分 ${cur} → ${r}。`,1)}else{rel(p,"coach",-3);say("教練拒絕了，要你先在原位置證明自己。")}},`看重：${top}`]}).sort((a,b)=>{const n=x=>+x[0].match(/（([+-]?\d+)）/)[1];return n(b)-n(a)});
+   await ask(`想改踢哪個位置？（目前 ${now}，綜合 ${cur}，教練關係 ${rel(p,"coach")}）`,opts.concat([["不換",()=>{}]]),"依評分變化排序；評分越高，教練越容易同意")}],
  ["找教練談話","爭取上場、請教戰術",p=>!!p.club,async p=>{await ask(`找總教練談話（目前關係 ${rel(p,"coach")}，戰術「${p.coachStyle||"—"}」）`,[["爭取更多上場時間",()=>{if(R()<.35+(rel(p,"coach")-50)/120+(ovr(p)-p.clubObj.str)/40){rel(p,"coach",8);say("教練答應給你更多機會。",1)}else{rel(p,"coach",-5);say("教練覺得你還不夠格。")}},"看教練關係與實力"],["請教戰術要求",()=>{rel(p,"coach",4);const k=TAC[p.coachStyle]||["傳球"];k.forEach(x=>{p.a[x]+=.8});say(`照教練的戰術要求加練${k.join("、")}。`)},"配合戰術，能力小幅↑"],["只是打聲招呼",()=>{rel(p,"coach",2)},""]])}],
  ["休假充電","降低疲勞、回復心情",p=>p.age>=16&&(p.fat||0)>20,async p=>{await ask("想怎麼休息？",[["和家人出國旅行",()=>{p.fat=Math.max(0,(p.fat||0)-35);p.morale+=6;p.money-=.01},"疲勞↓↓ 花點錢"],["在家完全放空一週",()=>{p.fat=Math.max(0,(p.fat||0)-25);p.morale+=3},"疲勞↓"],["去做物理治療",()=>{p.fat=Math.max(0,(p.fat||0)-20);p.health+=6},"健康↑"]])}]);
 function renderMgr(){const el=$("mgr");if(!el||!P)return;const p=P;p.mgrUsed=p.mgrUsed||{};
@@ -326,7 +330,7 @@ function playerCardCanvas(p){const W=1080,H=1080,cv=document.createElement("canv
  const cg=g.createLinearGradient(cx,cy,cx+cw,cy+ch);cg.addColorStop(0,tier[2]);cg.addColorStop(.5,tier[1]);cg.addColorStop(1,tier[2]);g.fillStyle=cg;g.fill();g.lineWidth=10;g.strokeStyle="#050a06";g.stroke();g.clip();
  g.fillStyle="#ffffff2a";g.beginPath();g.moveTo(cx,cy+210);g.lineTo(cx+cw,cy+90);g.lineTo(cx+cw,cy+135);g.lineTo(cx,cy+255);g.fill();g.restore();
  g.fillStyle=tier[0];g.textAlign="center";const lx=cx+105;
- g.font=F(120);g.fillText(o,lx,cy+150);g.font=F(46);g.fillText(dpOf(p),lx,cy+205);g.font=F(24,700);g.fillText(p.c,lx,cy+245);g.fillText(tier[3],lx,cy+278);
+ g.font=F(120);g.fillText(o,lx,cy+150);g.font=F(46);g.fillText(posCode(p),lx,cy+205);g.font=F(24,700);g.fillText(p.c,lx,cy+245);g.fillText(tier[3],lx,cy+278);
  const fc=document.createElement("canvas");fc.width=fc.height=16;drawFace(fc,p);g.imageSmoothingEnabled=false;g.drawImage(fc,cx+cw-280,cy+50,240,240);
  let ns=50;g.font=F(ns);while(g.measureText(p.name).width>cw-90&&ns>26){ns-=2;g.font=F(ns)}g.fillText(p.name,mid,cy+365);
  g.fillRect(mid-150,cy+388,300,4);

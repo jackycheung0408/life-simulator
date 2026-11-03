@@ -256,7 +256,8 @@ async function midWindow(st,role){const p=P,c=p.clubObj,o=ovr(p),hot=st.apps>8&&
    await ask(`冬季轉會窗：${c.name}已經接受${to.name}的報價，準備把你賣掉`,[["接受，去新球隊找出路",()=>{p._fee=fee;say(`被${c.name}賣到${to.name}，轉會費 ${eur(fee)}。`,1);sign(to,3)},"上場機會↑"],["拒絕轉會，留下來爭取",()=>{p.morale-=6;if(R()<.5){p.contract=Math.min(p.contract,1);say("拒絕轉會後被教練冷凍。")}},"可能被冷凍"]],"球隊覺得你在這裡沒有未來");return}}
  if(R()<interest){const to=poolFor(p).filter(x=>x.name!=c.name&&x.str>c.str&&x.str<=o+6).sort(()=>R()-.5)[0];if(!to)return;const fee=value(p)*(1.2+R()*.8);
   await ask(`冬季轉會窗：${to.name}對你提出 ${eur(fee)} 的報價`,[["要求球隊放人",()=>{if(R()<(p.releaseClause?.9:.6)){p._fee=fee;say(`${c.name}同意放人，以 ${eur(fee)} 轉會到${to.name}。`,1);p.fame+=fee*.2;sign(to,4)}else{p.morale-=4;say(`${c.name}拒絕放人，說你還有合約在身。`)}},"球隊不一定放"],["留下來完成這個賽季",()=>{p.morale+=2},"球迷好感↑"],["叫經紀人用報價談加薪",()=>{p.wage*=1.15;p.contract+=1;say(`用挖角報價談成加薪，年薪 ${eur(p.wage)}。`)},"年薪↑"]],"合約還沒到期，但其他球隊還是可以出價挖角")}}
-async function seasonCard(s){const p=P;if(auto||toEnd){p._gala=null;return}
+async function seasonCard(s){const p=P;if(auto||toEnd){p._gala=null;return}return queueModal(()=>seasonCardNow(s))}
+async function seasonCardNow(s){const p=P;
  const cell=(k,v)=>`<div class="stat"><span>${k}</span><b>${v}</b></div>`;
  return new Promise(res=>{$("mtag").textContent=`${s.y} 球季總結 · ${s.age} 歲`;$("modal").classList.remove("hide");
   $("choice").innerHTML=`<h2 style="margin-top:10px">${s.club}（${s.lg}）· ${s.role}</h2><div class="grid">${[["出賽",s.apps],["先發",s.starts],["上場分鐘",s.mins.toLocaleString()],[p.pos=="GK"?"零封":"進球",p.pos=="GK"?s.cleans:s.goals],["助攻",s.assists],["平均評分",s.rating.toFixed(2)],["全場最佳",s.motm+" 次"],["黃牌／紅牌",`${s.yel}／${s.red}`],["能力",s.ovr],["身價",eur(s.val)]].map(([k,v])=>cell(k,v)).join("")}</div>
@@ -397,7 +398,7 @@ const WORLD=[
  p=>{p.world.short=p.age;return "全球流行病爆發，本季賽程縮短，比賽大多空場進行。"},
  p=>pick(["國際足總宣布越位改用半自動判定。","歐洲聯賽改成 36 隊大聯賽制，比賽變多了。","國際足總限制每季出賽上限，球員工會表示歡迎。","世界盃擴大成 64 隊，小國也有機會參賽。"]),
 ];
-async function worldYear(p){p.world=p.world||{};if(p.age<14||R()>.07)return;const t=pick(WORLD)(p);if(t)say("🌍 足壇大事："+t,1)}
+async function worldYear(p){p.world=p.world||{};if(p.age<14||R()>.07)return;p.world.seen=p.world.seen||[];const left=WORLD.map((_,i)=>i).filter(i=>!p.world.seen.includes(i));if(!left.length)return;const i=pick(left);p.world.seen.push(i);const t=WORLD[i](p);if(t)say("🌍 足壇大事："+t,1)}
 // ── 出身兌現：13 歲進青訓時，家庭背景、體型、性格開始影響能力與事件 ──
 function applyOrigin(p){const s=p.s,add=(k,v)=>{s[k]=clamp(s[k]+v,1,99)};
  ({足球世家:()=>{add("視野",4);add("跑位",3);p.pot=Math.min(99,p.pot+2);p.fame+=3;say("爸爸當年的隊友來看你踢球：「跟你爸一樣有球感。」",1)},

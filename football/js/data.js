@@ -72,6 +72,11 @@ const DPW={ST:{射術:18,跑位:13,頭球:10,射門力量:10,反應:8,盤帶技�
  CB:{頭球:10,盯人:14,搶斷:31,攔截:13,反應:5,強壯:10,控球:4,短傳:5,衝刺速度:2,彈跳:3},
  GK:{撲救:24,手型:24,門將反應:24,門將站位:24,長傳:4}};
 const DPN={ST:"中鋒",W:"邊鋒",CAM:"攻擊中場",CM:"中場",CDM:"防守中場",FB:"邊後衛",CB:"中後衛",GK:"門將"},DP2POS={ST:"FW",W:"FW",CAM:"MF",CM:"MF",CDM:"MF",FB:"DF",CB:"DF",GK:"GK"};
+// 精確位置：邊鋒、邊後衛再分左右（能力計算相同）
+const POS9=[["ST","中鋒"],["W","左邊鋒","L"],["W","右邊鋒","R"],["CAM","攻擊中場"],["CM","中場"],["CDM","防守中場"],["FB","左後衛","L"],["FB","右後衛","R"],["CB","中後衛"]];
+function posName(p){const d=dpOf(p);return (d=="W"||d=="FB")&&p.side?(p.side=="L"?"左":"右")+(d=="W"?"邊鋒":"後衛"):DPN[d]}
+function posCode(p){const d=dpOf(p);return d=="W"?(p.side=="R"?"RW":"LW"):d=="FB"?(p.side=="R"?"RB":"LB"):d}
+function rateAt(p,d){const w=DPW[d];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return Math.round(t/sw)}
 function dpOf(p){return p.dp&&DP2POS[p.dp]==p.pos?p.dp:({FW:"ST",MF:"CM",DF:"CB",GK:"GK"}[p.pos])}
 function setDp(p,dp){p.dp=dp;p.pos=DP2POS[dp]}
 function faceMap(p,k){return p.pos=="GK"&&k=="防守"?GKFACE:FACE[k]}

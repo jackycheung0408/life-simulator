@@ -1,9 +1,13 @@
 // 事件：抉擇視窗、成長、大比賽、各種隨機事件
 // ── 抉擇視窗 ──
-function ask(q,opts,info){
+// 抉擇排隊：視窗一次只開一個；還沒選完時新的事件會排在後面，不會蓋掉
+let modalQ=Promise.resolve(),modalWait=0;
+function queueModal(fn){if(auto||toEnd)return fn();modalWait++;const run=modalQ.then(()=>{modalWait--;return fn()});modalQ=run.catch(()=>{});return run}
+function ask(q,opts,info){return queueModal(()=>askNow(q,opts,info))}
+function askNow(q,opts,info){
  const avail=opts.filter(o=>!o[3]||o[3]());
  if(auto||toEnd){const o=pick(avail.length?avail:opts);say(`${q} → ${o[0]}`);o[1]();return Promise.resolve()}
- return new Promise(res=>{$("mtag").textContent=`${P.age} 歲 · ${P.y0+P.age} 年`;$("mctx").textContent=P.retired?"退休後":P.club?`${P.club}${P.phase?" · "+P.phase:""}`:P.stage||"";$("modal").classList.remove("hide");
+ return new Promise(res=>{$("mtag").textContent=`${P.age} 歲 · ${P.y0+P.age} 年`;$("mctx").textContent=(P.retired?"退休後":P.club?`${P.club}${P.phase?" · "+P.phase:""}`:P.stage||"")+(modalWait?`　·　還有 ${modalWait} 個抉擇等你`:"");$("modal").classList.remove("hide");
   $("choice").innerHTML=`<h2 style="margin-top:10px">${q}</h2>${info?`<p class="mut">${info}</p>`:""}`+opts.map((o,i)=>{const ok=!o[3]||o[3]();return `<button class="opt" data-i="${i}" ${ok?"":"disabled"}>${o[0]}${o[2]?`<small>${o[2]}</small>`:""}</button>`}).join("");
   $("choice").querySelectorAll(".opt").forEach(b=>b.onclick=()=>{const o=opts[b.dataset.i],before=ovr(P);b.classList.add("picked");$("choice").querySelectorAll(".opt").forEach(x=>x.disabled=true);
    say(`${q} → ${o[0]}`);o[1]();setTimeout(()=>{$("modal").classList.add("hide");render();const d=ovr(P)-before;toast(d?`${o[0]}：能力 ${d>0?"+":""}${d}`:`選擇了「${o[0]}」`);res()},380)})});
