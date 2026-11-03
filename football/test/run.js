@@ -19,7 +19,7 @@ animMatch=async()=>{};quietYear=async()=>{};
 global.T_run=async(w,mode)=>{P=newPlayer(w,"?");P.mode=mode;starsInit(P,"real");while(P.alive&&!P.footEnd){await season();save()}return P};
 global.T_CL=CLUBS;global.T_TOP5=TOP5;global.T_CONT=CONT;global.T_contOk=contOk;global.T_EU7=EU7;`);
 
-const N=Math.max(40,+process.argv[2]||40); // 很快，所以至少跑 40 段const fails=[];const check=(ok,msg)=>{if(!ok)fails.push(msg)};
+const N=Math.max(40,+process.argv[2]||40);/* 很快，所以至少跑 40 段 */const fails=[];const check=(ok,msg)=>{if(!ok)fails.push(msg)};
 (async()=>{const t0=Date.now();let pro=0,crash=0,maxSave=0,badOpp=0,badStar=0,titles=0,seasons=0;
  for(let i=0;i<N;i++){const mode=i%2?"pro":"real";let p;
   try{p=await T_run("world",mode)}catch(e){crash++;console.log("當掉：",e.stack.split("\n").slice(0,3).join(" | "));continue}
