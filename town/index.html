@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>小豬鎮</title>
+<style>
+:root{--bg:#f3efe6;--fg:#2c2620;--mut:#7a6d60;--card:#fffaf2;--line:#e3d9c8;--btn:#fff;--btnh:#f6ecdc;--ac:#e0779b;--good:#3fa34d;--warn:#e0a020;--bad:#d9453f}
+@media (prefers-color-scheme:dark){:root{--bg:#1c1a17;--fg:#f1ebe0;--mut:#a89c8d;--card:#27241f;--line:#3a352e;--btn:#2f2b25;--btnh:#3a352e;--ac:#f08bb0}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,"PingFang TC","Noto Sans TC",sans-serif;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:820px;margin:0 auto;padding:12px 16px 40px}
+h1{font-size:22px;margin:4px 0 10px}h2{font-size:18px;margin:0 0 10px}
+button{font:inherit;color:var(--fg);background:var(--btn);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer}
+button:hover{background:var(--btnh)}button:disabled{opacity:.5;cursor:default}
+button.pri{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}
+input{font:inherit;color:var(--fg);background:var(--btn);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;margin-top:4px}
+label{display:block;margin:10px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+.mut{color:var(--mut)}.err{color:var(--bad);min-height:1.2em}.hide{display:none!important}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:10px}
+.who{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.who button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px}.who small{color:var(--mut);font-size:12px}
+.lookbox{display:flex;gap:12px;align-items:center;margin-top:8px}.lookbox canvas{width:80px;height:88px;image-rendering:pixelated;background:#7cc46a;border-radius:10px;flex:none}
+.lrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}.lrow span{width:3em;font-size:13px;color:var(--mut)}
+.sw{padding:4px 8px;font-size:13px}.sw.dot{width:26px;height:26px;padding:0;border-radius:50%}.sw.on{outline:3px solid var(--ac);outline-offset:1px}
+#needs{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:8px}
+.need{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px;text-align:center;min-width:0}
+.need span{font-size:18px}.need i{display:block;height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:3px 0}.need i b{display:block;height:100%}
+.need small{display:block;font-size:11px;color:var(--mut);white-space:nowrap}.need.low{animation:blink 1s infinite}.need.money small{font-size:13px;color:var(--fg);font-weight:600;margin-top:8px}
+@keyframes blink{50%{border-color:var(--bad)}}
+#stage{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);touch-action:none}
+#cv{display:block;width:100%}
+.tools{position:absolute;right:8px;top:8px;display:flex;gap:6px}.tools button{background:rgba(0,0,0,.55);color:#fff;border:none;font-size:13px;padding:6px 10px}
+#here{font-weight:700;font-size:17px}#note{font-size:13px;margin:2px 0 8px}
+#acts{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+#acts button{display:flex;flex-direction:column;align-items:flex-start;text-align:left}#acts small{color:var(--mut);font-size:12px}
+#feed p{margin:0;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}#feed p span{color:var(--mut);font-size:12px;margin-right:8px}#feed p.mine{color:var(--ac);font-weight:600}
+#away{border-color:var(--ac)}#away p{margin:4px 0}
+.bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;align-items:center}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:#2c2620;color:#fff;padding:10px 16px;border-radius:12px;transition:transform .25s;z-index:50;max-width:90vw}
+#toast.on{transform:translateX(-50%) translateY(0)}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:40;padding:16px}
+#modal .card{max-width:520px;width:100%;max-height:92vh;overflow:auto}
+@media (max-width:520px){#needs{grid-template-columns:repeat(3,1fr)}.who{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <div class="bar"><h1>🐷 小豬鎮</h1><div id="topbtns"></div></div>
+ <section id="login"><div class="card" id="lg"><p class="mut">正在進入小鎮…</p></div></section>
+ <section id="game" class="hide">
+  <div id="away" class="card hide"></div>
+  <div id="needs"></div>
+  <div id="stage"><canvas id="cv"></canvas><div class="tools"><button id="home">📍 我</button><button id="zoom">🗺️ 看全鎮</button></div></div>
+  <div class="card"><div id="here"></div><div id="note" class="mut"></div><div id="acts"></div></div>
+  <div class="card"><div class="bar"><h2>小鎮動態</h2><button id="report">📰 今日日報</button></div><div id="feed"></div></div>
+  <div class="row"><button id="relook">換造型</button><button id="logout">登出</button></div>
+ </section>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="modal" class="hide"><div class="card" id="mbody"></div></div>
+<script src="town.js?v=1"></script>
+</body>
+</html>
