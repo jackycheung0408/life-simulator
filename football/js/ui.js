@@ -71,7 +71,7 @@ async function playSeasonVisual(apps,goals){
   $("sFill").style.width=t*100+"%";drawPitch(t,g2)}
 }
 async function quietYear(){if(toEnd||P.retired)return;const total=secPerSeason*(P.age<17?400:300);/* 童年每年和職業球季差不多長，慢慢體會成長 */let w=0,last=performance.now();while(w<total){await new Promise(r=>setTimeout(r,50));const now=performance.now();if(!paused)w+=(now-last)*mult;last=now;if(pendingSkip||toEnd)w=total;$("sFill").style.width=Math.min(100,w/total*100)+"%";if(P.age<13)$("ticker").textContent=P.age<P.touchAge?`${P.age} 歲，還沒碰過足球`:`${P.age} 歲 · ${P.stage} · 身高 ${Math.round(P.h)} 公分`;drawPitch(Math.min(1,w/total),0)}}
-function render(){try{renderMgr();renderIntent()}catch(e){}
+function render(){try{renderMgr();renderIntent();renderSquad()}catch(e){}
  const p=P,o=ovr(p);$("ovr").textContent=p.age<p.touchAge?"??":Math.round(o);$("pos").textContent=p.age<11&&!(p.done&&p.done.pos)?"—":posCode(p);$("nm").textContent=p.name.split(" ").pop();$("age").textContent=p.age;
  $("fut").className="fut"+(o>=75?"":o>=65?" silver":" bronze");$("who").textContent=`${p.name}（${POS[p.pos]}）`;
  $("where").textContent=p.retired?`已退休 · ${p.after||""}`:p.club?`${p.club} · ${p.clubObj.lg} · 合約剩 ${Math.max(0,p.contract)} 年`:`${p.c} · ${p.stage}`;
@@ -252,6 +252,36 @@ function posLearn(p,share){if(p.pos=="GK"||!share)return;const xp=posXP(p),cur=d
  add(cur,share*(zd&&zd!=cur?.5:1));if(zd&&zd!=cur)add(zd,share*.8);
  // 相鄰位置也會沾到一點
  const NEAR={ST:["W","CAM"],W:["ST","FB"],CAM:["CM","ST"],CM:["CAM","CDM"],CDM:["CM","CB"],FB:["W","CB"],CB:["CDM","FB"]};(NEAR[zd||cur]||[]).forEach(d=>{if((xp[d]||0)<2)add(d,share*.15)})}
+// ── 球隊陣容（4-2-3-1）：看到自己排在哪個位置、和誰競爭 ──
+const SQ_ROWS=[[["ST","中鋒"]],[["W","左邊鋒","L"],["CAM","攻擊中場"],["W","右邊鋒","R"]],[["CDM","防守中場"],["CM","中場"]],[["FB","左後衛","L"],["CB","中後衛","1"],["CB","中後衛","2"],["FB","右後衛","R"]],[["GK","門將"]]];
+const SQ_SLOTS=SQ_ROWS.flat();
+const NEAR_DP={ST:["W","CAM"],W:["ST","FB","CAM"],CAM:["CM","ST","W"],CM:["CAM","CDM"],CDM:["CM","CB"],FB:["W","CB"],CB:["CDM","FB"]};
+function mateName(c){const reg=(COUNTRIES.find(x=>x[0]==c.ct)||[])[4];return newName({region:R()<.7&&NM[reg]?reg:pick(Object.keys(NM))})}
+function squadOf(p){const c=p.clubObj;if(!c)return null;if(!p.squad||p.squad.club!=c.name){const mk=(o)=>({n:mateName(c),o:Math.round(clamp(o,35,95)),age:19+Math.floor(R()*14)});
+  p.squad={club:c.name,xi:SQ_SLOTS.map(()=>mk(c.str+2+gauss()*2.5)),bk:SQ_SLOTS.map(()=>mk(c.str-4+gauss()*3))}}return p.squad}
+// 每季：隊友變老、實力浮動，偶爾有人離隊被新人取代
+function squadYear(p){const q=p.squad;if(!q||!p.clubObj||q.club!=p.clubObj.name)return;const c=p.clubObj;
+ for(const L of [q.xi,q.bk])L.forEach((m,i)=>{m.age++;m.o=Math.round(clamp(m.o+(m.age<25?1.5:m.age>30?-1.5:0)+gauss()*1.5,35,95));if(m.age>34||R()<.1)L[i]={n:mateName(c),o:Math.round(c.str+(L==q.xi?2:-4)+gauss()*3),age:19+Math.floor(R()*10)}})}
+function mySlot(p){const d=dpOf(p),side=p.side||"L";return SQ_SLOTS.findIndex(s=>s[0]==d&&(d=="W"||d=="FB"?s[2]==side:d=="CB"?s[2]=="1":true))}
+function renderSquad(){const el=$("squad"),card=$("squadCard");if(!el||!P)return;const p=P,show=!!p.clubObj&&!p.retired&&!p.footEnd&&p.age>=16;card.classList.toggle("hide",!show);if(!show)return;
+ const q=squadOf(p),i=mySlot(p),role=p.role||"",me={n:p.name,o:ovr(p),me:1};
+ const at=k=>{if(k==i&&role=="主力")return {...me,bk:q.xi[k]};return {...q.xi[k],bk:k==i?(role=="輪換"?{...me,rot:1}:q.bk[k]):q.bk[k]}};
+ const chip=(k)=>{const s=SQ_SLOTS[k],m=at(k),b=m.bk;return `<div class="sq${m.me?" me":""}${k==i&&!m.me?" mine":""}"><small>${s[1]}</small><b>${esc(m.n)}</b><span>${m.o}</span>${b?`<em class="${b.me?"me":""}">${b.me?"你（輪換）":"替補 "+esc(b.n)} ${b.o}</em>`:""}</div>`};
+ let k=0;const rows=SQ_ROWS.map(r=>`<div class="sqrow">${r.map(()=>chip(k++)).join("")}</div>`).join("");
+ const rival=q.xi[i],fav=p.favDp&&p.favDp!=dpOf(p)?`　<b style="color:var(--ac)">你比較喜歡踢${DPN[p.favDp]}</b>`:"";
+ const msg=role=="預備隊"?`你在預備隊，還沒排進一線隊名單。${DPN[dpOf(p)]}的主力是 ${esc(rival.n)}（${rival.o}）。`:role=="主力"?`你是${SQ_SLOTS[i][1]}的主力（${ovr(p)}），替補是 ${esc(rival.n)}（${rival.o}）。`:role=="輪換"?`你和 ${esc(rival.n)}（${rival.o}）輪流先發${SQ_SLOTS[i][1]}。`:`${SQ_SLOTS[i][1]}的主力是 ${esc(rival.n)}（${rival.o}），你（${ovr(p)}）要從替補席搶位置。`;
+ const fam=Object.entries(posXP(p)).filter(([d,v])=>d!=dpOf(p)&&v>=1).map(([d,v])=>`${DPN[d]} ${Math.round(v/5*100)}%`).join("、");
+ el.innerHTML=`<div class="int-eff">${p.clubObj.name}・角色：<b>${role||"—"}</b>${fav}</div><div class="sqpitch">${rows}</div><div class="int-ends"><span>↑ 進攻方向</span><span>黃色＝你</span></div><div class="int-eff">${msg}</div>${fam?`<div class="int-eff">也能踢：${fam}</div>`:""}`}
+// ── 代踢位置、被教練改位置 ──
+async function posEvents(p,role){if(toEnd||p.pos=="GK"||role=="預備隊"||!p.clubObj)return;p.favDp=p.favDp||dpOf(p);const cur=dpOf(p),q=squadOf(p);
+ if(cur!=p.favDp){p.morale-=1.5}
+ const near=(NEAR_DP[cur]||[]).filter(d=>d!="GK");if(!near.length)return;
+ if(R()<.15){const d=pick(near),si=SQ_SLOTS.findIndex(s=>s[0]==d),who=q.xi[si].n,pen=famPen(p,d);
+  await ask(`${who}受傷了，教練要你這幾場代踢${DPN[d]}`,[["沒問題，球隊需要我",()=>{const xp=posXP(p);xp[d]=Math.min(5,(xp[d]||0)+.6);rel(p,"coach",5);if(pen>3&&R()<.5){p.morale-=2;say(`臨時代踢${DPN[d]}，踢得很吃力，但教練記住了你的付出。`)}else{p.fame+=1;say(`臨時代踢${DPN[d]}，表現不錯，多了一個能踢的位置。`,1)}},`${DPN[d]}熟悉度 ${Math.round((posXP(p)[d]||0)/5*100)}% · 教練關係↑ · 多學一個位置`],["跟教練說你不熟這個位置",()=>{rel(p,"coach",-3)},"教練關係↓"]],`你在${DPN[d]}的評分是 ${rateAt(p,d)}（原位置 ${ovr(p)}）`);return}
+ if(p.age>=18&&R()<.06){const cand=near.filter(d=>rateAt(p,d)>=ovr(p)-4);if(!cand.length)return;const d=pick(cand),r=rateAt(p,d);
+  await ask(`教練決定把你改踢${DPN[d]}`,[["接受安排",()=>{setDp(p,d);p.side=d=="W"||d=="FB"?pick(["L","R"]):null;if(d!=p.favDp)p.morale-=3;say(`被教練改踢${DPN[d]}（評分 ${ovr(p)}）。`,1)},d==p.favDp?"剛好是你喜歡的位置":`不是你喜歡的位置，心情↓`],
+   ["私下找教練抗議",()=>{if(R()<.35+(rel(p,"coach")-50)/100){say("教練被你說服，讓你留在原位置。")}else{rel(p,"coach",-6);p.morale-=3;say("教練不高興：「不聽安排就去坐板凳。」",1)}},"可能被冷凍"],
+   ["叫經紀人找下家",()=>{p.contract=Math.min(p.contract,0);rel(p,"coach",-4);say("不願改位置，經紀人開始幫你找新球隊。",1)},"這季結束就離隊"]],`你在${DPN[d]}的評分是 ${r}（原位置 ${ovr(p)}）；教練覺得球隊這裡更需要你`)}}
 // 依位置建議的區域（選了不符合位置的區域，教練會不太高興）
 function zoneFit(p,z){const d=dpOf(p),[_,band,lane]=ZONES.find(x=>x[0]==z)||[];const want={ST:["A"],W:["A","M"],CAM:["A","M"],CM:["M"],CDM:["M","D"],FB:["D","M"],CB:["D"],GK:["D"]}[d]||["M"];const laneOk=(d=="W"||d=="FB")?lane!="C":d=="CB"||d=="ST"||d=="CDM"||d=="CAM"?lane=="C":true;return want.includes(band)&&laneOk}
 // 各位置平常站的區域：選這格＝照平常踢，數值不變；往前、往後才有增減

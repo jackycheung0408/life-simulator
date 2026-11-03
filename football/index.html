@@ -95,6 +95,7 @@ button.on{background:var(--y);color:var(--ink)}
 .pitchI{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:repeat(3,52px);gap:3px;background:#2f8a3e;border:3px solid var(--ink);padding:6px;position:relative;margin:8px 0;background-image:linear-gradient(90deg,transparent 49.6%,#e8f5e8 49.6% 50.4%,transparent 50.4%)}
 .pitchI button{margin:0;background:#3a9a4a;border:2px dashed #ffffff55;color:#fff;font-size:12.5px;box-shadow:none;padding:2px}.pitchI button:hover{background:#ffffff30}.pitchI button.on{background:#ffd23f;color:#1d2b20;border:2px solid #050a06;font-weight:900}.pitchI button.fit{border-color:#ffd23f}
 .pitchI .gl,.pitchI .gr{position:absolute;top:50%;width:6px;height:40px;background:#fff;transform:translateY(-50%)}.pitchI .gl{left:-4px}.pitchI .gr{right:-4px}
+.sqpitch{background:#2f8a3e;border:3px solid var(--ink);padding:8px 6px;margin:8px 0;display:flex;flex-direction:column;gap:6px}.sqrow{display:flex;justify-content:center;gap:6px}.sq{flex:0 1 128px;min-width:0;background:#1f5a2c;color:#fff;border:2px solid #ffffff44;padding:4px 6px;font-size:12px;line-height:1.35;text-align:center}.sq small{display:block;opacity:.75;font-size:11px}.sq b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sq span{font-weight:900;color:#ffd23f}.sq em{display:block;font-style:normal;font-size:11px;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sq em.me{opacity:1;color:#ffd23f;font-weight:700}.sq.me{background:#ffd23f;color:#1d2b20;border-color:#050a06}.sq.me span{color:#1d2b20}.sq.mine{border:2px solid #ffd23f}
 .int-row{display:grid;grid-template-columns:5.5em repeat(3,1fr);gap:6px;align-items:center;margin:6px 0;font-size:13px}.int-row button{padding:6px 4px;font-size:13px;margin:0;white-space:nowrap}.int-ends{display:flex;justify-content:space-between;font-size:12.5px;color:var(--mut);margin:-4px 0 4px}.int-eff{line-height:1.7}.int-row button.on{background:var(--y);color:var(--ink)}.int-eff{font-size:12.5px;color:var(--mut)}.int-eff b{color:var(--fg)}
 #hofPv{position:fixed;inset:0;z-index:85;background:#030805e6;display:flex;align-items:center;justify-content:center;padding:16px}#hofPv .sheet{background:var(--card);border:4px solid var(--ink);box-shadow:inset 0 0 0 3px var(--y);max-width:720px;width:100%;max-height:88vh;overflow:auto;padding:18px}#hofPv h2 small{font-size:13px;font-weight:400}.hcard{cursor:pointer}.hcard:hover{filter:brightness(1.12)}
 #tour{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);width:min(440px,calc(100% - 24px));background:var(--card);border:3px solid var(--ink);box-shadow:inset 0 0 0 3px var(--y),0 12px 40px #000;padding:14px 16px;z-index:60}
@@ -225,6 +226,7 @@ button.on{background:var(--y);color:var(--ink)}
 <div class="card"><div class="grid" id="stats"></div></div>
 <div class="card" id="planCard"><h2 id="planTitle">育成計劃・每週訓練表</h2><div id="focus"></div><div class="mut" id="focusTip" style="font-size:13px"></div></div>
 
+<div class="card hide" id="squadCard"><h2>球隊陣容</h2><div class="mut" style="font-size:13px">4-2-3-1 先發與替補。你在哪個位置、和誰競爭、還能踢哪些位置。</div><div id="squad"></div></div>
 <div class="card" id="intentCard"><h2>場上意向</h2><div class="mut" style="font-size:13px">點球場上的區域，決定你比賽中主要待在哪裡；再選比賽意識和跑動方式。會影響進球、助攻、零封、能力成長和教練評價。</div><div id="intent"></div></div>
 <div class="card" id="mgrCard"><h2>生涯管理</h2><div class="mut" style="font-size:13px">由你主動決定。每項每個球季可以用一次，按下後遊戲會暫停讓你處理。</div><div id="mgr" class="mgr"></div></div>
 <div class="card"><h2>紀錄</h2><div id="log"></div><button id="logMore" onclick="$('log').classList.toggle('all');this.textContent=$('log').classList.contains('all')?'▴ 只看最近 12 則':'▾ 展開更多紀錄'">▾ 展開更多紀錄</button></div>
@@ -242,8 +244,8 @@ button.on{background:var(--y);color:var(--ink)}
 <button id="themeBtn" title="切換深色／淺色"></button><div id="tip"></div><div id="modal" class="hide"><div class="sheet"><span class="tag" id="mtag"></span><span id="mctx"></span><div id="choice"></div></div></div>
 <div id="toast"></div>
 
-<script src="js/data.js?v=33"></script>
-<script src="js/events.js?v=33"></script>
-<script src="js/career.js?v=33"></script>
-<script src="js/ui.js?v=33"></script>
-<script src="js/home.js?v=33"></script></body></html>
+<script src="js/data.js?v=34"></script>
+<script src="js/events.js?v=34"></script>
+<script src="js/career.js?v=34"></script>
+<script src="js/ui.js?v=34"></script>
+<script src="js/home.js?v=34"></script></body></html>

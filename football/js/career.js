@@ -145,6 +145,7 @@ async function proSeason(){
  if(p.injuryLeft>0){share*=p.injuryLeft>1?.1:.5;p.injuryLeft--;p.missG=0}
  if(p._starBlock&&role!="預備隊"){share*=.8;say(`和 ${p._starBlock} 搶同一個位置，上場時間變少了。`)}p._starBlock=null;
  share=clamp(share*(.85+R()*.3)*(p.morale<35?.8:1)*(p.world&&p.world.short==p.age?.7:1),0,1);
+ await posEvents(p,role);
  const reserve=role=="預備隊"?20+Math.round(R()*8):0,apps=Math.round(lgGames(c)*share),rate={FW:.62,MF:.22,DF:.05,GK:0}[p.pos]*Math.max(.05,(ovr(p)-48)/38),st={apps:0,goals:0,assists:0,cleans:0};
  const capsB=p.caps;p.table=makeTable(p,c);if(role!="預備隊")await seasonGoal(p,apps,rate,c);
  for(let ph=0;ph<4&&!toEnd;ph++){
@@ -166,7 +167,7 @@ async function proSeason(){
  const rating=clamp(6+(ovr(p)-c.str)/12+goals*.03+R()*.6,5,9.5);
  p.fame+=2*T(p,"媒體寵兒")+T(p,"正直");
  if(R()<.04*(T(p,"夜生活")+T(p,"貪財")+T(p,"火爆"))){p.fame-=10;p.morale-=6;say(pick(["深夜在夜店和人起衝突，被拍下來上了新聞。","被爆出私下賭球的傳聞，聯盟展開調查。","在比賽中和裁判爭執，被追加禁賽三場。"]),1)}
- posLearn(p,share);p.apps+=played;p.goals+=goals;p.assists+=assists;p.cleans+=cleans;p.money+=p.wage*.45;p.fame+=played*.1+goals*.5+c.tier*c.tier*.5;
+ posLearn(p,share);squadYear(p);p.apps+=played;p.goals+=goals;p.assists+=assists;p.cleans+=cleans;p.money+=p.wage*.45;p.fame+=played*.1+goals*.5+c.tier*c.tier*.5;
  const titles=[],br=p.bigRes||{};p.bigRes={};const lgP=clamp((c.str-64)/80+(c.tier==5?0:.05),.02,.6);
  // 期末積分榜：關鍵戰勝負會影響積分
  let finalPos=null;if(p.table){const me=p.table.rows.find(r=>r.me);me.adj=(br.league=="勝"?4:br.league=="敗"?-3:0)+(br.stay=="勝"?4:br.stay=="敗"?-4:0)+(rating-6.5)*4;const fin=tableAt(p.table,1);finalPos=fin.find(r=>r.me).pos;p.lastTable={t:p.table,rows:fin};
