@@ -58,7 +58,8 @@ const toast=t=>{const el=$("toast");el.textContent=t;el.classList.add("on");clea
 const SKIN=["#f1c9a5","#e0ac7e","#c68a5a","#8d5a3a"],HAIR=["#222222","#5a3a1a","#a0522d","#d9b26a","#c0c0c0","#c0392b"],SHIRT=["#d9534f","#3b7dd8","#b45cc4","#8b5a2b","#2e9e5b","#d8901a","#333a44","#f0f0f0"],STYLE=["短髮","長髮","光頭","帽子"];
 const rp=a=>a[Math.floor(Math.random()*a.length)];
 const randLook=()=>({skin:rp(SKIN),hair:rp(HAIR),shirt:rp(SHIRT),style:rp(["短髮","長髮","馬尾","捲髮","瀏海"]),eyes:rp(["圓眼","瞇眼","眼鏡"]),top:rp(["T恤","帽T","襯衫"]),pants:rp(["#2b2b3a","#3b5a8a","#6b4a2b"]),bottom:rp(["長褲","短褲","裙子"]),acc:"無"});
-const TID=(new URLSearchParams(location.search).get("t")||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);
+const QS=new URLSearchParams(location.search),TID=(QS.get("t")||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);
+{const i=(QS.get("i")||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);if(i&&TID){try{sessionStorage.setItem("town-inv-"+TID,i)}catch(e){}history.replaceState(null,"","?t="+TID)}}
 let S=null,R={},offset=0,me=null,pin=null,sel=null,zoomFar=false,camFree=false,busy=false,lastSeen=null;
 const walkers={};// 每個人畫面上的位置與正在走的路
 const now=()=>Date.now()+offset;
@@ -90,15 +91,15 @@ const newKey=()=>{const a="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz2345
 // ── 首頁：建立小鎮、用代碼加入、我住的小鎮 ──
 function landing(){$("title").textContent="🐷 小豬鎮";$("game").classList.add("hide");$("login").classList.remove("hide");const list=mine();
  $("lg").innerHTML=`<p class="mut">和朋友一起住在小鎮裡：照顧自己吃飯睡覺洗澡，也可以去朋友家幫忙或惡作劇。手機打開就能玩。</p>
-  ${list.length?`<h2>我住的小鎮</h2><div class="list">${list.map(x=>`<button data-go="${esc(x.tid)}"><b>${esc(x.name||x.tid)}</b><small>${esc(x.me||"")} · 代碼 ${esc(x.tid)}</small></button>`).join("")}</div>`:""}
+  ${list.length?`<h2>我住的小鎮</h2><div class="list">${list.map(x=>`<button data-go="${esc(x.tid)}"><b>${esc(x.name||x.tid)}</b><small>${esc(x.me||"")}</small></button>`).join("")}</div>`:""}
   ${standalone?"":`<div class="row" style="justify-content:flex-start"><button id="inst2">📲 加到手機主畫面，像 App 一樣打開</button></div>`}
-  <h2>加入朋友的小鎮</h2><p class="mut" style="margin:-4px 0 6px">輸入朋友給你的小鎮代碼或邀請碼都可以。</p><div class="inline"><input id="code" placeholder="小鎮代碼或邀請碼" maxlength="8" autocomplete="off" style="text-transform:uppercase"><button class="pri" id="join">前往</button></div><p class="err" id="jerr"></p>
+  <h2>加入朋友的小鎮</h2><p class="mut" style="margin:-4px 0 6px">輸入朋友給你的邀請碼。點朋友傳來的邀請連結會自動填好。</p><div class="inline"><input id="code" placeholder="邀請碼，例如 RCDR4V" maxlength="8" autocomplete="off" style="text-transform:uppercase"><button class="pri" id="join">前往</button></div><p class="err" id="jerr"></p>
   <h2>建立自己的小鎮</h2><label>小鎮名稱<input id="tn" maxlength="16" placeholder="例如：我們的小豬鎮"></label><label>你的名字<input id="mn" maxlength="12" placeholder="鎮上大家怎麼叫你"></label>
   <div id="lk"></div><p class="err" id="cerr"></p><div class="row"><button class="pri" id="create">建立小鎮，當鎮長</button></div>`;
  $("lg").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));if($("inst2"))$("inst2").onclick=installHelp;
- $("join").onclick=async()=>{const c=$("code").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.length<4){$("jerr").textContent="代碼是 6 個英文或數字";return}
+ $("join").onclick=async()=>{const c=$("code").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.length<4){$("jerr").textContent="邀請碼是 6 個英文或數字";return}
   // 小鎮代碼或邀請碼都可以；輸入的是邀請碼就記起來，等一下自動填好
-  try{const f=await rpc("town_find",{code:c});if(!f){$("jerr").textContent="找不到這個小鎮，確認一下代碼或邀請碼";return}if(f.by_invite)try{sessionStorage.setItem("town-inv-"+f.town_id,c)}catch(e){}go(f.town_id)}catch(e){$("jerr").textContent=e.message}};
+  try{const f=await rpc("town_find",{code:c});if(!f){$("jerr").textContent="邀請碼不對，請朋友再傳一次";return}try{sessionStorage.setItem("town-inv-"+f.town_id,c)}catch(e){}go(f.town_id)}catch(e){$("jerr").textContent=e.message}};
  let look=randLook();lookPicker($("lk"),look,l=>look=l);
  $("create").onclick=async()=>{const tn=$("tn").value.trim(),mn=$("mn").value.trim(),p=newKey();
   if(!tn){$("cerr").textContent="幫小鎮取個名字";return}if(!mn){$("cerr").textContent="填你的名字";return}
@@ -117,7 +118,7 @@ function apply(st){S=st;if(me)(st.events||[]).filter(e=>e.kind=="luck"&&e.actor=
  renderFeed();renderPanel();renderNeeds();if(me)renderStrip()}
 let mapKey="";
 function townLogin(){$("login").classList.remove("hide");$("game").classList.add("hide");const res=Object.values(R),full=res.length>=12;
- $("lg").innerHTML=`<p class="mut">小鎮代碼 <b>${esc(TID)}</b>（不是邀請碼）· 住了 ${res.length} 人</p>
+ $("lg").innerHTML=`<p class="mut">住了 ${res.length} 人${savedInv()?" · 邀請碼已自動填好":""}</p>
   ${res.length?`<h2>我住在這裡</h2><div class="who">${res.map(r=>`<button data-id="${r.id}"><canvas width="40" height="44" data-look='${esc(JSON.stringify(r.look||{}))}'></canvas><b>${esc(r.name)}</b><small>${r.mayor?"鎮長":houseName(r.slot)}</small></button>`).join("")}</div>`:""}
   ${full?`<p class="mut">小鎮已經住滿 12 人了。</p>`:`<h2>我要搬進來</h2><div class="row" style="justify-content:flex-start"><button class="pri" id="mv">用邀請碼搬進來</button></div>`}
   <div class="row" style="justify-content:flex-start"><button id="home2">← 小豬鎮首頁</button></div>`;
@@ -178,9 +179,9 @@ async function enter(){$("menuBtn").classList.remove("hide");await refresh();ref
  else $("away").classList.add("hide")}
 
 // ── 邀請朋友 ──
-const townURL=()=>location.origin+location.pathname+"?t="+TID;
-function shareModal(inv,fresh){const text=`來「${S.town.name}」當鄰居！🐷\n${townURL()}\n邀請碼：${inv}`;$("modal").classList.remove("hide");
- $("mbody").innerHTML=`<h2>${fresh?"小鎮建好了！":"邀請朋友"}</h2><p>把這段訊息傳到 WeChat 群組，朋友點網址、輸入邀請碼就能搬進來：</p><textarea id="shtxt" rows="4" readonly>${esc(text)}</textarea>
+const townURL=inv=>location.origin+location.pathname+"?t="+TID+(inv?"&i="+inv:"");
+function shareModal(inv,fresh){const text=`來「${S.town.name}」當鄰居！🐷\n點連結就能搬進來：${townURL(inv)}\n（邀請碼：${inv}）`;$("modal").classList.remove("hide");
+ $("mbody").innerHTML=`<h2>${fresh?"小鎮建好了！":"邀請朋友"}</h2><p>把這段訊息傳到 WeChat 群組。朋友點連結，邀請碼會自動填好，取個名字就能搬進來：</p><textarea id="shtxt" rows="4" readonly>${esc(text)}</textarea>
   <p class="mut">邀請碼只給想邀請的人。鎮長可以隨時在「🏛️ 鎮長」換一組新的。</p><div class="row"><button id="mc">關閉</button><button class="pri" id="mcp">複製訊息</button></div>`;
  $("mc").onclick=()=>$("modal").classList.add("hide");$("mcp").onclick=async()=>{try{await navigator.clipboard.writeText(text);toast("已複製，貼到 WeChat 吧")}catch(e){$("shtxt").select();toast("請長按文字複製")}}}
 async function mayorPanel(){let inv="";try{inv=(await rpc("town_mayor",{rid:me,pin,act:"invite"})).invite}catch(e){toast(e.message);return}
@@ -469,7 +470,7 @@ function report(){const c=document.createElement("canvas");c.width=1080;c.height
  const rs=Object.values(R).sort((a,b)=>a.slot-b.slot).slice(0,7).map(r=>tickLocal(r,now())),y0=880;m.fillStyle="#3a2a20";m.font="700 40px sans-serif";m.fillText("鎮民現況",70,y0);m.font="400 32px sans-serif";
  rs.forEach((r,i)=>{const y=y0+60+i*56,worst=NEEDS.slice().sort((a,b)=>r[a]-r[b])[0],[ic,nm]=NEED_INFO[worst];
   m.fillStyle="#3a2a20";m.fillText(`${r.name}　在${placeName(r.place)}${r.sleeping?"睡覺":""}`,70,y);m.fillStyle=r[worst]<25?"#c0392b":"#6b4a35";m.fillText(`${ic} ${nm}最低 ${Math.round(r[worst])}`,700,y)});
- m.fillStyle="#9a7a60";m.font="400 26px sans-serif";m.textAlign="center";m.fillText(`小豬鎮 · 代碼 ${TID}`,540,1310);
+ m.fillStyle="#9a7a60";m.font="400 26px sans-serif";m.textAlign="center";m.fillText(`🐷 小豬鎮`,540,1310);
  const url=c.toDataURL("image/png");$("modal").classList.remove("hide");
  $("mbody").innerHTML=`<h2>今日日報</h2><img src="${url}" alt="今日日報" style="width:100%;border-radius:8px"><p class="mut">手機：長按圖片儲存，再傳到 WeChat 群組。</p><div class="row"><button id="mc">關閉</button><button id="mcp">複製圖片</button><button class="pri" id="mdl">下載</button></div>`;
  $("mc").onclick=()=>$("modal").classList.add("hide");$("mdl").onclick=()=>{const a=document.createElement("a");a.href=url;a.download=`小豬鎮日報-${day}.png`;a.click()};
