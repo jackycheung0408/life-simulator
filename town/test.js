@@ -12,7 +12,7 @@ check(M.door(7)[0]==11&&M.door(7)[1]==28,"房子 7 的門應該在 (11,28)，和
 // 需求：醒著 10 小時，飽足 80 → 40；睡覺 5 小時，精力 20 → 90
 const base={sleeping:false,hunger:80,energy:80,bladder:80,hygiene:80,fun:80,updated_at:new Date(0).toISOString()};
 check(Math.round(M.tickLocal(base,10*36e5).hunger)==40,"醒著 10 小時飽足應該是 40");
-check(Math.round(M.tickLocal({...base,sleeping:true,energy:20},3*36e5).energy)==80,"睡 3 小時精力應該是 80");
+check(Math.round(M.tickLocal({...base,sleeping:true,energy:20},1*36e5).energy)==55,"睡 1 小時精力應該是 55");
 check(Math.round(M.tickLocal({...base,sleeping:true},8*36e5).hunger)==60,"睡 8 小時飽足應該掉到 60（睡覺也會餓）");
 check(M.tickLocal(base,200*36e5).hunger==0,"需求不能低於 0");
 // 個性特質與心情（規則要和 town.sql 一致）
@@ -27,8 +27,8 @@ check(M.payOf(100,mk({},[]))==110&&M.payOf(130,mk({fun:30},[]))==124&&M.payOf(10
 check(Math.abs(M.tickLocal(mk({},["clean"]),10*36e5).hygiene-(80-17.5))<1e-6,"愛乾淨醒著 10 小時清潔應該掉 17.5");
 {const n=Date.UTC(2026,0,1,15,0,0),u=new Date(n-4*36e5).toISOString(); // 台灣 23:00，前 4 小時從 19:00 起，22～23 點 1 小時算夜間
  const e=M.tickLocal({...base,updated_at:u,items:{tr:["nightowl"]}},n).energy,e0=M.tickLocal({...base,updated_at:u},n).energy;check(Math.abs((e-e0)-1)<1e-6,"夜貓子夜間精力每小時少掉 1："+(e-e0))}
-// 家具：好床睡覺精力 +26/小時；家具表和房子等級
-check(Math.round(M.tickLocal({...base,sleeping:true,energy:20,items:{fu:["bed"]}},2*36e5).energy)==72,"好床睡 2 小時精力應該是 72");
+// 家具：好床睡覺精力 +45/小時；家具表和房子等級
+check(Math.round(M.tickLocal({...base,sleeping:true,energy:20,items:{fu:["bed"]}},1*36e5).energy)==65,"好床睡 1 小時精力應該是 65");
 check(M.hasF({items:{fu:["","fridge"]}},"fridge")&&!M.hasF({items:{f:["fridge"]}},"fridge"),"只有擺出來的家具才有效果");
 check(M.FURN.length==8&&M.HOUSES.map(h=>h[2]).join()=="4,6,8,9"&&M.HOUSES.map(h=>h[1]).join()=="0,1500,5000,15000","家具或房子等級表不對");
 // 路邊物件：不在牆裡、從每間房子的門都走得到、人站的位置和資料庫的距離判斷一致

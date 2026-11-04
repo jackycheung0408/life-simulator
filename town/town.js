@@ -31,7 +31,7 @@ const FOUNTAIN=[16,10,2,3];
 // 路上物件：位置要和資料庫 town_obj_near 一致；用法：[名稱, 按鈕, 說明]
 const OBJS={vend:{x:19,y:5,name:"自動販賣機",acts:[["投一罐飲料 🥤","€10 · 精力 +12 · 偶爾掉兩罐"]]},trash:{x:8,y:14,name:"垃圾桶",acts:[["撿垃圾 🗑️","心情 +4 · 說不定撿到東西"]]},
  stall:{x:22,y:14,name:"烤地瓜攤",acts:[["買烤地瓜 🍠","€8 · 飽足 +25"]]},well:{place:"plaza",name:"小豬噴水池",acts:[["丟硬幣許願 🪙","€1 · 一成機率願望成真"]]},
- bench:{x:14,y:5,name:"長椅",acts:[["坐一下 💤","免費 · 精力 +8"]]},cooler:{x:10,y:14,name:"飲水機",acts:[["喝杯水 💦","免費 · 精力 +3 · 飽足 +3"]]},pwc:{x:18,y:19,name:"公共廁所",acts:[["上公廁 🚽","免費 · 膀胱回滿"]]},
+ bench:{x:14,y:5,name:"長椅",acts:[["坐一下 💤","免費 · 精力 +12"]]},cooler:{x:10,y:14,name:"飲水機",acts:[["喝杯水 💦","免費 · 精力 +3 · 飽足 +3"]]},pwc:{x:18,y:19,name:"公共廁所",acts:[["上公廁 🚽","免費 · 膀胱回滿"]]},
  mailbox:{x:34,y:5,name:"郵筒",acts:[["查信箱 💌","免費 · 偶爾收到退款"]]},news:{x:14,y:19,name:"報攤",acts:[["買份報紙 📰","€5 · 心情 +8"]]},claw:{x:33,y:14,name:"夾娃娃機",acts:[["夾娃娃 🎁","€10 · 兩成夾到禮物"]]},lottery:{x:8,y:19,name:"刮刮樂攤",acts:[["刮一張 🍀","€20 · 有機會中大獎"]]},
  busker:{place:"plaza",name:"街頭藝人",acts:[["打賞 🎸","€5 · 心情 +15"]]},pond:{place:"park",name:"池塘",acts:[["餵鴨子 🐦","用一包零食 · 心情 +12","feed"]]},
  swing:{place:"park",name:"鞦韆",acts:[["盪鞦韆","心情 +12"]]},cat:{place:"park",name:"流浪貓",acts:[["摸摸貓 🐱","心情 +8 · 可能被抓"],["餵貓吃零食","用一包零食 · 心情 +15","feed"]]}};
@@ -60,7 +60,7 @@ function placeAt(x,y){for(const k in OBJS){const o=OBJS[k];if(o.x!=null&&x==o.x&
 const NEEDS=["hunger","energy","bladder","hygiene","fun"];
 const NEED_INFO={hunger:["🍚","飽足"],energy:["⚡","精力"],bladder:["🚽","膀胱"],hygiene:["🛁","清潔"],fun:["🎉","心情"]};
 // 個性特質（items.tr）與心情（由需求算，規則要和 town.sql 的 town_mood／town_pay 一致）
-const FURN=[["bed","好床",600,"睡覺精力每小時 +26"],["fridge","冰箱",500,"在家吃飯 €5、飽足 +48"],["massage","按摩椅",700,"小睡精力 +40"],["shelf","書櫃",400,"之後技能用，先佔位"],["sofa","沙發",350,"看電視心情 +22"],["tvcab","電視櫃",450,"看電視 10 分鐘一次"],["rug","地毯",150,"裝飾"],["plant","盆栽",120,"裝飾"]];
+const FURN=[["bed","好床",600,"睡覺精力每小時 +45"],["fridge","冰箱",500,"在家吃飯 €5、飽足 +48"],["massage","按摩椅",700,"小睡精力 +65"],["shelf","書櫃",400,"之後技能用，先佔位"],["sofa","沙發",350,"看電視心情 +22"],["tvcab","電視櫃",450,"看電視 10 分鐘一次"],["rug","地毯",150,"裝飾"],["plant","盆栽",120,"裝飾"]];
 const HOUSES=[["小屋",0,4],["公寓",1500,6],["獨棟",5000,8],["豪宅",15000,9]];// 名稱、升級價、家具格數
 const hasF=(r,k)=>!!(r.items&&Array.isArray(r.items.fu)&&r.items.fu.includes(k));
 function hasT(r,k){const t=r.items&&r.items.tr;return Array.isArray(t)&&t.includes(k)}
@@ -69,7 +69,7 @@ const MOOD={happy:["😊","開心","薪水 +10%、好感 ×1.2、打架 +5"],nor
 const MOOD_WAGE={happy:110,normal:100,annoyed:95,low:90};
 const payOf=(base,r)=>Math.floor((base*MOOD_WAGE[moodOf(r)]*(hasT(r,"workaholic")?110:100)*2+10000)/20000);
 function tickLocal(r,now){const h=Math.min(72,Math.max(0,(now-Date.parse(r.updated_at))/36e5)),o={...r},hm=hasT(r,"clean")?.7:1;
- if(o.sleeping){o.energy+=(20+(hasF(r,"bed")?6:0))*h;o.hunger-=2.5*h;o.bladder-=3.5*h;o.hygiene-=1.2*h*hm;o.fun-=.8*h}else{o.hunger-=4*h;o.energy-=2.5*h;o.bladder-=5*h;o.hygiene-=2.5*h*hm;o.fun-=2*h;if(o.hunger<20||o.bladder<20||o.hygiene<20)o.fun-=1.5*h;
+ if(o.sleeping){o.energy+=(35+(hasF(r,"bed")?10:0))*h;o.hunger-=2.5*h;o.bladder-=3.5*h;o.hygiene-=1.2*h*hm;o.fun-=.8*h}else{o.hunger-=4*h;o.energy-=2.5*h;o.bladder-=5*h;o.hygiene-=2.5*h*hm;o.fun-=2*h;if(o.hunger<20||o.bladder<20||o.hygiene<20)o.fun-=1.5*h;
   if(hasT(r,"nightowl")){const t0=now-h*36e5;for(let t=t0;t<now;){const st=Math.min(.25,(now-t)/36e5),hr=(Math.floor(t/36e5)+8)%24;if(hr>=22||hr<6)o.energy+=st;t+=st*36e5}}}
  NEEDS.forEach(k=>o[k]=clamp(o[k],0,100));return o}
 
@@ -291,7 +291,7 @@ const GROUP={tip:"建議下一步",self:"照顧自己",friend:"在他家",place:
 function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),p=r.place,list=[];let title="",note="";
  if(walkers[me]&&walkers[me].path.length){title="走路中…";note="到了就可以做事"}
  else if(r.sleeping){title=`在${placeName(p)}睡覺 💤`;list.push(btn("起床","",()=>act("wake")))}
- else if(p=="home:"+me){title="你家";list.push(btn("吃飯",`飽足 +${hasF(r,"fridge")?48:40} · 精力 +5 · €${hasF(r,"fridge")?5:10}`,()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),btn("洗澡","清潔回滿 · 精力 +4 · 10 分鐘一次",()=>act("shower")),btn("看電視",`心情 +${hasF(r,"sofa")?22:15} · ${hasF(r,"tvcab")?10:15} 分鐘一次`,()=>act("tv")),btn("小睡",`精力 +${hasF(r,"massage")?40:20} · 30 分鐘一次`,()=>act("nap")),btn("睡覺",`精力每小時 +${hasF(r,"bed")?26:20}`,()=>act("sleep")),btn("室內","擺家具、升級房子",()=>interiorModal(me)),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal()))}
+ else if(p=="home:"+me){title="你家";list.push(btn("吃飯",`飽足 +${hasF(r,"fridge")?48:40} · 精力 +8 · €${hasF(r,"fridge")?5:10}`,()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),btn("洗澡","清潔回滿 · 精力 +6 · 10 分鐘一次",()=>act("shower")),btn("看電視",`心情 +${hasF(r,"sofa")?22:15} · ${hasF(r,"tvcab")?10:15} 分鐘一次`,()=>act("tv")),btn("小睡",`精力 +${hasF(r,"massage")?65:35} · 30 分鐘一次`,()=>act("nap")),btn("睡覺",`精力每小時 +${hasF(r,"bed")?45:35}`,()=>act("sleep")),btn("室內","擺家具、升級房子",()=>interiorModal(me)),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal()))}
  else if(p&&p.startsWith("home:")&&R[p.slice(5)]){const id=+p.slice(5),t=tickLocal(R[id],now());title=`${t.name} 家`;const peek=btn("看室內",`${HOUSES[((R[id].items||{}).hl||1)-1][0]} · 看他怎麼布置`,()=>interiorModal(id));
   const gifts=(r.items||{}).gift||0,giftB=gifts?btn("送禮物",`他心情 +20 · 背包 🎁${gifts}`,()=>act("gift",{target:id})):btn("送禮物","先去超市買",()=>toast("背包沒有禮物，去超市買一份"));
   if(t.place!=p){note=`${t.name} 不在家，在${placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,peek,btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
@@ -300,10 +300,10 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
    if(t.sleeping)list.push(btn("叫醒他","",()=>act("wakeup",{target:id})));
    if(!t.sleeping)list.push(btn("串門子","兩人心情 +15",()=>act("visit",{target:id})));list.push(btn("惡作劇","放個臭屁 💨 · 好感 −3",()=>act("prank",{target:id})),btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})));
    if(!t.sleeping)list.push(...faceActs(id))}}
- else if(p=="restaurant"){title="餐廳";list.push(btn("吃一頓","飽足 +55 · 精力 +8 · 心情 +10 · €30",()=>act("dine")));note="朋友也在的話，點他可以請吃大餐"}
+ else if(p=="restaurant"){title="餐廳";list.push(btn("吃一頓","飽足 +55 · 精力 +12 · 心情 +10 · €30",()=>act("dine")));note="朋友也在的話，點他可以請吃大餐"}
  else if(p=="office"){title="公司";list.push(btn("打工",`+€${myWage()} · 1 小時一次 · 累`,()=>act("work")));note="有同事在的話，點他可以一起加班，薪水加倍"}
  else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")));if(p=="plaza"&&isOn("arcade"))list.push(btn("小豬街機 🕹️","猜拳、比大小、命運輪盤、21 點",()=>gamesModal()))}
- else if(p=="cafe"){title="咖啡廳";list.push(btn("喝咖啡 ☕","€15 · 精力 +25 · 膀胱 −10 · 30 分鐘一次",()=>act("coffee")))}
+ else if(p=="cafe"){title="咖啡廳";list.push(btn("喝咖啡 ☕","€15 · 精力 +35 · 膀胱 −10 · 30 分鐘一次",()=>act("coffee")))}
  else if(p=="cinema"){title="電影院";list.push(btn("看電影 🎬","€25 · 心情 +35 · 1 小時一次",()=>act("movie")))}
  else if(p=="gym"){title="健身房";list.push(btn("健身 🏋️",`精力 −15 · 心情 +10 · 打架更強（${Math.min(10,(r.items||{}).fit||0)}/10）`,()=>act("workout")))}
  else if(p=="arena"){title="格鬥場";const it=r.items||{};list.push(btn("打擂台 🥊",`精力 −12 · 贏了拿獎金、連勝越多越貴 · 目前 ${it.streak||0} 連勝（最高 ${it.best||0}）`,()=>act("spar")));note="在這裡點別人可以約打：30 分鐘就能再打一次、贏的拿 €40、好感只扣 1"}
