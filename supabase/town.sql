@@ -627,7 +627,9 @@ begin
   elsif game = 'hl_guess' then
     if r.items->'hl' is null then raise exception '先開一局'; end if;
     c := (r.items->'hl'->>'card')::int; bet := (r.items->'hl'->>'bet')::int; c2 := public.town_card();
-    if (choice = 'hi' and c2 > c) or (choice = 'lo' and c2 < c) then win := floor(bet*1.9); end if;
+    -- 賠率看機率：猜中的牌越少賠越多（期望值 0.92）
+    p := case when choice = 'hi' then 13 - c else c - 1 end;
+    if p > 0 and ((choice = 'hi' and c2 > c) or (choice = 'lo' and c2 < c)) then win := floor(bet * .92 * 13 / p); end if;
     r.items := r.items - 'hl';
     res := json_build_object('card',c,'next',c2,'win',win);
   elsif game = 'wheel' then
