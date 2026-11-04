@@ -535,8 +535,9 @@ function person(x,y,look,tk,moving,label,isMe,state){const u=1.6;
 function miniPerson(c,L){const m=c.getContext("2d"),u=c.height/30;m.clearRect(0,0,c.width,c.height);drawChar(m,c.width/2,17.5*u,u,L,{},0)}
 let W=0,Hh=0,dpr=1;
 const isMob=()=>matchMedia("(max-width:700px)").matches;
-function resize(){const box=$("stage");dpr=Math.min(2,devicePixelRatio||1);W=box.clientWidth;Hh=isMob()?Math.round((visualViewport||window).height||innerHeight):Math.round(Math.min(innerHeight*.58,Math.max(300,W*.8)));cv.width=W*dpr;cv.height=Hh*dpr;cv.style.height=Hh+"px";
- cam.minS=Math.min(W/(COLS*T),Hh/(mapRows()*T));const def=W/((W<600?9:17)*T);cam.maxS=def*2.5;
+function resize(){const box=$("stage");dpr=Math.min(2,devicePixelRatio||1);W=box.clientWidth;Hh=isMob()?Math.round(box.clientHeight||innerHeight):Math.round(Math.min(innerHeight*.58,Math.max(300,W*.8)));cv.width=W*dpr;cv.height=Hh*dpr;cv.style.height=Hh+"px";
+ // 平常地圖要填滿畫面（不留黑邊）；按「看全鎮」才縮到看得到整個鎮
+ const fit=Math.min(W/(COLS*T),Hh/(mapRows()*T)),cover=Math.max(W/(COLS*T),Hh/(mapRows()*T));cam.minS=zoomFar?fit:cover;const def=W/((W<600?9:17)*T);cam.maxS=def*2.5;
  if(!cam.user)cam.s=zoomFar?cam.minS:def;cam.s=clamp(cam.s,cam.minS,cam.maxS)}
 if(window.visualViewport)visualViewport.addEventListener("resize",resize);
 // iPhone Safari：避免兩指縮放到整個網頁
