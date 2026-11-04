@@ -55,12 +55,31 @@ function tour(i=0,only=false){const old=document.querySelector(".tour-hi");if(ol
  $("tNext").onclick=()=>tour(only?TOUR.length:i+1);$("tSkip").onclick=()=>tour(TOUR.length)}
 function start(p){P=p;$("home").classList.add("hide");$("game").classList.remove("hide");scrollTo(0,0);renderPlan();render();loop();let seen=null;try{seen=localStorage.getItem("fb-tour")||localStorage.getItem("fb-played")}catch{}if(!seen)setTimeout(()=>tour(0),400)}
 $("draw").onclick=drawCard;$("redraw").onclick=()=>{if(!redraws)return;redraws--;draws=3;drawn.length=0;cfg.card=null;renderCards();toast(`重抽！還剩 ${redraws} 次機會`)};$("noCard").onclick=()=>{cfg.card=null;renderCards()};renderCards();
+// ── 搜尋＋分類按鈕＋卡片：球星和國家都很多，用這個代替長長的下拉選單 ──
+const REGION_NM=[["歐","歐洲"],["英","英語系"],["拉","中南美"],["非","非洲"],["中","中東北非"],["亞","亞洲",["亞","華"]]];
+function picker(el,{items,rows,ph,onPick,sel,first}){const st={q:"",f:rows.map(()=>null),n:12,seed:R()};
+ el.innerHTML=`<input class="pk-q" type="search" placeholder="${ph}"><div class="pk-rows">${rows.map((r,i)=>`<div class="pk-row" data-r="${i}">${[["全部",null],...r].map(([t,v])=>`<button class="pk-f${v==null?" on":""}" data-v="${v??""}">${t}</button>`).join("")}</div>`).join("")}</div><div class="pk-grid"></div><div class="pk-more"></div>`;
+ const draw=()=>{const q=st.q.trim().toLowerCase(),free=!q&&st.f.every(x=>x==null);
+  let L=items.filter(it=>(!q||it.keys.toLowerCase().includes(q))&&st.f.every((v,i)=>v==null||it.tags[i]==v||(Array.isArray(it.tags[i])&&it.tags[i].includes(v))));
+  if(free&&first==null)L=L.map(x=>[x,Math.sin((items.indexOf(x)+1)*st.seed*999)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+  const show=L.slice(0,st.n),cur=sel();
+  el.querySelector(".pk-grid").innerHTML=(first&&!q?first():"")+(show.length?show.map(it=>`<button class="pk-c${it.id===cur?" on":""}" data-id="${it.id}"><b>${it.t}</b><small>${it.s}</small></button>`).join(""):`<p class="mut">找不到，換個關鍵字試試。</p>`);
+  el.querySelector(".pk-more").innerHTML=(L.length>st.n?`<button class="pk-m">顯示更多（還有 ${L.length-st.n} 個）</button> `:"")+(free&&first==null?`<button class="pk-r">🎲 換一批</button>`:"")+`<span class="mut" style="font-size:13px"> 共 ${L.length} 個</span>`;
+  el.querySelectorAll(".pk-c").forEach(b=>b.onclick=()=>{onPick(b.dataset.id);draw()});
+  el.querySelector(".pk-m")?.addEventListener("click",()=>{st.n+=12;draw()});el.querySelector(".pk-r")?.addEventListener("click",()=>{st.seed=R();draw()})};
+ el.querySelector(".pk-q").oninput=e=>{st.q=e.target.value;st.n=12;draw()};
+ el.querySelectorAll(".pk-row").forEach(row=>row.querySelectorAll(".pk-f").forEach(b=>b.onclick=()=>{row.querySelectorAll(".pk-f").forEach(x=>x.classList.remove("on"));b.classList.add("on");st.f[+row.dataset.r]=b.dataset.v||null;st.n=12;draw()}));
+ draw();return draw}
+const regOf=ct=>{const r=(COUNTRIES.find(c=>c[0]==ct)||[])[4];return r=="華"?"亞":r};
 // ── 球星人生：直接扮演一位真實球星，從出生開始 ──
 const STAR_LIST=ALL_STARS.filter(x=>COUNTRIES.some(c=>c[0]==x[1])).sort((a,b)=>(STAR_BORN[a[0]]||1998)-(STAR_BORN[b[0]]||1998));
-$("starSel").innerHTML=STAR_LIST.map((x,i)=>`<option value="${i}">${STAR_EN[x[0]]||x[0]}（${x[0]}）· ${x[1]} · ${POS[x[2]]} · ${STAR_BORN[x[0]]||"?"}</option>`).join("");
-document.querySelectorAll(".pm").forEach(b=>b.onclick=()=>{document.querySelectorAll(".pm").forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg.star=b.dataset.v?+$("starSel").value:null;$("starBox").classList.toggle("hide",!b.dataset.v)});
-$("starSel").onchange=e=>{cfg.star=+e.target.value};
-$("go").onclick=async()=>{const sx=cfg.star!=null?STAR_LIST[cfg.star]:null;if(sx)BIRTH_Y=STAR_BORN[sx[0]]||BIRTH_Y;
+const ERA=y=>y<1950?"e1":y<1970?"e2":y<1980?"e3":y<1990?"e4":"e5";
+picker($("starPk"),{ph:"🔍 搜尋球星：Messi、梅西、阿根廷、門將…",sel:()=>cfg.star==null?null:String(cfg.star),
+ rows:[[["1950 前出生","e1"],["50–60 年代","e2"],["70 年代","e3"],["80 年代","e4"],["90 年代後","e5"]],REGION_NM.map(r=>[r[1],r[0]])],
+ items:STAR_LIST.map((x,i)=>{const y=STAR_BORN[x[0]]||1998,en=STAR_EN[x[0]]||x[0];return {id:String(i),t:en,s:`${x[0]} · ${x[1]} · ${POS[x[2]]} · ${y} · 天賦 ${x[4]}`,keys:`${en} ${x[0]} ${x[1]} ${POS[x[2]]} ${y}`,tags:[ERA(y),regOf(x[1])]}}),
+ onPick:id=>{cfg.star=+id;const x=STAR_LIST[cfg.star];$("starPick").textContent=`已選：${STAR_EN[x[0]]||x[0]}（${x[1]}，${STAR_BORN[x[0]]} 年生）`}});
+document.querySelectorAll(".pm").forEach(b=>b.onclick=()=>{document.querySelectorAll(".pm").forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg.star=null;$("starPick").textContent="還沒選球星";$("starBox").classList.toggle("hide",!b.dataset.v)});
+$("go").onclick=async()=>{if(!$("starBox").classList.contains("hide")&&cfg.star==null){toast("先選一位球星");$("starPk").scrollIntoView({block:"center"});return}const sx=cfg.star!=null?STAR_LIST[cfg.star]:null;if(sx)BIRTH_Y=STAR_BORN[sx[0]]||BIRTH_Y;
  const p=sx?newPlayer(sx[1],sx[2]):newPlayer(cfg.w,cfg.pos);p.mode=cfg.mode;
  if(sx){p.name=STAR_EN[sx[0]]||sx[0];p.realStar=sx[0];p.pot=Math.round(sx[3]+R()*(sx[4]-sx[3]));p.talent=p.pot-10;p.card="球星人生";p.dreamPos=sx[2];p.fam.fan=true;p.touchAge=Math.min(p.touchAge,4)}
  else if(cfg.card!==null&&drawn[cfg.card]){const d=drawn[cfg.card];p.pot=d.pot;p.talent=Math.max(30,d.pot-12);p.card=d.r;p.flair=d.flair}p.id=Date.now()+"";starsInit(p,cfg.stars);
@@ -96,8 +115,10 @@ function hofReview(x){const d=x.d,row=(k,v)=>`<div class="stat"><span>${k}</span
  document.body.insertAdjacentHTML("beforeend",`<div id="hofPv"><div class="sheet"><span class="tag">${esc(x.y)}</span><h2>${esc(x.name)}　<small class="mut">${esc(x.title)} · ${esc(x.c)} · 巔峰 ${x.peak} · 評分 ${x.sc}</small></h2>${body}<button class="opt" id="hofX">關閉</button></div></div>`);
  const close=()=>$("hofPv").remove();$("hofX").onclick=close;$("hofPv").onclick=e=>{if(e.target.id=="hofPv")close()}}
 try{const h=JSON.parse(localStorage.getItem("fb-hof")||"[]");$("hof").querySelectorAll(".hcard").forEach(c=>c.onclick=()=>hofReview(h[+c.dataset.i]))}catch{}
-$("ctry").innerHTML=`<option value="world">🎲 足球世界隨機（依足球人口）</option>`+COUNTRIES.slice().sort((a,b)=>b[2]-a[2]).map(c=>`<option value="${c[0]}">${c[0]}（國家隊強度 ${c[2]}）</option>`).join("");
-$("ctry").onchange=e=>{cfg.w=e.target.value};
+const ctryDraw=picker($("ctryPk"),{ph:"🔍 搜尋國家：日本、巴西…",sel:()=>cfg.w,rows:[REGION_NM.map(r=>[r[1],r[0]])],
+ first:()=>`<button class="pk-c${cfg.w=="world"?" on":""}" data-id="world"><b>🎲 隨機</b><small>依足球人口抽選</small></button>`,
+ items:COUNTRIES.slice().sort((a,b)=>b[2]-a[2]).map(c=>({id:c[0],t:c[0],s:`國家隊強度 ${c[2]}`,keys:c[0],tags:[regOf(c[0])]})),
+ onPick:id=>{cfg.w=id;$("ctryPick").textContent=id=="world"?"已選：🎲 足球世界隨機":`已選：${id}`}});
 $("oddsTbl").innerHTML=COUNTRIES.map(c=>c[0]).map(c=>{const o=realOdds(c);return `${c}：職業球員 ${oneIn(o.pro)}、五大聯賽 ${oneIn(o.top5)}`}).join("<br>");
 $("achWall").innerHTML=achWall();
 $("gbCtry").innerHTML=`<option value="">其他國家…</option>`+COUNTRIES.map(c=>`<option>${c[0]}</option>`).join("");
