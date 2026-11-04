@@ -29,8 +29,16 @@ function renderYear(){$("yNow").textContent=BIRTH_Y;const ok=BIRTH_Y<REAL_LAST;$
  $("yEra").textContent=BIRTH_Y>=2026?"現在":`和 ${st[0]}（${st[1]}）同世代`}
 document.querySelectorAll(".yb").forEach(b=>b.onclick=()=>{BIRTH_Y=clamp(BIRTH_Y+ +b.dataset.d,1950,2026);renderYear()});
 $("ySl").oninput=e=>{BIRTH_Y=+e.target.value;renderYear()};renderYear();
+// ── 捏人：名字、膚色、髮型、髮色，右邊即時預覽 ──
+cfg.look={skin:null,hair:0,hc:"#2a1a10"};
+const MK_SKIN=[[null,"依國家"],["#f2d3b0"],["#e8c49a"],["#c99a6a"],["#a8703f"],["#7a4a2a"],["#4e2e1a"]],MK_HC=["#2a1a10","#5a3a1a","#9a6a2a","#e0c070","#b8402a","#ddd"];
+function renderMk(){const sw=(arr,key,isC)=>arr.map((v,i)=>{const val=isC?v:(Array.isArray(v)?v[0]:v);const on=cfg.look[key]===(isC?v:val);return `<button class="mk-sw${on?" on":""}" data-k="${key}" data-i="${i}" style="${val?`background:${val}`:""}" title="${Array.isArray(v)&&v[1]?v[1]:""}">${Array.isArray(v)&&v[1]?v[1]:""}</button>`}).join("");
+ $("mkSkin").innerHTML=sw(MK_SKIN,"skin");$("mkHair").innerHTML=HAIRS.map((h,i)=>`<button class="${cfg.look.hair==i?"on":""}" data-k="hair" data-i="${i}">${h[0]}</button>`).join("");$("mkHc").innerHTML=sw(MK_HC,"hc",1);
+ document.querySelectorAll("#mk [data-k]").forEach(b=>b.onclick=()=>{const k=b.dataset.k,i=+b.dataset.i;cfg.look[k]=k=="skin"?MK_SKIN[i][0]:k=="hc"?MK_HC[i]:i;renderMk()});
+ const reg=(COUNTRIES.find(c=>c[0]==cfg.w)||[])[4]||"歐";drawFace($("mkFace"),{look:cfg.look,region:reg,age:20,clubObj:null})}
+$("mkRoll").onclick=()=>{const reg=(COUNTRIES.find(c=>c[0]==cfg.w)||pick(COUNTRIES))[4];$("mkName").value=newName({region:NM[reg]?reg:"歐"});renderMk()};renderMk();
 $("tourBtn").onclick=()=>tour(0);
-const muteTxt=()=>{$("muteBtn").textContent=muted?"🔇":"🔊"};muteTxt();$("muteBtn").onclick=()=>{muted=!muted;try{localStorage.setItem("fb-mute",muted?"1":"0")}catch{}muteTxt();if(!muted)sfx("kick")};
+const muteTxt=()=>{$("muteBtn").textContent=muted?"🔇 靜音":"🔊 音效"};muteTxt();$("muteBtn").onclick=()=>{muted=!muted;try{localStorage.setItem("fb-mute",muted?"1":"0")}catch{}muteTxt();if(!muted)sfx("kick")};
 $("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"▶ 繼續":"⏸ 暫停"};
 $("skipQ").onclick=()=>{pendingSkip=true};
 $("auto").onchange=e=>{auto=e.target.checked;toast(auto?"之後的抉擇自動決定":"之後的抉擇由你決定")};
@@ -86,7 +94,7 @@ picker($("starPk"),{ph:"🔍 搜尋球星：Messi、梅西、阿根廷、門將�
  onPick:id=>{cfg.star=+id;const x=STAR_LIST[cfg.star];$("starPick").textContent=`已選：${flag(x[1])} ${STAR_EN[x[0]]||x[0]}（${x[1]}，${STAR_BORN[x[0]]} 年生）`}});
 document.querySelectorAll(".pm").forEach(b=>b.onclick=()=>{document.querySelectorAll(".pm").forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg.star=null;$("starPick").textContent="還沒選球星";$("starBox").classList.toggle("hide",!b.dataset.v);document.querySelectorAll(".orig").forEach(x=>x.classList.toggle("hide",!!b.dataset.v))});
 $("go").onclick=async()=>{if(!$("starBox").classList.contains("hide")&&cfg.star==null){toast("先選一位球星");$("starPk").scrollIntoView({block:"center"});return}const sx=cfg.star!=null?STAR_LIST[cfg.star]:null;if(sx)BIRTH_Y=STAR_BORN[sx[0]]||BIRTH_Y;
- const p=sx?newPlayer(sx[1],sx[2]):newPlayer(cfg.w,cfg.pos);p.mode=cfg.mode;
+ const p=sx?newPlayer(sx[1],sx[2]):newPlayer(cfg.w,cfg.pos);p.mode=cfg.mode;if(!sx){const nm=$("mkName").value.trim().slice(0,24);if(nm)p.name=nm;p.look={...cfg.look}}
  if(sx){p.name=STAR_EN[sx[0]]||sx[0];p.realStar=sx[0];p.pot=Math.round(sx[3]+R()*(sx[4]-sx[3]));p.talent=p.pot-10;p.card="球星人生";p.dreamPos=sx[2];p.fam.fan=true;p.touchAge=Math.min(p.touchAge,4)}
  else if(cfg.card!==null&&drawn[cfg.card]){const d=drawn[cfg.card];p.pot=d.pot;p.talent=Math.max(30,d.pot-12);p.card=d.r;p.flair=d.flair}p.id=Date.now()+"";starsInit(p,cfg.stars);
  if(sx&&p.stars)p.stars=p.stars.filter(s=>s.real!=sx[0]);P=p;await reveal(p);say(`${p.name}出生在${p.c}。`,1);playHit("start");start(p)};
@@ -124,7 +132,7 @@ try{const h=JSON.parse(localStorage.getItem("fb-hof")||"[]");$("hof").querySelec
 const ctryDraw=picker($("ctryPk"),{ph:"🔍 搜尋國家：日本、巴西…",sel:()=>cfg.w,rows:[REGION_NM.map(r=>[r[1],r[0]])],
  first:()=>`<button class="pk-c${cfg.w=="world"?" on":""}" data-id="world"><span class="pk-ic">🎲</span><span class="pk-tx"><b>隨機</b><small>依足球人口抽選</small></span></button>`,
  items:COUNTRIES.slice().sort((a,b)=>b[2]-a[2]).map(c=>({id:c[0],ic:flag(c[0]),t:c[0],s:`國家隊強度 ${c[2]}`,keys:c[0],tags:[regOf(c[0])]})),
- onPick:id=>{cfg.w=id;$("ctryPick").textContent=id=="world"?"已選：🎲 足球世界隨機":`已選：${flag(id)} ${id}`}});
+ onPick:id=>{cfg.w=id;renderMk();$("ctryPick").textContent=id=="world"?"已選：🎲 足球世界隨機":`已選：${flag(id)} ${id}`}});
 $("oddsTbl").innerHTML=COUNTRIES.map(c=>c[0]).map(c=>{const o=realOdds(c);return `${c}：職業球員 ${oneIn(o.pro)}、五大聯賽 ${oneIn(o.top5)}`}).join("<br>");
 $("achWall").innerHTML=achWall();
 $("gbCtry").innerHTML=`<option value="">其他國家…</option>`+COUNTRIES.map(c=>`<option>${c[0]}</option>`).join("");

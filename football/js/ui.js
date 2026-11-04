@@ -1,12 +1,15 @@
 // 畫面：繪圖、音效、報表、成就、生涯管理、主迴圈、結局
 // ── 畫面 ──
-function drawFace(cv,p){const g=cv.getContext("2d");g.clearRect(0,0,16,16);const skin={拉:"#c68a5a",歐:"#f0c8a0",英:"#f2cfaa",非:"#7a4a2a",亞:"#e8c49a",中:"#c99a6a",華:"#ecc79c"}[p.region];
- g.fillStyle=p.age>55?"#ddd":"#2a1a10";g.fillRect(4,2,8,3);g.fillStyle=skin;g.fillRect(4,4,8,7);g.fillStyle="#111";g.fillRect(6,7,1,1);g.fillRect(9,7,1,1);g.fillRect(7,9,2,1);
+// 捏人：膚色、髮型、髮色（沒捏就依國家）
+const HAIRS=[["短髮",[[4,2,8,3]]],["寸頭",[[4,3,8,1]]],["長髮",[[4,2,8,3],[3,3,1,7],[12,3,1,7]]],["捲髮",[[3,1,10,3],[3,4,1,2],[12,4,1,2]]],["光頭",[]]];
+const lookOf=p=>{const L=p.look||{};return {skin:L.skin||SKIN[p.region]||"#e8c49a",hair:HAIRS[L.hair||0],hc:p.age>55?"#ddd":(L.hc||"#2a1a10")}};
+function drawFace(cv,p){const g=cv.getContext("2d");g.clearRect(0,0,16,16);const lk=lookOf(p),skin=lk.skin;
+ g.fillStyle=skin;g.fillRect(4,4,8,7);g.fillStyle=lk.hc;lk.hair[1].forEach(r=>g.fillRect(...r));g.fillStyle="#111";g.fillRect(6,7,1,1);g.fillRect(9,7,1,1);g.fillRect(7,9,2,1);
  g.fillStyle=p.clubObj?["#c22","#26c","#ec3","#2a2","#fff"][p.clubObj.str%5]:"#555";g.fillRect(3,11,10,5)}
 // 依年紀換場景：家裡 → 公園空地 → 學校操場 → 職業球場
 const SKIN={拉:"#c68a5a",歐:"#f0c8a0",英:"#f2cfaa",非:"#7a4a2a",亞:"#e8c49a",中:"#c99a6a",華:"#ecc79c"};
 function drawKid(g,x,y,p,t,ball){const k=Math.max(.45,p.h/180),hh=Math.round(22*k),walk=Math.floor(t)%2;
- g.fillStyle="#2a1a10";g.fillRect(x-3,y-hh-1,7,3);g.fillStyle=SKIN[p.region];g.fillRect(x-3,y-hh+1,7,6);g.fillStyle="#111";g.fillRect(x-1,y-hh+3,1,1);g.fillRect(x+2,y-hh+3,1,1);
+ const lk=lookOf(p);g.fillStyle=lk.hc;if(lk.hair[1].length)g.fillRect(x-3,y-hh-1,7,3);g.fillStyle=lk.skin;g.fillRect(x-3,y-hh+1,7,6);g.fillStyle="#111";g.fillRect(x-1,y-hh+3,1,1);g.fillRect(x+2,y-hh+3,1,1);
  const body=Math.round(hh*.45);g.fillStyle=p.age<6?"#7ac":"#d33";g.fillRect(x-4,y-hh+7,9,body);g.fillStyle="#335";g.fillRect(x-3,y-hh+7+body,3,hh-7-body-0+(walk?0:-1));g.fillRect(x+1,y-hh+7+body,3,hh-7-body+(walk?-1:0));
  if(ball){g.fillStyle="#fff";g.fillRect(x+6,y-4,4,4);g.fillStyle="#000";g.fillRect(x+7,y-3,1,1)}}
 function drawPitch(prog,goals){
@@ -72,7 +75,7 @@ async function playSeasonVisual(apps,goals){
 }
 async function quietYear(){if(toEnd||P.retired)return;const total=secPerSeason*(P.age<17?400:300);/* 童年每年和職業球季差不多長，慢慢體會成長 */let w=0,last=performance.now();while(w<total){await new Promise(r=>setTimeout(r,50));const now=performance.now();if(!paused)w+=(now-last)*mult;last=now;if(pendingSkip||toEnd)w=total;$("sFill").style.width=Math.min(100,w/total*100)+"%";if(P.age<13)$("ticker").textContent=P.age<P.touchAge?`${P.age} 歲，還沒碰過足球`:`${P.age} 歲 · ${P.stage} · 身高 ${Math.round(P.h)} 公分`;drawPitch(Math.min(1,w/total),0)}}
 function render(){try{renderMgr();renderIntent();renderSquad()}catch(e){}
- const p=P,o=ovr(p);$("ovr").textContent=p.age<p.touchAge?"??":Math.round(o);$("pos").textContent=p.age<11&&!(p.done&&p.done.pos)?"—":posCode(p);$("nm").textContent=p.name.split(" ").pop();$("age").textContent=p.age;
+ const p=P,o=ovr(p);$("ovr").textContent=p.age<p.touchAge?"—":Math.round(o);$("ovr").title=p.age<p.touchAge?"還沒開始踢球":"綜合評分";$("pos").textContent=p.age<11&&!(p.done&&p.done.pos)?"—":posCode(p);$("nm").textContent=p.name.split(" ").pop();$("age").textContent=p.age;
  $("fut").className="fut"+(o>=75?"":o>=65?" silver":" bronze");$("who").textContent=`${p.name}（${POS[p.pos]}）`;
  $("where").textContent=p.retired?`已退休 · ${p.after||""}`:p.club?`${p.club} · ${p.clubObj.lg} · 合約剩 ${Math.max(0,p.contract)} 年`:`${p.c} · ${p.stage}`;
  $("sL").textContent=`${p.age} 歲`;$("sR").textContent=`${p.age+1} 歲`;drawFace($("face"),p);

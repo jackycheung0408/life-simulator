@@ -40,7 +40,8 @@ button.on{background:var(--y);color:var(--ink)}
 .fut.silver{background:linear-gradient(160deg,#e8eef0,#9aa6ad)}.fut.bronze{background:linear-gradient(160deg,#e3b07a,#9b6a3a)}
 .hud .info{flex:1;min-width:0}.age{font-family:var(--px);font-size:26px;color:var(--y)}
 .season{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:6px}.track{flex:1;height:12px;background:var(--ink);border:2px solid var(--line)}.track i{display:block;height:100%;background:var(--y);width:0}
-.ctrl{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}.ctrl button{padding:5px 10px;font-size:13px}
+.ctrl{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}.seg{display:inline-flex}.seg button{box-shadow:none;margin-right:-3px}.seg button:last-child{margin-right:0}.ctrl2{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;font-size:13px}.ctrl2 button{padding:3px 9px;font-size:12px;box-shadow:2px 2px 0 var(--ink)}.ctrl2 label{margin-right:auto}
+.mk{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}#mkFace{width:96px;height:96px;image-rendering:pixelated;background:var(--deep);border:3px solid var(--ink)}.mk-f{flex:1;min-width:240px}.mk-r{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 8px}.mk-r>span:first-child{width:36px;font-weight:700;font-size:13px}.mk-r input{flex:1;min-width:140px;font:inherit;padding:6px 8px;border:3px solid var(--ink);background:var(--deep);color:var(--fg)}.mk-sw{width:30px;height:30px;padding:0;font-size:11px}.mk-sw[title="依國家"]{width:auto;padding:0 8px}.mk-sw.on{outline:3px solid #ffd23f;outline-offset:1px}.mk-r button{padding:4px 10px;font-size:13px}.ctrl{.ctrl button{padding:5px 10px;font-size:13px}
 /* 球場 */
 #pitch{width:100%;height:auto;display:block;image-rendering:pixelated;border:3px solid var(--ink)}
 .ticker{font-size:14px;margin-top:6px;min-height:22px;color:var(--y)}
@@ -207,6 +208,12 @@ button.on{background:var(--y);color:var(--ink)}
  <p><button class="st on" data-v="real">真名</button><button class="st" data-v="alias">化名</button><button class="st" data-v="off">關閉</button></p>
  <p class="mut">平行世界裡，30 人和你同一個年代出生（依出生年份挑選）、各自重新走一次生涯：5 位巨星、10 位一線球星（真實球員），加上 15 位虛構的同期，其中 5 位是你的青訓同學。他們可能當你隊友、對手、搶金球獎，也可能早早放棄。結局會列出同世代排名和同國排名。</p>
  <div class="orig">
+ <h2>捏你的球員</h2>
+ <div id="mk" class="mk"><canvas id="mkFace" width="16" height="16"></canvas><div class="mk-f">
+  <p class="mk-r"><span>名字</span><input id="mkName" maxlength="24" placeholder="空白＝依國家隨機取名"><button id="mkRoll" title="隨機取名">🎲</button></p>
+  <p class="mk-r"><span>膚色</span><span id="mkSkin"></span></p>
+  <p class="mk-r"><span>髮型</span><span id="mkHair"></span></p>
+  <p class="mk-r"><span>髮色</span><span id="mkHc"></span></p></div></div>
  <h2>你想踢什麼位置？</h2>
  <p id="posSel"><button class="p on" data-v="FW">前鋒</button><button class="p" data-v="MF">中場</button><button class="p" data-v="DF">後衛</button><button class="p" data-v="GK">門將</button><button class="p" data-v="?">讓命運決定</button></p>
  <h2>天賦卡（可選）</h2>
@@ -233,7 +240,7 @@ button.on{background:var(--y);color:var(--ink)}
    <div><span class="age" id="age">0</span> 歲　<b id="who"></b></div>
    <div class="mut" id="where"></div>
    <div class="season"><span id="sL"></span><div class="track"><i id="sFill"></i></div><span id="sR"></span></div>
-   <div class="ctrl"><button id="pause">⏸ 暫停</button><button class="sp on" data-m="1">1×</button><button class="sp" data-m="2">2×</button><button class="sp" data-m="4">4×</button><button id="skipQ">⏭ 下一個抉擇</button><button id="skipEnd">⏩ 跳到結局</button><label style="font-size:13px"><input type="checkbox" id="auto"> 自動抉擇</label><button id="cardBtn" onclick="sharePlayer()" title="匯出球員卡">📸</button><button id="muteBtn" title="音效"></button><button id="tourBtn" title="玩法說明">？</button></div>
+   <div class="ctrl"><button id="pause">⏸ 暫停</button><span class="seg"><button class="sp on" data-m="1">1×</button><button class="sp" data-m="2">2×</button><button class="sp" data-m="4">4×</button></span><button id="skipQ">⏭ 下一個抉擇</button><button id="skipEnd">⏩ 跳到結局</button></div><div class="ctrl2"><label><input type="checkbox" id="auto"> 自動抉擇</label><button id="cardBtn" onclick="sharePlayer()">📸 球員卡</button><button id="muteBtn"></button><button id="tourBtn">？ 說明</button></div>
   </div>
  </div>
 </div>
@@ -259,8 +266,8 @@ button.on{background:var(--y);color:var(--ink)}
 <button id="themeBtn" title="切換深色／淺色"></button><div id="tip"></div><div id="modal" class="hide"><div class="sheet"><span class="tag" id="mtag"></span><span id="mctx"></span><div id="choice"></div></div></div>
 <div id="toast"></div>
 
-<script src="js/data.js?v=42"></script>
-<script src="js/events.js?v=42"></script>
-<script src="js/career.js?v=42"></script>
-<script src="js/ui.js?v=42"></script>
-<script src="js/home.js?v=42"></script></body></html>
+<script src="js/data.js?v=43"></script>
+<script src="js/events.js?v=43"></script>
+<script src="js/career.js?v=43"></script>
+<script src="js/ui.js?v=43"></script>
+<script src="js/home.js?v=43"></script></body></html>
