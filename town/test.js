@@ -12,7 +12,10 @@ check(M.door(7)[0]==11&&M.door(7)[1]==28,"房子 7 的門應該在 (11,28)，和
 // 需求：醒著 10 小時，飽足 80 → 40；睡覺 5 小時，精力 20 → 90
 const base={sleeping:false,hunger:80,energy:80,bladder:80,hygiene:80,fun:80,updated_at:new Date(0).toISOString()};
 check(Math.round(M.tickLocal(base,10*36e5).hunger)==40,"醒著 10 小時飽足應該是 40");
-check(Math.round(M.tickLocal({...base,sleeping:true,energy:20},5*36e5).energy)==90,"睡 5 小時精力應該是 90");
+check(Math.round(M.tickLocal({...base,sleeping:true,energy:20},3*36e5).energy)==80,"睡 3 小時精力應該是 80");
+check(Math.round(M.tickLocal({...base,sleeping:true},8*36e5).hunger)==60,"睡 8 小時飽足應該掉到 60（睡覺也會餓）");
 check(M.tickLocal(base,200*36e5).hunger==0,"需求不能低於 0");
+// 路邊物件：不在牆裡、從每間房子的門都走得到、人站的位置和資料庫的距離判斷一致
+for(let rows=2;rows<=4;rows++){M.setRows(rows);for(const [k,o] of Object.entries(M.OBJS)){if(o.x==null)continue;check(!M.blocked(o.x,o.y)||false,`${rows} 排：物件 ${k} 在牆裡`);const stand=[o.x,o.y+(o.y==5?1:0)];check(!M.blocked(...stand),`${rows} 排：物件 ${k} 站不上去`);for(let s=0;s<rows*3;s++)check(M.bfs(M.door(s),stand),`${rows} 排：房子 ${s} 走不到物件 ${k}`)}}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

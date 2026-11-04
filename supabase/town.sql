@@ -101,7 +101,10 @@ $$;
 
 create or replace function public.town_obj_near(o text, x real, y real, place text) returns boolean language sql immutable as $$
   select case o when 'vend' then abs(x-19)+abs(y-5) <= 2 when 'trash' then abs(x-8)+abs(y-14) <= 2 when 'stall' then abs(x-22)+abs(y-14) <= 2
-    when 'well' then place = 'plaza' when 'swing' then place = 'park' when 'cat' then place = 'park' else false end
+    when 'well' then place = 'plaza' when 'swing' then place = 'park' when 'cat' then place = 'park'
+    when 'busker' then place = 'plaza' when 'pond' then place = 'park'
+    when 'bench' then abs(x-14)+abs(y-5) <= 2 when 'mailbox' then abs(x-34)+abs(y-5) <= 2 when 'cooler' then abs(x-10)+abs(y-14) <= 2
+    when 'claw' then abs(x-33)+abs(y-14) <= 2 when 'news' then abs(x-14)+abs(y-19) <= 2 when 'pwc' then abs(x-18)+abs(y-19) <= 2 when 'lottery' then abs(x-8)+abs(y-19) <= 2 else false end
 $$;
 
 -- 營業時間（台灣時間）：回傳 null 表示營業中，否則回傳休息說明
@@ -206,14 +209,17 @@ begin
     if r.sleeping then sh := sh + step; elsif hr < 7 and t > r.seen_at + interval '30 minutes' then sh := sh + step; nightoff := true; else ah := ah + step; end if;
     t := t + make_interval(secs => step*3600);
   end loop;
-  r.energy := r.energy + 20*sh - 3*ah; r.hunger := r.hunger - 1.5*sh - 4*ah; r.bladder := r.bladder - 1.5*sh - 5*ah; r.hygiene := r.hygiene - .5*sh - 2.5*ah; r.fun := r.fun - .3*sh - 2*ah;
+  -- 睡覺也會餓、會想上廁所、會出汗（睡一整晚醒來就是餓、憋、有點臭）；醒著精力掉比較慢，睡飽才會滿
+  r.energy := r.energy + 20*sh - 2.5*ah; r.hunger := r.hunger - 2.5*sh - 4*ah; r.bladder := r.bladder - 3.5*sh - 5*ah; r.hygiene := r.hygiene - 1.2*sh - 2.5*ah; r.fun := r.fun - .8*sh - 2*ah;
+  -- 又餓又髒又憋的時候心情掉更快
+  if ah > 0 and (r.hunger < 20 or r.bladder < 20 or r.hygiene < 20) then r.fun := r.fun - 1.5*ah; end if;
   hr := extract(hour from (now() at time zone 'Asia/Taipei'))::int;
   -- 半夜沒上線的人回家睡了：人在家裡；現在還是半夜就繼續睡，天亮（8 點後）就在家醒來
   if nightoff or (not r.sleeping and hr < 7 and now() > r.seen_at + interval '30 minutes') then
     select * into d from public.town_door(r.slot);
     r.place := 'home:' || r.id; r.x := d.dx; r.y := d.dy;
     r.sleeping := hr < 8;
-  elsif r.sleeping and hr between 8 and 11 and now() > r.seen_at + interval '30 minutes' and r.energy >= 80 then
+  elsif r.sleeping and hr between 8 and 11 and now() > r.seen_at + interval '30 minutes' and r.energy >= 90 then
     r.sleeping := false;  -- 早上自然醒
   end if;
   if r.bladder <= 0 then
@@ -444,18 +450,18 @@ begin
     end if;
   elsif act in ('eat','toilet','shower','tv','sleep','nap') then
     if r.place <> 'home:' || rid then raise exception '要先回家'; end if;
-    if act = 'eat' then if r.money < 10 then raise exception '錢不夠買食材，去公司打工吧'; end if; r.hunger := r.hunger + 40; r.money := r.money - 10;
+    if act = 'eat' then if r.money < 10 then raise exception '錢不夠買食材，去公司打工吧'; end if; r.hunger := r.hunger + 40; r.energy := r.energy + 5; r.money := r.money - 10;
     elsif act = 'toilet' then r.bladder := 100;
     elsif act = 'shower' then
       if (r.items->'cd'->>'shower') is not null and (r.items->'cd'->>'shower')::timestamptz > now() - interval '10 minutes' then raise exception '剛洗完澡，等一下再洗'; end if;
-      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('shower', now())); r.hygiene := 100; r.fun := r.fun + 3;
+      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('shower', now())); r.hygiene := 100; r.energy := r.energy + 4; r.fun := r.fun + 3;
     elsif act = 'tv' then
       if (r.items->'cd'->>'tv') is not null and (r.items->'cd'->>'tv')::timestamptz > now() - interval '15 minutes' then raise exception '剛看完電視，休息一下眼睛'; end if;
       r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('tv', now())); r.fun := r.fun + 15; r.energy := r.energy - 3;
     elsif act = 'sleep' then r.sleeping := true;
     elsif act = 'nap' then
       if (r.items->'cd'->>'nap') is not null and (r.items->'cd'->>'nap')::timestamptz > now() - interval '30 minutes' then raise exception '剛小睡過，等一下再睡'; end if;
-      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('nap', now())); r.energy := r.energy + 12; end if;
+      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('nap', now())); r.energy := r.energy + 20; end if;
   elsif act = 'wake' then r.sleeping := false;
   elsif act = 'obj' then
     if not public.town_obj_near(item, r.x, r.y, r.place) then raise exception '要走到旁邊才能用'; end if;
@@ -480,6 +486,28 @@ begin
         r.items := jsonb_set(r.items, '{snack}', to_jsonb((r.items->>'snack')::int - 1)); r.fun := r.fun + 15;
         insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 餵了公園的流浪貓，牠一直蹭過來 🐱');
       else r.fun := r.fun + 8; if pa < .15 then r.hygiene := r.hygiene - 10; insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 想摸流浪貓，被抓了一下 🐱💢'); end if; end if;
+    elsif item = 'bench' then r.energy := r.energy + 8; r.fun := r.fun + 2;
+    elsif item = 'cooler' then r.energy := r.energy + 3; r.hunger := r.hunger + 3; r.bladder := r.bladder - 3;
+    elsif item = 'pwc' then r.bladder := 100; r.hygiene := r.hygiene - 3;
+    elsif item = 'mailbox' then r.fun := r.fun + 2;
+      if pa < .3 then n := 10 + floor(random()*31)::int; r.money := r.money + n; insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 打開郵筒，收到一筆 €' || n || ' 的退款 💌'); end if;
+    elsif item = 'news' then
+      if r.money < 5 then raise exception '錢不夠，報紙 €5'; end if; r.money := r.money - 5; r.fun := r.fun + 8;
+      if pa < .08 then r.money := r.money + 30; insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 翻報紙時掉出一張折價券，換了 €30 📰'); end if;
+    elsif item = 'claw' then
+      if r.money < 10 then raise exception '錢不夠，夾一次 €10'; end if; r.money := r.money - 10;
+      if pa < .22 then r.items := jsonb_set(r.items, '{gift}', to_jsonb(coalesce((r.items->>'gift')::int,0) + 1)); r.fun := r.fun + 20; insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 在夾娃娃機夾到一個大娃娃 🎁');
+      else r.fun := r.fun + 5; end if;
+    elsif item = 'lottery' then
+      if r.money < 20 then raise exception '錢不夠，刮刮樂 €20'; end if; r.money := r.money - 20; r.fun := r.fun + 5;
+      if pa < .005 then r.money := r.money + 500; r.fun := r.fun + 25; insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 刮刮樂刮中頭獎 €500！🍀');
+      elsif pa < .155 then r.money := r.money + 40; elsif pa < .455 then r.money := r.money + 20; end if;
+    elsif item = 'busker' then
+      if r.money < 5 then raise exception '錢不夠，打賞 €5'; end if; r.money := r.money - 5; r.fun := r.fun + 15;
+    elsif item = 'pond' then
+      if coalesce((r.items->>'snack')::int,0) < 1 then raise exception '背包沒有零食，去超市買'; end if;
+      r.items := jsonb_set(r.items, '{snack}', to_jsonb((r.items->>'snack')::int - 1)); r.fun := r.fun + 12;
+      if pa < .08 then r.money := r.money + 15; insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 餵池塘的鴨子，鴨子叼來 €15 🐦'); end if;
     else raise exception '這裡沒有這個東西'; end if;
   elsif act = 'spar' then
     -- 格鬥場：打擂台挑戰對手，連勝越多對手越強、獎金越高；30 分鐘打一場
@@ -543,7 +571,7 @@ begin
   elsif act in ('dine','work','play','browse','coffee','movie','workout') then
     if (act = 'dine' and r.place <> 'restaurant') or (act = 'work' and r.place <> 'office') or (act = 'play' and r.place not in ('park','plaza')) or (act = 'browse' and r.place <> 'market')
        or (act = 'coffee' and r.place <> 'cafe') or (act = 'movie' and r.place <> 'cinema') or (act = 'workout' and r.place <> 'gym') then raise exception '不在那個地方'; end if;
-    if act = 'dine' then if r.money < 30 then raise exception '錢不夠，去公司打工吧'; end if; r.hunger := r.hunger + 55; r.fun := r.fun + 10; r.money := r.money - 30;
+    if act = 'dine' then if r.money < 30 then raise exception '錢不夠，去公司打工吧'; end if; r.hunger := r.hunger + 55; r.energy := r.energy + 8; r.fun := r.fun + 10; r.money := r.money - 30;
     elsif act = 'work' then if r.energy < 15 then raise exception '太累了，先回家睡覺'; end if;
       if (r.items->'cd'->>'work') is not null and (r.items->'cd'->>'work')::timestamptz > now() - interval '1 hour' then raise exception '剛下班，1 小時後才能再打工'; end if;
       r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('work', now())); r.money := r.money + 100; r.energy := r.energy - 15; r.fun := r.fun - 10; r.hunger := r.hunger - 8;
