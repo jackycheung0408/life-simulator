@@ -55,15 +55,21 @@ function tour(i=0,only=false){const old=document.querySelector(".tour-hi");if(ol
  $("tNext").onclick=()=>tour(only?TOUR.length:i+1);$("tSkip").onclick=()=>tour(TOUR.length)}
 function start(p){P=p;$("home").classList.add("hide");$("game").classList.remove("hide");scrollTo(0,0);renderPlan();render();loop();let seen=null;try{seen=localStorage.getItem("fb-tour")||localStorage.getItem("fb-played")}catch{}if(!seen)setTimeout(()=>tour(0),400)}
 $("draw").onclick=drawCard;$("redraw").onclick=()=>{if(!redraws)return;redraws--;draws=3;drawn.length=0;cfg.card=null;renderCards();toast(`重抽！還剩 ${redraws} 次機會`)};$("noCard").onclick=()=>{cfg.card=null;renderCards()};renderCards();
+// 國旗與位置小圖示
+const ISO={"巴西": "BR", "阿根廷": "AR", "法國": "FR", "西班牙": "ES", "德國": "DE", "義大利": "IT", "葡萄牙": "PT", "荷蘭": "NL", "比利時": "BE", "克羅埃西亞": "HR", "烏拉圭": "UY", "哥倫比亞": "CO", "墨西哥": "MX", "美國": "US", "奈及利亞": "NG", "塞內加爾": "SN", "摩洛哥": "MA", "迦納": "GH", "日本": "JP", "韓國": "KR", "埃及": "EG", "沙烏地阿拉伯": "SA", "中國": "CN", "瑞士": "CH", "丹麥": "DK", "奧地利": "AT", "塞爾維亞": "RS", "土耳其": "TR", "瑞典": "SE", "波蘭": "PL", "烏克蘭": "UA", "挪威": "NO", "捷克": "CZ", "匈牙利": "HU", "希臘": "GR", "愛爾蘭": "IE", "厄瓜多": "EC", "智利": "CL", "秘魯": "PE", "巴拉圭": "PY", "委內瑞拉": "VE", "哥斯大黎加": "CR", "加拿大": "CA", "象牙海岸": "CI", "喀麥隆": "CM", "南非": "ZA", "阿爾及利亞": "DZ", "突尼西亞": "TN", "伊朗": "IR", "卡達": "QA", "澳洲": "AU", "紐西蘭": "NZ", "越南": "VN", "泰國": "TH", "印尼": "ID", "馬來西亞": "MY", "印度": "IN", "菲律賓": "PH", "香港": "HK", "台灣": "TW"};
+const flag=ct=>({英格蘭:"🏴\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}",蘇格蘭:"🏴\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}",威爾斯:"🏴\u{E0067}\u{E0062}\u{E0077}\u{E006C}\u{E0073}\u{E007F}"})[ct]||(ISO[ct]?[...ISO[ct]].map(c=>String.fromCodePoint(127397+c.charCodeAt(0))).join(""):"🏳️");
+const POS_ICON={FW:"⚽",MF:"🎯",DF:"🛡️",GK:"🧤"};
+// 搜尋不分大小寫、不分重音：Mbappe 也找得到 Mbappé
+const fold=t=>t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ø/g,"o").replace(/ł/g,"l").replace(/đ/g,"d").replace(/ı/g,"i").replace(/ß/g,"ss");
 // ── 搜尋＋分類按鈕＋卡片：球星和國家都很多，用這個代替長長的下拉選單 ──
 const REGION_NM=[["歐","歐洲"],["英","英語系"],["拉","中南美"],["非","非洲"],["中","中東北非"],["亞","亞洲",["亞","華"]]];
 function picker(el,{items,rows,ph,onPick,sel,first}){const st={q:"",f:rows.map(()=>null),n:12,seed:R()};
  el.innerHTML=`<input class="pk-q" type="search" placeholder="${ph}"><div class="pk-rows">${rows.map((r,i)=>`<div class="pk-row" data-r="${i}">${[["全部",null],...r].map(([t,v])=>`<button class="pk-f${v==null?" on":""}" data-v="${v??""}">${t}</button>`).join("")}</div>`).join("")}</div><div class="pk-grid"></div><div class="pk-more"></div>`;
- const draw=()=>{const q=st.q.trim().toLowerCase(),free=!q&&st.f.every(x=>x==null);
-  let L=items.filter(it=>(!q||it.keys.toLowerCase().includes(q))&&st.f.every((v,i)=>v==null||it.tags[i]==v||(Array.isArray(it.tags[i])&&it.tags[i].includes(v))));
+ const draw=()=>{const q=fold(st.q.trim()),free=!q&&st.f.every(x=>x==null);
+  let L=items.filter(it=>(!q||fold(it.keys).includes(q))&&st.f.every((v,i)=>v==null||it.tags[i]==v||(Array.isArray(it.tags[i])&&it.tags[i].includes(v))));
   if(free&&first==null)L=L.map(x=>[x,Math.sin((items.indexOf(x)+1)*st.seed*999)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
   const show=L.slice(0,st.n),cur=sel();
-  el.querySelector(".pk-grid").innerHTML=(first&&!q?first():"")+(show.length?show.map(it=>`<button class="pk-c${it.id===cur?" on":""}" data-id="${it.id}"><b>${it.t}</b><small>${it.s}</small></button>`).join(""):`<p class="mut">找不到，換個關鍵字試試。</p>`);
+  el.querySelector(".pk-grid").innerHTML=(first&&!q?first():"")+(show.length?show.map(it=>`<button class="pk-c${it.id===cur?" on":""}" data-id="${it.id}">${it.ic?`<span class="pk-ic">${it.ic}</span>`:""}<span class="pk-tx"><b>${it.t}</b><small>${it.s}</small>${it.s2?`<small>${it.s2}</small>`:""}</span></button>`).join(""):`<p class="mut">找不到，換個關鍵字試試。</p>`);
   el.querySelector(".pk-more").innerHTML=(L.length>st.n?`<button class="pk-m">顯示更多（還有 ${L.length-st.n} 個）</button> `:"")+(free&&first==null?`<button class="pk-r">🎲 換一批</button>`:"")+`<span class="mut" style="font-size:13px"> 共 ${L.length} 個</span>`;
   el.querySelectorAll(".pk-c").forEach(b=>b.onclick=()=>{onPick(b.dataset.id);draw()});
   el.querySelector(".pk-m")?.addEventListener("click",()=>{st.n+=12;draw()});el.querySelector(".pk-r")?.addEventListener("click",()=>{st.seed=R();draw()})};
@@ -76,8 +82,8 @@ const STAR_LIST=ALL_STARS.filter(x=>COUNTRIES.some(c=>c[0]==x[1])).sort((a,b)=>(
 const ERA=y=>y<1950?"e1":y<1970?"e2":y<1980?"e3":y<1990?"e4":"e5";
 picker($("starPk"),{ph:"🔍 搜尋球星：Messi、梅西、阿根廷、門將…",sel:()=>cfg.star==null?null:String(cfg.star),
  rows:[[["1950 前出生","e1"],["50–60 年代","e2"],["70 年代","e3"],["80 年代","e4"],["90 年代後","e5"]],REGION_NM.map(r=>[r[1],r[0]])],
- items:STAR_LIST.map((x,i)=>{const y=STAR_BORN[x[0]]||1998,en=STAR_EN[x[0]]||x[0];return {id:String(i),t:en,s:`${x[0]} · ${x[1]} · ${POS[x[2]]} · ${y} · 天賦 ${x[4]}`,keys:`${en} ${x[0]} ${x[1]} ${POS[x[2]]} ${y}`,tags:[ERA(y),regOf(x[1])]}}),
- onPick:id=>{cfg.star=+id;const x=STAR_LIST[cfg.star];$("starPick").textContent=`已選：${STAR_EN[x[0]]||x[0]}（${x[1]}，${STAR_BORN[x[0]]} 年生）`}});
+ items:STAR_LIST.map((x,i)=>{const y=STAR_BORN[x[0]]||1998,en=STAR_EN[x[0]]||x[0];return {id:String(i),ic:flag(x[1]),t:en,s:`${x[0]} · ${x[1]}`,s2:`${POS_ICON[x[2]]} ${POS[x[2]]} · ${y} · ★${x[4]}`,keys:`${en} ${x[0]} ${x[1]} ${POS[x[2]]} ${y}`,tags:[ERA(y),regOf(x[1])]}}),
+ onPick:id=>{cfg.star=+id;const x=STAR_LIST[cfg.star];$("starPick").textContent=`已選：${flag(x[1])} ${STAR_EN[x[0]]||x[0]}（${x[1]}，${STAR_BORN[x[0]]} 年生）`}});
 document.querySelectorAll(".pm").forEach(b=>b.onclick=()=>{document.querySelectorAll(".pm").forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg.star=null;$("starPick").textContent="還沒選球星";$("starBox").classList.toggle("hide",!b.dataset.v);document.querySelectorAll(".orig").forEach(x=>x.classList.toggle("hide",!!b.dataset.v))});
 $("go").onclick=async()=>{if(!$("starBox").classList.contains("hide")&&cfg.star==null){toast("先選一位球星");$("starPk").scrollIntoView({block:"center"});return}const sx=cfg.star!=null?STAR_LIST[cfg.star]:null;if(sx)BIRTH_Y=STAR_BORN[sx[0]]||BIRTH_Y;
  const p=sx?newPlayer(sx[1],sx[2]):newPlayer(cfg.w,cfg.pos);p.mode=cfg.mode;
@@ -116,9 +122,9 @@ function hofReview(x){const d=x.d,row=(k,v)=>`<div class="stat"><span>${k}</span
  const close=()=>$("hofPv").remove();$("hofX").onclick=close;$("hofPv").onclick=e=>{if(e.target.id=="hofPv")close()}}
 try{const h=JSON.parse(localStorage.getItem("fb-hof")||"[]");$("hof").querySelectorAll(".hcard").forEach(c=>c.onclick=()=>hofReview(h[+c.dataset.i]))}catch{}
 const ctryDraw=picker($("ctryPk"),{ph:"🔍 搜尋國家：日本、巴西…",sel:()=>cfg.w,rows:[REGION_NM.map(r=>[r[1],r[0]])],
- first:()=>`<button class="pk-c${cfg.w=="world"?" on":""}" data-id="world"><b>🎲 隨機</b><small>依足球人口抽選</small></button>`,
- items:COUNTRIES.slice().sort((a,b)=>b[2]-a[2]).map(c=>({id:c[0],t:c[0],s:`國家隊強度 ${c[2]}`,keys:c[0],tags:[regOf(c[0])]})),
- onPick:id=>{cfg.w=id;$("ctryPick").textContent=id=="world"?"已選：🎲 足球世界隨機":`已選：${id}`}});
+ first:()=>`<button class="pk-c${cfg.w=="world"?" on":""}" data-id="world"><span class="pk-ic">🎲</span><span class="pk-tx"><b>隨機</b><small>依足球人口抽選</small></span></button>`,
+ items:COUNTRIES.slice().sort((a,b)=>b[2]-a[2]).map(c=>({id:c[0],ic:flag(c[0]),t:c[0],s:`國家隊強度 ${c[2]}`,keys:c[0],tags:[regOf(c[0])]})),
+ onPick:id=>{cfg.w=id;$("ctryPick").textContent=id=="world"?"已選：🎲 足球世界隨機":`已選：${flag(id)} ${id}`}});
 $("oddsTbl").innerHTML=COUNTRIES.map(c=>c[0]).map(c=>{const o=realOdds(c);return `${c}：職業球員 ${oneIn(o.pro)}、五大聯賽 ${oneIn(o.top5)}`}).join("<br>");
 $("achWall").innerHTML=achWall();
 $("gbCtry").innerHTML=`<option value="">其他國家…</option>`+COUNTRIES.map(c=>`<option>${c[0]}</option>`).join("");
