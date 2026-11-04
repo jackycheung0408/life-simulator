@@ -60,17 +60,20 @@ function placeAt(x,y){for(const k in OBJS){const o=OBJS[k];if(o.x!=null&&x==o.x&
 const NEEDS=["hunger","energy","bladder","hygiene","fun"];
 const NEED_INFO={hunger:["🍚","飽足"],energy:["⚡","精力"],bladder:["🚽","膀胱"],hygiene:["🛁","清潔"],fun:["🎉","心情"]};
 // 個性特質（items.tr）與心情（由需求算，規則要和 town.sql 的 town_mood／town_pay 一致）
+const FURN=[["bed","好床",600,"睡覺精力每小時 +26"],["fridge","冰箱",500,"在家吃飯 €5、飽足 +48"],["massage","按摩椅",700,"小睡精力 +40"],["shelf","書櫃",400,"之後技能用，先佔位"],["sofa","沙發",350,"看電視心情 +22"],["tvcab","電視櫃",450,"看電視 10 分鐘一次"],["rug","地毯",150,"裝飾"],["plant","盆栽",120,"裝飾"]];
+const HOUSES=[["小屋",0,4],["公寓",1500,6],["獨棟",5000,8],["豪宅",15000,9]];// 名稱、升級價、家具格數
+const hasF=(r,k)=>!!(r.items&&Array.isArray(r.items.fu)&&r.items.fu.includes(k));
 function hasT(r,k){const t=r.items&&r.items.tr;return Array.isArray(t)&&t.includes(k)}
 function moodOf(r){const a=(r.hunger+r.energy+r.bladder+r.hygiene+r.fun)/5,m=Math.min(r.hunger,r.energy,r.bladder,r.hygiene,r.fun);return a<35||r.fun<20?"low":a<55||m<20||r.fun<40?"annoyed":a>=75&&r.fun>=65&&m>=40?"happy":"normal"}
 const MOOD={happy:["😊","開心","薪水 +10%、好感 ×1.2、打架 +5"],normal:["🙂","普通","沒有加成"],annoyed:["😤","煩躁","薪水 −5%、好感 ×0.8、打架 −3"],low:["🥺","低落","薪水 −10%、好感 ×0.7、打架 −8"]};
 const MOOD_WAGE={happy:110,normal:100,annoyed:95,low:90};
 const payOf=(base,r)=>Math.floor((base*MOOD_WAGE[moodOf(r)]*(hasT(r,"workaholic")?110:100)*2+10000)/20000);
 function tickLocal(r,now){const h=Math.min(72,Math.max(0,(now-Date.parse(r.updated_at))/36e5)),o={...r},hm=hasT(r,"clean")?.7:1;
- if(o.sleeping){o.energy+=20*h;o.hunger-=2.5*h;o.bladder-=3.5*h;o.hygiene-=1.2*h*hm;o.fun-=.8*h}else{o.hunger-=4*h;o.energy-=2.5*h;o.bladder-=5*h;o.hygiene-=2.5*h*hm;o.fun-=2*h;if(o.hunger<20||o.bladder<20||o.hygiene<20)o.fun-=1.5*h;
+ if(o.sleeping){o.energy+=(20+(hasF(r,"bed")?6:0))*h;o.hunger-=2.5*h;o.bladder-=3.5*h;o.hygiene-=1.2*h*hm;o.fun-=.8*h}else{o.hunger-=4*h;o.energy-=2.5*h;o.bladder-=5*h;o.hygiene-=2.5*h*hm;o.fun-=2*h;if(o.hunger<20||o.bladder<20||o.hygiene<20)o.fun-=1.5*h;
   if(hasT(r,"nightowl")){const t0=now-h*36e5;for(let t=t0;t<now;){const st=Math.min(.25,(now-t)/36e5),hr=(Math.floor(t/36e5)+8)%24;if(hr>=22||hr<6)o.energy+=st;t+=st*36e5}}}
  NEEDS.forEach(k=>o[k]=clamp(o[k],0,100));return o}
 
-if(typeof module!=="undefined")module.exports={setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,blocked,bfs,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf};
+if(typeof module!=="undefined")module.exports={setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,blocked,bfs,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES};
 if(typeof document!=="undefined")addEventListener("DOMContentLoaded",init);
 
 function init(){
@@ -152,7 +155,7 @@ function apply(st){S=st;CUR=(st.town&&st.town.cur)||"€";try{fxFromEvents(st.ev
  st.residents.forEach(r=>{R[r.id]=r;const w=walkers[r.id];
   if(!w)walkers[r.id]={x:r.x,y:r.y,path:[],tx:r.x,ty:r.y};else if(r.id!=me&&(Math.abs(w.tx-r.x)>.01||Math.abs(w.ty-r.y)>.01)){const p=bfs([Math.round(w.x),Math.round(w.y)],[Math.round(r.x),Math.round(r.y)]);w.path=p?p.slice(1):[[r.x,r.y]]}
   walkers[r.id].tx=r.x;walkers[r.id].ty=r.y});
- setOff(st.town.off);const key=st.town.rows+"|"+(st.town.off||[]).join()+"|"+st.residents.map(r=>r.id+":"+r.slot+":"+r.name+":"+JSON.stringify([(r.items||{}).roof,(r.items||{}).wall,(r.items||{}).d])).join(",");if(key!=mapKey){mapKey=key;maps={}}
+ setOff(st.town.off);const key=st.town.rows+"|"+(st.town.off||[]).join()+"|"+st.residents.map(r=>r.id+":"+r.slot+":"+r.name+":"+JSON.stringify([(r.items||{}).roof,(r.items||{}).wall,(r.items||{}).d,(r.items||{}).hl])).join(",");if(key!=mapKey){mapKey=key;maps={}}
  $("title").textContent="🐷 "+st.town.name;if(me&&!R[me]){toast("你已經搬離這個小鎮");dropMine(TID);setTimeout(()=>go(""),1200)}
  renderFeed();renderPanel();renderNeeds();if(me)renderStrip();pxify($("feed"));pxify($("tab-rank"));pxify($("tab-ppl"))}
 let mapKey="";
@@ -288,12 +291,12 @@ const GROUP={tip:"建議下一步",self:"照顧自己",friend:"在他家",place:
 function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),p=r.place,list=[];let title="",note="";
  if(walkers[me]&&walkers[me].path.length){title="走路中…";note="到了就可以做事"}
  else if(r.sleeping){title=`在${placeName(p)}睡覺 💤`;list.push(btn("起床","",()=>act("wake")))}
- else if(p=="home:"+me){title="你家";list.push(btn("吃飯","飽足 +40 · 精力 +5 · €10",()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),btn("洗澡","清潔回滿 · 精力 +4 · 10 分鐘一次",()=>act("shower")),btn("看電視","心情 +15 · 15 分鐘一次",()=>act("tv")),btn("小睡","精力 +20 · 30 分鐘一次",()=>act("nap")),btn("睡覺","精力每小時 +20",()=>act("sleep")),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal()))}
- else if(p&&p.startsWith("home:")&&R[p.slice(5)]){const id=+p.slice(5),t=tickLocal(R[id],now());title=`${t.name} 家`;
+ else if(p=="home:"+me){title="你家";list.push(btn("吃飯",`飽足 +${hasF(r,"fridge")?48:40} · 精力 +5 · €${hasF(r,"fridge")?5:10}`,()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),btn("洗澡","清潔回滿 · 精力 +4 · 10 分鐘一次",()=>act("shower")),btn("看電視",`心情 +${hasF(r,"sofa")?22:15} · ${hasF(r,"tvcab")?10:15} 分鐘一次`,()=>act("tv")),btn("小睡",`精力 +${hasF(r,"massage")?40:20} · 30 分鐘一次`,()=>act("nap")),btn("睡覺",`精力每小時 +${hasF(r,"bed")?26:20}`,()=>act("sleep")),btn("室內","擺家具、升級房子",()=>interiorModal(me)),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal()))}
+ else if(p&&p.startsWith("home:")&&R[p.slice(5)]){const id=+p.slice(5),t=tickLocal(R[id],now());title=`${t.name} 家`;const peek=btn("看室內",`${HOUSES[((R[id].items||{}).hl||1)-1][0]} · 看他怎麼布置`,()=>interiorModal(id));
   const gifts=(r.items||{}).gift||0,giftB=gifts?btn("送禮物",`他心情 +20 · 背包 🎁${gifts}`,()=>act("gift",{target:id})):btn("送禮物","先去超市買",()=>toast("背包沒有禮物，去超市買一份"));
-  if(t.place!=p){note=`${t.name} 不在家，在${placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
+  if(t.place!=p){note=`${t.name} 不在家，在${placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,peek,btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
   else{note=`${t.name}${t.sleeping?" 在睡覺":""}：飽足 ${Math.round(t.hunger)}、清潔 ${Math.round(t.hygiene)}、心情 ${Math.round(t.fun)} · ${bondLabel(bondWith(id))}`;list.push(giftB);
-   list.push(btn("煮飯給他","他飽足 +35 · €10",()=>act("feed",{target:id})),btn("幫他洗澡","他清潔 +45",()=>act("wash",{target:id})));
+   list.push(peek,btn("煮飯給他","他飽足 +35 · €10",()=>act("feed",{target:id})),btn("幫他洗澡","他清潔 +45",()=>act("wash",{target:id})));
    if(t.sleeping)list.push(btn("叫醒他","",()=>act("wakeup",{target:id})));
    if(!t.sleeping)list.push(btn("串門子","兩人心情 +15",()=>act("visit",{target:id})));list.push(btn("惡作劇","放個臭屁 💨 · 好感 −3",()=>act("prank",{target:id})),btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})));
    if(!t.sleeping)list.push(...faceActs(id))}}
@@ -499,12 +502,13 @@ function duelModal(id,duel){const t=R[id];let bet=20,mv=null;$("modal").classLis
  $("mbody").querySelectorAll("[data-m]").forEach(b=>b.onclick=async()=>{try{const st=await rpc("town_duel",duel?{rid:me,pin,act:"accept",choice:b.dataset.m,duel:duel.id}:{rid:me,pin,act:"challenge",target:id,bet,choice:b.dataset.m});apply(st);$("modal").classList.add("hide");
   toast(duel?(st.events[0]||{}).msg||"比完了":`戰帖送出，等 ${t.name} 應戰`)}catch(e){toast(e.message)}})}
 // 超市：造型與擺飾
-function shopModal(){const it=R[me].items||{},w=new Set(it.w||[]),d=new Set(it.d||[]);$("modal").classList.remove("hide");
+function shopModal(){const it=R[me].items||{},w=new Set(it.w||[]),d=new Set(it.d||[]),f=new Set(it.f||[]);$("modal").classList.remove("hide");
  const row=(id,name,price,has,kind)=>`<div class="mrow"><span><b>${name}</b> <small class="mut">€${price}</small></span>${has?`<small class="mut">✔ 已擁有</small>`:`<button data-b="${kind}:${id}">買</button>`}</div>`;
  $("mbody").innerHTML=`<h2>🛍️ 造型與擺飾</h2><p class="mut">你有 €${R[me].money}。買了的造型到「👗 換造型」穿；擺飾會自動放在你家門口（最多 4 樣）。</p>
   <h3>造型</h3>${["style","top","acc"].map(k=>WEAR[k].filter(a=>a[2]).map(a=>row(a[0],a[1],a[2],w.has(a[0]),"w")).join("")).join("")}
   <p class="mut">🔒 情侶 T：和人變成好麻吉就能穿。繃帶頭：被扁 10 次就能戴。</p>
-  <h3>門口擺飾</h3>${DECO.map(([id,n,pr])=>row(id,n,pr,d.has(id),"d")).join("")}<div class="row"><button id="mc">關閉</button></div>`;
+  <h3>門口擺飾</h3>${DECO.map(([id,n,pr])=>row(id,n,pr,d.has(id),"d")).join("")}
+  <h3>室內家具</h3><p class="mut">買了到家裡「室內」擺放，每種一件。</p>${FURN.map(([id,n,pr,ds])=>`<div class="mrow"><span><b>${n}</b> <small class="mut">€${pr} · ${ds}</small></span>${f.has(id)?`<small class="mut">✔ 已擁有</small>`:`<button data-b="f:${id}">買</button>`}</div>`).join("")}<div class="row"><button id="mc">關閉</button></div>`;
  $("mc").onclick=()=>$("modal").classList.add("hide");$("mbody").querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{b.disabled=true;await act("buy",{item:b.dataset.b});shopModal()})}
 // 在家裝潢：換屋頂、牆壁顏色（€50）
 function paintModal(){const it=R[me].items||{};$("modal").classList.remove("hide");
@@ -512,6 +516,33 @@ function paintModal(){const it=R[me].items||{};$("modal").classList.remove("hide
  $("mbody").innerHTML=`<h2>🎨 裝潢</h2><p class="mut">換一次 €50，你有 €${R[me].money}。</p><h3>屋頂</h3>${pal("roof",ROOF_C,it.roof||ROOFS[R[me].slot])}<h3>牆壁</h3>${pal("wall",WALL_C,it.wall||"#f4ead6")}
   <h3>門口擺飾</h3><p class="mut">${(it.d||[]).map(x=>(DECO.find(a=>a[0]==x)||[x,x])[1]).join("、")||"還沒有，去超市買"}</p><div class="row"><button id="mc">關閉</button></div>`;
  $("mc").onclick=()=>$("modal").classList.add("hide");$("mbody").querySelectorAll("[data-p]").forEach(b=>b.onclick=async()=>{await act("paint",{item:b.dataset.p});paintModal()})}
+// 家具畫法（像素方塊）：在 s×s 的格子裡畫
+function furnDraw(m,id,x,y,s){const u=s/12,R=(a,b,w,h,c)=>{m.fillStyle=c;m.fillRect(x+a*u,y+b*u,w*u,h*u)};
+ if(id=="bed"){R(1,4,10,6,"#8b5a2b");R(1,3,10,3,"#fff");R(1,5,10,5,"#e0779b");R(1,3,3,3,"#f4f1de")}
+ if(id=="fridge"){R(3,1,6,10,"#dfe6ea");R(3,5,6,1,"#8a9aa5");R(7,2,1,2,"#8a9aa5");R(7,7,1,2,"#8a9aa5")}
+ if(id=="massage"){R(2,3,8,7,"#5a3a2a");R(3,1,6,5,"#7a4a34");R(2,9,8,2,"#3a2212")}
+ if(id=="shelf"){R(2,1,8,10,"#8b5a2b");[2,5,8].forEach(a=>{R(3,a,6,2,"#c0392b");R(5,a,2,2,"#3b7dd8");R(7,a,2,2,"#2e9e5b")});R(2,10,8,1,"#5a3a1a")}
+ if(id=="sofa"){R(1,4,10,4,"#3b7dd8");R(1,7,10,3,"#2f64b0");R(0,5,2,5,"#2f64b0");R(10,5,2,5,"#2f64b0")}
+ if(id=="tvcab"){R(2,6,8,4,"#8b5a2b");R(3,1,6,5,"#222");R(4,2,4,3,"#6fc6ff")}
+ if(id=="rug"){R(1,3,10,7,"#c0392b");R(2,4,8,5,"#f1c40f");R(3,5,6,3,"#c0392b")}
+ if(id=="plant"){R(4,7,4,4,"#b5651d");R(3,3,6,5,"#2e9e5b");R(5,1,2,4,"#4caf50")}}
+// 室內畫面：3×3 格，自己的家可以擺家具、升級；朋友的家只能看
+function interiorModal(id,sel){const o=R[id],mine=id==me,it=o.items||{},hl=it.hl||1,fu=[...Array(9)].map((_,i)=>(it.fu||[])[i]||""),used=fu.filter(Boolean).length,cap=HOUSES[hl-1][2];
+ $("modal").classList.remove("hide");const owned=(it.f||[]).filter(k=>!fu.includes(k)),nx=HOUSES[hl];
+ const cell=i=>`<button class="sw${sel===i?" on":""}" data-c="${i}" style="width:30%;aspect-ratio:1;padding:0;background:${(i%3+Math.floor(i/3))%2?"#d9c9a8":"#e6d8b8"}"><canvas width="72" height="72" data-f="${fu[i]}" style="width:100%;height:100%"></canvas></button>`;
+ $("mbody").innerHTML=`<h2>${esc(o.name)} 的家</h2><p class="mut">${HOUSES[hl-1][0]} · 家具 ${used}/${cap} 格${mine?` · 你有 €${o.money}`:""}</p>
+  <div class="houses" style="gap:4px">${[...Array(9).keys()].map(cell).join("")}</div>
+  ${mine?(sel!=null?(fu[sel]?`<div class="row"><button data-x="${sel}">收回${(FURN.find(a=>a[0]==fu[sel])||[0,fu[sel]])[1]}</button></div>`:`<h3>放進這一格</h3>${owned.length?owned.map(k=>{const a=FURN.find(x=>x[0]==k)||[k,k];return `<div class="mrow"><span><b>${a[1]}</b> <small class="mut">${a[3]||""}</small></span><button data-s="${k}">放</button></div>`}).join(""):'<p class="mut">背包沒有家具，去超市買</p>'}`):'<p class="mut">點一格來擺放或收回家具</p>')
+  +(nx?`<div class="row"><button data-up="1">升級成${nx[0]} €${nx[1]}（家具 ${nx[2]} 格）</button></div>`:'<p class="mut">已經是最高級的豪宅</p>'):""}
+  <div class="row"><button id="mc">關閉</button></div>`;
+ $("mc").onclick=()=>$("modal").classList.add("hide");
+ $("mbody").querySelectorAll("canvas[data-f]").forEach(c=>{const m=c.getContext("2d");m.imageSmoothingEnabled=false;if(c.dataset.f)furnDraw(m,c.dataset.f,0,0,72)});
+ if(!mine)return;
+ $("mbody").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>interiorModal(id,+b.dataset.c));
+ const go=async(a,ex)=>{await act(a,ex);interiorModal(id,sel)};
+ $("mbody").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>go("furn",{item:`set:${sel}:${b.dataset.s}`}));
+ $("mbody").querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>go("furn",{item:`clr:${sel}`}));
+ $("mbody").querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>go("upgrade"))}
 function noteModal(id){const t=R[id];$("modal").classList.remove("hide");const quick=["記得吃飯！🍚","晚安 🌙","今天加油！💪","想你了 🥺","快去洗澡 🛁","下次一起吃飯？"];
  $("mbody").innerHTML=`<h2>📱 傳訊息給 ${esc(t.name)}</h2><div class="houses">${quick.map(q=>`<button class="sw" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div><input id="ntx" maxlength="30" placeholder="或自己寫（最多 30 字）" style="margin-top:10px"><p class="err" id="nerr"></p>
   <div class="row"><button id="mc">取消</button><button class="pri" id="ms">傳送</button></div>`;
@@ -541,6 +572,10 @@ function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas")
  for(let s=0;s<NR*3;s++){const [hx,hy]=homeXY(s),X=hx*T,Y=hy*T,W=5*T,o=bySlot(s);m.fillStyle="rgba(0,0,0,.18)";m.fillRect(X+8,Y+T+10,W,3*T);const it=(o&&o.items)||{};m.fillStyle=o?(it.wall||"#f4ead6"):"#e2ddd2";m.fillRect(X,Y+T,W,3*T-6);
   m.fillStyle=o?(it.roof||ROOFS[s]):"#9a9a9a";m.fillRect(X-8,Y,W+16,T+14);m.fillStyle="rgba(0,0,0,.15)";for(let k=0;k<W+16;k+=12)m.fillRect(X-8+k,Y,6,T+14);m.fillStyle="rgba(255,255,255,.25)";m.fillRect(X-8,Y,W+16,4);
   win(X+20,Y+T+26,!!o);win(X+W-36,Y+T+26,!!o);m.fillStyle="#7a4a24";m.fillRect(X+W/2-11,Y+3*T+4,22,T-10);m.fillStyle="#e0b050";m.fillRect(X+W/2+5,Y+3*T+18,3,3);m.fillStyle="#cbbf9f";m.fillRect(X+W/2-10,Y+4*T,20,T);
+  {const hl=o?(it.hl||1):1;
+   if(hl>=2){m.fillStyle="rgba(0,0,0,.22)";m.fillRect(X-8,Y+T+10,W+16,6);[X+20,X+W-36].forEach(a=>{m.fillStyle="#8b5a2b";m.fillRect(a-2,Y+T+40,20,6);m.fillStyle="#e74c3c";m.fillRect(a,Y+T+36,4,4);m.fillStyle="#f1c40f";m.fillRect(a+8,Y+T+36,4,4)})}
+   if(hl>=3){m.fillStyle="#8d8d8d";m.fillRect(X+W-30,Y-16,16,24);m.fillStyle="#6d6d6d";m.fillRect(X+W-32,Y-20,20,6);m.fillStyle="#f4f1de";for(let k=-6;k<W+8;k+=14){if(k>W/2-26&&k<W/2+26)continue;m.fillRect(X+k,Y+3*T+14,4,18)}m.fillRect(X-6,Y+3*T+20,W/2-26+6,3);m.fillRect(X+W/2+26,Y+3*T+20,W/2-26+6,3)}
+   if(hl>=4){m.fillStyle="#f1c40f";m.fillRect(X-8,Y,W+16,5);m.fillStyle="#e8d9a8";[W/2-30,W/2+22].forEach(a=>{m.fillRect(X+a,Y+T+30,8,2*T-12);m.fillStyle="#cdbb85";m.fillRect(X+a-2,Y+T+26,12,6);m.fillStyle="#e8d9a8"})}}
   sign(o?o.name+" 的家":"空屋",X+W/2,Y+T/2+6,o?null:"rgba(90,90,90,.85)");
   ((it.d)||[]).slice(0,4).forEach((d,i)=>deco(m,d,X+[16,48,144,172][i],Y+4*T+18,night))}
  const bld=(k,wall,roof,deco)=>{if(!isOn(k))return;const [x,y,w,h]=PLACES[k].r,X=x*T,Y=y*T,W=w*T,H=h*T;m.fillStyle="rgba(0,0,0,.18)";m.fillRect(X+8,Y+16,W,H);m.fillStyle=wall;m.fillRect(X,Y+14,W,H-14);m.fillStyle=roof;m.fillRect(X-6,Y,W+12,20);deco(X,Y,W,H)};

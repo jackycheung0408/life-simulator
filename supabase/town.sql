@@ -66,7 +66,8 @@ insert into public.town_shop(id,kind,slot,name,price,unlock) values
  ('twintail','wear','hair','雙馬尾',250,null),('mohawk','wear','hair','刺蝟頭',250,null),
  ('suit','wear','top','西裝',600,null),('jersey','wear','top','球衣',380,null),('dress','wear','top','洋裝',380,null),('couple','wear','top','情侶 T',0,'couple'),
  ('crown','wear','acc','皇冠',800,null),('pigears','wear','acc','小豬耳朵',200,null),('headphones','wear','acc','耳機',300,null),('scarf','wear','acc','圍巾',150,null),('bandage','wear','acc','繃帶頭',0,'bandage'),
- ('flowers','deco',null,'花圃',100,null),('mailbox','deco',null,'信箱',80,null),('lamp','deco',null,'路燈',150,null),('bench','deco',null,'長椅',200,null),('tree','deco',null,'小樹',120,null),('pigstatue','deco',null,'小豬雕像',500,null)
+ ('flowers','deco',null,'花圃',100,null),('mailbox','deco',null,'信箱',80,null),('lamp','deco',null,'路燈',150,null),('bench','deco',null,'長椅',200,null),('tree','deco',null,'小樹',120,null),('pigstatue','deco',null,'小豬雕像',500,null),
+ ('bed','furn',null,'好床',600,null),('fridge','furn',null,'冰箱',500,null),('massage','furn',null,'按摩椅',700,null),('shelf','furn',null,'書櫃',400,null),('sofa','furn',null,'沙發',350,null),('tvcab','furn',null,'電視櫃',450,null),('rug','furn',null,'地毯',150,null),('plant','furn',null,'盆栽',120,null)
 on conflict (id) do update set kind=excluded.kind, slot=excluded.slot, name=excluded.name, price=excluded.price, unlock=excluded.unlock;
 alter table public.town_shop enable row level security;
 revoke all on public.town_shop from anon, authenticated;
@@ -204,6 +205,8 @@ $$;
 --       lucky 幸運兒（路上壞事重擲一次、路邊物件好事機率 ×1.33）、romantic 浪漫（送禮效果加倍）
 -- 心情：五條需求平均 a、最低 m、心情 fun。low：a<35 或 fun<20；annoyed：a<55 或 m<20 或 fun<40；happy：a>=75 且 fun>=65 且 m>=40；其餘 normal
 -- 心情影響：薪水 +10%／0／−5%／−10%；打架與擂台力量 +5／0／−3／−8；好感增加 ×1.2／1／0.8／0.7
+create or replace function public.town_fu(r public.town_residents, k text) returns int language sql stable as $$
+  select case when coalesce(r.items->'fu','[]'::jsonb) ? k then 1 else 0 end $$;
 create or replace function public.town_has(r public.town_residents, k text) returns boolean language sql stable as $$
   select coalesce(jsonb_typeof(r.items->'tr') = 'array' and (r.items->'tr') ? k, false)
 $$;
@@ -291,7 +294,7 @@ begin
     t := t + make_interval(secs => step*3600);
   end loop;
   -- 睡覺也會餓、會想上廁所、會出汗（睡一整晚醒來就是餓、憋、有點臭）；醒著精力掉比較慢，睡飽才會滿
-  r.energy := r.energy + 20*sh - 2.5*ah + case when public.town_has(r,'nightowl') then 1.0*ahn else 0 end; r.hunger := r.hunger - 2.5*sh - 4*ah; r.bladder := r.bladder - 3.5*sh - 5*ah; r.hygiene := r.hygiene - (1.2*sh + 2.5*ah) * case when public.town_has(r,'clean') then .7 else 1 end; r.fun := r.fun - .8*sh - 2*ah;
+  r.energy := r.energy + (20 + 6*public.town_fu(r,'bed'))*sh - 2.5*ah + case when public.town_has(r,'nightowl') then 1.0*ahn else 0 end; r.hunger := r.hunger - 2.5*sh - 4*ah; r.bladder := r.bladder - 3.5*sh - 5*ah; r.hygiene := r.hygiene - (1.2*sh + 2.5*ah) * case when public.town_has(r,'clean') then .7 else 1 end; r.fun := r.fun - .8*sh - 2*ah;
   -- 又餓又髒又憋的時候心情掉更快
   if ah > 0 and (r.hunger < 20 or r.bladder < 20 or r.hygiene < 20) then r.fun := r.fun - 1.5*ah; end if;
   hr := extract(hour from (now() at time zone 'Asia/Taipei'))::int;
@@ -498,7 +501,7 @@ drop function if exists public.town_act(bigint,text,text,bigint,real,real,text);
 create or replace function public.town_act(rid bigint, pin text, act text, target bigint default null, px real default null, py real default null, dest text default null, item text default null, note text default null) returns json
 language plpgsql security definer set search_path = public as $$
 declare r public.town_residents; t public.town_residents; others text; tn text; n int; w int; near boolean; pa real; pb real; bond int; m real; pub text[] := array['plaza','restaurant','market','park','office'];
-  fm real := 1; gm int := 1; mo text; lk boolean;
+  fm real := 1; gm int := 1; mo text; lk boolean; jl int; jf jsonb;
 begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
@@ -535,18 +538,18 @@ begin
     end if;
   elsif act in ('eat','toilet','shower','tv','sleep','nap') then
     if r.place <> 'home:' || rid then raise exception '要先回家'; end if;
-    if act = 'eat' then if r.money < 10 then raise exception '錢不夠買食材，去公司打工吧'; end if; r.hunger := r.hunger + 40*fm; r.energy := r.energy + 5; r.money := r.money - 10;
+    if act = 'eat' then n := 10 - 5*public.town_fu(r,'fridge'); if r.money < n then raise exception '錢不夠買食材，去公司打工吧'; end if; r.hunger := r.hunger + (40 + 8*public.town_fu(r,'fridge'))*fm; r.energy := r.energy + 5; r.money := r.money - n;
     elsif act = 'toilet' then r.bladder := 100;
     elsif act = 'shower' then
       if (r.items->'cd'->>'shower') is not null and (r.items->'cd'->>'shower')::timestamptz > now() - interval '10 minutes' then raise exception '剛洗完澡，等一下再洗'; end if;
       r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('shower', now())); r.hygiene := 100; r.energy := r.energy + 4; r.fun := r.fun + 3;
     elsif act = 'tv' then
-      if (r.items->'cd'->>'tv') is not null and (r.items->'cd'->>'tv')::timestamptz > now() - interval '15 minutes' then raise exception '剛看完電視，休息一下眼睛'; end if;
-      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('tv', now())); r.fun := r.fun + 15; r.energy := r.energy - 3;
+      if (r.items->'cd'->>'tv') is not null and (r.items->'cd'->>'tv')::timestamptz > now() - make_interval(mins => 15 - 5*public.town_fu(r,'tvcab')) then raise exception '剛看完電視，休息一下眼睛'; end if;
+      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('tv', now())); r.fun := r.fun + 15 + 7*public.town_fu(r,'sofa'); r.energy := r.energy - 3;
     elsif act = 'sleep' then r.sleeping := true;
     elsif act = 'nap' then
       if (r.items->'cd'->>'nap') is not null and (r.items->'cd'->>'nap')::timestamptz > now() - interval '30 minutes' then raise exception '剛小睡過，等一下再睡'; end if;
-      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('nap', now())); r.energy := r.energy + 20; end if;
+      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('nap', now())); r.energy := r.energy + 20 + 20*public.town_fu(r,'massage'); end if;
   elsif act = 'wake' then r.sleeping := false;
   elsif act = 'obj' then
     if not public.town_obj_near(item, r.x, r.y, r.place) then raise exception '要走到旁邊才能用'; end if;
@@ -631,15 +634,38 @@ begin
   elsif act = 'snack' then
     if coalesce((r.items->>'snack')::int,0) < 1 then raise exception '背包裡沒有零食，去超市買'; end if;
     r.items := jsonb_set(r.items, '{snack}', to_jsonb((r.items->>'snack')::int - 1)); r.hunger := r.hunger + 20*fm; r.fun := r.fun + 3;
-  elsif act = 'buy' and (item like 'w:%' or item like 'd:%') then
+  elsif act = 'buy' and (item like 'w:%' or item like 'd:%' or item like 'f:%') then
     if r.place <> 'market' then raise exception '要在超市才能買'; end if;
-    select price into n from public.town_shop where id = substr(item,3) and kind = case when item like 'w:%' then 'wear' else 'deco' end and price > 0;
+    select price into n from public.town_shop where id = substr(item,3) and kind = case when item like 'w:%' then 'wear' when item like 'd:%' then 'deco' else 'furn' end and price > 0;
     if n is null then raise exception '超市沒有賣這個'; end if;
     if coalesce(r.items->(left(item,1)),'[]'::jsonb) ? substr(item,3) then raise exception '你已經有了'; end if;
     if item like 'd:%' and jsonb_array_length(coalesce(r.items->'d','[]'::jsonb)) >= 4 then raise exception '門口最多放 4 樣擺飾'; end if;
     if r.money < n then raise exception '錢不夠，去公司打工吧'; end if;
     r.money := r.money - n; r.fun := r.fun + 5;
     r.items := jsonb_set(r.items, array[left(item,1)], coalesce(r.items->(left(item,1)),'[]'::jsonb) || to_jsonb(substr(item,3)));
+  elsif act = 'furn' then
+    -- 室內家具：set:格:代號 放進 3x3 的某一格，clr:格 收回；擺放數量看房子等級（4/6/8/9）
+    if r.place <> 'home:' || rid then raise exception '要先回家'; end if;
+    jl := coalesce((r.items->>'hl')::int,1); jf := coalesce(r.items->'fu','[]'::jsonb);
+    while jsonb_array_length(jf) < 9 loop jf := jf || '""'::jsonb; end loop;
+    if item ~ '^clr:[0-8]$' then jf := jsonb_set(jf, array[substr(item,5)], '""'::jsonb);
+    elsif item ~ '^set:[0-8]:[a-z]+$' then
+      if not (coalesce(r.items->'f','[]'::jsonb) ? split_part(item,':',3)) then raise exception '你還沒有這個家具'; end if;
+      if jf ? split_part(item,':',3) then raise exception '這個家具已經放在家裡了'; end if;
+      if jf->>(split_part(item,':',2)::int) <> '' then raise exception '那一格已經有家具了'; end if;
+      if (select count(*) from jsonb_array_elements_text(jf) e where e <> '') >= (array[4,6,8,9])[jl] then raise exception '房子太小放不下了，升級房子吧'; end if;
+      jf := jsonb_set(jf, array[split_part(item,':',2)], to_jsonb(split_part(item,':',3)));
+    else raise exception '家具指令不對'; end if;
+    r.items := jsonb_set(r.items, '{fu}', jf);
+  elsif act = 'upgrade' then
+    -- 房子升級：1 小屋、2 公寓 €1500、3 獨棟 €5000、4 豪宅 €15000
+    if r.place <> 'home:' || rid then raise exception '要先回家'; end if;
+    jl := coalesce((r.items->>'hl')::int,1);
+    if jl >= 4 then raise exception '已經是豪宅了'; end if;
+    n := (array[0,1500,5000,15000])[jl+1];
+    if r.money < n then raise exception '錢不夠，升級要 €%', n; end if;
+    r.money := r.money - n; r.fun := r.fun + 15; r.items := jsonb_set(r.items, '{hl}', to_jsonb(jl+1));
+    insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', r.name || ' 把家升級成' || (array['小屋','公寓','獨棟','豪宅'])[jl+1] || '了');
   elsif act = 'paint' then
     -- 裝潢：換屋頂或牆壁顏色（€50）
     if r.place <> 'home:' || rid then raise exception '要先回家'; end if;
