@@ -138,7 +138,7 @@ end $$;
 -- 需求隨時間變化（每小時）；醒著掉得快、睡覺時精力回升。累到 0 會原地睡著、膀胱到 0 會尿褲子
 create or replace function public.town_tick(r public.town_residents) returns public.town_residents
 language plpgsql as $$
-declare h real := least(72, greatest(0, extract(epoch from now() - r.updated_at) / 3600)); sh real := 0; ah real := 0; t timestamptz; step real; hr int; d record;
+declare h real := least(72, greatest(0, extract(epoch from now() - r.updated_at) / 3600)); sh real := 0; ah real := 0; t timestamptz; step real; hr int; d record; nightoff boolean := false;
 begin
   if h <= 0 then return r; end if;
   -- 每 15 分鐘一段：睡著的、或台灣時間 0～7 點且已經 30 分鐘沒動作（等於回家睡了）照睡覺算，其他照醒著算
@@ -146,15 +146,16 @@ begin
   while t < now() loop
     step := least(.25, extract(epoch from now() - t) / 3600);
     hr := extract(hour from (t at time zone 'Asia/Taipei'))::int;
-    if r.sleeping or (hr < 7 and t > r.seen_at + interval '30 minutes') then sh := sh + step; else ah := ah + step; end if;
+    if r.sleeping then sh := sh + step; elsif hr < 7 and t > r.seen_at + interval '30 minutes' then sh := sh + step; nightoff := true; else ah := ah + step; end if;
     t := t + make_interval(secs => step*3600);
   end loop;
   r.energy := r.energy + 14*sh - 3*ah; r.hunger := r.hunger - 1.5*sh - 4*ah; r.bladder := r.bladder - 1.5*sh - 5*ah; r.hygiene := r.hygiene - .5*sh - 2.5*ah; r.fun := r.fun - .3*sh - 2*ah;
   hr := extract(hour from (now() at time zone 'Asia/Taipei'))::int;
-  if not r.sleeping and hr < 7 and now() > r.seen_at + interval '30 minutes' then
-    -- 半夜了：自己走回家睡覺
+  -- 半夜沒上線的人回家睡了：人在家裡；現在還是半夜就繼續睡，天亮（8 點後）就在家醒來
+  if nightoff or (not r.sleeping and hr < 7 and now() > r.seen_at + interval '30 minutes') then
     select * into d from public.town_door(r.slot);
-    r.sleeping := true; r.place := 'home:' || r.id; r.x := d.dx; r.y := d.dy;
+    r.place := 'home:' || r.id; r.x := d.dx; r.y := d.dy;
+    r.sleeping := hr < 8;
   elsif r.sleeping and hr between 8 and 11 and now() > r.seen_at + interval '30 minutes' and r.energy >= 80 then
     r.sleeping := false;  -- 早上自然醒
   end if;
