@@ -119,6 +119,28 @@ create or replace function public.town_closed(what text) returns text language s
   from (select extract(hour from (now() at time zone 'Asia/Taipei'))::int h) x
 $$;
 
+-- 鎮長可以關掉的設施（off 裡面的就是沒開）
+alter table public.town_towns add column if not exists off text[] not null default '{}';
+create or replace function public.town_feature(what text) returns text language sql immutable as $$
+  select case when what in ('cafe','coffee') then 'cafe' when what in ('cinema','movie') then 'cinema' when what in ('gym','workout') then 'gym'
+    when what in ('arena','spar') then 'arena' when what in ('slaughter','sneak') then 'slaughter' else null end
+$$;
+create or replace function public.town_features(rid bigint, pin text, off text[]) returns json
+language plpgsql security definer set search_path = public as $$
+declare r public.town_residents;
+begin
+  r := public.town_auth(rid, pin);
+  if r.id is null then return json_build_object('error','密碼不對'); end if;
+  if not r.mayor then raise exception '只有鎮長可以做這件事'; end if;
+  if exists (select 1 from unnest(coalesce(off,'{}')) f where f not in ('cafe','cinema','gym','arena','slaughter','arcade')) then raise exception '沒有這個設施'; end if;
+  update public.town_towns set off = coalesce(town_features.off,'{}') where id = r.town_id;
+  -- 關掉的地方有人在，請他們回到路上
+  update public.town_residents set place = 'street' where town_id = r.town_id and place = any(coalesce(town_features.off,'{}'));
+  return json_build_object('ok',true);
+end $$;
+revoke all on function public.town_features(bigint,text,text[]) from public;
+grant execute on function public.town_features(bigint,text,text[]) to anon, authenticated;
+
 -- 好感度 7 階；跨過一階會上小鎮動態
 create or replace function public.town_tier(v int) returns text language sql immutable as $$
   select case when v >= 60 then '生死之交' when v >= 30 then '好麻吉' when v >= 10 then '好朋友'
@@ -195,7 +217,7 @@ begin
     update public.town_residents set hunger=r.hunger,energy=r.energy,bladder=r.bladder,hygiene=r.hygiene,fun=r.fun,sleeping=r.sleeping,place=r.place,x=r.x,y=r.y,updated_at=r.updated_at where id=r.id;
     acc := acc || public.town_pub(r);
   end loop;
-  return json_build_object('now',now(),'town',json_build_object('id',t.id,'name',t.name,'rows',t.rows),'residents',array_to_json(acc),
+  return json_build_object('now',now(),'town',json_build_object('id',t.id,'name',t.name,'rows',t.rows,'off',t.off),'residents',array_to_json(acc),
     'bonds',(select coalesce(json_agg(json_build_object('a',a,'b',b,'s',score)),'[]') from public.town_bonds where town_id = t.id),
     'duels',(select coalesce(json_agg(json_build_object('id',id,'a',a,'b',b,'bet',bet,'at',created_at)),'[]') from public.town_duels where town_id = t.id and status = 'open' and created_at > now() - interval '24 hours'),
     -- 每週排行（最近 7 天）：最勤勞、最受歡迎、最欠扁、最愛照顧人
@@ -359,6 +381,7 @@ begin
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if r.sleeping and act not in ('wake') then raise exception '你在睡覺，先起床'; end if;
   if public.town_closed(case when act = 'obj' then item else act end) is not null then raise exception '%', public.town_closed(case when act = 'obj' then item else act end); end if;
+  if public.town_feature(case when act = 'move' then dest else act end) = any((select off from public.town_towns where id = r.town_id)) then raise exception '這個小鎮沒有開這個設施'; end if;
   if act = 'move' then
     if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter')
        or (dest ~ '^home:\d+$' and exists (select 1 from public.town_residents where id = substr(dest,6)::bigint and town_id = r.town_id))) then raise exception '去不了那裡'; end if;
@@ -658,6 +681,7 @@ begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if r.sleeping then raise exception '你在睡覺，先起床'; end if;
+  if 'arcade' = any((select off from public.town_towns where id = r.town_id)) then raise exception '這個小鎮沒有開街機'; end if;
   if r.place <> 'plaza' then raise exception '街機在小豬廣場，走過去再玩'; end if;
   -- 開新一局才要檢查押注與次數；21 點和比大小的後續動作不用
   if game in ('rps','hl_start','wheel','bj_start') then
@@ -733,6 +757,7 @@ declare r public.town_residents; t public.town_residents; du public.town_duels; 
 begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
+  if act <> 'decline' and 'arcade' = any((select off from public.town_towns where id = r.town_id)) then raise exception '這個小鎮沒有開街機'; end if;
   -- 過期的戰帖退錢
   for du in select * from public.town_duels where town_id = r.town_id and status = 'open' and created_at < now() - interval '24 hours' loop
     update public.town_residents set money = money + du.bet where id = du.a; update public.town_duels set status = 'expired' where id = du.id;

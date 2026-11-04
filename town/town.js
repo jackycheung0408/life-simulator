@@ -5,7 +5,10 @@ const rpc=(fn,body={})=>fetch(SB+fn,{method:"POST",keepalive:true,headers:{apike
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 // ── 地圖：寬 34 格。市中心固定；住宅一排 3 間（5×4 格，門在正下方），住滿就往下多開一條街，最多 4 排 ──
-const T=32,COLS=52,MAXROWS=4;let NR=2;
+const T=32,COLS=52,MAXROWS=4;let NR=2,OFF=new Set();
+// 鎮長可以關掉的設施
+const FEATS=[["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、比大小、輪盤、21 點、下戰帖"]];
+const setOff=a=>{OFF=new Set(a||[])};const isOn=k=>!OFF.has(k);
 const setRows=n=>{NR=clamp(n||2,2,MAXROWS)};
 const mapRows=()=>NR<=2?23:30+7*(NR-3);
 const STREETS=["小豬大道","豬尾巴街","豬鼻子街","豬蹄巷"];
@@ -31,14 +34,14 @@ const OBJS={vend:{x:19,y:5,name:"自動販賣機",acts:[["投一罐飲料 🥤",
  swing:{place:"park",name:"鞦韆",acts:[["盪鞦韆","心情 +12"]]},cat:{place:"park",name:"流浪貓",acts:[["摸摸貓 🐱","心情 +8 · 可能被抓"],["餵貓吃零食","用一包零食 · 心情 +15","feed"]]}};
 const HOURS={cafe:[7,21,"咖啡廳","7:00～21:00"],cinema:[12,24,"電影院","12:00～24:00"],gym:[6,23,"健身房","6:00～23:00"],arena:[10,24,"格鬥場","10:00～24:00"],office:[9,19,"公司","9:00～19:00"],restaurant:[11,22,"餐廳","11:00～22:00"],market:[8,23,"超市","8:00～23:00"],stall:[16,24,"烤地瓜攤","16:00～24:00"]};
 const tpHour=()=>new Date(Date.now()+8*36e5).getUTCHours();
-const closedMsg=k=>{const h=HOURS[k];if(!h)return null;const x=tpHour();return x>=h[0]&&x<h[1]?null:`${h[2]}休息中，營業時間 ${h[3]}`};
+const closedMsg=k=>{if(!isOn(k))return `這個小鎮沒有${(FEATS.find(f=>f[0]==k)||[,"這個設施"])[1]}`;const h=HOURS[k];if(!h)return null;const x=tpHour();return x>=h[0]&&x<h[1]?null:`${h[2]}休息中，營業時間 ${h[3]}`};
 const objNear=(k,x,y,place)=>{const o=OBJS[k];return o.place?place==o.place:Math.abs(x-o.x)+Math.abs(y-o.y)<=2};
 const inRect=(x,y,[rx,ry,rw,rh])=>x>=rx&&x<rx+rw&&y>=ry&&y<ry+rh;
 const roadRowsAt=y=>y==6||y==7||y==15||y==16||(y>=22&&(y-22)%7<2&&Math.floor((y-22)/7)+2<NR);
 const isRoad=(x,y)=>y<mapRows()&&(roadRowsAt(y)||((x==16||x==17)&&!(y>=8&&y<=14)));
 const slotAt=(x,y)=>{for(let s=0;s<NR*3;s++){const [hx,hy]=homeXY(s);if(inRect(x,y,[hx,hy,5,4]))return s}return -1};
 function blocked(x,y){if(x<0||y<0||x>=COLS||y>=mapRows())return true;if(inRect(x,y,FOUNTAIN))return true;if(slotAt(x,y)>=0)return true;
- for(const k in PLACES)if(PLACES[k].block&&inRect(x,y,PLACES[k].r))return true;return false}
+ for(const k in PLACES)if(PLACES[k].block&&isOn(k)&&inRect(x,y,PLACES[k].r))return true;return false}
 // 最短路徑（上下左右走），找不到就回傳 null
 function bfs(from,to){const key=(x,y)=>y*COLS+x,prev=new Map([[key(...from),null]]),q=[from];
  while(q.length){const [x,y]=q.shift();if(x==to[0]&&y==to[1]){const path=[];let k=key(x,y);while(k!=null){path.unshift([k%COLS,Math.floor(k/COLS)]);k=prev.get(k)}return path}
@@ -46,7 +49,7 @@ function bfs(from,to){const key=(x,y)=>y*COLS+x,prev=new Map([[key(...from),null
  return null}
 // 點到的格子是哪裡：{slot} 房子、{dest} 公共地點或路上
 function placeAt(x,y){for(const k in OBJS){const o=OBJS[k];if(o.x!=null&&x==o.x&&y==o.y)return {dest:"street",door:[x,y+(y==5?1:0)],obj:k}}let s=slotAt(x,y);if(s<0)for(let i=0;i<NR*3;i++){const d=door(i);if(d[0]==x&&d[1]==y)s=i}if(s>=0)return {slot:s};
- for(const k in PLACES)if(inRect(x,y,PLACES[k].r))return {dest:k,door:PLACES[k].door};
+ for(const k in PLACES)if(isOn(k)&&inRect(x,y,PLACES[k].r))return {dest:k,door:PLACES[k].door};
  if(inRect(x,y,FOUNTAIN))return {dest:"plaza",door:PLACES.plaza.door};
  return blocked(x,y)?null:{dest:"street",door:[x,y]}}
 
@@ -57,7 +60,7 @@ function tickLocal(r,now){const h=Math.min(72,Math.max(0,(now-Date.parse(r.updat
  if(o.sleeping){o.energy+=14*h;o.hunger-=1.5*h;o.bladder-=1.5*h;o.hygiene-=.5*h;o.fun-=.3*h}else{o.hunger-=4*h;o.energy-=3*h;o.bladder-=5*h;o.hygiene-=2.5*h;o.fun-=2*h}
  NEEDS.forEach(k=>o[k]=clamp(o[k],0,100));return o}
 
-if(typeof module!=="undefined")module.exports={OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,blocked,bfs,placeAt,slotAt,tickLocal,isRoad};
+if(typeof module!=="undefined")module.exports={setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,blocked,bfs,placeAt,slotAt,tickLocal,isRoad};
 if(typeof document!=="undefined")addEventListener("DOMContentLoaded",init);
 
 function init(){
@@ -112,6 +115,7 @@ function landing(){document.body.classList.remove("ingame");$("title").textConte
    <button class="big" id="cNew"><span class="ai">🏛️</span><span><b>建立新小鎮</b><small>自己當鎮長，邀請朋友搬進來</small></span></button></div>
   <div id="fJoin" class="hide"><h2>加入朋友的小鎮</h2><p class="mut" style="margin:-4px 0 6px">輸入朋友給你的邀請碼。點朋友傳來的邀請連結會自動填好。</p><div class="inline"><input id="code" placeholder="邀請碼，例如 RCDR4V" maxlength="8" autocomplete="off" style="text-transform:uppercase"><button class="pri" id="join">前往</button></div><p class="err" id="jerr"></p></div>
   <div id="fNew" class="hide"><h2>建立新小鎮</h2><label>小鎮名稱<input id="tn" maxlength="16" placeholder="例如：我們的小豬鎮"></label><label>你的名字<input id="mn" maxlength="12" placeholder="鎮上大家怎麼叫你"></label>
+  <h2 style="margin-top:12px">小鎮特色</h2><p class="mut" style="margin:-4px 0 6px">勾選要開的設施，之後在鎮長設定隨時能改</p>${featChecks([])}
   <div id="lk"></div><p class="err" id="cerr"></p><div class="row"><button class="pri" id="create">建立小鎮，當鎮長</button></div></div>
   ${standalone?"":`<p style="margin-top:14px"><button class="ghost" id="inst2">📲 加到手機主畫面，像 App 一樣打開</button></p>`}`;
  const show=k=>{$("fJoin").classList.toggle("hide",k!="j");$("fNew").classList.toggle("hide",k!="n");$("cJoin").classList.toggle("pri",k!="n");$("cNew").classList.toggle("pri",k=="n");(k=="j"?$("code"):$("tn")).focus()};
@@ -123,7 +127,7 @@ function landing(){document.body.classList.remove("ingame");$("title").textConte
  let look=randLook();lookPicker($("lk"),look,l=>look=l);
  $("create").onclick=async()=>{const tn=$("tn").value.trim(),mn=$("mn").value.trim(),p=newKey();
   if(!tn){$("cerr").textContent="幫小鎮取個名字";return}if(!mn){$("cerr").textContent="填你的名字";return}
-  $("create").disabled=true;try{const r=await rpc("town_create",{town_name:tn,my_name:mn,pin:p,look});saveMine({tid:r.town_id,name:tn,rid:r.resident_id,pin:p,me:mn,invite:r.invite});go(r.town_id)}
+  $("create").disabled=true;try{const r=await rpc("town_create",{town_name:tn,my_name:mn,pin:p,look});const off=readFeats();if(off.length)try{await rpc("town_features",{rid:r.resident_id,pin:p,off})}catch(e){}saveMine({tid:r.town_id,name:tn,rid:r.resident_id,pin:p,me:mn,invite:r.invite});go(r.town_id)}
   catch(e){$("cerr").textContent=e.message;$("create").disabled=false}}}
 
 // ── 鎮內登入：我住在這裡，或用邀請碼搬進來 ──
@@ -133,7 +137,7 @@ function apply(st){S=st;try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.even
  st.residents.forEach(r=>{R[r.id]=r;const w=walkers[r.id];
   if(!w)walkers[r.id]={x:r.x,y:r.y,path:[],tx:r.x,ty:r.y};else if(r.id!=me&&(Math.abs(w.tx-r.x)>.01||Math.abs(w.ty-r.y)>.01)){const p=bfs([Math.round(w.x),Math.round(w.y)],[Math.round(r.x),Math.round(r.y)]);w.path=p?p.slice(1):[[r.x,r.y]]}
   walkers[r.id].tx=r.x;walkers[r.id].ty=r.y});
- const key=st.town.rows+"|"+st.residents.map(r=>r.id+":"+r.slot+":"+r.name+":"+JSON.stringify([(r.items||{}).roof,(r.items||{}).wall,(r.items||{}).d])).join(",");if(key!=mapKey){mapKey=key;maps={}}
+ setOff(st.town.off);const key=st.town.rows+"|"+(st.town.off||[]).join()+"|"+st.residents.map(r=>r.id+":"+r.slot+":"+r.name+":"+JSON.stringify([(r.items||{}).roof,(r.items||{}).wall,(r.items||{}).d])).join(",");if(key!=mapKey){mapKey=key;maps={}}
  $("title").textContent="🐷 "+st.town.name;if(me&&!R[me]){toast("你已經搬離這個小鎮");dropMine(TID);setTimeout(()=>go(""),1200)}
  renderFeed();renderPanel();renderNeeds();if(me)renderStrip();pxify($("feed"));pxify($("tab-rank"));pxify($("tab-ppl"))}
 let mapKey="";
@@ -204,12 +208,16 @@ function shareModal(inv,fresh){const text=`來「${S.town.name}」當鄰居！�
  $("mbody").innerHTML=`<h2>${fresh?"小鎮建好了！":"邀請朋友"}</h2><p>把這段訊息傳到 WeChat 群組。朋友點連結，邀請碼會自動填好，取個名字就能搬進來：</p><textarea id="shtxt" rows="4" readonly>${esc(text)}</textarea>
   <p class="mut">邀請碼只給想邀請的人。鎮長可以隨時在「🏛️ 鎮長」換一組新的。</p><div class="row"><button id="mc">關閉</button><button class="pri" id="mcp">複製訊息</button></div>`;
  $("mc").onclick=()=>$("modal").classList.add("hide");$("mcp").onclick=async()=>{try{await navigator.clipboard.writeText(text);toast("已複製，貼到 WeChat 吧")}catch(e){$("shtxt").select();toast("請長按文字複製")}}}
+const featChecks=off=>`<div class="list feats">${FEATS.map(([k,n,d])=>`<label class="mrow" style="cursor:pointer"><span><b>${n}</b> <small class="mut">${d}</small></span><input type="checkbox" data-f="${k}" ${off.includes(k)?"":"checked"} style="width:22px;height:22px"></label>`).join("")}</div>`;
+const readFeats=()=>[...document.querySelectorAll("[data-f]")].filter(c=>!c.checked).map(c=>c.dataset.f);
 async function mayorPanel(){let inv="";try{inv=(await rpc("town_mayor",{rid:me,pin,act:"invite"})).invite}catch(e){toast(e.message);return}
  const draw=()=>{$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>🏛️ 鎮長</h2><p>邀請碼：<b class="code">${esc(inv)}</b></p>
   <div class="row" style="justify-content:flex-start"><button class="pri" id="msh">邀請朋友</button><button id="mni">換一組新邀請碼</button></div>
+  <h2 style="margin-top:16px">小鎮特色</h2>${featChecks([...OFF])}<div class="row" style="justify-content:flex-start"><button class="pri" id="mfs">儲存設施</button></div>
   <h2 style="margin-top:16px">鎮民（${Object.keys(R).length}/12）</h2><div class="list">${Object.values(R).sort((a,b)=>a.slot-b.slot).map(r=>`<div class="mrow"><span><b>${esc(r.name)}</b> <small class="mut">${houseName(r.slot)}${r.mayor?" · 鎮長":""}</small></span>${r.id==me?"":`<button data-k="${r.id}">請他搬走</button>`}</div>`).join("")}</div>
   <div class="row"><button id="mc">關閉</button></div>`;
   $("mc").onclick=()=>$("modal").classList.add("hide");$("msh").onclick=()=>shareModal(inv);
+  $("mfs").onclick=async()=>{try{await rpc("town_features",{rid:me,pin,off:readFeats()});await refresh();toast("設施更新好了");draw()}catch(e){toast(e.message)}};
   $("mni").onclick=async()=>{if(!confirm("換新邀請碼後，舊的就不能用了。確定嗎？"))return;try{inv=(await rpc("town_mayor",{rid:me,pin,act:"newinvite"})).invite;toast("換好了");draw()}catch(e){toast(e.message)}};
   $("mbody").querySelectorAll("[data-k]").forEach(b=>b.onclick=async()=>{const r=R[b.dataset.k];if(!confirm(`確定請 ${r.name} 搬離小鎮？他的資料會被刪除，不能復原。`))return;
    try{await rpc("town_mayor",{rid:me,pin,act:"kick",target:r.id});await refresh();toast(`${r.name} 搬走了`);draw()}catch(e){toast(e.message)}})};draw()}
@@ -253,7 +261,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
    if(!t.sleeping)list.push(...faceActs(id))}}
  else if(p=="restaurant"){title="餐廳";list.push(btn("吃一頓","飽足 +55 · 心情 +10 · €30",()=>act("dine")));note="朋友也在的話，點他可以請吃大餐"}
  else if(p=="office"){title="公司";list.push(btn("打工","+€100 · 2 小時一次 · 累",()=>act("work")));note="有同事在的話，點他可以一起加班，薪水加倍"}
- else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")));if(p=="plaza")list.push(btn("小豬街機 🕹️","猜拳、比大小、命運輪盤、21 點",()=>gamesModal()))}
+ else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")));if(p=="plaza"&&isOn("arcade"))list.push(btn("小豬街機 🕹️","猜拳、比大小、命運輪盤、21 點",()=>gamesModal()))}
  else if(p=="cafe"){title="咖啡廳";list.push(btn("喝咖啡 ☕","€15 · 精力 +25 · 膀胱 −10 · 1 小時一次",()=>act("coffee")))}
  else if(p=="cinema"){title="電影院";list.push(btn("看電影 🎬","€25 · 心情 +35 · 2 小時一次",()=>act("movie")))}
  else if(p=="gym"){title="健身房";list.push(btn("健身 🏋️",`精力 −15 · 心情 +10 · 打架更強（${Math.min(10,(r.items||{}).fit||0)}/10）`,()=>act("workout")))}
@@ -364,7 +372,7 @@ function nextStep(r,p){if(r.sleeping||(walkers[me]&&walkers[me].path.length))ret
   if(k=="energy")return atHome?btn("小睡一下 😴",sub,()=>act("nap")):p=="cafe"&&!closedMsg("cafe")?btn("喝咖啡 ☕",sub,()=>act("coffee")):!closedMsg("cafe")?btn("去咖啡廳 ☕",sub+" · 喝咖啡回精力",()=>walkTo("cafe",PLACES.cafe.door)):btn("回家睡覺 😴",sub,()=>goHouse(r.slot));
   return p=="park"||p=="plaza"?btn("玩一下 🎈",sub,()=>act("play")):btn("去公園走走 🎈",sub,()=>walkTo("park",PLACES.park.door))}
  if(r.money<30)return p=="office"?btn("打工 💼",`只剩 €${r.money}，賺點錢`,()=>act("work")):btn("去公司打工 💼",`只剩 €${r.money}`,()=>walkTo("office",PLACES.office.door));
- const du=((S&&S.duels)||[]).find(d=>d.b==me&&R[d.a]);if(du)return btn(`應戰 ${R[du.a].name} 的戰帖 ✊`,`猜拳賭 €${du.bet}`,()=>duelModal(du.a,du));
+ const du=((S&&S.duels)||[]).find(d=>d.b==me&&R[d.a]);if(du&&isOn("arcade"))return btn(`應戰 ${R[du.a].name} 的戰帖 ✊`,`猜拳賭 €${du.bet}`,()=>duelModal(du.a,du));
  const th=thankable()[0];if(th&&R[th.actor])return btn(`謝謝 ${R[th.actor].name} 💗`,"他剛照顧過你",()=>act("thank",{target:th.actor}));
  if(Object.keys(R).length<2&&R[me].mayor)return btn("邀請朋友搬進來 ✉️","小鎮只有你一個人",()=>$("invite").click());
  return null}
@@ -374,7 +382,7 @@ function onlineActs0(id){const t=R[id],gifts=((R[me].items||{}).gift)||0;return 
   btn(`📱 傳訊息給 ${t.name}`,"在哪都能傳 · 好感 +1",()=>noteModal(id)),
   btn(`📞 打電話給 ${t.name}`,t.sleeping?"他在睡覺，會被你吵醒 · 好感 −1":"兩人心情 +5 · 好感 +1",()=>act("call",{target:id})),
   btn(`🛵 幫 ${t.name} 叫外送`,"€25 · 他飽足 +30 · 好感 +3",()=>act("delivery",{target:id})),
-  btn(`✊ 向 ${t.name} 下戰帖`,"猜拳賭錢，他回來應戰",()=>duelModal(id)),
+  ...(isOn("arcade")?[btn(`✊ 向 ${t.name} 下戰帖`,"猜拳賭錢，他回來應戰",()=>duelModal(id))]:[]),
   btn(`📦 寄禮物給 ${t.name}`,gifts?`€5 運費 · 他心情 +20 · 背包 🎁${gifts}`:"先去超市買禮物",()=>gifts?act("gift",{target:id}):toast("背包沒有禮物，去超市買一份"))]}
 // ── 街機小遊戲（在廣場玩，和莊家比，結果由伺服器決定）──
 const RPS={r:["✊","石頭"],p:["✋","布"],s:["✌️","剪刀"]},CARD=n=>({1:"A",11:"J",12:"Q",13:"K"}[n]||String(n));
@@ -468,7 +476,7 @@ function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas")
   win(X+20,Y+T+26,!!o);win(X+W-36,Y+T+26,!!o);m.fillStyle="#7a4a24";m.fillRect(X+W/2-11,Y+3*T+4,22,T-10);m.fillStyle="#e0b050";m.fillRect(X+W/2+5,Y+3*T+18,3,3);m.fillStyle="#cbbf9f";m.fillRect(X+W/2-10,Y+4*T,20,T);
   sign(o?o.name+" 的家":"空屋",X+W/2,Y+T/2+6,o?null:"rgba(90,90,90,.85)");
   ((it.d)||[]).slice(0,4).forEach((d,i)=>deco(m,d,X+[16,48,144,172][i],Y+4*T+18,night))}
- const bld=(k,wall,roof,deco)=>{const [x,y,w,h]=PLACES[k].r,X=x*T,Y=y*T,W=w*T,H=h*T;m.fillStyle="rgba(0,0,0,.18)";m.fillRect(X+8,Y+16,W,H);m.fillStyle=wall;m.fillRect(X,Y+14,W,H-14);m.fillStyle=roof;m.fillRect(X-6,Y,W+12,20);deco(X,Y,W,H)};
+ const bld=(k,wall,roof,deco)=>{if(!isOn(k))return;const [x,y,w,h]=PLACES[k].r,X=x*T,Y=y*T,W=w*T,H=h*T;m.fillStyle="rgba(0,0,0,.18)";m.fillRect(X+8,Y+16,W,H);m.fillStyle=wall;m.fillRect(X,Y+14,W,H-14);m.fillStyle=roof;m.fillRect(X-6,Y,W+12,20);deco(X,Y,W,H)};
  bld("office","#b8c4cf","#5f6b78",(X,Y,W,H)=>{for(let a=0;a<5;a++)for(let b=0;b<3;b++)win(X+16+a*40,Y+36+b*40);m.fillStyle="#555";m.fillRect(X+W/2-14,Y+H-36,28,36)});
  bld("restaurant","#fff3e0","#c0392b",(X,Y,W,H)=>{for(let k=0;k<W;k+=24){m.fillStyle=(k/24)%2?"#fff":"#e74c3c";m.fillRect(X+k,Y+20,24,16)}win(X+20,Y+60);win(X+W-36,Y+60);m.fillStyle="#7a4a24";m.fillRect(X+W/2-12,Y+H-44,24,44)});
  bld("market","#eef7ea","#2e8b57",(X,Y,W,H)=>{m.fillStyle=night?"#ffe9a8":"#cfeefc";m.fillRect(X+14,Y+44,W-28,46);m.fillStyle="#2e8b57";for(let k=X+14;k<X+W-14;k+=28)m.fillRect(k,Y+44,3,46);m.fillStyle="#7a4a24";m.fillRect(X+W/2-14,Y+H-44,28,44)});
@@ -486,7 +494,7 @@ function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas")
   X=o.trash.x*T;Y=o.trash.y*T;R0(X+8,Y+4,16,22,"#2e7d32");R0(X+6,Y,20,5,"#1b5e20");
   X=o.stall.x*T;Y=o.stall.y*T;R0(X+2,Y+8,28,16,"#8b5a2b");R0(X,Y-10,32,8,"#e74c3c");R0(X+14,Y-2,4,10,"#5a3a1a");R0(X+6,Y+4,6,4,"#c0602b");R0(X+16,Y+4,6,4,"#c0602b");
   X=29*T;Y=21*T;R0(X,Y-24,4,30,"#6b4423");R0(X+28,Y-24,4,30,"#6b4423");R0(X,Y-26,32,4,"#6b4423");R0(X+10,Y-22,2,18,"#888");R0(X+20,Y-22,2,18,"#888");R0(X+8,Y-4,16,4,"#d8901a")}
- sign("公司",29.5*T,10);sign("餐廳",5*T,9*T+10);sign("超市",28*T,9*T+10);sign("公園",29.5*T,17*T+12);sign("小豬廣場",17*T,8*T+14);sign("咖啡廳",38*T,10);sign("電影院",39*T,9*T+10);sign("健身房",38*T,17*T+10);
+ sign("公司",29.5*T,10);sign("餐廳",5*T,9*T+10);sign("超市",28*T,9*T+10);sign("公園",29.5*T,17*T+12);sign("小豬廣場",17*T,8*T+14);if(isOn("cafe"))sign("咖啡廳",38*T,10);if(isOn("cinema"))sign("電影院",39*T,9*T+10);if(isOn("gym"))sign("健身房",38*T,17*T+10);if(isOn("arena"))sign("格鬥場",48.5*T,10);if(isOn("slaughter"))sign("屠宰場",48.5*T,9*T+10);
  if(night){m.fillStyle="rgba(18,28,78,.45)";m.fillRect(0,0,c.width,c.height)}
  return c}
 // 畫一個角色：(x,y) 是身體中心，u 是一格像素的大小
