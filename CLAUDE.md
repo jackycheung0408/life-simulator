@@ -70,3 +70,10 @@
 
 ## 省 token 建議
 一個大功能一個對話；先讀這份檔再動手；改字／調數值可用較小的模型；少截圖，優先用 `node town/test.js` 與 SQL 實測。
+
+## 職業升遷與人生願望
+資料全存在 `town_residents.items`（缺值用預設，絕不重置）：`works` 累計打工次數、`wish`（`{k,m}`；k = rich/pop/fight/food/work，`none` = 跳過；m = 已達成里程碑數）、`titles` 稱號陣列、`meals` 吃飯／大餐次數。
+- 職稱門檻（累計打工）與薪水：實習生 0／€100、員工 10／€130、組長 30／€170、經理 70／€220、主管 150／€300。`town_act` 的 `work` 依職稱發薪、升職寫 `promo` 動態；`cowork` 兩人各拿自己薪水的 2 倍（不計入 works）。前端 `JOBS` 要和 `town_job_lv`／`town_wage` 一致。
+- 願望門檻、稱號、獎金（200／500／1000）在 SQL `town_wish_ms／town_wish_titles／town_wish_check`，前端 `WISHES`。`town_act` 結尾自動檢查里程碑（發獎金、給稱號、寫 `wish` 動態）；選願望用 `town_wish`（跳過 = k 'skip'；三關達成後可換新願望）。第一次上線沒有 `wish` 就彈出選單。
+- 舊角色：`town_migrations` 表記 `career1`，只補一次——`works` 取 `town_events` 裡 kind='work' 的筆數，並送「元老居民」稱號。
+- 還沒做：第 6 個願望「社交蝴蝶」（去過所有地點）。

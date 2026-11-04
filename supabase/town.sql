@@ -210,6 +210,48 @@ begin
   end if;
 end $$;
 
+-- ── 職業階梯與人生願望：資料都存在 items（works 累計打工、wish 願望、titles 稱號、meals 吃飯次數）──
+create or replace function public.town_job_lv(n int) returns int language sql immutable as $$
+  select case when n >= 150 then 4 when n >= 70 then 3 when n >= 30 then 2 when n >= 10 then 1 else 0 end
+$$;
+create or replace function public.town_job_name(lv int) returns text language sql immutable as $$
+  select (array['實習生','員工','組長','經理','主管'])[lv + 1]
+$$;
+create or replace function public.town_wage(lv int) returns int language sql immutable as $$
+  select (array[100,130,170,220,300])[lv + 1]
+$$;
+create or replace function public.town_wish_ms(k text) returns int[] language sql immutable as $$
+  select case k when 'rich' then array[1000,3000,10000] when 'pop' then array[5,10,20] when 'fight' then array[3,7,15]
+    when 'food' then array[30,100,300] when 'work' then array[2,3,4] end
+$$;
+create or replace function public.town_wish_titles(k text) returns text[] language sql immutable as $$
+  select case k when 'rich' then array['小富翁','大富翁','小豬首富'] when 'pop' then array['交友廣闊','萬人迷','人氣王']
+    when 'fight' then array['擂台新秀','擂台猛將','格鬥冠軍'] when 'food' then array['老饕','美食家','食神'] when 'work' then array['勤勞蜜蜂','職場達人','打工王'] end
+$$;
+create or replace function public.town_wish_val(r public.town_residents, k text) returns int language plpgsql stable as $$
+begin
+  return case k when 'rich' then r.money
+    when 'pop' then (select count(*) from public.town_bonds b where (b.a = r.id or b.b = r.id) and b.score >= 10)::int
+    when 'fight' then coalesce((r.items->>'best')::int,0)
+    when 'food' then coalesce((r.items->>'meals')::int,0)
+    when 'work' then public.town_job_lv(coalesce((r.items->>'works')::int,0)) else 0 end;
+end $$;
+-- 達成里程碑：發獎金、給稱號、寫公告（一次可以連跳幾個）
+create or replace function public.town_wish_check(r public.town_residents) returns public.town_residents language plpgsql as $$
+declare k text := r.items->'wish'->>'k'; m int := coalesce((r.items->'wish'->>'m')::int,0); ms int[]; ts text[]; bonus int[] := array[200,500,1000];
+begin
+  if k is null or k = 'none' then return r; end if;
+  ms := public.town_wish_ms(k); ts := public.town_wish_titles(k);
+  while m < 3 and public.town_wish_val(r, k) >= ms[m + 1] loop
+    m := m + 1;
+    r.money := r.money + bonus[m];
+    r.items := jsonb_set(r.items, '{titles}', coalesce(r.items->'titles','[]'::jsonb) || to_jsonb(ts[m]));
+    insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, r.id, 'wish', r.name || ' 達成願望里程碑，獲得稱號「' || ts[m] || '」，獎金 €' || bonus[m]);
+  end loop;
+  r.items := jsonb_set(r.items, '{wish}', jsonb_build_object('k', k, 'm', m));
+  return r;
+end $$;
+
 -- 需求隨時間變化（每小時）；醒著掉得快、睡覺時精力回升。累到 0 會原地睡著、膀胱到 0 會尿褲子
 create or replace function public.town_tick(r public.town_residents) returns public.town_residents
 language plpgsql as $$
@@ -431,7 +473,7 @@ end $$;
 drop function if exists public.town_act(bigint,text,text,bigint,real,real,text);
 create or replace function public.town_act(rid bigint, pin text, act text, target bigint default null, px real default null, py real default null, dest text default null, item text default null, note text default null) returns json
 language plpgsql security definer set search_path = public as $$
-declare r public.town_residents; t public.town_residents; others text; tn text; n int; near boolean; pa real; pb real; bond int; m real; pub text[] := array['plaza','restaurant','market','park','office'];
+declare r public.town_residents; t public.town_residents; others text; tn text; n int; w int; near boolean; pa real; pb real; bond int; m real; pub text[] := array['plaza','restaurant','market','park','office'];
 begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
@@ -586,11 +628,15 @@ begin
   elsif act in ('dine','work','play','browse','coffee','movie','workout') then
     if (act = 'dine' and r.place <> 'restaurant') or (act = 'work' and r.place <> 'office') or (act = 'play' and r.place not in ('park','plaza')) or (act = 'browse' and r.place <> 'market')
        or (act = 'coffee' and r.place <> 'cafe') or (act = 'movie' and r.place <> 'cinema') or (act = 'workout' and r.place <> 'gym') then raise exception '不在那個地方'; end if;
-    if act = 'dine' then if r.money < 30 then raise exception '錢不夠，去公司打工吧'; end if; r.hunger := r.hunger + 55; r.energy := r.energy + 8; r.fun := r.fun + 10; r.money := r.money - 30;
+    if act = 'dine' then if r.money < 30 then raise exception '錢不夠，去公司打工吧'; end if; r.items := jsonb_set(r.items, '{meals}', to_jsonb(coalesce((r.items->>'meals')::int,0) + 1)); r.hunger := r.hunger + 55; r.energy := r.energy + 8; r.fun := r.fun + 10; r.money := r.money - 30;
     elsif act = 'work' then if r.energy < 15 then raise exception '太累了，先回家睡覺'; end if;
       if (r.items->'cd'->>'work') is not null and (r.items->'cd'->>'work')::timestamptz > now() - interval '1 hour' then raise exception '剛下班，1 小時後才能再打工'; end if;
-      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('work', now())); r.money := r.money + 100; r.energy := r.energy - 15; r.fun := r.fun - 10; r.hunger := r.hunger - 8;
-      insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'work', r.name || ' 打工賺了 €100');
+      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('work', now())); n := coalesce((r.items->>'works')::int,0); w := public.town_wage(public.town_job_lv(n));
+      r.items := jsonb_set(r.items, '{works}', to_jsonb(n + 1)); r.money := r.money + w; r.energy := r.energy - 15; r.fun := r.fun - 10; r.hunger := r.hunger - 8;
+      insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'work', r.name || ' 打工賺了 €' || w);
+      if public.town_job_lv(n + 1) > public.town_job_lv(n) then
+        insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'promo', r.name || ' 升職了！成為「' || public.town_job_name(public.town_job_lv(n + 1)) || '」，每次打工 €' || public.town_wage(public.town_job_lv(n + 1)));
+      end if;
     elsif act = 'play' then r.fun := r.fun + 20; r.energy := r.energy - 5;
     elsif act in ('coffee','movie','workout') then
       if (r.items->'cd'->>act) is not null and (r.items->'cd'->>act)::timestamptz > now() - (case act when 'coffee' then interval '30 minutes' else interval '1 hour' end) then raise exception '剛剛才去過，晚點再來'; end if;
@@ -653,12 +699,12 @@ begin
       if act = 'cowork' then
         if r.place <> 'office' then raise exception '要一起在公司才能加班'; end if;
         if r.energy < 15 or t.energy < 15 then raise exception '有人太累了，加不了班'; end if;
-        r.money := r.money + 200; t.money := t.money + 200; r.energy := r.energy - 15; t.energy := t.energy - 15; perform public.town_bond(r.town_id, rid, t.id, 3);
-        insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 和 ' || tn || ' 一起加班，薪水加倍 💼 各賺 €200');
+        r.money := r.money + 2 * public.town_wage(public.town_job_lv(coalesce((r.items->>'works')::int,0))); t.money := t.money + 2 * public.town_wage(public.town_job_lv(coalesce((t.items->>'works')::int,0))); r.energy := r.energy - 15; t.energy := t.energy - 15; perform public.town_bond(r.town_id, rid, t.id, 3);
+        insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 和 ' || tn || ' 一起加班，薪水加倍 💼');
       else
         if r.place <> 'restaurant' then raise exception '要一起在餐廳才能請吃大餐'; end if;
         if r.money < 60 then raise exception '錢不夠，大餐要 €60'; end if;
-        r.money := r.money - 60; r.hunger := r.hunger + 70; t.hunger := t.hunger + 70; r.fun := r.fun + 15; t.fun := t.fun + 15; perform public.town_bond(r.town_id, rid, t.id, 4);
+        r.money := r.money - 60; r.items := jsonb_set(r.items, '{meals}', to_jsonb(coalesce((r.items->>'meals')::int,0) + 1)); r.hunger := r.hunger + 70; t.hunger := t.hunger + 70; r.fun := r.fun + 15; t.fun := t.fun + 15; perform public.town_bond(r.town_id, rid, t.id, 4);
         insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 請 ' || tn || ' 吃大餐 🍖');
       end if;
     elsif act = 'greet' then
@@ -722,6 +768,7 @@ begin
     update public.town_residents set money=greatest(0,t.money),hunger=least(100,t.hunger),energy=greatest(0,t.energy),bladder=t.bladder,hygiene=least(100,greatest(0,t.hygiene)),fun=least(100,greatest(0,t.fun)),sleeping=t.sleeping,bruised_until=t.bruised_until,updated_at=t.updated_at where id=t.id;
   else raise exception '不知道要做什麼';
   end if;
+  r := public.town_wish_check(r);
   update public.town_residents set x=r.x,y=r.y,place=r.place,sleeping=r.sleeping,items=r.items,bruised_until=r.bruised_until,
     hunger=least(100,greatest(0,r.hunger)),energy=least(100,greatest(0,r.energy)),bladder=least(100,greatest(0,r.bladder)),
     hygiene=least(100,greatest(0,r.hygiene)),fun=least(100,greatest(0,r.fun)),money=greatest(0,r.money),updated_at=now(),seen_at=now() where id=rid;
@@ -730,6 +777,39 @@ end $$;
 
 revoke all on function public.town_tick(public.town_residents), public.town_pub(public.town_residents), public.town_auth(bigint,text), public.town_bond(text,bigint,bigint,int), public.town_tier(int), public.town_bond_get(bigint,bigint),
   public.town_code(int), public.town_door(int), public.town_street(int), public.town_place_name(text), public.town_name_ok(text) from public, anon, authenticated;
+-- 選願望（只能選一次；跳過也算選了；三個里程碑都達成後可以換新願望）
+create or replace function public.town_wish(rid bigint, pin text, k text) returns json
+language plpgsql security definer set search_path = public as $$
+declare r public.town_residents; cur text; m int;
+begin
+  r := public.town_auth(rid, pin);
+  if r.id is null then return json_build_object('error','密碼不對'); end if;
+  if k not in ('rich','pop','fight','food','work','skip') then raise exception '沒有這個願望'; end if;
+  cur := r.items->'wish'->>'k'; m := coalesce((r.items->'wish'->>'m')::int,0);
+  if cur is not null and cur <> 'none' and m < 3 then raise exception '你已經有願望了，先達成它'; end if;
+  r.items := jsonb_set(r.items, '{wish}', case when k = 'skip' then jsonb_build_object('k','none','m',0) else jsonb_build_object('k',k,'m',0) end);
+  r := public.town_wish_check(r);
+  update public.town_residents set items = r.items, money = least(2147483647, r.money) where id = rid;
+  return public.town_state(r.town_id);
+end $$;
+revoke all on function public.town_wish(bigint,text,text) from public;
+grant execute on function public.town_wish(bigint,text,text) to anon, authenticated;
+revoke all on function public.town_job_lv(int), public.town_job_name(int), public.town_wage(int), public.town_wish_ms(text), public.town_wish_titles(text),
+  public.town_wish_val(public.town_residents,text), public.town_wish_check(public.town_residents) from public, anon, authenticated;
+
+-- 一次性補算：舊居民的累計打工次數（從歷史事件）＋「元老居民」稱號。用 town_migrations 記錄，只做一次，不動錢和數值
+create table if not exists public.town_migrations (id text primary key);
+alter table public.town_migrations enable row level security;
+revoke all on public.town_migrations from anon, authenticated;
+do $mig$ begin
+  if not exists (select 1 from public.town_migrations where id = 'career1') then
+    update public.town_residents r set items = jsonb_set(jsonb_set(r.items, '{works}', to_jsonb((select count(*) from public.town_events e where e.actor = r.id and e.kind = 'work')::int)),
+        '{titles}', coalesce(r.items->'titles','[]'::jsonb) || '["元老居民"]'::jsonb)
+      where not (r.items ? 'works');
+    insert into public.town_migrations(id) values ('career1');
+  end if;
+end $mig$;
+
 revoke all on function public.town_state(text), public.town_create(text,text,text,jsonb), public.town_join(text,text,text,text,jsonb,int),
   public.town_login(bigint,text,jsonb), public.town_mayor(bigint,text,text,bigint), public.town_act(bigint,text,text,bigint,real,real,text,text,text) from public;
 revoke all on function public.town_device(text,text,bigint,text) from public;
