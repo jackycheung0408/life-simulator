@@ -125,6 +125,10 @@ create or replace function public.town_feature(what text) returns text language 
   select case when what in ('cafe','coffee') then 'cafe' when what in ('cinema','movie') then 'cinema' when what in ('gym','workout') then 'gym'
     when what in ('arena','spar') then 'arena' when what in ('slaughter','sneak') then 'slaughter' else null end
 $$;
+create or replace function public.town_is_off(tid text, f text) returns boolean language sql stable as $$
+  select coalesce((select f = any(off) from public.town_towns where id = tid), false)
+$$;
+revoke all on function public.town_is_off(text,text) from public, anon, authenticated;
 create or replace function public.town_features(rid bigint, pin text, off text[]) returns json
 language plpgsql security definer set search_path = public as $$
 declare r public.town_residents;
@@ -381,7 +385,7 @@ begin
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if r.sleeping and act not in ('wake') then raise exception '你在睡覺，先起床'; end if;
   if public.town_closed(case when act = 'obj' then item else act end) is not null then raise exception '%', public.town_closed(case when act = 'obj' then item else act end); end if;
-  if public.town_feature(case when act = 'move' then dest else act end) = any((select off from public.town_towns where id = r.town_id)) then raise exception '這個小鎮沒有開這個設施'; end if;
+  if public.town_is_off(r.town_id, public.town_feature(case when act = 'move' then dest else act end)) then raise exception '這個小鎮沒有開這個設施'; end if;
   if act = 'move' then
     if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter')
        or (dest ~ '^home:\d+$' and exists (select 1 from public.town_residents where id = substr(dest,6)::bigint and town_id = r.town_id))) then raise exception '去不了那裡'; end if;
@@ -681,7 +685,7 @@ begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if r.sleeping then raise exception '你在睡覺，先起床'; end if;
-  if 'arcade' = any((select off from public.town_towns where id = r.town_id)) then raise exception '這個小鎮沒有開街機'; end if;
+  if public.town_is_off(r.town_id, 'arcade') then raise exception '這個小鎮沒有開街機'; end if;
   if r.place <> 'plaza' then raise exception '街機在小豬廣場，走過去再玩'; end if;
   -- 開新一局才要檢查押注與次數；21 點和比大小的後續動作不用
   if game in ('rps','hl_start','wheel','bj_start') then
@@ -757,7 +761,7 @@ declare r public.town_residents; t public.town_residents; du public.town_duels; 
 begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
-  if act <> 'decline' and 'arcade' = any((select off from public.town_towns where id = r.town_id)) then raise exception '這個小鎮沒有開街機'; end if;
+  if act <> 'decline' and public.town_is_off(r.town_id, 'arcade') then raise exception '這個小鎮沒有開街機'; end if;
   -- 過期的戰帖退錢
   for du in select * from public.town_duels where town_id = r.town_id and status = 'open' and created_at < now() - interval '24 hours' loop
     update public.town_residents set money = money + du.bet where id = du.a; update public.town_duels set status = 'expired' where id = du.id;
