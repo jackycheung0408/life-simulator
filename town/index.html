@@ -107,6 +107,36 @@ body.menu-open .drawer{transform:none}
 @media (max-width:520px){#panel{position:sticky;bottom:0;z-index:6;margin:12px -16px 0;border-radius:18px 18px 0 0;max-height:44vh;overflow:auto;box-shadow:0 -8px 24px rgba(0,0,0,.35);padding-top:6px}
  #grip{display:block;width:44px;height:5px;margin:0 auto 8px;padding:0;border:none;border-radius:3px;background:var(--line)}#panel.min #acts,#panel.min #note{display:none}#panel.min{max-height:none}}
 @media (max-width:520px){#needs{grid-template-columns:repeat(6,1fr);gap:4px}.need{padding:4px 2px}.need em{display:none}.need span{font-size:16px}.need.money small{font-size:11px;margin-top:4px}.who{grid-template-columns:repeat(2,1fr)}.lookbox{flex-direction:column;align-items:flex-start}}
+
+/* ── 復古遊戲風（Capcom／超任 RPG）：像素字體、對話框邊框、街機按鈕 ── */
+@font-face{font-family:"Cubic11";src:url("https://cdn.jsdelivr.net/gh/ACh-K/Cubic-11@1.500/fonts/web/Cubic_11.woff2") format("woff2");font-display:swap}
+:root{--ink:#0b0b14;--box:#1b2450;--box2:#26306a;--gold:#ffd23f}
+body{font-family:"Cubic11","PingFang TC","Noto Sans TC",sans-serif;letter-spacing:.5px;-webkit-font-smoothing:none;font-smooth:never}
+img.px{image-rendering:pixelated;width:1.35em;height:1.35em;vertical-align:-.3em;display:inline-block}
+.card,.drawer,#panel,#modal .card,.need{background:var(--box);color:#f4f1de;border:3px solid #fff;border-radius:6px;box-shadow:0 0 0 3px var(--ink),6px 6px 0 3px rgba(0,0,0,.35)}
+.card .mut,.drawer small,.need small,#note,.ev .tm,.day,.grp,.dsec{color:#b9c2e8}
+h1,h2,h3,#here{text-shadow:2px 2px 0 var(--ink);letter-spacing:1px}
+button,#acts .act{font-family:inherit;color:#fff;background:#3a4a8c;border:3px solid var(--ink);border-radius:4px;box-shadow:inset -3px -3px 0 rgba(0,0,0,.3),inset 3px 3px 0 rgba(255,255,255,.22),3px 3px 0 var(--ink);transition:transform .05s}
+button:hover,#acts .act:hover{background:#4a5ca8}
+button:active,#acts .act:active{transform:translate(3px,3px);box-shadow:inset -3px -3px 0 rgba(0,0,0,.3),inset 3px 3px 0 rgba(255,255,255,.22)}
+button.pri,#acts .cta,.tabs button.on,.chips button.on{background:#ff4f7e;color:#fff;border-color:var(--ink)}
+button.pri:hover,#acts .cta:hover{background:#ff6b93}
+#acts .act small{color:#cfd6f5}#acts .cta small{color:#fff}
+#acts .bad{background:#8c2a3a}#acts .bad small{color:#ffc2cc}#acts .poor{opacity:.5;filter:grayscale(.6)}#acts .ghost{background:#26306a;border-style:dashed;box-shadow:none}
+#acts .ai img.px{width:30px;height:30px}#acts .cta .ai img.px{width:34px;height:34px}
+.tabs{background:var(--ink);border:3px solid var(--ink);border-radius:6px;padding:3px}.tabs button{box-shadow:none;background:transparent;border:2px solid transparent}.tabs button.on{border-color:#fff}
+.chips button{border-radius:4px;box-shadow:2px 2px 0 var(--ink);padding:3px 9px}.chips button.on{border-color:#fff}
+input,textarea{font-family:inherit;background:#0f1530;color:#fff;border:3px solid #fff;border-radius:4px;box-shadow:0 0 0 3px var(--ink)}
+.need i{height:8px;border:2px solid var(--ink);border-radius:0;background:#0f1530}.need i b{background-image:repeating-linear-gradient(90deg,transparent 0 6px,rgba(0,0,0,.35) 6px 8px)!important}
+.need span img.px{width:22px;height:22px}
+.ev{border-bottom:2px dashed rgba(255,255,255,.12)}.ev .ic img.px{width:22px;height:22px}.ev.mine{background:rgba(76,217,100,.12)}.ev.bad{background:rgba(255,77,77,.12)}
+.badge{border:2px solid var(--ink);border-radius:3px;background:#ff3b3b}
+.drawer>button{background:transparent;box-shadow:none;border:2px solid transparent;color:#fff}.drawer>button:hover{background:#26306a;border-color:#fff}
+.drawer>button::before{content:"▸ ";color:var(--gold);opacity:0}.drawer>button:hover::before{opacity:1}
+.sw.on{outline:3px solid var(--gold)}.sw.dot{border:2px solid var(--ink)}
+#toast{font-family:inherit;background:var(--box);border:3px solid #fff;box-shadow:0 0 0 3px var(--ink);border-radius:4px}
+.big .ai img.px{width:34px;height:34px}
+body.ingame .need{background:rgba(27,36,80,.88)}
 </style>
 </head>
 <body>
@@ -129,6 +159,6 @@ body.menu-open .drawer{transform:none}
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide"><div class="card" id="mbody"></div></div>
-<script src="town.js?v=20"></script>
+<script src="town.js?v=21"></script>
 </body>
 </html>
