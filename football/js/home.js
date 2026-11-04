@@ -95,7 +95,7 @@ picker($("starPk"),{ph:"🔍 搜尋球星：Messi、梅西、阿根廷、門將�
 document.querySelectorAll(".pm").forEach(b=>b.onclick=()=>{document.querySelectorAll(".pm").forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg.star=null;$("starPick").textContent="還沒選球星";$("starBox").classList.toggle("hide",!b.dataset.v);document.querySelectorAll(".orig").forEach(x=>x.classList.toggle("hide",!!b.dataset.v))});
 $("go").onclick=async()=>{if(!$("starBox").classList.contains("hide")&&cfg.star==null){toast("先選一位球星");$("starPk").scrollIntoView({block:"center"});return}const sx=cfg.star!=null?STAR_LIST[cfg.star]:null;if(sx)BIRTH_Y=STAR_BORN[sx[0]]||BIRTH_Y;
  const p=sx?newPlayer(sx[1],sx[2]):newPlayer(cfg.w,cfg.pos);p.mode=cfg.mode;if(!sx){const nm=$("mkName").value.trim().slice(0,24);if(nm)p.name=nm;p.look={...cfg.look}}
- if(sx){p.name=STAR_EN[sx[0]]||sx[0];p.realStar=sx[0];p.pot=Math.round(sx[3]+R()*(sx[4]-sx[3]));p.talent=p.pot-10;p.card="球星人生";p.dreamPos=sx[2];p.fam.fan=true;p.touchAge=Math.min(p.touchAge,4)}
+ if(sx){p.name=STAR_EN[sx[0]]||sx[0];p.realStar=sx[0];p.pot=Math.round(sx[3]+(sx[4]-sx[3])*(.5+R()*.5));p.talent=p.pot-10;p.card="球星人生";p.dreamPos=sx[2];p.fam.fan=true;p.touchAge=Math.min(p.touchAge,4)}
  else if(cfg.card!==null&&drawn[cfg.card]){const d=drawn[cfg.card];p.pot=d.pot;p.talent=Math.max(30,d.pot-12);p.card=d.r;p.flair=d.flair}p.id=Date.now()+"";starsInit(p,cfg.stars);
  if(sx&&p.stars)p.stars=p.stars.filter(s=>s.real!=sx[0]);P=p;await reveal(p);say(`${p.name}出生在${p.c}。`,1);playHit("start");start(p)};
 // 舊存檔載入時套用新的平衡（只做一次）：能力差距收斂、年薪重算

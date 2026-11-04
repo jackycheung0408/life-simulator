@@ -1,7 +1,11 @@
 // 生涯：每一季、童年、青訓、職業球季、轉會、同世代、伏筆、第二人生
+// ── 球星人生：13～28 歲每年把能力往這位球星的真實成長曲線拉（只往上拉，練得更好不會被壓回去）──
+// 位置最看重的細項接近天賦上限，次要的低一些，用不到的更低；27 歲左右到巔峰
+function starCurve(p){if(!p.realStar||p.age<13||p.age>28||!p.s)return;const w=DPW[dpOf(p)],f=Math.min(1,.62+.03*(p.age-14));
+ SUBS.forEach(k=>{const wt=w[k]||0,top=p.pot+(wt>=8?3:wt>=3?-5:wt>=1?-14:-26),tg=Math.max(25,top)*f;if(p.s[k]<tg)p.s[k]+=(tg-p.s[k])*.5})}
 // ── 一季 ──
 async function season(){
- const p=P;p.age++;
+ const p=P;p.age++;starCurve(p);
  heightYear(p);await starsYear(p);if(p.age>=13)await resolveSeeds(p);if(p.age>=16&&!p.retired&&(p.turns||0)<2&&R()<.04)await turningPoint(p);if(p.club&&!p.retired)await dualChoice(p);await storyYear(p);if(!p.retired)await worldYear(p);
  if(p.age<13){await childhood(p);p.ovrHist[p.age]=ovr(p);if(p.age>=p.touchAge)(p.yhist=p.yhist||[]).push({age:p.age,a:{...p.a},ovr:ovr(p),val:0,wage:0,money:p.money,h:p.h,fat:p.fat||0,club:p.stage});return}
  if(p.age==13&&!p.originDone){p.originDone=1;applyOrigin(p)}
