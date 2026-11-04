@@ -56,13 +56,16 @@ Deno.serve(async (req) => {
     const { data: subs } = await db.from("town_push").select("resident_id");
     const ids = [...new Set((subs ?? []).map((s) => s.resident_id))];
     if (!ids.length) return json({ ok: true, sent: 0 });
-    const { data: rs } = await db.from("town_residents").select("id,town_id,name,sleeping,hunger,energy,bladder,hygiene,updated_at,push_need_at").in("id", ids);
+    const { data: rs } = await db.from("town_residents").select("id,town_id,name,sleeping,hunger,energy,bladder,hygiene,updated_at,seen_at,push_need_at,items").in("id", ids);
     let n = 0;
     for (const r of rs ?? []) {
-      // 和資料庫 town_tick 同一套速率
-      const h = Math.min(72, (Date.now() - Date.parse(r.updated_at)) / 36e5), z = r.sleeping;
-      const hunger = r.hunger - (z ? 1.5 : 4) * h, bladder = r.bladder - (z ? 1.5 : 5) * h, hygiene = r.hygiene - (z ? 0.5 : 2.5) * h, energy = z ? 100 : r.energy - 3 * h;
-      const msg = hunger < 15 ? "肚子餓到快昏倒了 🍚 快回家吃飯" : bladder < 15 ? "快憋不住了 🚽 再不上廁所就要尿褲子了" : energy < 8 ? "累到快睡著了 ⚡ 回家睡一覺吧" : hygiene < 10 ? "身上開始發臭了 🛁 洗個澡吧" : null;
+      // 和資料庫 town_tick 同一套速率：醒著 飽足 8／精力 5／膀胱 10／清潔 5，睡覺 5／7／2.4；最後動作 30 分鐘後 ×0.4 且停在 15
+      const now = Date.now(), h = Math.min(72, (now - Date.parse(r.updated_at)) / 36e5), z = r.sleeping;
+      const hon = Math.max(0, Math.min(h, (Date.parse(r.seen_at ?? r.updated_at) + 18e5 - (now - h * 36e5)) / 36e5)), hof = h - hon;
+      const dec = (v: number, rate: number) => Math.max(v - rate * hon - 0.4 * rate * hof, Math.min(v - rate * hon, 15));
+      const hunger = dec(r.hunger, z ? 5 : 8), bladder = dec(r.bladder, z ? 7 : 10), hygiene = dec(r.hygiene, z ? 2.4 : 5), energy = z ? 100 : dec(r.energy, 5);
+      const faint = !!(r.items && r.items.faint);
+      const msg = faint ? null : hunger < 20 ? "快餓昏了 🍚 再不吃東西就要昏倒了" : bladder < 20 ? "快憋不住了 🚽 再不上廁所就要大在路上了" : energy < 8 ? "累到快睡著了 ⚡ 回家睡一覺吧" : hygiene < 10 ? "身上開始發臭了 🛁 洗個澡吧" : null;
       if (msg && (!r.push_need_at || Date.now() - Date.parse(r.push_need_at) > 6 * 36e5)) {
         n += await send(r.id, `🐷 ${r.name}，`, msg, `${SITE}?t=${r.town_id}`, "need");
         await db.from("town_residents").update({ push_need_at: new Date().toISOString() }).eq("id", r.id);

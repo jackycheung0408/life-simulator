@@ -9,12 +9,21 @@ for(let rows=2;rows<=4;rows++){M.setRows(rows);
 // 和 supabase/town.sql 的 town_door 一樣：x = [2,9,20][s%3]+2；y = 第 0 排 5、第 1 排 21、之後每排 +7（28、35）
 for(let s=0;s<12;s++){const k=Math.floor(s/3),d=M.door(s),y=(k==0?1:k==1?17:24+7*(k-2))+4;check(d[0]==[2,9,20][s%3]+2&&d[1]==y,`房子 ${s} 門口和資料庫不一致`)}
 check(M.door(7)[0]==11&&M.door(7)[1]==28,"房子 7 的門應該在 (11,28)，和資料庫測試結果一致");
-// 需求：醒著 10 小時，飽足 80 → 40；睡覺 5 小時，精力 20 → 90
+// 需求（×2 速率）：醒著 10 小時，飽足 80 → 0；睡覺 8 小時，飽足 80 → 40
 const base={sleeping:false,hunger:80,energy:80,bladder:80,hygiene:80,fun:80,updated_at:new Date(0).toISOString()};
-check(Math.round(M.tickLocal(base,10*36e5).hunger)==40,"醒著 10 小時飽足應該是 40");
-check(Math.round(M.tickLocal({...base,sleeping:true,energy:20},1*36e5).energy)==100,"睡 1 小時精力應該是 100（封頂）");
-check(Math.round(M.tickLocal({...base,sleeping:true},8*36e5).hunger)==60,"睡 8 小時飽足應該掉到 60（睡覺也會餓）");
-check(M.tickLocal(base,200*36e5).hunger==0,"需求不能低於 0");
+const tk=(o,h)=>M.tickLocal({...base,...o},h*36e5);
+check(Math.round(tk({},10).hunger)==0,"醒著 10 小時飽足應該是 0");
+check(Math.round(tk({},5).hunger)==40&&Math.round(tk({},5).energy)==55&&Math.round(tk({},5).bladder)==30&&Math.round(tk({},5).hygiene)==55,"醒著 5 小時：飽足 40、精力 55、膀胱 30、清潔 55");
+check(Math.round(tk({sleeping:true,energy:20},1).energy)==100,"睡 1 小時精力應該是 100（封頂）");
+check(Math.round(tk({sleeping:true},8).hunger)==40&&Math.round(tk({sleeping:true},8).bladder)==24&&Math.abs(tk({sleeping:true},8).hygiene-(80-19.2))<1e-6,"睡 8 小時：飽足 40、膀胱 24、清潔 60.8");
+check(tk({},200).hunger==0,"需求不能低於 0");
+// 離線保護：最後動作 30 分鐘之後 ×0.4、最低停在 15
+{const n=Date.UTC(2026,0,1,12,0,0),u=new Date(n-10*36e5).toISOString(),sa=new Date(n-10*36e5).toISOString();
+ const a=M.tickLocal({...base,updated_at:u,seen_at:sa},n); // 前 0.5 小時上線（飽足 −4），後 9.5 小時離線 ×0.4（−30.4）
+ check(Math.abs(a.hunger-(80-4-30.4))<1e-6,"離線 ×0.4："+a.hunger);
+ const b=M.tickLocal({...base,updated_at:new Date(n-72*36e5).toISOString(),seen_at:new Date(n-72*36e5).toISOString()},n);
+ check(["hunger","bladder","hygiene","fun"].every(k=>b[k]>=15)&&b.energy>=15,"離線很久，需求最低停在 15："+JSON.stringify(b));
+ const c=M.tickLocal({...base,hunger:10,updated_at:u,seen_at:sa},n);check(c.hunger==10||Math.abs(c.hunger-10)<1e-6||c.hunger<10,"本來低於 15 的不會被拉高到 15")}
 // 個性特質與心情（規則要和 town.sql 一致）
 const mk=(o,tr)=>({...base,...o,items:{tr}});
 check(M.moodOf(mk({},[]))=="happy","80 全滿應該開心");
@@ -24,7 +33,7 @@ check(M.moodOf(mk({fun:10},[]))=="low","心情 10 應該低落");
 check(M.moodOf(mk({hunger:20,energy:20,bladder:20,hygiene:20,fun:60},[]))=="low","平均 < 35 應該低落");
 check(M.moodOf(mk({fun:60},[]))=="normal","心情 60、其他 80 應該普通");
 check(M.payOf(100,mk({},[]))==110&&M.payOf(130,mk({fun:30},[]))==124&&M.payOf(100,mk({fun:10},[]))==90&&M.payOf(100,mk({fun:60},["workaholic"]))==110&&M.payOf(100,mk({},["workaholic"]))==121,"薪水算法不對");
-check(Math.abs(M.tickLocal(mk({},["clean"]),10*36e5).hygiene-(80-17.5))<1e-6,"愛乾淨醒著 10 小時清潔應該掉 17.5");
+check(Math.abs(M.tickLocal(mk({},["clean"]),10*36e5).hygiene-(80-35))<1e-6,"愛乾淨醒著 10 小時清潔應該掉 35");
 {const n=Date.UTC(2026,0,1,15,0,0),u=new Date(n-4*36e5).toISOString(); // 台灣 23:00，前 4 小時從 19:00 起，22～23 點 1 小時算夜間
  const e=M.tickLocal({...base,updated_at:u,items:{tr:["nightowl"]}},n).energy,e0=M.tickLocal({...base,updated_at:u},n).energy;check(Math.abs((e-e0)-1)<1e-6,"夜貓子夜間精力每小時少掉 1："+(e-e0))}
 // 家具：好床睡覺精力 +90/小時；家具表和房子等級

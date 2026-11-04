@@ -5,7 +5,7 @@ const rpc=(fn,body={})=>fetch(SB+fn,{method:"POST",keepalive:true,headers:{apike
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 // ── 地圖：寬 34 格。市中心固定；住宅一排 3 間（5×4 格，門在正下方），住滿就往下多開一條街，最多 4 排 ──
-const T=32,COLS=52,MAXROWS=4;let NR=2,OFF=new Set();
+const T=32,COLS=52,MAXROWS=4;let NR=2,OFF=new Set(),POOPS=[];
 // 鎮長可以關掉的設施
 const FEATS=[["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、比大小、輪盤、21 點、下戰帖"]];
 const setOff=a=>{OFF=new Set(a||[])};const isOn=k=>!OFF.has(k);
@@ -51,7 +51,7 @@ function bfs(from,to){const key=(x,y)=>y*COLS+x,prev=new Map([[key(...from),null
   for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy,k=key(nx,ny);if(!blocked(nx,ny)&&!prev.has(k)){prev.set(k,key(x,y));q.push([nx,ny])}}}
  return null}
 // 點到的格子是哪裡：{slot} 房子、{dest} 公共地點或路上
-function placeAt(x,y){for(const k in OBJS){const o=OBJS[k];if(o.x!=null&&x==o.x&&y==o.y)return {dest:"street",door:[x,y+(y==5?1:0)],obj:k}}let s=slotAt(x,y);if(s<0)for(let i=0;i<NR*3;i++){const d=door(i);if(d[0]==x&&d[1]==y)s=i}if(s>=0)return {slot:s};
+function placeAt(x,y){const pp=POOPS.find(q=>q.x==x&&q.y==y);if(pp){const c=[[x,y+1],[x+1,y],[x-1,y],[x,y-1]].find(d=>!blocked(...d));if(c)return {dest:"street",door:c}}for(const k in OBJS){const o=OBJS[k];if(o.x!=null&&x==o.x&&y==o.y)return {dest:"street",door:[x,y+(y==5?1:0)],obj:k}}let s=slotAt(x,y);if(s<0)for(let i=0;i<NR*3;i++){const d=door(i);if(d[0]==x&&d[1]==y)s=i}if(s>=0)return {slot:s};
  for(const k in PLACES)if(isOn(k)&&inRect(x,y,PLACES[k].r))return {dest:k,door:PLACES[k].door};
  if(inRect(x,y,FOUNTAIN))return {dest:"plaza",door:PLACES.plaza.door};
  return blocked(x,y)?null:{dest:"street",door:[x,y]}}
@@ -64,13 +64,18 @@ const FURN=[["bed","好床",600,"睡覺精力每小時 +90"],["fridge","冰箱",
 const HOUSES=[["小屋",0,4],["公寓",1500,6],["獨棟",5000,8],["豪宅",15000,9]];// 名稱、升級價、家具格數
 const hasF=(r,k)=>!!(r.items&&Array.isArray(r.items.fu)&&r.items.fu.includes(k));
 function hasT(r,k){const t=r.items&&r.items.tr;return Array.isArray(t)&&t.includes(k)}
-function moodOf(r){const a=(r.hunger+r.energy+r.bladder+r.hygiene+r.fun)/5,m=Math.min(r.hunger,r.energy,r.bladder,r.hygiene,r.fun);return a<35||r.fun<20?"low":a<55||m<20||r.fun<40?"annoyed":a>=75&&r.fun>=65&&m>=40?"happy":"normal"}
-const MOOD={happy:["😊","開心","薪水 +10%、好感 ×1.2、打架 +5"],normal:["🙂","普通","沒有加成"],annoyed:["😤","煩躁","薪水 −5%、好感 ×0.8、打架 −3"],low:["🥺","低落","薪水 −10%、好感 ×0.7、打架 −8"]};
-const MOOD_WAGE={happy:110,normal:100,annoyed:95,low:90};
+function moodOf(r){if(r.items&&r.items.sad)return"sad";const a=(r.hunger+r.energy+r.bladder+r.hygiene+r.fun)/5,m=Math.min(r.hunger,r.energy,r.bladder,r.hygiene,r.fun);return a<35||r.fun<20?"low":a<55||m<20||r.fun<40?"annoyed":a>=75&&r.fun>=65&&m>=40?"happy":"normal"}
+const MOOD={happy:["😊","開心","薪水 +10%、好感 ×1.2、打架 +5"],normal:["🙂","普通","沒有加成"],annoyed:["😤","煩躁","薪水 −5%、好感 ×0.8、打架 −3"],low:["🥺","低落","薪水 −10%、好感 ×0.7、打架 −8"],sad:["🥺","心情谷底","薪水 −30%、好感 ×0.7、打架 −8，心情回到 20 才恢復"]};
+const MOOD_WAGE={happy:110,normal:100,annoyed:95,low:90,sad:70};
 const payOf=(base,r)=>Math.floor((base*MOOD_WAGE[moodOf(r)]*(hasT(r,"workaholic")?110:100)*2+10000)/20000);
 function tickLocal(r,now){const h=Math.min(72,Math.max(0,(now-Date.parse(r.updated_at))/36e5)),o={...r},hm=hasT(r,"clean")?.7:1;
- if(o.sleeping){o.energy+=(80+(hasF(r,"bed")?10:0))*h;o.hunger-=2.5*h;o.bladder-=3.5*h;o.hygiene-=1.2*h*hm;o.fun-=.8*h}else{o.hunger-=4*h;o.energy-=2.5*h;o.bladder-=5*h;o.hygiene-=2.5*h*hm;o.fun-=2*h;if(o.hunger<20||o.bladder<20||o.hygiene<20)o.fun-=1.5*h;
-  if(hasT(r,"nightowl")){const t0=now-h*36e5;for(let t=t0;t<now;){const st=Math.min(.25,(now-t)/36e5),hr=(Math.floor(t/36e5)+8)%24;if(hr>=22||hr<6)o.energy+=st;t+=st*36e5}}}
+ // 離線保護（和 town_tick 一致）：最後動作 30 分鐘後的時間，消耗 ×0.4、需求最低停在 15
+ const sa=r.seen_at?Date.parse(r.seen_at)+18e5:Infinity,t0=now-h*36e5,hon=Math.max(0,Math.min(h,(sa-t0)/36e5)),hof=h-hon,fl=(v,d)=>Math.max(v-d,Math.min(v,15));
+ const dec=(k,rate)=>{o[k]=fl(o[k]-rate*hon,.4*rate*hof)};
+ if(o.sleeping){o.energy+=(80+(hasF(r,"bed")?10:0))*h;dec("hunger",5);dec("bladder",7);dec("hygiene",2.4*hm);dec("fun",1.6)}
+ else{dec("hunger",8);dec("bladder",10);dec("hygiene",5*hm);
+  let e=o.energy-5*hon;if(hasT(r,"nightowl")){for(let t=t0;t<now;){const st=Math.min(.25,(now-t)/36e5),hr=(Math.floor(t/36e5)+8)%24;if(hr>=22||hr<6)e+=st*(t<sa?1:.4);t+=st*36e5}}o.energy=fl(e,.4*5*hof);
+  const ex=(o.hunger<20||o.bladder<20||o.hygiene<20)?3*hon:0,exf=(o.hunger<20||o.bladder<20||o.hygiene<20)?.4*3*hof:0,v=o.fun-4*hon-ex;o.fun=fl(v,.4*4*hof+exf)}
  NEEDS.forEach(k=>o[k]=clamp(o[k],0,100));return o}
 
 if(typeof module!=="undefined")module.exports={setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,blocked,bfs,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES};
@@ -80,6 +85,7 @@ function init(){
 const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const PXC={};
 const KEEP=[];function preloadIcons(){if(!window.PIXICON)return;Object.keys(window.PIXICON_MAP||{}).forEach(e=>{const i=new Image();i.src=pxIcon(e);KEEP.push(i)})}
+const PIMGS={};function cimgP(e){const u=pxIcon(e);if(!u)return{complete:false};if(!PIMGS[e]){const i=new Image();i.src=u;PIMGS[e]=i}return PIMGS[e]}
 function pxIcon(e){return PXC[e]||(PXC[e]=window.PIXICON?PIXICON(e):"")}
 setTimeout(preloadIcons,0);
 const EMO=/(\p{Extended_Pictographic}(\uFE0F|\u200D\p{Extended_Pictographic})*)/gu;
@@ -151,7 +157,7 @@ function landing(){document.body.classList.remove("ingame");$("title").textConte
 // ── 鎮內登入：我住在這裡，或用邀請碼搬進來 ──
 async function refresh(){const st=await rpc("town_state",{tid:TID});apply(st)}
 const seenLuck=new Set();
-function apply(st){S=st;CUR=(st.town&&st.town.cur)||"€";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>e.kind=="luck"&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
+function apply(st){S=st;POOPS=st.poops||[];CUR=(st.town&&st.town.cur)||"€";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>e.kind=="luck"&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
  st.residents.forEach(r=>{R[r.id]=r;const w=walkers[r.id];
   if(!w)walkers[r.id]={x:r.x,y:r.y,path:[],tx:r.x,ty:r.y};else if(r.id!=me&&(Math.abs(w.tx-r.x)>.01||Math.abs(w.ty-r.y)>.01)){const p=bfs([Math.round(w.x),Math.round(w.y)],[Math.round(r.x),Math.round(r.y)]);w.path=p?p.slice(1):[[r.x,r.y]]}
   walkers[r.id].tx=r.x;walkers[r.id].ty=r.y});
@@ -313,6 +319,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  // 公共場所遇到人：可以擊掌；一起吃飯、玩、加班時在場的人心情都會變好
  if(!r.sleeping&&["plaza","restaurant","market","park","office"].includes(p)&&!(walkers[me]&&walkers[me].path.length)){const here=Object.values(R).filter(o=>o.id!=me&&o.place==p&&!o.sleeping);
   if(here.length&&!(sel&&R[sel]))note=(note?note+" · ":"")+`${here.map(o=>o.name).join("、")} 也在這裡：一起做事大家心情都 +5，點他可以擊掌或扁他`}
+ if(!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const q of POOPS)if(Math.abs(q.x-walkers[me].x)+Math.abs(q.y-walkers[me].y)<=2)list.push(btn("清掉便便 💩","領 €5",()=>act("sweep",{item:String(q.id)}),"place"));
  if(!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const k in OBJS)if(objNear(k,walkers[me].x,walkers[me].y,p))for(const [l,sub,v] of OBJS[k].acts)if(v!="feed"||((r.items||{}).snack))list.push(btn(l,`${OBJS[k].name} · ${sub}`,()=>act("obj",{item:k,note:v||null}),"place"));
  if(!r.sleeping&&(r.items||{}).snack&&!(walkers[me]&&walkers[me].path.length))list.push(btn("吃零食 🍪",`飽足 +20 · 還有 ${(r.items||{}).snack} 包`,()=>act("snack"),"self"));
  if(sel&&R[sel]&&sel!=me){const t=tickLocal(R[sel],now());note=`${t.name}：在${placeName(t.place)}${t.sleeping?"睡覺":""} · 飽足 ${Math.round(t.hunger)} · 清潔 ${Math.round(t.hygiene)} · 心情 ${Math.round(t.fun)} · ${bondLabel(bondWith(t.id))}`;
@@ -675,10 +682,11 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
  g.fillStyle="#bfe6ff";g.fillRect(fx-1,fy-26-((tk%30)/30)*16,3,5);
  // 公園的流浪貓：在公園裡慢慢走來走去
  {const cx=(25.5+4*(1+Math.sin(t/7000)))*T,cy=(18.6+.8*Math.sin(t/3100))*T;g.fillStyle="#555";g.fillRect(cx-8,cy-4,16,8);g.fillRect(cx+6,cy-10,8,8);g.fillRect(cx+6,cy-12,2,3);g.fillRect(cx+12,cy-12,2,3);g.fillRect(cx-12,cy-8+Math.sin(t/300)*2,4,8);g.fillStyle="#ffd23f";g.fillRect(cx+8,cy-8,2,2);g.fillRect(cx+11,cy-8,2,2)}
+ for(const q of POOPS){const im=cimgP("poop");if(im.complete)g.drawImage(im,q.x*T+2,q.y*T+2,T-4,T-4)}
  // 人：依 y 排序，前面的蓋住後面的；在家睡覺的人在屋裡看不到，改在屋頂畫 💤；晚上有人在家的窗戶亮燈
  const list=Object.values(R).map(r=>({id:r.id,w:walkers[r.id],r:tickLocal(r,now())})).filter(o=>!(o.r.sleeping&&o.r.place=="home:"+o.id&&!o.w.path.length)).sort((a,b)=>a.w.y-b.w.y);
  const nowMs=Date.now();for(const o of list){const bb=bubbles[o.id]||(bubbles[o.id]={next:nowMs+2e3+Math.random()*15e3});if(nowMs>bb.next){bb.text=Math.random()<.6?moodLine(o.id,o.r):null;bb.until=nowMs+4500;bb.next=nowMs+18e3+Math.random()*25e3}
-  person((o.w.x+.5)*T,(o.w.y+.5)*T,o.r.look,tk,o.w.moving,nameTag(o.r),o.id==me,{sleeping:o.r.sleeping&&!o.w.path.length,stink:o.r.hygiene<25,dirty:o.r.hygiene<25,hungry:o.r.hunger<20,bruised:o.r.bruised,bubble:!o.r.sleeping&&bb.text&&nowMs<bb.until?bb.text:null})}
+  person((o.w.x+.5)*T,(o.w.y+.5)*T,o.r.look,tk,o.w.moving,nameTag(o.r),o.id==me,{sleeping:o.r.sleeping&&!o.w.path.length,stink:o.r.hygiene<25,dirty:o.r.hygiene<25,hungry:o.r.hunger<20,bruised:o.r.bruised,bubble:o.r.sleeping?null:o.r.bladder<20?"快憋不住 🚽":bb.text&&nowMs<bb.until?bb.text:null})}
  for(const r of Object.values(R)){if(r.place!="home:"+r.id)continue;const [hx,hy]=homeXY(r.slot);if(night){g.fillStyle="rgba(255,215,106,.35)";g.fillRect(hx*T+16,hy*T+T+22,24,22);g.fillRect(hx*T+5*T-40,hy*T+T+22,24,22)}
   if(r.sleeping){g.font="bold 18px sans-serif";g.fillStyle="#fff";g.textAlign="center";{const im=cimg("💤");if(im.complete)g.drawImage(im,hx*T+4.2*T-10,hy*T+T-12+Math.sin(tk/25)*4,20,20)}}}
  // 互動動畫
