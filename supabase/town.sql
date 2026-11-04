@@ -193,6 +193,7 @@ begin
   end loop;
   return json_build_object('now',now(),'town',json_build_object('id',t.id,'name',t.name,'rows',t.rows),'residents',array_to_json(acc),
     'bonds',(select coalesce(json_agg(json_build_object('a',a,'b',b,'s',score)),'[]') from public.town_bonds where town_id = t.id),
+    'duels',(select coalesce(json_agg(json_build_object('id',id,'a',a,'b',b,'bet',bet,'at',created_at)),'[]') from public.town_duels where town_id = t.id and status = 'open' and created_at > now() - interval '24 hours'),
     -- 每週排行（最近 7 天）：最勤勞、最受歡迎、最欠扁、最愛照顧人
     'week',(select json_build_object(
       'work',(select coalesce(json_agg(x),'[]') from (select actor id, count(*) n from public.town_events where town_id = t.id and at > now() - interval '7 days' and kind in ('work','cowork') and actor is not null group by actor order by n desc limit 12) x),
@@ -584,3 +585,141 @@ revoke all on function public.town_obj_near(text,real,real,text) from public, an
 revoke all on function public.town_closed(text) from public, anon, authenticated;
 grant execute on function public.town_state(text), public.town_create(text,text,text,jsonb), public.town_join(text,text,text,text,jsonb,int),
   public.town_login(bigint,text,jsonb), public.town_mayor(bigint,text,text,bigint), public.town_act(bigint,text,text,bigint,real,real,text,text,text) to anon, authenticated;
+
+-- ── 小遊戲：廣場的街機（和莊家玩，結果由伺服器決定），以及朋友之間的猜拳戰帖 ──
+-- 押注 €5～€50，一天最多 30 局；整體期望值略低於 1，不會變成印鈔機
+create or replace function public.town_card() returns int language sql volatile as $$ select 1 + floor(random()*13)::int $$;
+create or replace function public.town_bj_total(cs jsonb) returns int language plpgsql immutable as $$
+declare t int := 0; aces int := 0; c int;
+begin
+  for c in select (x)::int from jsonb_array_elements_text(cs) x loop
+    if c = 1 then aces := aces + 1; t := t + 11; else t := t + least(c, 10); end if;
+  end loop;
+  while t > 21 and aces > 0 loop t := t - 10; aces := aces - 1; end loop;
+  return t;
+end $$;
+
+create or replace function public.town_game(rid bigint, pin text, game text, bet int default 0, choice text default null) returns json
+language plpgsql security definer set search_path = public as $$
+declare r public.town_residents; day text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); n int; res json; win int := 0; house text; c int; c2 int; mult real; st jsonb; p int; d int; dc jsonb;
+begin
+  r := public.town_auth(rid, pin);
+  if r.id is null then return json_build_object('error','密碼不對'); end if;
+  if r.sleeping then raise exception '你在睡覺，先起床'; end if;
+  if r.place <> 'plaza' then raise exception '街機在小豬廣場，走過去再玩'; end if;
+  -- 開新一局才要檢查押注與次數；21 點和比大小的後續動作不用
+  if game in ('rps','hl_start','wheel','bj_start') then
+    if bet is null or bet < 5 or bet > 50 then raise exception '押注要在 €5～€50 之間'; end if;
+    if r.money < bet then raise exception '錢不夠'; end if;
+    n := case when r.items->'games'->>'day' = day then coalesce((r.items->'games'->>'n')::int,0) else 0 end;
+    if n >= 30 then raise exception '今天玩夠多了，明天再來（一天 30 局）'; end if;
+    r.items := jsonb_set(r.items, '{games}', jsonb_build_object('day', day, 'n', n + 1));
+    r.money := r.money - bet;
+  end if;
+  if game = 'rps' then
+    if choice not in ('r','p','s') then raise exception '出剪刀、石頭或布'; end if;
+    house := (array['r','p','s'])[1 + floor(random()*3)::int];
+    if choice = house then win := bet; elsif (choice,house) in (('r','s'),('s','p'),('p','r')) then win := bet*2; end if;
+    res := json_build_object('you',choice,'house',house,'win',win);
+  elsif game = 'hl_start' then
+    c := public.town_card(); r.items := jsonb_set(r.items, '{hl}', jsonb_build_object('bet',bet,'card',c));
+    res := json_build_object('card',c);
+  elsif game = 'hl_guess' then
+    if r.items->'hl' is null then raise exception '先開一局'; end if;
+    c := (r.items->'hl'->>'card')::int; bet := (r.items->'hl'->>'bet')::int; c2 := public.town_card();
+    if (choice = 'hi' and c2 > c) or (choice = 'lo' and c2 < c) then win := floor(bet*1.9); end if;
+    r.items := r.items - 'hl';
+    res := json_build_object('card',c,'next',c2,'win',win);
+  elsif game = 'wheel' then
+    -- 10 格：銘謝惠顧 ×6、×0.5、×1、×2、×5
+    c := floor(random()*10)::int; mult := (array[0,0,0,0,0,0,.5,1,2,5])[c+1]; win := floor(bet*mult);
+    res := json_build_object('slot',c,'mult',mult,'win',win);
+  elsif game = 'bj_start' then
+    st := jsonb_build_object('bet',bet,'p',jsonb_build_array(public.town_card(),public.town_card()),'d',jsonb_build_array(public.town_card()));
+    if public.town_bj_total(st->'p') = 21 then
+      -- 開局就 21 點：莊家補牌比一比
+      dc := st->'d'; while public.town_bj_total(dc) < 17 loop dc := dc || to_jsonb(public.town_card()); end loop;
+      win := case when public.town_bj_total(dc) = 21 and jsonb_array_length(dc) = 2 then bet else floor(bet*2.5) end;
+      res := json_build_object('p',st->'p','d',dc,'done',true,'win',win,'bj',true);
+    else r.items := jsonb_set(r.items, '{bj}', st); res := json_build_object('p',st->'p','d',st->'d','done',false); end if;
+  elsif game in ('bj_hit','bj_stand') then
+    st := r.items->'bj'; if st is null then raise exception '先開一局'; end if; bet := (st->>'bet')::int;
+    if game = 'bj_hit' then
+      st := jsonb_set(st, '{p}', (st->'p') || to_jsonb(public.town_card())); p := public.town_bj_total(st->'p');
+      if p > 21 then r.items := r.items - 'bj'; res := json_build_object('p',st->'p','d',st->'d','done',true,'win',0,'bust',true);
+      else r.items := jsonb_set(r.items, '{bj}', st); res := json_build_object('p',st->'p','d',st->'d','done',false); end if;
+    else
+      dc := st->'d'; while public.town_bj_total(dc) < 17 loop dc := dc || to_jsonb(public.town_card()); end loop;
+      p := public.town_bj_total(st->'p'); d := public.town_bj_total(dc);
+      win := case when d > 21 or p > d then bet*2 when p = d then bet else 0 end;
+      r.items := r.items - 'bj'; res := json_build_object('p',st->'p','d',dc,'done',true,'win',win);
+    end if;
+  else raise exception '沒有這個遊戲'; end if;
+  r.money := r.money + win; r.fun := least(100, r.fun + 3);
+  if win >= 100 then insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', r.name || ' 在街機贏了 €' || win || ' 🕹️'); end if;
+  update public.town_residents set money = r.money, fun = r.fun, items = r.items, seen_at = now() where id = rid;
+  return json_build_object('game', res, 'money', r.money);
+end $$;
+
+-- 猜拳戰帖：發起的人先押錢並出拳，對方應戰時出拳立刻比；24 小時沒回就退錢
+create table if not exists public.town_duels (
+  id bigint generated always as identity primary key,
+  town_id text not null references public.town_towns(id) on delete cascade,
+  a bigint not null references public.town_residents(id) on delete cascade,
+  b bigint not null references public.town_residents(id) on delete cascade,
+  bet int not null, a_move text not null, status text not null default 'open',
+  created_at timestamptz not null default now()
+);
+alter table public.town_duels enable row level security;
+revoke all on public.town_duels from anon, authenticated;
+
+create or replace function public.town_duel(rid bigint, pin text, act text, target bigint default null, bet int default 0, choice text default null, duel bigint default null) returns json
+language plpgsql security definer set search_path = public as $$
+declare r public.town_residents; t public.town_residents; du public.town_duels; nm text := '{"r":"石頭","p":"布","s":"剪刀"}';
+begin
+  r := public.town_auth(rid, pin);
+  if r.id is null then return json_build_object('error','密碼不對'); end if;
+  -- 過期的戰帖退錢
+  for du in select * from public.town_duels where town_id = r.town_id and status = 'open' and created_at < now() - interval '24 hours' loop
+    update public.town_residents set money = money + du.bet where id = du.a; update public.town_duels set status = 'expired' where id = du.id;
+  end loop;
+  if act = 'challenge' then
+    if choice not in ('r','p','s') then raise exception '出剪刀、石頭或布'; end if;
+    if bet is null or bet < 5 or bet > 100 then raise exception '戰帖押注要在 €5～€100 之間'; end if;
+    select * into t from public.town_residents where id = target and town_id = r.town_id;
+    if not found or t.id = rid then raise exception '要選一位鄰居'; end if;
+    if r.money < bet then raise exception '錢不夠'; end if;
+    if exists (select 1 from public.town_duels where a = rid and b = t.id and status = 'open') then raise exception '你已經對他下過戰帖了，等他回應'; end if;
+    update public.town_residents set money = money - bet, seen_at = now() where id = rid;
+    insert into public.town_duels(town_id,a,b,bet,a_move) values (r.town_id, rid, t.id, bet, choice);
+    insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, t.id, 'duel', r.name || ' 向 ' || t.name || ' 下戰帖：猜拳賭 €' || bet || ' ✊');
+  elsif act in ('accept','decline') then
+    select * into du from public.town_duels where id = duel and b = rid and status = 'open' for update;
+    if not found then raise exception '這張戰帖已經結束了'; end if;
+    select * into t from public.town_residents where id = du.a;
+    if act = 'decline' then
+      update public.town_residents set money = money + du.bet where id = du.a; update public.town_duels set status = 'declined' where id = du.id;
+      insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, du.a, 'duel', r.name || ' 拒絕了 ' || t.name || ' 的戰帖');
+    else
+      if choice not in ('r','p','s') then raise exception '出剪刀、石頭或布'; end if;
+      if r.money < du.bet then raise exception '錢不夠應戰（要 €%）', du.bet; end if;
+      update public.town_residents set money = money - du.bet where id = rid;
+      if choice = du.a_move then
+        update public.town_residents set money = money + du.bet where id in (rid, du.a);
+        insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, du.a, 'duel', r.name || ' 和 ' || t.name || ' 猜拳都出' || (nm::json->>choice) || '，平手退錢');
+      elsif (choice, du.a_move) in (('r','s'),('s','p'),('p','r')) then
+        update public.town_residents set money = money + du.bet*2 where id = rid;
+        insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, du.a, 'duel', r.name || ' 出' || (nm::json->>choice) || '贏了 ' || t.name || ' 的' || (nm::json->>du.a_move) || '，拿走 €' || du.bet*2 || ' 🏆');
+      else
+        update public.town_residents set money = money + du.bet*2 where id = du.a;
+        insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, du.a, rid, 'duel', t.name || ' 出' || (nm::json->>du.a_move) || '贏了 ' || r.name || ' 的' || (nm::json->>choice) || '，拿走 €' || du.bet*2 || ' 🏆');
+      end if;
+      update public.town_duels set status = 'done' where id = du.id;
+    end if;
+  else raise exception '不知道要做什麼'; end if;
+  return public.town_state(r.town_id);
+end $$;
+
+revoke all on function public.town_card(), public.town_bj_total(jsonb) from public, anon, authenticated;
+revoke all on function public.town_game(bigint,text,text,int,text), public.town_duel(bigint,text,text,bigint,int,text,bigint) from public;
+grant execute on function public.town_game(bigint,text,text,int,text), public.town_duel(bigint,text,text,bigint,int,text,bigint) to anon, authenticated;
