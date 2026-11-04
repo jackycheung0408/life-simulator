@@ -584,6 +584,18 @@ end $$;
 
 -- 所有動作：移動、自己家裡的事、公共場所、對朋友做的事（朋友不在家也能留言、放禮物）、道謝、擊掌
 drop function if exists public.town_act(bigint,text,text,bigint,real,real,text);
+-- 背包：收到的禮物放在對方 items.rg（未拆禮物，上限 20，最舊的先丟）
+create or replace function public.town_rg_add(tid bigint, fid bigint, fname text) returns void
+language plpgsql security definer set search_path = public as $$
+declare g jsonb;
+begin
+  select coalesce(items->'rg','[]'::jsonb) into g from public.town_residents where id = tid;
+  g := g || jsonb_build_array(jsonb_build_object('id', left(md5(random()::text),8), 'from', fid, 'name', fname, 'at', extract(epoch from now())::bigint));
+  while jsonb_array_length(g) > 20 loop g := g - 0; end loop;
+  update public.town_residents set items = jsonb_set(items, '{rg}', g) where id = tid;
+end $$;
+revoke all on function public.town_rg_add(bigint,bigint,text) from public, anon, authenticated;
+
 create or replace function public.town_act(rid bigint, pin text, act text, target bigint default null, px real default null, py real default null, dest text default null, item text default null, note text default null) returns json
 language plpgsql security definer set search_path = public as $$
 declare r public.town_residents; t public.town_residents; others text; tn text; n int; w int; near boolean; pa real; pb real; bond int; m real; pub text[] := array['plaza','restaurant','market','park','office'];
@@ -733,6 +745,22 @@ begin
   elsif act = 'snack' then
     if coalesce((r.items->>'snack')::int,0) < 1 then raise exception '背包裡沒有零食，去超市買'; end if;
     r.items := jsonb_set(r.items, '{snack}', to_jsonb((r.items->>'snack')::int - 1)); r.hunger := r.hunger + 20*fm; r.fun := r.fun + 3;
+  elsif act in ('unwrap','regift') then
+    -- 背包：拆收到的禮物（隨機小獎勵）或轉成自己的禮物再送人；item = 禮物 id
+    jf := coalesce(r.items->'rg','[]'::jsonb); n := null;
+    select i-1 into n from jsonb_array_elements(jf) with ordinality a(e,i) where e->>'id' = item limit 1;
+    if n is null then raise exception '背包裡沒有這份禮物'; end if;
+    tn := jf->n->>'name'; jf := jf - n;
+    if act = 'regift' then
+      if coalesce((r.items->>'gift')::int,0) >= 20 then raise exception '背包放不下了'; end if;
+      r.items := jsonb_set(jsonb_set(r.items, '{rg}', jf), '{gift}', to_jsonb(coalesce((r.items->>'gift')::int,0) + 1));
+    else
+      pa := random(); r.items := jsonb_set(r.items, '{rg}', jf);
+      if pa < .4 then n := 10 + floor(random()*51)::int; r.money := r.money + n; mo := '€' || n;
+      elsif pa < .75 and coalesce((r.items->>'snack')::int,0) < 20 then r.items := jsonb_set(r.items, '{snack}', to_jsonb(coalesce((r.items->>'snack')::int,0) + 1)); mo := '一包零食';
+      else r.fun := r.fun + 10; mo := '滿滿的好心情'; end if;
+      insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', r.name || ' 拆開了 ' || tn || ' 送的禮物，裡面是' || mo || ' 🎁');
+    end if;
   elsif act = 'buy' and (item like 'w:%' or item like 'd:%' or item like 'f:%') then
     if r.place <> 'market' then raise exception '要在超市才能買'; end if;
     select price into n from public.town_shop where id = substr(item,3) and kind = case when item like 'w:%' then 'wear' when item like 'd:%' then 'deco' else 'furn' end and price > 0;
@@ -884,14 +912,14 @@ begin
       else
         if coalesce((r.items->>'gift')::int,0) < 1 then raise exception '背包裡沒有禮物，去超市買'; end if;
         if r.money < 5 then raise exception '寄送要 €5 運費'; end if;
-        r.items := jsonb_set(r.items, '{gift}', to_jsonb((r.items->>'gift')::int - 1)); r.money := r.money - 5; t.fun := t.fun + 20*gm; perform public.town_bond(r.town_id, rid, t.id, 5*gm);
+        r.items := jsonb_set(r.items, '{gift}', to_jsonb((r.items->>'gift')::int - 1)); r.money := r.money - 5; t.fun := t.fun + 20*gm; perform public.town_bond(r.town_id, rid, t.id, 5*gm); perform public.town_rg_add(t.id, rid, r.name);
         insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 寄了一份禮物給 ' || tn || ' 📦');
       end if;
     else
       if r.place <> 'home:' || target then raise exception '要先走到他家'; end if;
       if act = 'gift' then
         if coalesce((r.items->>'gift')::int,0) < 1 then raise exception '背包裡沒有禮物，去超市買'; end if;
-        r.items := jsonb_set(r.items, '{gift}', to_jsonb((r.items->>'gift')::int - 1)); t.fun := t.fun + 20*gm; r.fun := r.fun + 5; perform public.town_bond(r.town_id, rid, t.id, 5*gm);
+        r.items := jsonb_set(r.items, '{gift}', to_jsonb((r.items->>'gift')::int - 1)); t.fun := t.fun + 20*gm; r.fun := r.fun + 5; perform public.town_bond(r.town_id, rid, t.id, 5*gm); perform public.town_rg_add(t.id, rid, r.name);
         insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || case when t.place = 'home:' || target then ' 送了一份禮物給 ' || tn || ' 🎁' else ' 在 ' || tn || ' 家門口放了一份禮物 🎁' end);
       elsif act = 'egg' then
         if t.place = 'home:' || target then t.hygiene := t.hygiene - 10; t.fun := t.fun - 5; end if; r.fun := r.fun + 8;
