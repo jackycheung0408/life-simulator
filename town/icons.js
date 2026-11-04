@@ -764,4 +764,5 @@ const MAP={"🍚":"bowl","⚡":"bolt","🚽":"toilet","🛁":"bath","🎉":"face
  "👀":"eyes","🧽":"sponge","⚔️":"swords","🛣️":"road","🛍️":"bag","😤":"face:angry","😒":"face:meh","😊":"face:happy","🙂":"face:smile","😵":"face:dizzy","😣":"face:sad","😪":"face:sleepy","🥺":"face:sad","😂":"face:laugh","🤕":"face:hurt"};
 window.PIXICON=e=>draw(MAP[e]||MAP[e.replace(/️/g,"")]||MAP[e+"️"]||"star");
 window.PIXICON_NAME=n=>draw(n);
+window.PIXICON_MAP=MAP;
 })();

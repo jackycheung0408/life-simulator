@@ -170,6 +170,15 @@ body.ingame .need{background:rgba(27,36,80,.88)}
  body.ingame #panel.min{padding-bottom:calc(env(safe-area-inset-bottom) + 6px)}
  body.ingame #tips,body.ingame #away{top:calc(var(--hud) + var(--tb) + 10px)}
 }
+/* ── 按鈕回饋：按下亮框、成功閃綠、失敗搖晃、結果顯示在右上角（用 steps 保持像素感，不閃） ── */
+#acts.busy .act{pointer-events:none}
+#acts .act.working{outline:3px solid var(--gold);outline-offset:-3px;filter:brightness(1.2)}
+#acts .act.ok{animation:okf .6s steps(4)}#acts .act.err{animation:errs .4s steps(4)}
+@keyframes okf{0%{background:#2ecc71}60%{background:#2ecc71}100%{}}
+@keyframes errs{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+#fb{float:right;margin:0 0 0 8px;padding:3px 8px;border:3px solid var(--ink);border-radius:4px;font-size:11px;line-height:1.4;max-width:62%;box-shadow:3px 3px 0 var(--ink)}
+#fb.good{background:#2e7d4f;color:#fff}#fb.bad{background:#8c2a3a;color:#fff}#fb.hide{display:none}
+@media (prefers-reduced-motion:reduce){#acts .act.ok,#acts .act.err{animation:none}}
 </style>
 </head>
 <body>
@@ -185,13 +194,13 @@ body.ingame .need{background:rgba(27,36,80,.88)}
   <div id="tips" class="card hide tips"></div><div id="away" class="card hide"></div>
   <div id="needs"></div>
   <div id="stage"><canvas id="cv"></canvas><div class="tools"><button id="home">📍 我</button><button id="zoom">🗺️ 看全鎮</button><button id="feedBtn" class="mob-only">📰 動態<i id="feedBadge2" class="badge hide"></i></button></div><div id="strip"></div></div>
-  <div class="card" id="panel"><button id="grip" aria-label="收合"></button><div id="here"></div><div id="note" class="mut"></div><div id="acts"></div></div>
+  <div class="card" id="panel"><button id="grip" aria-label="收合"></button><div id="fb" class="hide"></div><div id="here"></div><div id="note" class="mut"></div><div id="acts"></div></div>
   <div class="card" id="social"><button id="socialClose" class="mob-only">✕ 回地圖</button><div class="tabs" role="tablist"><button data-tab="feed" class="on">動態<i id="feedBadge" class="badge hide"></i></button><button data-tab="rank">本週排行</button><button data-tab="ppl">人際</button></div>
    <div id="tab-feed"><div class="chips"><button data-ff="all" class="on">全部</button><button data-ff="me">跟我有關</button><button data-ff="good">好事</button><button data-ff="bad">壞事</button><button id="report" class="chip-r">🖼️ 日報圖</button></div><div id="feed"></div></div><div id="tab-rank" class="hide"></div><div id="tab-ppl" class="hide"></div></div>
  </section>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide"><div class="card" id="mbody"></div></div>
-<script src="icons.js?v=5"></script><script src="town.js?v=31"></script>
+<script src="icons.js?v=6"></script><script src="town.js?v=33"></script>
 </body>
 </html>

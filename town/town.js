@@ -66,7 +66,9 @@ if(typeof document!=="undefined")addEventListener("DOMContentLoaded",init);
 function init(){
 const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const PXC={};
+const KEEP=[];function preloadIcons(){if(!window.PIXICON)return;Object.keys(window.PIXICON_MAP||{}).forEach(e=>{const i=new Image();i.src=pxIcon(e);KEEP.push(i)})}
 function pxIcon(e){return PXC[e]||(PXC[e]=window.PIXICON?PIXICON(e):"")}
+setTimeout(preloadIcons,0);
 const EMO=/(\p{Extended_Pictographic}(\uFE0F|\u200D\p{Extended_Pictographic})*)/gu;
 function pxify(root){if(!root)return;const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),nodes=[];while(w.nextNode()){const n=w.currentNode;if(EMO.test(n.nodeValue)&&!n.parentElement.closest("textarea,input,canvas"))nodes.push(n);EMO.lastIndex=0}
  for(const n of nodes){const span=document.createElement("span");span.innerHTML=n.nodeValue.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])).replace(EMO,m=>`<img class="px" alt="${m}" src="${pxIcon(m)}">`);n.replaceWith(...span.childNodes)}}
@@ -233,11 +235,27 @@ let lastEvId=null;
 function fxFromEvents(evs){const mx=Math.max(0,...evs.map(e=>e.id));if(lastEvId==null){lastEvId=mx;return}
  evs.filter(e=>e.id>lastEvId).forEach(e=>{const f=EV_FX[e.kind];if(!f)return;const [t,mode]=f;
   if(mode=="t")spawnFx(t,e.target||e.actor);else if(mode=="a")spawnFx(t,e.actor);else if(mode=="both"){spawnFx(t,e.actor);if(e.target&&e.target!=e.actor)spawnFx(t,e.target)}else spawnFx(t,e.actor,e.target)});lastEvId=mx}
-async function act(a,extra={}){if(busy)return;busy=true;renderPanel();const b0=tickLocal(R[me],now());try{const st=await rpc("town_act",{rid:me,pin,act:a,...extra});apply(st);
+// 動態、排行、人際、鎮民列：內容一樣就不重畫（每幾秒更新一次，重畫會讓圖示閃一下）
+function stableHTML(el){if(!el)return;const d=Object.getOwnPropertyDescriptor(Element.prototype,"innerHTML");let last;Object.defineProperty(el,"innerHTML",{get(){return d.get.call(el)},set(v){if(v===last)return;last=v;d.set.call(el,v)}})}
+["feed","tab-rank","tab-ppl","strip"].forEach(id=>stableHTML($(id)));
+// 只換內容變了的那一格；沒變的格子（和裡面的圖示）完全不動，才不會閃
+function patchList(box,html){const t=document.createElement("div");t.innerHTML=html;const n=[...t.children];
+ n.forEach((c,i)=>{const o=box.children[i];c._src=c.outerHTML;if(!o){box.appendChild(c);pxify(c)}else if(o._src!==c._src){o.replaceWith(c);pxify(c)}});
+ while(box.children.length>n.length)box.lastElementChild.remove()}
+// 按下去的回饋：按鈕亮框 → 成功閃綠／失敗搖晃，右上角顯示這次的結果
+let pressed=null,fbTimer=0;
+function press(b,fn){pressed=b.dataset.i;b.classList.add("working");const rs=fn();setTimeout(()=>{if(!busy)clearWorking()},350);return rs}
+const clearWorking=()=>$("acts").querySelectorAll(".working").forEach(x=>x.classList.remove("working"));
+function feedback(ok,msg){clearWorking();const b=pressed!=null&&$("acts").querySelector(`[data-i="${pressed}"]`);pressed=null;
+ if(b){b.classList.remove("ok","err");void b.offsetWidth;b.classList.add(ok?"ok":"err");setTimeout(()=>b.classList.remove("ok","err"),700)}
+ const f=$("fb");if(f&&msg){f.textContent=(ok?"✓ ":"✗ ")+msg;f.className=ok?"good":"bad";pxify(f);clearTimeout(fbTimer);fbTimer=setTimeout(()=>{f.className="hide"},3200)}}
+async function act(a,extra={}){if(busy)return;busy=true;$("acts").classList.add("busy");const b0=tickLocal(R[me],now());try{const st=await rpc("town_act",{rid:me,pin,act:a,...extra});apply(st);
   if(ACT_FX[a])spawnFx(ACT_FX[a],me);if(a=="obj"&&OBJ_FX[extra.item])spawnFx(OBJ_FX[extra.item],me);
   const b1=tickLocal(R[me],now()),ic={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"€"};let k=0;
-  for(const f of ["money",...NEEDS]){const d=Math.round(b1[f]-b0[f]);if(Math.abs(d)>=1&&a!="move")floaters.push({t:f=="money"?`${d>0?"+":"−"}€${Math.abs(d)}`:`${ic[f]} ${d>0?"+":""}${d}`,good:d>0,born:performance.now()+k++*180})}}
- catch(e){toast(e.message)}busy=false;renderPanel()}
+  for(const f of ["money",...NEEDS]){const d=Math.round(b1[f]-b0[f]);if(Math.abs(d)>=1&&a!="move")floaters.push({t:f=="money"?`${d>0?"+":"−"}€${Math.abs(d)}`:`${ic[f]} ${d>0?"+":""}${d}`,good:d>0,born:performance.now()+k++*180})}
+  if(a!="move")feedback(true,sumChanges(b0,b1,ic))}
+ catch(e){toast(e.message);feedback(false,e.message)}busy=false;$("acts").classList.remove("busy");renderPanel()}
+function sumChanges(b0,b1,ic){const o=[];for(const f of ["money",...NEEDS]){const d=Math.round(b1[f]-b0[f]);if(Math.abs(d)>=1)o.push(f=="money"?`${d>0?"+":"−"}€${Math.abs(d)}`:`${ic[f]}${d>0?"+":""}${d}`)}return o.join(" ")||"完成"}
 function walkTo(dest,d){const w=walkers[me],p=bfs([Math.round(w.x),Math.round(w.y)],d);if(!p){toast("走不到那裡");return}
  w.path=p.slice(1);w.dest=dest;w.goal=d;camFree=false;if(!w.path.length)arrived(w);renderPanel()}
 function arrived(w){const d=w.dest;w.dest=null;act("move",{px:w.goal[0],py:w.goal[1],dest:d})}
@@ -245,7 +263,7 @@ const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀
 
 // ── 下方面板：依所在地點顯示可以做的事 ──
 const btn=(label,sub,fn,g)=>({label,sub,fn,g});
-const ACT_ICON={吃飯:"🍚",上廁所:"🚽",洗澡:"🛁",看電視:"📺",睡覺:"😴",起床:"☀️",吃一頓:"🍽️",打工:"💼",玩一下:"🎈",逛逛:"👀",煮飯給他:"🍳",幫他洗澡:"🧽",叫醒他:"⏰",串門子:"🏠",惡作劇:"💨",送禮物:"🎁",盪鞦韆:"🎠",餵貓吃零食:"🐟",取消:"✖️"};
+const ACT_ICON={吃飯:"🍚",上廁所:"🚽",洗澡:"🛁",看電視:"📺",睡覺:"😴",起床:"☀️",吃一頓:"🍽️",打工:"💼",玩一下:"🎈",逛逛:"👀",煮飯給他:"🍳",幫他洗澡:"🧽",叫醒他:"⏰",串門子:"🏠",惡作劇:"💨",送禮物:"🎁",盪鞦韆:"🎠",小睡:"😴",餵貓吃零食:"🐟",取消:"✖️"};
 const GROUP={tip:"建議下一步",self:"照顧自己",friend:"在他家",place:"在這裡",face:"面對面",online:"線上 · 在哪都能做",move:"移動"};let lastPanel="",panelFns=[];
 function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),p=r.place,list=[];let title="",note="";
  if(walkers[me]&&walkers[me].path.length){title="走路中…";note="到了就可以做事"}
@@ -291,12 +309,13 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
    // 圖示放大在左邊；壞事用紅色；錢不夠就標出來
    const m=b.label.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u)||b.label.match(/^(.*?)\s*(\p{Extended_Pictographic}\uFE0F?)$/u),txt=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[1]:m[2]):b.label,ic=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[2]:m[1]):(ACT_ICON[b.label]||(b.g=="move"?"🚶":"•"));
    const cost=+((b.sub||"").match(/€(\d+)(?!\d)/)||[])[1]||0,poor=cost&&/€\d+/.test(b.sub)&&!/\+€/.test(b.sub)&&r.money<cost,bad=/扁|雞蛋|臭屁|惡作劇|叫醒/.test(b.label);
-   return `<button data-i="${i}" class="act${b.g=="tip"?" cta":""}${bad?" bad":""}${poor?" poor":""}${b.g=="move"?" ghost":""}" ${busy?"disabled":""}><span class="ai">${ic}</span><span class="at"><b>${esc(txt)}</b>${b.sub||poor?`<small>${poor?`錢不夠（要 €${cost}）`:b.sub}</small>`:""}</span></button>`}).join("")).join("");
- panelFns=list;if(html!=lastPanel){lastPanel=html;$("acts").innerHTML=html;pxify($("acts"));$("acts").querySelectorAll("button").forEach(b=>b.onclick=()=>panelFns[b.dataset.i].fn())}}
+   return `<button data-i="${i}" class="act${b.g=="tip"?" cta":""}${bad?" bad":""}${poor?" poor":""}${b.g=="move"?" ghost":""}"><span class="ai">${ic}</span><span class="at"><b>${esc(txt)}</b>${b.sub||poor?`<small>${poor?`錢不夠（要 €${cost}）`:b.sub}</small>`:""}</span></button>`}).join("")).join("");
+ panelFns=list;if(html!=lastPanel){lastPanel=html;patchList($("acts"),html)}}
+$("acts").addEventListener("click",ev=>{const b=ev.target.closest("button[data-i]");if(!b||busy)return;const f=panelFns[b.dataset.i];if(f)press(b,f.fn)});
 let lastNeeds="";
 function renderNeeds(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now());
  const html=NEEDS.map(k=>{const v=Math.round(r[k]),[ic,nm]=NEED_INFO[k];return `<div class="need${v<20?" low":""}" title="${nm} ${v}"><span>${ic}</span><i><b style="width:${v}%;background:${v<20?"var(--bad)":v<50?"var(--warn)":"var(--good)"}"></b></i><small><em>${nm} </em>${v}</small></div>`}).join("")+`<div class="need money"><span>💰</span><small>€${r.money}${(r.items||{}).gift?` · 🎁${r.items.gift}`:""}${(r.items||{}).snack?` · 🍪${r.items.snack}`:""}</small></div>`;
- if(html!=lastNeeds){lastNeeds=html;$("needs").innerHTML=html;pxify($("needs"))}}
+ if(html!=lastNeeds){lastNeeds=html;patchList($("needs"),html)}}
 // 每週排行（最近 7 天）
 // 排行榜：頒獎台（前三名大頭貼）＋其餘名次＋你的名次；最近 7 天的事件，加上現在的存款和好友數
 function renderRank(){const w=(S&&S.week)||{},all=Object.values(R);
