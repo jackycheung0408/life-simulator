@@ -142,6 +142,33 @@ begin
   update public.town_residents set place = 'street' where town_id = r.town_id and place = any(coalesce(town_features.off,'{}'));
   return json_build_object('ok',true);
 end $$;
+-- 「建議下一步」(CTA) 統計：顯示了幾次、被點了幾次（只記建議名稱，不記個人內容）
+create table if not exists public.town_cta (
+  id bigint generated always as identity primary key,
+  town_id text not null references public.town_towns(id) on delete cascade,
+  resident_id bigint,
+  kind text not null check (kind in ('show','click')),
+  key text not null check (char_length(key) between 1 and 24),
+  at timestamptz not null default now()
+);
+create index if not exists town_cta_town_at on public.town_cta(town_id, at desc);
+alter table public.town_cta enable row level security;
+revoke all on public.town_cta from anon, authenticated;
+create or replace function public.town_track(rid bigint, pin text, kind text, key text) returns json
+language plpgsql security definer set search_path = public as $$
+declare r public.town_residents;
+begin
+  r := public.town_auth(rid, pin);
+  if r.id is null then return json_build_object('error','密碼不對'); end if;
+  if kind not in ('show','click') or key is null or char_length(key) not between 1 and 24 then return json_build_object('ok',false); end if;
+  -- 每人每天最多記 400 筆，避免被灌爆
+  if (select count(*) from public.town_cta c where c.resident_id = rid and c.at > now() - interval '1 day') >= 400 then return json_build_object('ok',false); end if;
+  insert into public.town_cta(town_id, resident_id, kind, key) values (r.town_id, rid, kind, key);
+  if random() < .01 then delete from public.town_cta c where c.at < now() - interval '30 days'; end if;
+  return json_build_object('ok',true);
+end $$;
+revoke all on function public.town_track(bigint,text,text,text) from public;
+grant execute on function public.town_track(bigint,text,text,text) to anon, authenticated;
 revoke all on function public.town_features(bigint,text,text[]) from public;
 grant execute on function public.town_features(bigint,text,text[]) to anon, authenticated;
 
@@ -364,6 +391,10 @@ begin
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if not r.mayor then raise exception '只有鎮長可以做這件事'; end if;
   if act = 'invite' then select invite into inv from public.town_towns where id = r.town_id;
+  elsif act = 'stats' then
+    return json_build_object('ok',true,'stats',(select coalesce(json_agg(x),'[]') from (
+      select c.key, count(*) filter (where c.kind = 'show') shows, count(*) filter (where c.kind = 'click') clicks
+      from public.town_cta c where c.town_id = r.town_id and c.at > now() - interval '7 days' group by c.key order by shows desc, clicks desc limit 12) x));
   elsif act = 'newinvite' then inv := public.town_code(6); update public.town_towns set invite = inv where id = r.town_id;
   elsif act = 'kick' then
     select * into t from public.town_residents where id = target and town_id = r.town_id;
@@ -416,19 +447,19 @@ begin
     if act = 'eat' then if r.money < 10 then raise exception '錢不夠買食材，去公司打工吧'; end if; r.hunger := r.hunger + 40; r.money := r.money - 10;
     elsif act = 'toilet' then r.bladder := 100;
     elsif act = 'shower' then
-      if (r.items->'cd'->>'shower') is not null and (r.items->'cd'->>'shower')::timestamptz > now() - interval '15 minutes' then raise exception '剛洗完澡，等一下再洗'; end if;
+      if (r.items->'cd'->>'shower') is not null and (r.items->'cd'->>'shower')::timestamptz > now() - interval '10 minutes' then raise exception '剛洗完澡，等一下再洗'; end if;
       r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('shower', now())); r.hygiene := 100; r.fun := r.fun + 3;
     elsif act = 'tv' then
-      if (r.items->'cd'->>'tv') is not null and (r.items->'cd'->>'tv')::timestamptz > now() - interval '30 minutes' then raise exception '剛看完電視，休息一下眼睛'; end if;
+      if (r.items->'cd'->>'tv') is not null and (r.items->'cd'->>'tv')::timestamptz > now() - interval '15 minutes' then raise exception '剛看完電視，休息一下眼睛'; end if;
       r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('tv', now())); r.fun := r.fun + 15; r.energy := r.energy - 3;
     elsif act = 'sleep' then r.sleeping := true;
     elsif act = 'nap' then
-      if (r.items->'cd'->>'nap') is not null and (r.items->'cd'->>'nap')::timestamptz > now() - interval '45 minutes' then raise exception '剛小睡過，等一下再睡'; end if;
+      if (r.items->'cd'->>'nap') is not null and (r.items->'cd'->>'nap')::timestamptz > now() - interval '30 minutes' then raise exception '剛小睡過，等一下再睡'; end if;
       r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('nap', now())); r.energy := r.energy + 12; end if;
   elsif act = 'wake' then r.sleeping := false;
   elsif act = 'obj' then
     if not public.town_obj_near(item, r.x, r.y, r.place) then raise exception '要走到旁邊才能用'; end if;
-    if (r.items->'cd'->>item) is not null and (r.items->'cd'->>item)::timestamptz > now() - interval '20 minutes' then raise exception '剛剛才用過，等一下再來'; end if;
+    if (r.items->'cd'->>item) is not null and (r.items->'cd'->>item)::timestamptz > now() - interval '10 minutes' then raise exception '剛剛才用過，等一下再來'; end if;
     r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object(item, now()));
     pa := random();
     if item = 'vend' then
@@ -454,7 +485,7 @@ begin
     -- 格鬥場：打擂台挑戰對手，連勝越多對手越強、獎金越高；30 分鐘打一場
     if r.place <> 'arena' then raise exception '要在格鬥場才能打擂台'; end if;
     if r.energy < 15 then raise exception '你太累了，打不動'; end if;
-    if (r.items->'cd'->>'spar') is not null and (r.items->'cd'->>'spar')::timestamptz > now() - interval '30 minutes' then raise exception '剛打完一場，喘口氣再上'; end if;
+    if (r.items->'cd'->>'spar') is not null and (r.items->'cd'->>'spar')::timestamptz > now() - interval '15 minutes' then raise exception '剛打完一場，喘口氣再上'; end if;
     r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('spar', now()));
     n := coalesce((r.items->>'streak')::int,0);
     pa := 30 + r.energy*.4 + r.fun*.2 + random()*45 + coalesce((r.items->>'fit')::int,0)*2 - case when r.bruised_until > now() then 15 else 0 end;
@@ -475,7 +506,7 @@ begin
     -- 屠宰場：溜進去偷飼料，有賺有賠；3 小時一次
     if r.place <> 'slaughter' then raise exception '要在屠宰場門口'; end if;
     if r.energy < 10 then raise exception '你太累了，跑不動'; end if;
-    if (r.items->'cd'->>'sneak') is not null and (r.items->'cd'->>'sneak')::timestamptz > now() - interval '3 hours' then raise exception '屠夫還在找你，3 小時後再來'; end if;
+    if (r.items->'cd'->>'sneak') is not null and (r.items->'cd'->>'sneak')::timestamptz > now() - interval '1 hour' then raise exception '屠夫還在找你，1 小時後再來'; end if;
     r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('sneak', now()));
     pa := random() - coalesce((r.items->>'fit')::int,0)*.01; r.energy := r.energy - 10;
     if pa < .05 then r.money := r.money + 500; r.fun := r.fun + 30; tn := r.name || ' 溜進屠宰場，翻到屠夫藏的私房錢 €500 💰 全身而退！';
@@ -507,19 +538,19 @@ begin
     if item not in ('gift','snack') then raise exception '超市沒有賣這個'; end if;
     n := case item when 'gift' then 20 else 15 end;
     if r.money < n then raise exception '錢不夠，去公司打工吧'; end if;
-    if coalesce((r.items->>item)::int,0) >= 9 then raise exception '背包放不下了'; end if;
+    if coalesce((r.items->>item)::int,0) >= 20 then raise exception '背包放不下了'; end if;
     r.money := r.money - n; r.items := jsonb_set(r.items, array[item], to_jsonb(coalesce((r.items->>item)::int,0) + 1)); r.fun := r.fun + 3;
   elsif act in ('dine','work','play','browse','coffee','movie','workout') then
     if (act = 'dine' and r.place <> 'restaurant') or (act = 'work' and r.place <> 'office') or (act = 'play' and r.place not in ('park','plaza')) or (act = 'browse' and r.place <> 'market')
        or (act = 'coffee' and r.place <> 'cafe') or (act = 'movie' and r.place <> 'cinema') or (act = 'workout' and r.place <> 'gym') then raise exception '不在那個地方'; end if;
     if act = 'dine' then if r.money < 30 then raise exception '錢不夠，去公司打工吧'; end if; r.hunger := r.hunger + 55; r.fun := r.fun + 10; r.money := r.money - 30;
     elsif act = 'work' then if r.energy < 15 then raise exception '太累了，先回家睡覺'; end if;
-      if (r.items->'cd'->>'work') is not null and (r.items->'cd'->>'work')::timestamptz > now() - interval '2 hours' then raise exception '剛下班，2 小時後才能再打工'; end if;
+      if (r.items->'cd'->>'work') is not null and (r.items->'cd'->>'work')::timestamptz > now() - interval '1 hour' then raise exception '剛下班，1 小時後才能再打工'; end if;
       r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('work', now())); r.money := r.money + 100; r.energy := r.energy - 15; r.fun := r.fun - 10; r.hunger := r.hunger - 8;
       insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'work', r.name || ' 打工賺了 €100');
     elsif act = 'play' then r.fun := r.fun + 20; r.energy := r.energy - 5;
     elsif act in ('coffee','movie','workout') then
-      if (r.items->'cd'->>act) is not null and (r.items->'cd'->>act)::timestamptz > now() - (case act when 'coffee' then interval '1 hour' else interval '2 hours' end) then raise exception '剛剛才去過，晚點再來'; end if;
+      if (r.items->'cd'->>act) is not null and (r.items->'cd'->>act)::timestamptz > now() - (case act when 'coffee' then interval '30 minutes' else interval '1 hour' end) then raise exception '剛剛才去過，晚點再來'; end if;
       r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object(act, now()));
       if act = 'coffee' then if r.money < 15 then raise exception '錢不夠，咖啡 €15'; end if; r.money := r.money - 15; r.energy := r.energy + 25; r.fun := r.fun + 3; r.bladder := r.bladder - 10;
       elsif act = 'movie' then if r.money < 25 then raise exception '錢不夠，電影票 €25'; end if; r.money := r.money - 25; r.fun := r.fun + 35; r.energy := r.energy - 5;
@@ -543,7 +574,7 @@ begin
     if target is null or target = rid then raise exception '要選一位朋友'; end if;
     select * into t from public.town_residents where id = target and town_id = r.town_id for update;
     if not found then raise exception '找不到這位鄰居'; end if;
-    if exists (select 1 from public.town_events e where e.actor = rid and e.target = t.id and e.kind = act and e.at > now() - case act when 'thank' then interval '12 hours' when 'makeup' then interval '12 hours' when 'fight' then case when r.place = 'arena' then interval '1 hour' else interval '6 hours' end when 'cowork' then interval '4 hours' when 'feast' then interval '4 hours' else interval '2 hours' end) then raise exception '剛剛才做過，等一下再來'; end if;
+    if exists (select 1 from public.town_events e where e.actor = rid and e.target = t.id and e.kind = act and e.at > now() - case act when 'thank' then interval '6 hours' when 'makeup' then interval '6 hours' when 'fight' then case when r.place = 'arena' then interval '30 minutes' else interval '2 hours' end when 'cowork' then interval '2 hours' when 'feast' then interval '2 hours' else interval '1 hour' end) then raise exception '剛剛才做過，等一下再來'; end if;
     t := public.town_tick(t); tn := t.name; bond := public.town_bond_get(rid, t.id);
     -- 面對面：在同一個地方（不算路上），或在路上距離 2 格以內
     near := (r.place = t.place and r.place <> 'street') or (abs(r.x - t.x) + abs(r.y - t.y) <= 2.5);
@@ -689,10 +720,10 @@ begin
   if r.place <> 'plaza' then raise exception '街機在小豬廣場，走過去再玩'; end if;
   -- 開新一局才要檢查押注與次數；21 點和比大小的後續動作不用
   if game in ('rps','hl_start','wheel','bj_start') then
-    if bet is null or bet < 5 or bet > 50 then raise exception '押注要在 €5～€50 之間'; end if;
+    if bet is null or bet < 5 or bet > 100 then raise exception '押注要在 €5～€100 之間'; end if;
     if r.money < bet then raise exception '錢不夠'; end if;
     n := case when r.items->'games'->>'day' = day then coalesce((r.items->'games'->>'n')::int,0) else 0 end;
-    if n >= 30 then raise exception '今天玩夠多了，明天再來（一天 30 局）'; end if;
+    if n >= 60 then raise exception '今天玩夠多了，明天再來（一天 60 局）'; end if;
     r.items := jsonb_set(r.items, '{games}', jsonb_build_object('day', day, 'n', n + 1));
     r.money := r.money - bet;
   end if;
@@ -768,7 +799,7 @@ begin
   end loop;
   if act = 'challenge' then
     if choice not in ('r','p','s') then raise exception '出剪刀、石頭或布'; end if;
-    if bet is null or bet < 5 or bet > 100 then raise exception '戰帖押注要在 €5～€100 之間'; end if;
+    if bet is null or bet < 5 or bet > 200 then raise exception '戰帖押注要在 €5～€200 之間'; end if;
     select * into t from public.town_residents where id = target and town_id = r.town_id;
     if not found or t.id = rid then raise exception '要選一位鄰居'; end if;
     if r.money < bet then raise exception '錢不夠'; end if;

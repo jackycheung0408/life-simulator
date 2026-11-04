@@ -212,10 +212,12 @@ function shareModal(inv,fresh){const text=`來「${S.town.name}」當鄰居！�
  $("mc").onclick=()=>$("modal").classList.add("hide");$("mcp").onclick=async()=>{try{await navigator.clipboard.writeText(text);toast("已複製，貼到 WeChat 吧")}catch(e){$("shtxt").select();toast("請長按文字複製")}}}
 const featChecks=off=>`<div class="list feats">${FEATS.map(([k,n,d])=>`<label class="mrow" style="cursor:pointer"><span><b>${n}</b> <small class="mut">${d}</small></span><input type="checkbox" data-f="${k}" ${off.includes(k)?"":"checked"} style="width:22px;height:22px"></label>`).join("")}</div>`;
 const readFeats=()=>[...document.querySelectorAll("[data-f]")].filter(c=>!c.checked).map(c=>c.dataset.f);
-async function mayorPanel(){let inv="";try{inv=(await rpc("town_mayor",{rid:me,pin,act:"invite"})).invite}catch(e){toast(e.message);return}
+async function mayorPanel(){let inv="",cta=[];try{cta=(await rpc("town_mayor",{rid:me,pin,act:"stats"})).stats||[]}catch(e){}
+ const ctaHTML=()=>{const sh=cta.reduce((a,c)=>a+c.shows,0),cl=cta.reduce((a,c)=>a+c.clicks,0);return cta.length?`<p class="mut">近 7 天共顯示 ${sh} 次、點了 ${cl} 次（${sh?Math.round(cl/sh*100):0}%）</p><div class="list">${cta.map(c=>`<div class="mrow"><span><b>${esc(c.key)}</b></span><small class="mut">顯示 ${c.shows} · 點 ${c.clicks} · ${c.shows?Math.round(c.clicks/c.shows*100):0}%</small></div>`).join("")}</div>`:`<p class="mut">還沒有資料，大家玩一陣子就會出現。</p>`};try{inv=(await rpc("town_mayor",{rid:me,pin,act:"invite"})).invite}catch(e){toast(e.message);return}
  const draw=()=>{$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>🏛️ 鎮長</h2><p>邀請碼：<b class="code">${esc(inv)}</b></p>
   <div class="row" style="justify-content:flex-start"><button class="pri" id="msh">邀請朋友</button><button id="mni">換一組新邀請碼</button></div>
   <h2 style="margin-top:16px">小鎮特色</h2>${featChecks([...OFF])}<div class="row" style="justify-content:flex-start"><button class="pri" id="mfs">儲存設施</button></div>
+  <h2 style="margin-top:16px">建議下一步統計</h2>${ctaHTML()}
   <h2 style="margin-top:16px">鎮民（${Object.keys(R).length}/12）</h2><div class="list">${Object.values(R).sort((a,b)=>a.slot-b.slot).map(r=>`<div class="mrow"><span><b>${esc(r.name)}</b> <small class="mut">${houseName(r.slot)}${r.mayor?" · 鎮長":""}</small></span>${r.id==me?"":`<button data-k="${r.id}">請他搬走</button>`}</div>`).join("")}</div>
   <div class="row"><button id="mc">關閉</button></div>`;
   $("mc").onclick=()=>$("modal").classList.add("hide");$("msh").onclick=()=>shareModal(inv);
@@ -238,6 +240,9 @@ function fxFromEvents(evs){const mx=Math.max(0,...evs.map(e=>e.id));if(lastEvId=
 // 動態、排行、人際、鎮民列：內容一樣就不重畫（每幾秒更新一次，重畫會讓圖示閃一下）
 function stableHTML(el){if(!el)return;const d=Object.getOwnPropertyDescriptor(Element.prototype,"innerHTML");let last;Object.defineProperty(el,"innerHTML",{get(){return d.get.call(el)},set(v){if(v===last)return;last=v;d.set.call(el,v)}})}
 ["feed","tab-rank","tab-ppl","strip"].forEach(id=>stableHTML($(id)));
+// 建議下一步統計：顯示（同一個建議 5 分鐘內只算一次）和點擊
+const ctaKey=l=>l.replace(/\p{Extended_Pictographic}\uFE0F?/gu,"").replace(/\s+/g," ").trim().slice(0,24),ctaSeen={};
+function track(kind,label){try{const key=ctaKey(label);if(!key||!me)return;if(kind=="show"){const t=Date.now();if(ctaSeen[key]&&t-ctaSeen[key]<3e5)return;ctaSeen[key]=t}rpc("town_track",{rid:me,pin,kind,key}).catch(()=>{})}catch(e){}}
 // 只換內容變了的那一格；沒變的格子（和裡面的圖示）完全不動，才不會閃
 function patchList(box,html){const t=document.createElement("div");t.innerHTML=html;const n=[...t.children];
  n.forEach((c,i)=>{const o=box.children[i];c._src=c.outerHTML;if(!o){box.appendChild(c);pxify(c)}else if(o._src!==c._src){o.replaceWith(c);pxify(c)}});
@@ -268,7 +273,7 @@ const GROUP={tip:"建議下一步",self:"照顧自己",friend:"在他家",place:
 function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),p=r.place,list=[];let title="",note="";
  if(walkers[me]&&walkers[me].path.length){title="走路中…";note="到了就可以做事"}
  else if(r.sleeping){title=`在${placeName(p)}睡覺 💤`;list.push(btn("起床","",()=>act("wake")))}
- else if(p=="home:"+me){title="你家";list.push(btn("吃飯","飽足 +40 · €10",()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),btn("洗澡","清潔回滿 · 15 分鐘一次",()=>act("shower")),btn("看電視","心情 +15 · 30 分鐘一次",()=>act("tv")),btn("小睡","精力 +12 · 45 分鐘一次",()=>act("nap")),btn("睡覺","精力每小時 +20",()=>act("sleep")),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal()))}
+ else if(p=="home:"+me){title="你家";list.push(btn("吃飯","飽足 +40 · €10",()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),btn("洗澡","清潔回滿 · 10 分鐘一次",()=>act("shower")),btn("看電視","心情 +15 · 15 分鐘一次",()=>act("tv")),btn("小睡","精力 +12 · 30 分鐘一次",()=>act("nap")),btn("睡覺","精力每小時 +20",()=>act("sleep")),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal()))}
  else if(p&&p.startsWith("home:")&&R[p.slice(5)]){const id=+p.slice(5),t=tickLocal(R[id],now());title=`${t.name} 家`;
   const gifts=(r.items||{}).gift||0,giftB=gifts?btn("送禮物",`他心情 +20 · 背包 🎁${gifts}`,()=>act("gift",{target:id})):btn("送禮物","先去超市買",()=>toast("背包沒有禮物，去超市買一份"));
   if(t.place!=p){note=`${t.name} 不在家，在${placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
@@ -278,13 +283,13 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
    if(!t.sleeping)list.push(btn("串門子","兩人心情 +15",()=>act("visit",{target:id})));list.push(btn("惡作劇","放個臭屁 💨 · 好感 −3",()=>act("prank",{target:id})),btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})));
    if(!t.sleeping)list.push(...faceActs(id))}}
  else if(p=="restaurant"){title="餐廳";list.push(btn("吃一頓","飽足 +55 · 心情 +10 · €30",()=>act("dine")));note="朋友也在的話，點他可以請吃大餐"}
- else if(p=="office"){title="公司";list.push(btn("打工","+€100 · 2 小時一次 · 累",()=>act("work")));note="有同事在的話，點他可以一起加班，薪水加倍"}
+ else if(p=="office"){title="公司";list.push(btn("打工","+€100 · 1 小時一次 · 累",()=>act("work")));note="有同事在的話，點他可以一起加班，薪水加倍"}
  else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")));if(p=="plaza"&&isOn("arcade"))list.push(btn("小豬街機 🕹️","猜拳、比大小、命運輪盤、21 點",()=>gamesModal()))}
- else if(p=="cafe"){title="咖啡廳";list.push(btn("喝咖啡 ☕","€15 · 精力 +25 · 膀胱 −10 · 1 小時一次",()=>act("coffee")))}
- else if(p=="cinema"){title="電影院";list.push(btn("看電影 🎬","€25 · 心情 +35 · 2 小時一次",()=>act("movie")))}
+ else if(p=="cafe"){title="咖啡廳";list.push(btn("喝咖啡 ☕","€15 · 精力 +25 · 膀胱 −10 · 30 分鐘一次",()=>act("coffee")))}
+ else if(p=="cinema"){title="電影院";list.push(btn("看電影 🎬","€25 · 心情 +35 · 1 小時一次",()=>act("movie")))}
  else if(p=="gym"){title="健身房";list.push(btn("健身 🏋️",`精力 −15 · 心情 +10 · 打架更強（${Math.min(10,(r.items||{}).fit||0)}/10）`,()=>act("workout")))}
- else if(p=="arena"){title="格鬥場";const it=r.items||{};list.push(btn("打擂台 🥊",`精力 −12 · 贏了拿獎金、連勝越多越貴 · 目前 ${it.streak||0} 連勝（最高 ${it.best||0}）`,()=>act("spar")));note="在這裡點別人可以約打：1 小時就能再打一次、贏的拿 €40、好感只扣 1"}
- else if(p=="slaughter"){title="屠宰場";list.push(btn("溜進去偷飼料 🔪","精力 −10 · 一半機率賺 €60～120 · 可能被屠夫追、被抓去做香腸 · 3 小時一次",()=>act("sneak")));note="健身越多，越跑得掉"}
+ else if(p=="arena"){title="格鬥場";const it=r.items||{};list.push(btn("打擂台 🥊",`精力 −12 · 贏了拿獎金、連勝越多越貴 · 目前 ${it.streak||0} 連勝（最高 ${it.best||0}）`,()=>act("spar")));note="在這裡點別人可以約打：30 分鐘就能再打一次、贏的拿 €40、好感只扣 1"}
+ else if(p=="slaughter"){title="屠宰場";list.push(btn("溜進去偷飼料 🔪","精力 −10 · 一半機率賺 €60～120 · 可能被屠夫追、被抓去做香腸 · 1 小時一次",()=>act("sneak")));note="健身越多，越跑得掉"}
  else if(p=="market"){title="超市";list.push(btn("買禮物 🎁","€20 · 送朋友心情 +20",()=>act("buy",{item:"gift"})),btn("買零食 🍪","€15 · 隨時吃，飽足 +20",()=>act("buy",{item:"snack"})),btn("🛍️ 造型與擺飾","新衣服、家門口擺飾",()=>shopModal()),btn("逛逛","心情 +6",()=>act("browse")))}
  else{title="路上";note="點地圖上的房子或地點，就會走過去"}
  // 公共場所遇到人：可以擊掌；一起吃飯、玩、加班時在場的人心情都會變好
@@ -302,7 +307,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  for(let i=list.length-1;i>=0;i--)if(/烤地瓜/.test(list[i].label)&&closedMsg("stall"))list.splice(i,1);
  $("here").textContent=title;$("note").textContent=note;
  // 內容沒變就不重畫，避免按到一半按鈕被換掉
- if(!sel){const t=nextStep(r,p);if(t)list.unshift({...t,g:"tip"})}
+ if(!sel){const t=nextStep(r,p);if(t){list.unshift({...t,g:"tip"});track("show",t.label)}}
  const dg=p=="home:"+me?"self":p&&p.startsWith("home:")?"friend":"place";list.forEach(b=>{if(!b.g)b.g=/^(走|去 |取消)/.test(b.label)?"move":dg});
  const order=[...new Set(list.map(b=>b.g))],multi=order.length>1;
  const html=order.map(g=>(multi?`<div class="grp">${GROUP[g]}</div>`:"")+list.map((b,i)=>{if(b.g!=g)return "";
@@ -311,7 +316,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
    const cost=+((b.sub||"").match(/€(\d+)(?!\d)/)||[])[1]||0,poor=cost&&/€\d+/.test(b.sub)&&!/\+€/.test(b.sub)&&r.money<cost,bad=/扁|雞蛋|臭屁|惡作劇|叫醒/.test(b.label);
    return `<button data-i="${i}" class="act${b.g=="tip"?" cta":""}${bad?" bad":""}${poor?" poor":""}${b.g=="move"?" ghost":""}"><span class="ai">${ic}</span><span class="at"><b>${esc(txt)}</b>${b.sub||poor?`<small>${poor?`錢不夠（要 €${cost}）`:b.sub}</small>`:""}</span></button>`}).join("")).join("");
  panelFns=list;if(html!=lastPanel){lastPanel=html;patchList($("acts"),html)}}
-$("acts").addEventListener("click",ev=>{const b=ev.target.closest("button[data-i]");if(!b||busy)return;const f=panelFns[b.dataset.i];if(f)press(b,f.fn)});
+$("acts").addEventListener("click",ev=>{const b=ev.target.closest("button[data-i]");if(!b||busy)return;const f=panelFns[b.dataset.i];if(f){if(f.g=="tip")track("click",f.label);press(b,f.fn)}});
 let lastNeeds="";
 function renderNeeds(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now());
  const html=NEEDS.map(k=>{const v=Math.round(r[k]),[ic,nm]=NEED_INFO[k];return `<div class="need${v<20?" low":""}" title="${nm} ${v}"><span>${ic}</span><i><b style="width:${v}%;background:${v<20?"var(--bad)":v<50?"var(--warn)":"var(--good)"}"></b></i><small><em>${nm} </em>${v}</small></div>`}).join("")+`<div class="need money"><span>💰</span><small>€${r.money}${(r.items||{}).gift?` · 🎁${r.items.gift}`:""}${(r.items||{}).snack?` · 🍪${r.items.snack}`:""}</small></div>`;
@@ -358,7 +363,7 @@ function renderFeed(){renderRank();renderPeople();const all=((S&&S.events)||[]).
 // 面對面才能做的事：擊掌、扁他、和好
 function faceActs(id){return faceActs0(id).map(b=>({...b,g:"face"}))}
 function faceActs0(id){const t=R[id],b=bondWith(id),mp=R[me].place,coop=[];
- if(mp=="office"&&t.place=="office")coop.push(btn(`和 ${t.name} 一起加班 💼`,"兩人各 +€200 · 4 小時一次",()=>act("cowork",{target:id})));
+ if(mp=="office"&&t.place=="office")coop.push(btn(`和 ${t.name} 一起加班 💼`,"兩人各 +€200 · 2 小時一次",()=>act("cowork",{target:id})));
  if(mp=="restaurant"&&t.place=="restaurant")coop.push(btn(`請 ${t.name} 吃大餐 🍖`,"€60 · 兩人飽足 +70",()=>act("feast",{target:id})));
  const out=[...coop,btn(`和 ${t.name} 擊掌 🙌`,"兩人心情 +8 · 好感 +2",()=>act("greet",{target:id})),
   btn(`扁 ${t.name} 👊`,b>=30?"好麻吉之間是打打鬧鬧 · 好感 +1":"比精力、心情和運氣 · 好感 −6",()=>act("fight",{target:id}))];
@@ -410,9 +415,9 @@ const cardHTML=(n,hidden)=>`<span class="pcard${hidden?" back":""}">${hidden?"?"
 let gameTab="rps",gameBet=10;
 async function playGame(game,extra={}){const res=await rpc("town_game",{rid:me,pin,game,bet:gameBet,...extra});R[me].money=res.money;renderNeeds();return res.game}
 function gamesModal(){$("modal").classList.remove("hide");const tabs=[["rps","✊ 猜拳"],["hl","🃏 比大小"],["wheel","🎡 輪盤"],["bj","♠ 21點"]];
- $("mbody").innerHTML=`<h2>🕹️ 小豬街機</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b> · 押注 €5～€50 · 一天 30 局</p>
+ $("mbody").innerHTML=`<h2>🕹️ 小豬街機</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b> · 押注 €5～€100 · 一天 60 局</p>
   <div class="tabs">${tabs.map(([k,l])=>`<button data-g="${k}" class="${gameTab==k?"on":""}">${l}</button>`).join("")}</div>
-  <div class="chips">押注 ${[5,10,20,50].map(b=>`<button data-bet="${b}" class="${gameBet==b?"on":""}">€${b}</button>`).join("")}</div>
+  <div class="chips">押注 ${[5,10,20,50,100].map(b=>`<button data-bet="${b}" class="${gameBet==b?"on":""}">€${b}</button>`).join("")}</div>
   <div id="gArea" class="garea"></div><div class="row"><button id="mc">離開街機</button></div>`;
  $("mc").onclick=()=>{$("modal").classList.add("hide");refresh().catch(()=>{})};
  $("mbody").querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{gameTab=b.dataset.g;gamesModal()});
@@ -444,7 +449,7 @@ function gamesModal(){$("modal").classList.remove("hide");const tabs=[["rps","�
 // 猜拳戰帖：發起（線上就能下）、應戰
 function duelModal(id,duel){const t=R[id];let bet=20,mv=null;$("modal").classList.remove("hide");
  $("mbody").innerHTML=duel?`<h2>✊ ${esc(t.name)} 向你下戰帖</h2><p>押注 €${duel.bet}，贏的人拿走 €${duel.bet*2}。他已經出好拳了，你出什麼？</p><div class="gbtns">${Object.entries(RPS).map(([k,[ic,n]])=>`<button class="gbig" data-m="${k}">${ic}<span>${n}</span></button>`).join("")}</div><div class="row"><button id="dno">拒絕（他拿回押注）</button><button id="mc">之後再說</button></div>`
-  :`<h2>✊ 向 ${esc(t.name)} 下戰帖</h2><p class="mut">先押錢並出拳，他應戰時出拳就比；24 小時沒回應自動退錢。</p><div class="chips">押注 ${[5,20,50,100].map(b=>`<button data-bet="${b}" class="${bet==b?"on":""}">€${b}</button>`).join("")}</div><div class="gbtns">${Object.entries(RPS).map(([k,[ic,n]])=>`<button class="gbig" data-m="${k}">${ic}<span>${n}</span></button>`).join("")}</div><div class="row"><button id="mc">取消</button></div>`;
+  :`<h2>✊ 向 ${esc(t.name)} 下戰帖</h2><p class="mut">先押錢並出拳，他應戰時出拳就比；24 小時沒回應自動退錢。</p><div class="chips">押注 ${[5,20,50,100,200].map(b=>`<button data-bet="${b}" class="${bet==b?"on":""}">€${b}</button>`).join("")}</div><div class="gbtns">${Object.entries(RPS).map(([k,[ic,n]])=>`<button class="gbig" data-m="${k}">${ic}<span>${n}</span></button>`).join("")}</div><div class="row"><button id="mc">取消</button></div>`;
  $("mc").onclick=()=>$("modal").classList.add("hide");
  $("mbody").querySelectorAll("[data-bet]").forEach(b=>b.onclick=()=>{bet=+b.dataset.bet;$("mbody").querySelectorAll("[data-bet]").forEach(x=>x.classList.toggle("on",x==b))});
  if($("dno"))$("dno").onclick=async()=>{try{apply(await rpc("town_duel",{rid:me,pin,act:"decline",duel:duel.id}));$("modal").classList.add("hide")}catch(e){toast(e.message)}};
