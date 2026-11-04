@@ -93,7 +93,7 @@ create or replace function public.town_place_name(p text) returns text language 
   select case
     when p like 'home:%' then coalesce((select name from public.town_residents where id = substr(p,6)::bigint), '空屋') || ' 家'
     when p = 'plaza' then '廣場' when p = 'restaurant' then '餐廳' when p = 'market' then '超市'
-    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' else '路上' end
+    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' else '路上' end
 $$;
 create or replace function public.town_name_ok(t text) returns boolean language sql immutable as $$
   select char_length(trim(t)) between 1 and 12 and trim(t) !~ '[<>"]' and not public.has_bad_words(t)
@@ -114,6 +114,7 @@ create or replace function public.town_closed(what text) returns text language s
     when what = 'coffee' and not (h between 7 and 20) then '咖啡廳休息中，營業時間 7:00～21:00'
     when what = 'movie' and not (h between 12 and 23) then '電影院休息中，營業時間 12:00～24:00'
     when what = 'workout' and not (h between 6 and 22) then '健身房休息中，營業時間 6:00～23:00'
+    when what = 'spar' and not (h between 10 and 23) then '格鬥場休息中，營業時間 10:00～24:00'
     else null end
   from (select extract(hour from (now() at time zone 'Asia/Taipei'))::int h) x
 $$;
@@ -359,9 +360,9 @@ begin
   if r.sleeping and act not in ('wake') then raise exception '你在睡覺，先起床'; end if;
   if public.town_closed(case when act = 'obj' then item else act end) is not null then raise exception '%', public.town_closed(case when act = 'obj' then item else act end); end if;
   if act = 'move' then
-    if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym')
+    if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter')
        or (dest ~ '^home:\d+$' and exists (select 1 from public.town_residents where id = substr(dest,6)::bigint and town_id = r.town_id))) then raise exception '去不了那裡'; end if;
-    if px is null or py is null or px < 0 or px > 44 or py < 0 or py > 40 then raise exception '位置不對'; end if;
+    if px is null or py is null or px < 0 or px > 52 or py < 0 or py > 40 then raise exception '位置不對'; end if;
     r.x := px; r.y := py; r.place := dest;
     -- 隨機事件：出門走到外面的地方時偶爾發生（家裡不會）
     if dest !~ '^home:' and random() < .12 then
@@ -376,7 +377,7 @@ begin
       else r.money := r.money + 300; tn := r.name || ' 買刮刮樂中了 €300！🎉'; end if;
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', tn); tn := null;
     end if;
-    if dest in ('plaza','restaurant','market','park','cafe','cinema','gym') then
+    if dest in ('plaza','restaurant','market','park','cafe','cinema','gym','arena','slaughter') then
       select string_agg(name, '、') into others from public.town_residents where town_id = r.town_id and place = dest and id <> rid and not sleeping;
       if others is not null and not exists (select 1 from public.town_events e where e.actor = rid and e.kind = 'meet' and e.at > now() - interval '2 hours') then
         insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'meet', r.name || ' 在' || public.town_place_name(dest) || '遇到了 ' || others);
@@ -422,6 +423,40 @@ begin
         insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 餵了公園的流浪貓，牠一直蹭過來 🐱');
       else r.fun := r.fun + 8; if pa < .15 then r.hygiene := r.hygiene - 10; insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 想摸流浪貓，被抓了一下 🐱💢'); end if; end if;
     else raise exception '這裡沒有這個東西'; end if;
+  elsif act = 'spar' then
+    -- 格鬥場：打擂台挑戰對手，連勝越多對手越強、獎金越高；30 分鐘打一場
+    if r.place <> 'arena' then raise exception '要在格鬥場才能打擂台'; end if;
+    if r.energy < 15 then raise exception '你太累了，打不動'; end if;
+    if (r.items->'cd'->>'spar') is not null and (r.items->'cd'->>'spar')::timestamptz > now() - interval '30 minutes' then raise exception '剛打完一場，喘口氣再上'; end if;
+    r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('spar', now()));
+    n := coalesce((r.items->>'streak')::int,0);
+    pa := 30 + r.energy*.4 + r.fun*.2 + random()*45 + coalesce((r.items->>'fit')::int,0)*2 - case when r.bruised_until > now() then 15 else 0 end;
+    pb := 55 + n*6 + random()*45;
+    tn := (array['沙包王阿肥','鐵拳野豬','蒙面山豬','肌肉豬大哥','傳說中的豬魔王'])[least(5, n/2 + 1)];
+    r.energy := r.energy - 12; r.hunger := r.hunger - 8;
+    if pa >= pb then
+      n := n + 1; r.money := r.money + 30 + n*15; r.fun := r.fun + 15;
+      r.items := jsonb_set(r.items, '{streak}', to_jsonb(n));
+      r.items := jsonb_set(r.items, '{best}', to_jsonb(greatest(n, coalesce((r.items->>'best')::int,0))));
+      insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'spar', r.name || ' 在格鬥場打贏 ' || tn || '，' || n || ' 連勝 🥊 拿到 €' || (30 + n*15));
+    else
+      r.fun := r.fun - 10; r.hygiene := r.hygiene - 10; r.bruised_until := now() + interval '1 hour';
+      r.items := jsonb_set(r.items, '{streak}', to_jsonb(0));
+      if n >= 2 then insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'spar', r.name || ' 的 ' || n || ' 連勝被 ' || tn || ' 終結了 🤕'); end if;
+    end if;
+  elsif act = 'sneak' then
+    -- 屠宰場：溜進去偷飼料，有賺有賠；3 小時一次
+    if r.place <> 'slaughter' then raise exception '要在屠宰場門口'; end if;
+    if r.energy < 10 then raise exception '你太累了，跑不動'; end if;
+    if (r.items->'cd'->>'sneak') is not null and (r.items->'cd'->>'sneak')::timestamptz > now() - interval '3 hours' then raise exception '屠夫還在找你，3 小時後再來'; end if;
+    r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('sneak', now()));
+    pa := random() - coalesce((r.items->>'fit')::int,0)*.01; r.energy := r.energy - 10;
+    if pa < .05 then r.money := r.money + 500; r.fun := r.fun + 30; tn := r.name || ' 溜進屠宰場，翻到屠夫藏的私房錢 €500 💰 全身而退！';
+    elsif pa < .55 then n := 60 + floor(random()*61)::int; r.money := r.money + n; r.fun := r.fun + 20; tn := r.name || ' 溜進屠宰場偷了一袋飼料，轉手賣了 €' || n || ' 🐷💨';
+    elsif pa < .85 then r.energy := r.energy - 15; r.hygiene := r.hygiene - 25; r.fun := r.fun - 10; tn := r.name || ' 被屠夫發現，拿著刀追了三條街 🔪🏃 嚇到腿軟';
+    else n := least(200, r.money / 4); r.money := r.money - n; r.fun := r.fun - 20; r.hygiene := r.hygiene - 20; r.bruised_until := now() + interval '2 hours';
+      tn := r.name || ' 被屠夫抓住，差點被做成香腸 🌭 付了 €' || n || ' 才被放出來'; end if;
+    insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', tn); tn := null;
   elsif act = 'snack' then
     if coalesce((r.items->>'snack')::int,0) < 1 then raise exception '背包裡沒有零食，去超市買'; end if;
     r.items := jsonb_set(r.items, '{snack}', to_jsonb((r.items->>'snack')::int - 1)); r.hunger := r.hunger + 20; r.fun := r.fun + 3;
@@ -481,7 +516,7 @@ begin
     if target is null or target = rid then raise exception '要選一位朋友'; end if;
     select * into t from public.town_residents where id = target and town_id = r.town_id for update;
     if not found then raise exception '找不到這位鄰居'; end if;
-    if exists (select 1 from public.town_events e where e.actor = rid and e.target = t.id and e.kind = act and e.at > now() - case act when 'thank' then interval '12 hours' when 'makeup' then interval '12 hours' when 'fight' then interval '6 hours' when 'cowork' then interval '4 hours' when 'feast' then interval '4 hours' else interval '2 hours' end) then raise exception '剛剛才做過，等一下再來'; end if;
+    if exists (select 1 from public.town_events e where e.actor = rid and e.target = t.id and e.kind = act and e.at > now() - case act when 'thank' then interval '12 hours' when 'makeup' then interval '12 hours' when 'fight' then case when r.place = 'arena' then interval '1 hour' else interval '6 hours' end when 'cowork' then interval '4 hours' when 'feast' then interval '4 hours' else interval '2 hours' end) then raise exception '剛剛才做過，等一下再來'; end if;
     t := public.town_tick(t); tn := t.name; bond := public.town_bond_get(rid, t.id);
     -- 面對面：在同一個地方（不算路上），或在路上距離 2 格以內
     near := (r.place = t.place and r.place <> 'street') or (abs(r.x - t.x) + abs(r.y - t.y) <= 2.5);
@@ -501,7 +536,8 @@ begin
       if pa >= pb then t.fun := t.fun - 12; t.hygiene := t.hygiene - 15; t.bruised_until := now() + interval '2 hours'; r.fun := r.fun + 10;
       else r.fun := r.fun - 12; r.hygiene := r.hygiene - 15; r.bruised_until := now() + interval '2 hours'; t.fun := t.fun + 10; end if;
       -- 好麻吉之間是打打鬧鬧，感情反而更好
-      perform public.town_bond(r.town_id, rid, t.id, case when bond >= 30 then 1 else -6 end);
+      perform public.town_bond(r.town_id, rid, t.id, case when bond >= 30 then 1 when r.place = 'arena' and t.place = 'arena' then -1 else -6 end);
+      if r.place = 'arena' and t.place = 'arena' then if pa >= pb then r.money := r.money + 40; else t.money := t.money + 40; end if; end if;
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act,
         case when bond >= 30 then r.name || ' 和 ' || tn || ' 打打鬧鬧，' || case when pa >= pb then tn else r.name end || ' 被壓在地上求饒 😂'
              when pa >= pb then r.name || ' 把 ' || tn || ' 扁了一頓 👊 ' || tn || ' 鼻青臉腫'
