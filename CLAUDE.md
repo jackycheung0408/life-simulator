@@ -20,6 +20,7 @@
 - 球員一律用英文名字
 - 要擬真，不要偏袒玩家
 - 回覆用繁體中文，簡短
+- 改了檔案分工、部署流程或規則，就順手更新這份 CLAUDE.md（使用者不想手動維護）
 - Supabase 專案 gerqdagicybtyilihvvm；SQL 放在 `supabase/`
 
 ## 改檔習慣
