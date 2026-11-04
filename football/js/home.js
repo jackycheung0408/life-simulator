@@ -55,8 +55,16 @@ function tour(i=0,only=false){const old=document.querySelector(".tour-hi");if(ol
  $("tNext").onclick=()=>tour(only?TOUR.length:i+1);$("tSkip").onclick=()=>tour(TOUR.length)}
 function start(p){P=p;$("home").classList.add("hide");$("game").classList.remove("hide");scrollTo(0,0);renderPlan();render();loop();let seen=null;try{seen=localStorage.getItem("fb-tour")||localStorage.getItem("fb-played")}catch{}if(!seen)setTimeout(()=>tour(0),400)}
 $("draw").onclick=drawCard;$("redraw").onclick=()=>{if(!redraws)return;redraws--;draws=3;drawn.length=0;cfg.card=null;renderCards();toast(`重抽！還剩 ${redraws} 次機會`)};$("noCard").onclick=()=>{cfg.card=null;renderCards()};renderCards();
-$("go").onclick=async()=>{const p=newPlayer(cfg.w,cfg.pos);p.mode=cfg.mode;
- if(cfg.card!==null&&drawn[cfg.card]){const d=drawn[cfg.card];p.pot=d.pot;p.talent=Math.max(30,d.pot-12);p.card=d.r;p.flair=d.flair}p.id=Date.now()+"";starsInit(p,cfg.stars);P=p;await reveal(p);say(`${p.name}出生在${p.c}。`,1);playHit("start");start(p)};
+// ── 球星人生：直接扮演一位真實球星，從出生開始 ──
+const STAR_LIST=ALL_STARS.filter(x=>COUNTRIES.some(c=>c[0]==x[1])).sort((a,b)=>(STAR_BORN[a[0]]||1998)-(STAR_BORN[b[0]]||1998));
+$("starSel").innerHTML=STAR_LIST.map((x,i)=>`<option value="${i}">${STAR_EN[x[0]]||x[0]}（${x[0]}）· ${x[1]} · ${POS[x[2]]} · ${STAR_BORN[x[0]]||"?"}</option>`).join("");
+document.querySelectorAll(".pm").forEach(b=>b.onclick=()=>{document.querySelectorAll(".pm").forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg.star=b.dataset.v?+$("starSel").value:null;$("starBox").classList.toggle("hide",!b.dataset.v)});
+$("starSel").onchange=e=>{cfg.star=+e.target.value};
+$("go").onclick=async()=>{const sx=cfg.star!=null?STAR_LIST[cfg.star]:null;if(sx)BIRTH_Y=STAR_BORN[sx[0]]||BIRTH_Y;
+ const p=sx?newPlayer(sx[1],sx[2]):newPlayer(cfg.w,cfg.pos);p.mode=cfg.mode;
+ if(sx){p.name=STAR_EN[sx[0]]||sx[0];p.realStar=sx[0];p.pot=Math.round(sx[3]+R()*(sx[4]-sx[3]));p.talent=p.pot-10;p.card="球星人生";p.dreamPos=sx[2];p.fam.fan=true;p.touchAge=Math.min(p.touchAge,4)}
+ else if(cfg.card!==null&&drawn[cfg.card]){const d=drawn[cfg.card];p.pot=d.pot;p.talent=Math.max(30,d.pot-12);p.card=d.r;p.flair=d.flair}p.id=Date.now()+"";starsInit(p,cfg.stars);
+ if(sx&&p.stars)p.stars=p.stars.filter(s=>s.real!=sx[0]);P=p;await reveal(p);say(`${p.name}出生在${p.c}。`,1);playHit("start");start(p)};
 // 舊存檔載入時套用新的平衡（只做一次）：能力差距收斂、年薪重算
 const SAVE_VER=2;
 function migrate(p){if((p.ver||1)>=SAVE_VER)return;const fixed=[];
