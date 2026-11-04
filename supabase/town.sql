@@ -198,9 +198,33 @@ $$;
 create or replace function public.town_bond_get(x bigint, y bigint) returns int language sql stable as $$
   select coalesce((select score from public.town_bonds where a = least(x,y) and b = greatest(x,y)), 0)
 $$;
+-- ── 個性特質（items.tr：2 個代號；[] = 跳過；缺值 = 還沒選）與心情（由需求即時算，不存）──
+-- 特質：foodie 吃貨（吃東西飽足 +30%）、athlete 運動家（健身 fit +2、打架／擂台 +5）、social 社交達人（好感增加 +30%）、
+--       workaholic 工作狂（薪水 +10%）、nightowl 夜貓子（22～6 點清醒精力少掉 1/小時）、clean 愛乾淨（清潔掉 70% 速度）、
+--       lucky 幸運兒（路上壞事重擲一次、路邊物件好事機率 ×1.33）、romantic 浪漫（送禮效果加倍）
+-- 心情：五條需求平均 a、最低 m、心情 fun。low：a<35 或 fun<20；annoyed：a<55 或 m<20 或 fun<40；happy：a>=75 且 fun>=65 且 m>=40；其餘 normal
+-- 心情影響：薪水 +10%／0／−5%／−10%；打架與擂台力量 +5／0／−3／−8；好感增加 ×1.2／1／0.8／0.7
+create or replace function public.town_has(r public.town_residents, k text) returns boolean language sql stable as $$
+  select coalesce(jsonb_typeof(r.items->'tr') = 'array' and (r.items->'tr') ? k, false)
+$$;
+create or replace function public.town_mood(r public.town_residents) returns text language sql stable as $$
+  select case when a < 35 or r.fun < 20 then 'low' when a < 55 or m < 20 or r.fun < 40 then 'annoyed'
+    when a >= 75 and r.fun >= 65 and m >= 40 then 'happy' else 'normal' end
+  from (select (r.hunger + r.energy + r.bladder + r.hygiene + r.fun) / 5 a, least(r.hunger, r.energy, r.bladder, r.hygiene, r.fun) m) x
+$$;
+create or replace function public.town_mood_wage(m text) returns int language sql immutable as $$ select case m when 'happy' then 110 when 'annoyed' then 95 when 'low' then 90 else 100 end $$;
+create or replace function public.town_mood_pow(m text) returns int language sql immutable as $$ select case m when 'happy' then 5 when 'annoyed' then -3 when 'low' then -8 else 0 end $$;
+create or replace function public.town_mood_bond(m text) returns int language sql immutable as $$ select case m when 'happy' then 120 when 'annoyed' then 80 when 'low' then 70 else 100 end $$;
+-- 薪水（百分比整數運算，四捨五入；前端 wageOf 要一致）
+create or replace function public.town_pay(base int, m text, workaholic boolean) returns int language sql immutable as $$
+  select (base * public.town_mood_wage(m) * (case when workaholic then 110 else 100 end) * 2 + 10000) / 20000
+$$;
+-- 好感增加的倍率由 town_act 開頭存在交易設定 town.bm（百分比 ×100：心情 × 社交達人）；只放大正數
 create or replace function public.town_bond(tid text, x bigint, y bigint, d int) returns void language plpgsql as $$
-declare o int := public.town_bond_get(x,y); n int := greatest(-100, least(100, o + d)); na text; nb text;
+declare o int := public.town_bond_get(x,y); n int; na text; nb text; bmp int := coalesce(nullif(current_setting('town.bm', true), ''), '10000')::int;
 begin
+  if d > 0 then d := greatest(1, (d * bmp * 2 + 10000) / 20000); end if;
+  n := greatest(-100, least(100, o + d));
   insert into public.town_bonds(town_id,a,b,score) values (tid, least(x,y), greatest(x,y), n) on conflict (a,b) do update set score = n;
   if public.town_tier(o) <> public.town_tier(n) and public.town_tier(n) <> '普通鄰居' then
     select name into na from public.town_residents where id = town_bond.x; select name into nb from public.town_residents where id = town_bond.y;
@@ -255,7 +279,7 @@ end $$;
 -- 需求隨時間變化（每小時）；醒著掉得快、睡覺時精力回升。累到 0 會原地睡著、膀胱到 0 會尿褲子
 create or replace function public.town_tick(r public.town_residents) returns public.town_residents
 language plpgsql as $$
-declare h real := least(72, greatest(0, extract(epoch from now() - r.updated_at) / 3600)); sh real := 0; ah real := 0; t timestamptz; step real; hr int; d record; nightoff boolean := false;
+declare h real := least(72, greatest(0, extract(epoch from now() - r.updated_at) / 3600)); sh real := 0; ah real := 0; ahn real := 0; t timestamptz; step real; hr int; d record; nightoff boolean := false;
 begin
   if h <= 0 then return r; end if;
   -- 每 15 分鐘一段：睡著的、或台灣時間 0～7 點且已經 30 分鐘沒動作（等於回家睡了）照睡覺算，其他照醒著算
@@ -263,11 +287,11 @@ begin
   while t < now() loop
     step := least(.25, extract(epoch from now() - t) / 3600);
     hr := extract(hour from (t at time zone 'Asia/Taipei'))::int;
-    if r.sleeping then sh := sh + step; elsif hr < 7 and t > r.seen_at + interval '30 minutes' then sh := sh + step; nightoff := true; else ah := ah + step; end if;
+    if r.sleeping then sh := sh + step; elsif hr < 7 and t > r.seen_at + interval '30 minutes' then sh := sh + step; nightoff := true; else ah := ah + step; if hr >= 22 or hr < 6 then ahn := ahn + step; end if; end if;
     t := t + make_interval(secs => step*3600);
   end loop;
   -- 睡覺也會餓、會想上廁所、會出汗（睡一整晚醒來就是餓、憋、有點臭）；醒著精力掉比較慢，睡飽才會滿
-  r.energy := r.energy + 20*sh - 2.5*ah; r.hunger := r.hunger - 2.5*sh - 4*ah; r.bladder := r.bladder - 3.5*sh - 5*ah; r.hygiene := r.hygiene - 1.2*sh - 2.5*ah; r.fun := r.fun - .8*sh - 2*ah;
+  r.energy := r.energy + 20*sh - 2.5*ah + case when public.town_has(r,'nightowl') then 1.0*ahn else 0 end; r.hunger := r.hunger - 2.5*sh - 4*ah; r.bladder := r.bladder - 3.5*sh - 5*ah; r.hygiene := r.hygiene - (1.2*sh + 2.5*ah) * case when public.town_has(r,'clean') then .7 else 1 end; r.fun := r.fun - .8*sh - 2*ah;
   -- 又餓又髒又憋的時候心情掉更快
   if ah > 0 and (r.hunger < 20 or r.bladder < 20 or r.hygiene < 20) then r.fun := r.fun - 1.5*ah; end if;
   hr := extract(hour from (now() at time zone 'Asia/Taipei'))::int;
@@ -474,9 +498,12 @@ drop function if exists public.town_act(bigint,text,text,bigint,real,real,text);
 create or replace function public.town_act(rid bigint, pin text, act text, target bigint default null, px real default null, py real default null, dest text default null, item text default null, note text default null) returns json
 language plpgsql security definer set search_path = public as $$
 declare r public.town_residents; t public.town_residents; others text; tn text; n int; w int; near boolean; pa real; pb real; bond int; m real; pub text[] := array['plaza','restaurant','market','park','office'];
+  fm real := 1; gm int := 1; mo text; lk boolean;
 begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
+  fm := case when public.town_has(r,'foodie') then 1.3 else 1 end; gm := case when public.town_has(r,'romantic') then 2 else 1 end; lk := public.town_has(r,'lucky'); mo := public.town_mood(r);
+  perform set_config('town.bm', (public.town_mood_bond(mo) * case when public.town_has(r,'social') then 130 else 100 end)::text, true);
   if r.sleeping and act not in ('wake') then raise exception '你在睡覺，先起床'; end if;
   if public.town_closed(case when act = 'obj' then item else act end) is not null then raise exception '%', public.town_closed(case when act = 'obj' then item else act end); end if;
   if public.town_is_off(r.town_id, public.town_feature(case when act = 'move' then dest else act end)) then raise exception '這個小鎮沒有開這個設施'; end if;
@@ -488,6 +515,7 @@ begin
     -- 隨機事件：出門走到外面的地方時偶爾發生（家裡不會）
     if dest !~ '^home:' and random() < .12 then
       pa := random();
+      if lk and ((pa >= .25 and pa < .52) or (pa >= .67 and pa < .80) or (pa >= .90 and pa < .97)) then pa := random(); end if;
       if pa < .25 then n := 5 + floor(random()*26)::int; r.money := r.money + n; tn := r.name || ' 在路上撿到 €' || n || ' 💰';
       elsif pa < .40 then r.hygiene := r.hygiene - 20; tn := r.name || ' 一不小心踩到狗屎 💩';
       elsif pa < .52 then r.hygiene := r.hygiene - 15; tn := r.name || ' 被鳥大便打中頭 🐦';
@@ -507,7 +535,7 @@ begin
     end if;
   elsif act in ('eat','toilet','shower','tv','sleep','nap') then
     if r.place <> 'home:' || rid then raise exception '要先回家'; end if;
-    if act = 'eat' then if r.money < 10 then raise exception '錢不夠買食材，去公司打工吧'; end if; r.hunger := r.hunger + 40; r.energy := r.energy + 5; r.money := r.money - 10;
+    if act = 'eat' then if r.money < 10 then raise exception '錢不夠買食材，去公司打工吧'; end if; r.hunger := r.hunger + 40*fm; r.energy := r.energy + 5; r.money := r.money - 10;
     elsif act = 'toilet' then r.bladder := 100;
     elsif act = 'shower' then
       if (r.items->'cd'->>'shower') is not null and (r.items->'cd'->>'shower')::timestamptz > now() - interval '10 minutes' then raise exception '剛洗完澡，等一下再洗'; end if;
@@ -524,7 +552,7 @@ begin
     if not public.town_obj_near(item, r.x, r.y, r.place) then raise exception '要走到旁邊才能用'; end if;
     if (r.items->'cd'->>item) is not null and (r.items->'cd'->>item)::timestamptz > now() - interval '10 minutes' then raise exception '剛剛才用過，等一下再來'; end if;
     r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object(item, now()));
-    pa := random();
+    pa := random(); if lk and item <> 'cat' then pa := pa * .75; end if;
     if item = 'vend' then
       if r.money < 10 then raise exception '錢不夠，一罐 €10'; end if; r.money := r.money - 10; r.energy := r.energy + 12; r.fun := r.fun + 3;
       if pa < .08 then r.energy := r.energy + 12; insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 投了一罐飲料，結果掉出兩罐 🥤🥤'); end if;
@@ -532,7 +560,7 @@ begin
       if pa < .05 then r.items := jsonb_set(r.items, '{gift}', to_jsonb(coalesce((r.items->>'gift')::int,0) + 1)); insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 撿垃圾時發現一個沒拆的禮物 🎁');
       elsif pa < .25 then n := 10 + floor(random()*21)::int; r.money := r.money + n; insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 撿垃圾時撿到 €' || n || ' 💰'); end if;
     elsif item = 'stall' then
-      if r.money < 8 then raise exception '錢不夠，烤地瓜 €8'; end if; r.money := r.money - 8; r.hunger := r.hunger + 25; r.fun := r.fun + 3;
+      if r.money < 8 then raise exception '錢不夠，烤地瓜 €8'; end if; r.money := r.money - 8; r.hunger := r.hunger + 25*fm; r.fun := r.fun + 3;
     elsif item = 'well' then
       if r.money < 1 then raise exception '連 €1 都沒有了'; end if; r.money := r.money - 1;
       if pa < .1 then r.fun := r.fun + 20; r.money := r.money + 50; insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', r.name || ' 在小豬噴水池許願，願望成真，天上掉下 €50 ✨');
@@ -573,7 +601,7 @@ begin
     if (r.items->'cd'->>'spar') is not null and (r.items->'cd'->>'spar')::timestamptz > now() - interval '15 minutes' then raise exception '剛打完一場，喘口氣再上'; end if;
     r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('spar', now()));
     n := coalesce((r.items->>'streak')::int,0);
-    pa := 30 + r.energy*.4 + r.fun*.2 + random()*45 + coalesce((r.items->>'fit')::int,0)*2 - case when r.bruised_until > now() then 15 else 0 end;
+    pa := 30 + r.energy*.4 + r.fun*.2 + random()*45 + coalesce((r.items->>'fit')::int,0)*2 - case when r.bruised_until > now() then 15 else 0 end + public.town_mood_pow(mo) + case when public.town_has(r,'athlete') then 5 else 0 end;
     pb := 55 + n*6 + random()*45;
     tn := (array['沙包王阿肥','鐵拳野豬','蒙面山豬','肌肉豬大哥','傳說中的豬魔王'])[least(5, n/2 + 1)];
     r.energy := r.energy - 12; r.hunger := r.hunger - 8;
@@ -602,7 +630,7 @@ begin
     insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,rid,'luck', tn); tn := null;
   elsif act = 'snack' then
     if coalesce((r.items->>'snack')::int,0) < 1 then raise exception '背包裡沒有零食，去超市買'; end if;
-    r.items := jsonb_set(r.items, '{snack}', to_jsonb((r.items->>'snack')::int - 1)); r.hunger := r.hunger + 20; r.fun := r.fun + 3;
+    r.items := jsonb_set(r.items, '{snack}', to_jsonb((r.items->>'snack')::int - 1)); r.hunger := r.hunger + 20*fm; r.fun := r.fun + 3;
   elsif act = 'buy' and (item like 'w:%' or item like 'd:%') then
     if r.place <> 'market' then raise exception '要在超市才能買'; end if;
     select price into n from public.town_shop where id = substr(item,3) and kind = case when item like 'w:%' then 'wear' else 'deco' end and price > 0;
@@ -628,10 +656,10 @@ begin
   elsif act in ('dine','work','play','browse','coffee','movie','workout') then
     if (act = 'dine' and r.place <> 'restaurant') or (act = 'work' and r.place <> 'office') or (act = 'play' and r.place not in ('park','plaza')) or (act = 'browse' and r.place <> 'market')
        or (act = 'coffee' and r.place <> 'cafe') or (act = 'movie' and r.place <> 'cinema') or (act = 'workout' and r.place <> 'gym') then raise exception '不在那個地方'; end if;
-    if act = 'dine' then if r.money < 30 then raise exception '錢不夠，去公司打工吧'; end if; r.items := jsonb_set(r.items, '{meals}', to_jsonb(coalesce((r.items->>'meals')::int,0) + 1)); r.hunger := r.hunger + 55; r.energy := r.energy + 8; r.fun := r.fun + 10; r.money := r.money - 30;
+    if act = 'dine' then if r.money < 30 then raise exception '錢不夠，去公司打工吧'; end if; r.items := jsonb_set(r.items, '{meals}', to_jsonb(coalesce((r.items->>'meals')::int,0) + 1)); r.hunger := r.hunger + 55*fm; r.energy := r.energy + 8; r.fun := r.fun + 10; r.money := r.money - 30;
     elsif act = 'work' then if r.energy < 15 then raise exception '太累了，先回家睡覺'; end if;
       if (r.items->'cd'->>'work') is not null and (r.items->'cd'->>'work')::timestamptz > now() - interval '1 hour' then raise exception '剛下班，1 小時後才能再打工'; end if;
-      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('work', now())); n := coalesce((r.items->>'works')::int,0); w := public.town_wage(public.town_job_lv(n));
+      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('work', now())); n := coalesce((r.items->>'works')::int,0); w := public.town_pay(public.town_wage(public.town_job_lv(n)), mo, public.town_has(r,'workaholic'));
       r.items := jsonb_set(r.items, '{works}', to_jsonb(n + 1)); r.money := r.money + w; r.energy := r.energy - 15; r.fun := r.fun - 10; r.hunger := r.hunger - 8;
       insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'work', r.name || ' 打工賺了 €' || w);
       if public.town_job_lv(n + 1) > public.town_job_lv(n) then
@@ -645,7 +673,7 @@ begin
       elsif act = 'movie' then if r.money < 25 then raise exception '錢不夠，電影票 €25'; end if; r.money := r.money - 25; r.fun := r.fun + 35; r.energy := r.energy - 5;
       else if r.energy < 15 then raise exception '太累了，先休息'; end if; r.energy := r.energy - 15; r.hunger := r.hunger - 10; r.hygiene := r.hygiene - 15; r.fun := r.fun + 10;
         -- 健身：越練打架越強（最多 +20）
-        r.items := jsonb_set(r.items, '{fit}', to_jsonb(least(10, coalesce((r.items->>'fit')::int,0) + 1)));
+        r.items := jsonb_set(r.items, '{fit}', to_jsonb(least(10, coalesce((r.items->>'fit')::int,0) + case when public.town_has(r,'athlete') then 2 else 1 end)));
       end if;
     else r.fun := r.fun + 6; end if;
     -- 有人在同一個地方：大家一起做，在場的人心情都變好
@@ -676,9 +704,9 @@ begin
       -- 扁他：比精力、心情和運氣；被他欺負過（3 天內）報仇加成；鼻青臉腫的人比較弱
       if not near or t.sleeping then raise exception '要和 % 面對面，而且他醒著', tn; end if;
       if r.energy < 10 then raise exception '你太累了，打不動'; end if;
-      pa := 30 + r.energy*.4 + r.fun*.2 + random()*45 + coalesce((r.items->>'fit')::int,0)*2 - case when r.bruised_until > now() then 15 else 0 end
+      pa := 30 + r.energy*.4 + r.fun*.2 + random()*45 + coalesce((r.items->>'fit')::int,0)*2 - case when r.bruised_until > now() then 15 else 0 end + public.town_mood_pow(mo) + case when public.town_has(r,'athlete') then 5 else 0 end
         + case when exists (select 1 from public.town_events e where e.actor = t.id and e.target = rid and e.kind in ('fight','egg','prank') and e.at > now() - interval '3 days') then 15 else 0 end;
-      pb := 30 + t.energy*.4 + t.fun*.2 + random()*45 + coalesce((t.items->>'fit')::int,0)*2 - case when t.bruised_until > now() then 15 else 0 end;
+      pb := 30 + t.energy*.4 + t.fun*.2 + random()*45 + coalesce((t.items->>'fit')::int,0)*2 - case when t.bruised_until > now() then 15 else 0 end + public.town_mood_pow(public.town_mood(t)) + case when public.town_has(t,'athlete') then 5 else 0 end;
       r.energy := r.energy - 8; t.energy := t.energy - 8;
       if pa >= pb then t.fun := t.fun - 12; t.hygiene := t.hygiene - 15; t.bruised_until := now() + interval '2 hours'; r.fun := r.fun + 10;
       else r.fun := r.fun - 12; r.hygiene := r.hygiene - 15; r.bruised_until := now() + interval '2 hours'; t.fun := t.fun + 10; end if;
@@ -699,12 +727,12 @@ begin
       if act = 'cowork' then
         if r.place <> 'office' then raise exception '要一起在公司才能加班'; end if;
         if r.energy < 15 or t.energy < 15 then raise exception '有人太累了，加不了班'; end if;
-        r.money := r.money + 2 * public.town_wage(public.town_job_lv(coalesce((r.items->>'works')::int,0))); t.money := t.money + 2 * public.town_wage(public.town_job_lv(coalesce((t.items->>'works')::int,0))); r.energy := r.energy - 15; t.energy := t.energy - 15; perform public.town_bond(r.town_id, rid, t.id, 3);
+        r.money := r.money + 2 * public.town_pay(public.town_wage(public.town_job_lv(coalesce((r.items->>'works')::int,0))), mo, public.town_has(r,'workaholic')); t.money := t.money + 2 * public.town_pay(public.town_wage(public.town_job_lv(coalesce((t.items->>'works')::int,0))), public.town_mood(t), public.town_has(t,'workaholic')); r.energy := r.energy - 15; t.energy := t.energy - 15; perform public.town_bond(r.town_id, rid, t.id, 3);
         insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 和 ' || tn || ' 一起加班，薪水加倍 💼');
       else
         if r.place <> 'restaurant' then raise exception '要一起在餐廳才能請吃大餐'; end if;
         if r.money < 60 then raise exception '錢不夠，大餐要 €60'; end if;
-        r.money := r.money - 60; r.items := jsonb_set(r.items, '{meals}', to_jsonb(coalesce((r.items->>'meals')::int,0) + 1)); r.hunger := r.hunger + 70; t.hunger := t.hunger + 70; r.fun := r.fun + 15; t.fun := t.fun + 15; perform public.town_bond(r.town_id, rid, t.id, 4);
+        r.money := r.money - 60; r.items := jsonb_set(r.items, '{meals}', to_jsonb(coalesce((r.items->>'meals')::int,0) + 1)); r.hunger := r.hunger + 70*fm; t.hunger := t.hunger + 70; r.fun := r.fun + 15; t.fun := t.fun + 15; perform public.town_bond(r.town_id, rid, t.id, 4);
         insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 請 ' || tn || ' 吃大餐 🍖');
       end if;
     elsif act = 'greet' then
@@ -731,14 +759,14 @@ begin
       else
         if coalesce((r.items->>'gift')::int,0) < 1 then raise exception '背包裡沒有禮物，去超市買'; end if;
         if r.money < 5 then raise exception '寄送要 €5 運費'; end if;
-        r.items := jsonb_set(r.items, '{gift}', to_jsonb((r.items->>'gift')::int - 1)); r.money := r.money - 5; t.fun := t.fun + 20; perform public.town_bond(r.town_id, rid, t.id, 5);
+        r.items := jsonb_set(r.items, '{gift}', to_jsonb((r.items->>'gift')::int - 1)); r.money := r.money - 5; t.fun := t.fun + 20*gm; perform public.town_bond(r.town_id, rid, t.id, 5*gm);
         insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 寄了一份禮物給 ' || tn || ' 📦');
       end if;
     else
       if r.place <> 'home:' || target then raise exception '要先走到他家'; end if;
       if act = 'gift' then
         if coalesce((r.items->>'gift')::int,0) < 1 then raise exception '背包裡沒有禮物，去超市買'; end if;
-        r.items := jsonb_set(r.items, '{gift}', to_jsonb((r.items->>'gift')::int - 1)); t.fun := t.fun + 20; r.fun := r.fun + 5; perform public.town_bond(r.town_id, rid, t.id, 5);
+        r.items := jsonb_set(r.items, '{gift}', to_jsonb((r.items->>'gift')::int - 1)); t.fun := t.fun + 20*gm; r.fun := r.fun + 5; perform public.town_bond(r.town_id, rid, t.id, 5*gm);
         insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || case when t.place = 'home:' || target then ' 送了一份禮物給 ' || tn || ' 🎁' else ' 在 ' || tn || ' 家門口放了一份禮物 🎁' end);
       elsif act = 'egg' then
         if t.place = 'home:' || target then t.hygiene := t.hygiene - 10; t.fun := t.fun - 5; end if; r.fun := r.fun + 8;
@@ -796,6 +824,24 @@ revoke all on function public.town_wish(bigint,text,text) from public;
 grant execute on function public.town_wish(bigint,text,text) to anon, authenticated;
 revoke all on function public.town_job_lv(int), public.town_job_name(int), public.town_wage(int), public.town_wish_ms(text), public.town_wish_titles(text),
   public.town_wish_val(public.town_residents,text), public.town_wish_check(public.town_residents) from public, anon, authenticated;
+
+-- 選個性特質（挑 2 個，或跳過 = 空陣列；選過就不能改）
+create or replace function public.town_traits(rid bigint, pin text, ks text[]) returns json
+language plpgsql security definer set search_path = public as $$
+declare r public.town_residents;
+begin
+  r := public.town_auth(rid, pin);
+  if r.id is null then return json_build_object('error','密碼不對'); end if;
+  if jsonb_typeof(r.items->'tr') = 'array' and jsonb_array_length(r.items->'tr') > 0 then raise exception '你已經選過特質了'; end if;
+  ks := coalesce(ks, '{}');
+  if cardinality(ks) not in (0,2) then raise exception '挑 2 個特質，或先跳過'; end if;
+  if cardinality(ks) = 2 and (ks[1] = ks[2] or exists (select 1 from unnest(ks) k where k not in ('foodie','athlete','social','workaholic','nightowl','clean','lucky','romantic'))) then raise exception '沒有這個特質'; end if;
+  update public.town_residents set items = jsonb_set(items, '{tr}', to_jsonb(ks)) where id = rid;
+  return public.town_state(r.town_id);
+end $$;
+revoke all on function public.town_traits(bigint,text,text[]) from public;
+grant execute on function public.town_traits(bigint,text,text[]) to anon, authenticated;
+revoke all on function public.town_has(public.town_residents,text), public.town_mood(public.town_residents), public.town_mood_wage(text), public.town_mood_pow(text), public.town_mood_bond(text), public.town_pay(int,text,boolean) from public, anon, authenticated;
 
 -- 一次性補算：舊居民的累計打工次數（從歷史事件）＋「元老居民」稱號。用 town_migrations 記錄，只做一次，不動錢和數值
 create table if not exists public.town_migrations (id text primary key);
