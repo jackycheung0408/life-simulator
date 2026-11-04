@@ -312,7 +312,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  else if(p=="cafe"){title="咖啡廳";list.push(btn("喝咖啡 ☕","€15 · 精力 +50 · 膀胱 −10 · 30 分鐘一次",()=>act("coffee")))}
  else if(p=="cinema"){title="電影院";list.push(btn("看電影 🎬","€25 · 心情 +35 · 1 小時一次",()=>act("movie")))}
  else if(p=="gym"){title="健身房";list.push(btn("健身 🏋️",`精力 −15 · 心情 +10 · 打架更強（${Math.min(10,(r.items||{}).fit||0)}/10）`,()=>act("workout")))}
- else if(p=="arena"){title="格鬥場";const it=r.items||{};list.push(btn("打擂台 🥊",`精力 −12 · 贏了拿獎金、連勝越多越貴 · 目前 ${it.streak||0} 連勝（最高 ${it.best||0}）`,()=>act("spar")));note="在這裡點別人可以約打：30 分鐘就能再打一次、贏的拿 €40、好感只扣 1"}
+ else if(p=="arena"){title="格鬥場";const it=r.items||{};list.push(btn("打擂台 🥊",`精力 −12 · 贏了拿獎金、連勝越多越貴 · 目前 ${it.streak||0} 連勝（最高 ${it.best||0}）`,()=>act("spar")));note="在這裡點別人可以約打：5 分鐘就能再打一次、贏的拿 €20（每人 30 分鐘領一次）、好感只扣 1"}
  else if(p=="slaughter"){title="屠宰場";list.push(btn("溜進去偷飼料 🔪","買通守衛 €40 · 精力 −10 · 約四成賺 €50～90 · 可能被屠夫追、被抓去賠 €120 · 1 小時一次",()=>act("sneak")));note="健身越多，越跑得掉"}
  else if(p=="market"){title="超市";list.push(btn("買禮物 🎁","€20 · 送朋友心情 +20",()=>act("buy",{item:"gift"})),btn("買零食 🍪","€15 · 隨時吃，飽足 +20",()=>act("buy",{item:"snack"})),btn("🛍️ 造型與擺飾","新衣服、家門口擺飾",()=>shopModal()),btn("逛逛","心情 +6",()=>act("browse")))}
  else{title="路上";note="點地圖上的房子或地點，就會走過去"}

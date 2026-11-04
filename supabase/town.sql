@@ -893,7 +893,7 @@ begin
     if target is null or target = rid then raise exception '要選一位朋友'; end if;
     select * into t from public.town_residents where id = target and town_id = r.town_id for update;
     if not found then raise exception '找不到這位鄰居'; end if;
-    if exists (select 1 from public.town_events e where e.actor = rid and e.target = t.id and e.kind = act and e.at > now() - case act when 'thank' then interval '6 hours' when 'makeup' then interval '6 hours' when 'fight' then case when r.place = 'arena' then interval '30 minutes' else interval '2 hours' end when 'cowork' then interval '2 hours' when 'feast' then interval '2 hours' else interval '1 hour' end) then raise exception '剛剛才做過，等一下再來'; end if;
+    if exists (select 1 from public.town_events e where e.actor = rid and e.target = t.id and e.kind = act and e.at > now() - case act when 'thank' then interval '2 hours' when 'makeup' then interval '2 hours' when 'fight' then case when r.place = 'arena' then interval '5 minutes' else interval '10 minutes' end when 'egg' then interval '10 minutes' when 'prank' then interval '10 minutes' when 'cowork' then interval '1 hour' when 'feast' then interval '1 hour' else interval '30 minutes' end) then raise exception '剛剛才做過，等一下再來'; end if;
     t := public.town_tick(t); tn := t.name; bond := public.town_bond_get(rid, t.id);
     -- 面對面：在同一個地方（不算路上），或在路上距離 2 格以內
     near := (r.place = t.place and r.place <> 'street') or (abs(r.x - t.x) + abs(r.y - t.y) <= 2.5);
@@ -914,7 +914,14 @@ begin
       else r.fun := r.fun - 12; r.hygiene := r.hygiene - 15; r.bruised_until := now() + interval '2 hours'; t.fun := t.fun + 10; end if;
       -- 好麻吉之間是打打鬧鬧，感情反而更好
       perform public.town_bond(r.town_id, rid, t.id, case when bond >= 30 then 1 when r.place = 'arena' and t.place = 'arena' then -1 else -6 end);
-      if r.place = 'arena' and t.place = 'arena' then if pa >= pb then r.money := r.money + 40; else t.money := t.money + 40; end if; end if;
+      -- 擂台上的友誼賽：贏的人 €20，每人 30 分鐘最多領一次（不然兩個人互打就能無限印錢）
+      if r.place = 'arena' and t.place = 'arena' then
+        if pa >= pb and not (r.items->'cd'->>'afp' is not null and (r.items->'cd'->>'afp')::timestamptz > now() - interval '30 minutes') then
+          r.money := r.money + 20; r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('afp', now()));
+        elsif pa < pb and not (t.items->'cd'->>'afp' is not null and (t.items->'cd'->>'afp')::timestamptz > now() - interval '30 minutes') then
+          t.money := t.money + 20; t.items := jsonb_set(t.items, '{cd}', coalesce(t.items->'cd','{}'::jsonb) || jsonb_build_object('afp', now()));
+        end if;
+      end if;
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act,
         case when bond >= 30 then r.name || ' 和 ' || tn || ' 打打鬧鬧，' || case when pa >= pb then tn else r.name end || ' 被壓在地上求饒 😂'
              when pa >= pb then r.name || ' 把 ' || tn || ' 扁了一頓 👊 ' || tn || ' 鼻青臉腫'
