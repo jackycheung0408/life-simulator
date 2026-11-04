@@ -307,7 +307,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
    if(!t.sleeping)list.push(btn("串門子","兩人心情 +15",()=>act("visit",{target:id})));list.push(btn("惡作劇","放個臭屁 💨 · 好感 −3",()=>act("prank",{target:id})),btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})));
    if(!t.sleeping)list.push(...faceActs(id))}}
  else if(p=="restaurant"){title="餐廳";list.push(btn("吃一頓","飽足 +55 · 精力 +20 · 心情 +10 · €30",()=>act("dine")));note="朋友也在的話，點他可以請吃大餐"}
- else if(p=="office"){title="公司";list.push(btn("打工",`+€${myWage()} · 1 小時一次 · 累`,()=>act("work")));note=`今天已打工 ${workToday(R[me])} 次，目前薪水 ${workPct(workToday(R[me]))}%（前 4 次全額、5～8 次 50%、之後 25%）。有同事在的話，點他可以一起加班，薪水加倍`}
+ else if(p=="office"){title="公司";list.push(btn("打工",`+€${myWage()} · 隨時可打 · 累`,()=>act("work")));note=`今天已打工 ${workToday(R[me])} 次，目前薪水 ${workPct(workToday(R[me]))}%（前 4 次全額、5～8 次 50%、9～12 次 25%，一天最多 12 次）。有同事在的話，點他可以一起加班，薪水加倍`}
  else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")));if(p=="plaza"&&isOn("arcade"))list.push(btn("小豬街機 🕹️","猜拳、比大小、命運輪盤、21 點",()=>gamesModal()))}
  else if(p=="cafe"){title="咖啡廳";list.push(btn("喝咖啡 ☕","€15 · 精力 +50 · 膀胱 −10 · 30 分鐘一次",()=>act("coffee")))}
  else if(p=="cinema"){title="電影院";list.push(btn("看電影 🎬","€25 · 心情 +35 · 1 小時一次",()=>act("movie")))}

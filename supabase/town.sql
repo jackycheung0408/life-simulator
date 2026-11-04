@@ -858,7 +858,7 @@ begin
        or (act = 'coffee' and r.place <> 'cafe') or (act = 'movie' and r.place <> 'cinema') or (act = 'workout' and r.place <> 'gym') then raise exception '不在那個地方'; end if;
     if act = 'dine' then if r.money < 30 then raise exception '錢不夠，去公司打工吧'; end if; r.items := jsonb_set(r.items, '{meals}', to_jsonb(coalesce((r.items->>'meals')::int,0) + 1)); r.hunger := r.hunger + 55*fm; r.energy := r.energy + 20; r.fun := r.fun + 10; r.money := r.money - 30;
     elsif act = 'work' then if r.energy < 15 then raise exception '太累了，先回家睡覺'; end if;
-      if (r.items->'cd'->>'work') is not null and (r.items->'cd'->>'work')::timestamptz > now() - interval '1 hour' then raise exception '剛下班，1 小時後才能再打工'; end if;
+      if public.town_dc_get(r,'work') >= 12 then raise exception '今天已經工作 12 次了，明天再來'; end if;
       r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('work', now())); n := coalesce((r.items->>'works')::int,0);
       w := public.town_pay(public.town_wage(public.town_job_lv(n)), mo, public.town_has(r,'workaholic')) * public.town_work_pct(public.town_dc_get(r,'work')) / 100;
       r := public.town_dc_inc(r,'work');
@@ -936,6 +936,7 @@ begin
       if act = 'cowork' then
         if r.place <> 'office' then raise exception '要一起在公司才能加班'; end if;
         if r.energy < 15 or t.energy < 15 then raise exception '有人太累了，加不了班'; end if;
+        if public.town_dc_get(r,'work') >= 12 or public.town_dc_get(t,'work') >= 12 then raise exception '今天有人已經工作 12 次了，明天再來'; end if;
         r.money := r.money + 2 * public.town_pay(public.town_wage(public.town_job_lv(coalesce((r.items->>'works')::int,0))), mo, public.town_has(r,'workaholic')) * public.town_work_pct(public.town_dc_get(r,'work')) / 100;
         t.money := t.money + 2 * public.town_pay(public.town_wage(public.town_job_lv(coalesce((t.items->>'works')::int,0))), public.town_mood(t), public.town_has(t,'workaholic')) * public.town_work_pct(public.town_dc_get(t,'work')) / 100;
         r := public.town_dc_inc(r,'work'); t := public.town_dc_inc(t,'work'); r.energy := r.energy - 15; t.energy := t.energy - 15; perform public.town_bond(r.town_id, rid, t.id, 3);
