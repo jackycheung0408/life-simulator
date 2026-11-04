@@ -190,7 +190,8 @@ button.on{background:var(--y);color:var(--ink)}
  <h2>玩法</h2>
  <p><button class="pm on" data-v="">原創球員</button><button class="pm" data-v="star">球星人生</button></p>
  <div id="starBox" class="hide"><p id="starPick" style="font-weight:700">還沒選球星</p><div id="starPk" class="pk"></div>
- <p class="mut">從出生開始重走這位球星的一生：用他的名字、國家、位置、出生年份和天賦。平行世界不照劇本，他可能比現實更強，也可能受傷、被錯過。下面的國家、年份、位置、天賦卡不套用。</p></div>
+ <p class="mut">從出生開始重走這位球星的一生：用他的名字、國家、位置、出生年份和天賦。平行世界不照劇本，他可能比現實更強，也可能受傷、被錯過。</p></div>
+ <div class="orig">
  <h2>出生在哪裡？</h2>
  <p id="ctryPick" style="font-weight:700">已選：🎲 足球世界隨機</p><div id="ctryPk" class="pk"></div>
  <p class="mut">足球世界隨機：依各國的足球人口抽選，巴西、阿根廷、歐洲各國比較容易抽到。這個遊戲模擬的是「從小認真踢球的孩子」，成功率比一般人高，但仍然要過青訓、預備隊、一線隊一關一關往上爬。</p><details class="mut" style="font-size:13px;margin-bottom:10px"><summary>真實世界各國踢上職業的機率（概估）</summary><div id="oddsTbl"></div></details>
@@ -198,18 +199,21 @@ button.on{background:var(--y);color:var(--ink)}
  <div class="yrow"><button class="yb" data-d="-1" aria-label="早一年">◀</button><b id="yNow">2026</b><button class="yb" data-d="1" aria-label="晚一年">▶</button><span id="yEra" class="mut"></span></div>
  <input type="range" id="ySl" min="1950" max="2026" step="1" value="2026" style="width:100%;max-width:420px">
  <p class="mut" id="yTip"></p>
+ </div>
  <h2>遊戲模式</h2>
  <p><button class="md on" data-v="real">現實模式</button><button class="md" data-v="pro">保送職業模式</button></p>
  <p class="mut" id="mdTip">現實模式：大多數孩子會在青訓評估或試訓時被淘汰，足球生涯隨時可能結束。</p>
  <h2>同世代球星</h2>
  <p><button class="st on" data-v="real">真名</button><button class="st" data-v="alias">化名</button><button class="st" data-v="off">關閉</button></p>
  <p class="mut">平行世界裡，30 人和你同一個年代出生（依出生年份挑選）、各自重新走一次生涯：5 位巨星、10 位一線球星（真實球員），加上 15 位虛構的同期，其中 5 位是你的青訓同學。他們可能當你隊友、對手、搶金球獎，也可能早早放棄。結局會列出同世代排名和同國排名。</p>
+ <div class="orig">
  <h2>你想踢什麼位置？</h2>
  <p id="posSel"><button class="p on" data-v="FW">前鋒</button><button class="p" data-v="MF">中場</button><button class="p" data-v="DF">後衛</button><button class="p" data-v="GK">門將</button><button class="p" data-v="?">讓命運決定</button></p>
  <h2>天賦卡（可選）</h2>
  <p class="mut">抽卡決定這位球員的潛力。一組 3 張，從抽到的卡裡挑一張；不滿意可以整組重抽，最多 3 次。不抽就照真實機率隨機。</p>
  <p class="mut" style="font-size:13px">點卡背翻牌　·　銅 60%・銀 28%・金 10%・傳奇 2%　<button id="draw" class="hide"></button><button id="noCard" class="linkbtn">不使用天賦卡</button>　<button id="redraw" class="linkbtn hide"></button></p>
  <div id="cards" class="gcards"></div>
+ </div>
  <h2>每一季的速度</h2>
  <p><button class="s" data-v="10">快（約 10 秒）</button><button class="s on" data-v="16">一般（約 16 秒）</button><button class="s" data-v="28">慢（約 28 秒）</button></p>
  <button class="pri" id="go">▶ 出生</button> <div id="resume"></div>
@@ -255,8 +259,8 @@ button.on{background:var(--y);color:var(--ink)}
 <button id="themeBtn" title="切換深色／淺色"></button><div id="tip"></div><div id="modal" class="hide"><div class="sheet"><span class="tag" id="mtag"></span><span id="mctx"></span><div id="choice"></div></div></div>
 <div id="toast"></div>
 
-<script src="js/data.js?v=40"></script>
-<script src="js/events.js?v=40"></script>
-<script src="js/career.js?v=40"></script>
-<script src="js/ui.js?v=40"></script>
-<script src="js/home.js?v=40"></script></body></html>
+<script src="js/data.js?v=41"></script>
+<script src="js/events.js?v=41"></script>
+<script src="js/career.js?v=41"></script>
+<script src="js/ui.js?v=41"></script>
+<script src="js/home.js?v=41"></script></body></html>

@@ -78,7 +78,7 @@ picker($("starPk"),{ph:"🔍 搜尋球星：Messi、梅西、阿根廷、門將�
  rows:[[["1950 前出生","e1"],["50–60 年代","e2"],["70 年代","e3"],["80 年代","e4"],["90 年代後","e5"]],REGION_NM.map(r=>[r[1],r[0]])],
  items:STAR_LIST.map((x,i)=>{const y=STAR_BORN[x[0]]||1998,en=STAR_EN[x[0]]||x[0];return {id:String(i),t:en,s:`${x[0]} · ${x[1]} · ${POS[x[2]]} · ${y} · 天賦 ${x[4]}`,keys:`${en} ${x[0]} ${x[1]} ${POS[x[2]]} ${y}`,tags:[ERA(y),regOf(x[1])]}}),
  onPick:id=>{cfg.star=+id;const x=STAR_LIST[cfg.star];$("starPick").textContent=`已選：${STAR_EN[x[0]]||x[0]}（${x[1]}，${STAR_BORN[x[0]]} 年生）`}});
-document.querySelectorAll(".pm").forEach(b=>b.onclick=()=>{document.querySelectorAll(".pm").forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg.star=null;$("starPick").textContent="還沒選球星";$("starBox").classList.toggle("hide",!b.dataset.v)});
+document.querySelectorAll(".pm").forEach(b=>b.onclick=()=>{document.querySelectorAll(".pm").forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg.star=null;$("starPick").textContent="還沒選球星";$("starBox").classList.toggle("hide",!b.dataset.v);document.querySelectorAll(".orig").forEach(x=>x.classList.toggle("hide",!!b.dataset.v))});
 $("go").onclick=async()=>{if(!$("starBox").classList.contains("hide")&&cfg.star==null){toast("先選一位球星");$("starPk").scrollIntoView({block:"center"});return}const sx=cfg.star!=null?STAR_LIST[cfg.star]:null;if(sx)BIRTH_Y=STAR_BORN[sx[0]]||BIRTH_Y;
  const p=sx?newPlayer(sx[1],sx[2]):newPlayer(cfg.w,cfg.pos);p.mode=cfg.mode;
  if(sx){p.name=STAR_EN[sx[0]]||sx[0];p.realStar=sx[0];p.pot=Math.round(sx[3]+R()*(sx[4]-sx[3]));p.talent=p.pot-10;p.card="球星人生";p.dreamPos=sx[2];p.fam.fan=true;p.touchAge=Math.min(p.touchAge,4)}

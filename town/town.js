@@ -24,6 +24,9 @@ const FOUNTAIN=[16,10,2,3];
 const OBJS={vend:{x:19,y:5,name:"自動販賣機",acts:[["投一罐飲料 🥤","€10 · 精力 +12 · 偶爾掉兩罐"]]},trash:{x:8,y:14,name:"垃圾桶",acts:[["撿垃圾 🗑️","心情 +4 · 說不定撿到東西"]]},
  stall:{x:22,y:14,name:"烤地瓜攤",acts:[["買烤地瓜 🍠","€8 · 飽足 +25"]]},well:{place:"plaza",name:"小豬噴水池",acts:[["丟硬幣許願 🪙","€1 · 一成機率願望成真"]]},
  swing:{place:"park",name:"鞦韆",acts:[["盪鞦韆","心情 +12"]]},cat:{place:"park",name:"流浪貓",acts:[["摸摸貓 🐱","心情 +8 · 可能被抓"],["餵貓吃零食","用一包零食 · 心情 +15","feed"]]}};
+const HOURS={office:[9,19,"公司","9:00～19:00"],restaurant:[11,22,"餐廳","11:00～22:00"],market:[8,23,"超市","8:00～23:00"],stall:[16,24,"烤地瓜攤","16:00～24:00"]};
+const tpHour=()=>new Date(Date.now()+8*36e5).getUTCHours();
+const closedMsg=k=>{const h=HOURS[k];if(!h)return null;const x=tpHour();return x>=h[0]&&x<h[1]?null:`${h[2]}休息中，營業時間 ${h[3]}`};
 const objNear=(k,x,y,place)=>{const o=OBJS[k];return o.place?place==o.place:Math.abs(x-o.x)+Math.abs(y-o.y)<=2};
 const inRect=(x,y,[rx,ry,rw,rh])=>x>=rx&&x<rx+rw&&y>=ry&&y<ry+rh;
 const roadRowsAt=y=>y==6||y==7||y==15||y==16||(y>=22&&(y-22)%7<2&&Math.floor((y-22)/7)+2<NR);
@@ -121,7 +124,7 @@ function landing(){document.body.classList.remove("ingame");$("title").textConte
 // ── 鎮內登入：我住在這裡，或用邀請碼搬進來 ──
 async function refresh(){const st=await rpc("town_state",{tid:TID});apply(st)}
 const seenLuck=new Set();
-function apply(st){S=st;if(me)(st.events||[]).filter(e=>e.kind=="luck"&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
+function apply(st){S=st;try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>e.kind=="luck"&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
  st.residents.forEach(r=>{R[r.id]=r;const w=walkers[r.id];
   if(!w)walkers[r.id]={x:r.x,y:r.y,path:[],tx:r.x,ty:r.y};else if(r.id!=me&&(Math.abs(w.tx-r.x)>.01||Math.abs(w.ty-r.y)>.01)){const p=bfs([Math.round(w.x),Math.round(w.y)],[Math.round(r.x),Math.round(r.y)]);w.path=p?p.slice(1):[[r.x,r.y]]}
   walkers[r.id].tx=r.x;walkers[r.id].ty=r.y});
@@ -157,12 +160,12 @@ function joinStep(){const free=[];for(let s=0;s<12;s++)if(!bySlot(s))free.push(s
   catch(e){$("lerr").textContent=e.message;$("go").disabled=false}}}
 // ── 造型目錄（和資料庫 town_shop 一致）：[代號, 名稱, 價格, 解鎖條件]；沒價格的是基本款 ──
 const WEAR={
- style:[["短髮"],["長髮"],["光頭"],["馬尾"],["捲髮"],["包頭"],["瀏海"],["twintail","雙馬尾",100],["mohawk","刺蝟頭",100]],
+ style:[["短髮"],["長髮"],["光頭"],["馬尾"],["捲髮"],["包頭"],["瀏海"],["twintail","雙馬尾",250],["mohawk","刺蝟頭",250]],
  eyes:[["圓眼"],["瞇眼"],["眼鏡"],["墨鏡"]],
- top:[["T恤"],["帽T"],["襯衫"],["suit","西裝",250],["jersey","球衣",150],["dress","洋裝",150],["couple","情侶 T",0,"有好麻吉就解鎖"]],
+ top:[["T恤"],["帽T"],["襯衫"],["suit","西裝",600],["jersey","球衣",380],["dress","洋裝",380],["couple","情侶 T",0,"有好麻吉就解鎖"]],
  bottom:[["長褲"],["短褲"],["裙子"]],
- acc:[["無"],["棒球帽"],["毛帽"],["crown","皇冠",300],["pigears","小豬耳朵",80],["headphones","耳機",120],["scarf","圍巾",60],["bandage","繃帶頭",0,"被扁 10 次解鎖"]]};
-const DECO=[["flowers","花圃",40],["mailbox","信箱",30],["lamp","路燈",60],["bench","長椅",80],["tree","小樹",50],["pigstatue","小豬雕像",200]];
+ acc:[["無"],["棒球帽"],["毛帽"],["crown","皇冠",800],["pigears","小豬耳朵",200],["headphones","耳機",300],["scarf","圍巾",150],["bandage","繃帶頭",0,"被扁 10 次解鎖"]]};
+const DECO=[["flowers","花圃",100],["mailbox","信箱",80],["lamp","路燈",150],["bench","長椅",200],["tree","小樹",120],["pigstatue","小豬雕像",500]];
 const PANTS=["#2b2b3a","#3b5a8a","#6b4a2b","#7a7a7a","#c0392b","#e8e0cc"];
 const ROOF_C=["#d9534f","#3b7dd8","#b45cc4","#8b5a2b","#2e9e5b","#d8901a","#e0779b","#2a9d8f","#34495e","#9a9a9a"],WALL_C=["#f4ead6","#fff3e0","#e8f1ff","#fde2ea","#e6f4e6","#f0e6ff","#e0e0e0","#ffe8b0"];
 const wInfo=(k,v)=>WEAR[k].find(a=>a[0]==v)||[v];
@@ -207,8 +210,18 @@ async function mayorPanel(){let inv="";try{inv=(await rpc("town_mayor",{rid:me,p
    try{await rpc("town_mayor",{rid:me,pin,act:"kick",target:r.id});await refresh();toast(`${r.name} 搬走了`);draw()}catch(e){toast(e.message)}})};draw()}
 
 // ── 動作 ──
-const floaters=[];
+const floaters=[],fxs=[],FXIMG={};
+// 動作對應的動畫：自己的動作在 act() 播；別人（或自己）的社交事件在收到新動態時播
+const ACT_FX={eat:"eat",dine:"eat",snack:"eat",toilet:"toilet",shower:"bubbles",tv:"tv",sleep:"zzz",work:"coins",play:"hearts",browse:"sparkle",buy:"bag",paint:"paint",wake:"sun"};
+const OBJ_FX={vend:"can",trash:"sparkle",stall:"eat",well:"coin",swing:"hearts",cat:"hearts"};
+const EV_FX={feed:["eat","t"],wash:["bubbles","t"],visit:["hearts","both"],gift:["gift","fly"],note:["msg","fly"],call:["phone","both"],delivery:["scooter","fly"],thank:["hearts","fly"],greet:["clap","mid"],fight:["fight","mid"],egg:["egg","fly"],prank:["fart","t"],makeup:["hearts","mid"],cowork:["coins","both"],feast:["eat","both"],wakeup:["alarm","t"],luck:["sparkle","a"],tier:["hearts","both"],look:["sparkle","a"],meet:["clap","a"],together:["hearts","a"]};
+const spawnFx=(type,a,b)=>{if(!walkers[a])return;fxs.push({type,a,b:b&&walkers[b]?b:null,born:performance.now(),dur:type=="fight"?1800:type=="scooter"?2200:1500})};
+let lastEvId=null;
+function fxFromEvents(evs){const mx=Math.max(0,...evs.map(e=>e.id));if(lastEvId==null){lastEvId=mx;return}
+ evs.filter(e=>e.id>lastEvId).forEach(e=>{const f=EV_FX[e.kind];if(!f)return;const [t,mode]=f;
+  if(mode=="t")spawnFx(t,e.target||e.actor);else if(mode=="a")spawnFx(t,e.actor);else if(mode=="both"){spawnFx(t,e.actor);if(e.target&&e.target!=e.actor)spawnFx(t,e.target)}else spawnFx(t,e.actor,e.target)});lastEvId=mx}
 async function act(a,extra={}){if(busy)return;busy=true;renderPanel();const b0=tickLocal(R[me],now());try{const st=await rpc("town_act",{rid:me,pin,act:a,...extra});apply(st);
+  if(ACT_FX[a])spawnFx(ACT_FX[a],me);if(a=="obj"&&OBJ_FX[extra.item])spawnFx(OBJ_FX[extra.item],me);
   const b1=tickLocal(R[me],now()),ic={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"€"};let k=0;
   for(const f of ["money",...NEEDS]){const d=Math.round(b1[f]-b0[f]);if(Math.abs(d)>=1&&a!="move")floaters.push({t:f=="money"?`${d>0?"+":"−"}€${Math.abs(d)}`:`${ic[f]} ${d>0?"+":""}${d}`,good:d>0,born:performance.now()+k++*180})}}
  catch(e){toast(e.message)}busy=false;renderPanel()}
@@ -224,7 +237,7 @@ const GROUP={tip:"建議下一步",self:"照顧自己",friend:"在他家",place:
 function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),p=r.place,list=[];let title="",note="";
  if(walkers[me]&&walkers[me].path.length){title="走路中…";note="到了就可以做事"}
  else if(r.sleeping){title=`在${placeName(p)}睡覺 💤`;list.push(btn("起床","",()=>act("wake")))}
- else if(p=="home:"+me){title="你家";list.push(btn("吃飯","飽足 +40 · €10",()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),btn("洗澡","清潔回滿",()=>act("shower")),btn("看電視","心情 +25",()=>act("tv")),btn("睡覺","精力慢慢回來",()=>act("sleep")),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal()))}
+ else if(p=="home:"+me){title="你家";list.push(btn("吃飯","飽足 +40 · €10",()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),btn("洗澡","清潔回滿 · 15 分鐘一次",()=>act("shower")),btn("看電視","心情 +15 · 30 分鐘一次",()=>act("tv")),btn("睡覺","精力慢慢回來",()=>act("sleep")),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal()))}
  else if(p&&p.startsWith("home:")&&R[p.slice(5)]){const id=+p.slice(5),t=tickLocal(R[id],now());title=`${t.name} 家`;
   const gifts=(r.items||{}).gift||0,giftB=gifts?btn("送禮物",`他心情 +20 · 背包 🎁${gifts}`,()=>act("gift",{target:id})):btn("送禮物","先去超市買",()=>toast("背包沒有禮物，去超市買一份"));
   if(t.place!=p){note=`${t.name} 不在家，在${placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
@@ -234,7 +247,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
    if(!t.sleeping)list.push(btn("串門子","兩人心情 +15",()=>act("visit",{target:id})));list.push(btn("惡作劇","放個臭屁 💨 · 好感 −3",()=>act("prank",{target:id})),btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})));
    if(!t.sleeping)list.push(...faceActs(id))}}
  else if(p=="restaurant"){title="餐廳";list.push(btn("吃一頓","飽足 +55 · 心情 +10 · €30",()=>act("dine")));note="朋友也在的話，點他可以請吃大餐"}
- else if(p=="office"){title="公司";list.push(btn("打工","+€120 · 累",()=>act("work")));note="有同事在的話，點他可以一起加班，薪水加倍"}
+ else if(p=="office"){title="公司";list.push(btn("打工","+€100 · 2 小時一次 · 累",()=>act("work")));note="有同事在的話，點他可以一起加班，薪水加倍"}
  else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")))}
  else if(p=="market"){title="超市";list.push(btn("買禮物 🎁","€20 · 送朋友心情 +20",()=>act("buy",{item:"gift"})),btn("買零食 🍪","€15 · 隨時吃，飽足 +20",()=>act("buy",{item:"snack"})),btn("🛍️ 造型與擺飾","新衣服、家門口擺飾",()=>shopModal()),btn("逛逛","心情 +6",()=>act("browse")))}
  else{title="路上";note="點地圖上的房子或地點，就會走過去"}
@@ -248,6 +261,9 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
   list.length=0;if(face)list.push(...faceActs(t.id));list.push(...onlineActs(t.id));
   if(!face)list.push(btn(`走到 ${t.name} 旁邊`,`他在${placeName(t.place)} · 面對面才能擊掌、扁他`,()=>walkToPerson(t.id)));
   list.push(btn(`去 ${t.name} 家`,"煮飯、洗澡、串門子要到他家",()=>{sel=null;goHouse(t.slot)}),btn("取消","",()=>{sel=null;lastPanel="";renderPanel()}))}
+ // 店家休息中：只留說明，按鈕拿掉
+ const cm=closedMsg(p);if(cm&&!sel){title+="（休息中）";note=cm;for(let i=list.length-1;i>=0;i--)if(!list[i].g||list[i].g=="place")list.splice(i,1)}
+ for(let i=list.length-1;i>=0;i--)if(/烤地瓜/.test(list[i].label)&&closedMsg("stall"))list.splice(i,1);
  $("here").textContent=title;$("note").textContent=note;
  // 內容沒變就不重畫，避免按到一半按鈕被換掉
  if(!sel){const t=nextStep(r,p);if(t)list.unshift({...t,g:"tip"})}
@@ -459,6 +475,35 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
   person((o.w.x+.5)*T,(o.w.y+.5)*T,o.r.look,tk,o.w.moving,o.r.name,o.id==me,{sleeping:o.r.sleeping&&!o.w.path.length,stink:o.r.hygiene<25,dirty:o.r.hygiene<25,hungry:o.r.hunger<20,bruised:o.r.bruised,bubble:!o.r.sleeping&&bb.text&&nowMs<bb.until?bb.text:null})}
  for(const r of Object.values(R)){if(r.place!="home:"+r.id)continue;const [hx,hy]=homeXY(r.slot);if(night){g.fillStyle="rgba(255,215,106,.35)";g.fillRect(hx*T+16,hy*T+T+22,24,22);g.fillRect(hx*T+5*T-40,hy*T+T+22,24,22)}
   if(r.sleeping){g.font="bold 18px sans-serif";g.fillStyle="#fff";g.textAlign="center";g.fillText("💤",hx*T+4.2*T,hy*T+T+4+Math.sin(tk/25)*4)}}
+ // 互動動畫
+ {const nowp=performance.now(),IMG=FXIMG;const img=e=>{if(!IMG[e]){const i=new Image();i.src=pxIcon(e);IMG[e]=i}return IMG[e]};const icon=(e,x,y,s)=>{const i=img(e);if(i.complete)g.drawImage(i,x-s/2,y-s/2,s,s)};
+  const pos=id=>{const w=walkers[id];return [(w.x+.5)*T,(w.y+.5)*T]};
+  for(let i=fxs.length-1;i>=0;i--){const f=fxs[i],k=(nowp-f.born)/f.dur;if(k>=1||!walkers[f.a]){fxs.splice(i,1);continue}const [ax,ay]=pos(f.a),[bx,by]=f.b?pos(f.b):[ax,ay],e=Math.sin(k*Math.PI);
+   g.save();g.imageSmoothingEnabled=false;g.globalAlpha=k>.8?(1-k)*5:1;
+   const up=(em,n=1,spread=14)=>{for(let j=0;j<n;j++)icon(em,ax+(j-(n-1)/2)*spread+Math.sin(k*9+j)*3,ay-50-k*40-j*4,24)};
+   const fly=(em,arc=60)=>{const x=ax+(bx-ax)*k,y=ay+(by-ay)*k-50-Math.sin(k*Math.PI)*arc;icon(em,x,y,26)};
+   switch(f.type){
+    case "eat":up("🍚");if(k>.3)for(let j=0;j<4;j++){g.fillStyle="#f5e6b8";g.fillRect(ax-10+j*6,ay-30+((k*60+j*7)%20),3,3)}break;
+    case "toilet":up("🚽");break;
+    case "bubbles":for(let j=0;j<6;j++){const bx2=ax+Math.sin(j*2.1+k*6)*18,by2=ay-20-((k*80+j*15)%50);g.strokeStyle="#bfe6ff";g.lineWidth=2;g.beginPath();g.arc(bx2,by2,3+j%3,0,7);g.stroke()}up("🛁");break;
+    case "tv":g.fillStyle=`rgba(120,190,255,${.25+.2*Math.sin(nowp/80)})`;g.beginPath();g.arc(ax,ay-10,30,0,7);g.fill();up("📺");break;
+    case "zzz":for(let j=0;j<3;j++){g.font="bold "+(12+j*4)+"px sans-serif";g.fillStyle="#fff";g.fillText("Z",ax+10+j*8,ay-30-j*10-k*20)}break;
+    case "coins":for(let j=0;j<5;j++)icon("🪙",ax-20+j*10,ay-30-Math.abs(Math.sin(k*8+j))*30,16);break;
+    case "coin":icon("🪙",ax,ay-40-e*40,18);if(k>.6)icon("✨",ax,ay-60,24);break;
+    case "hearts":for(let j=0;j<3;j++)icon("💗",ax+(j-1)*16+Math.sin(k*6+j)*6,ay-40-k*50-j*8,18);if(f.b)fly("💗",40);break;
+    case "sparkle":for(let j=0;j<5;j++){const a2=j*1.25+k*4;icon("✨",ax+Math.cos(a2)*28*e,ay-30+Math.sin(a2)*28*e,16)}break;
+    case "bag":up("🛍️");break;case "paint":up("🎨");break;case "sun":up("☀️");break;case "can":up("🥤");break;
+    case "gift":fly("🎁");if(k>.85)icon("✨",bx,by-50,28);break;
+    case "msg":fly("💌",40);break;
+    case "phone":icon("📞",ax+Math.sin(nowp/40)*3,ay-55,24);break;
+    case "scooter":{const x=ax+(bx-ax)*k,y=ay+(by-ay)*k-10;icon("🛵",x,y,28);break}
+    case "clap":{const mx=(ax+bx)/2,my=(ay+by)/2;icon("🙌",mx,my-50-e*10,28);if(k<.5)for(let j=0;j<6;j++){const a2=j*1.05;g.fillStyle="#ffd23f";g.fillRect(mx+Math.cos(a2)*k*60,my-50+Math.sin(a2)*k*60,4,4)}break}
+    case "fight":{const mx=(ax+bx)/2,my=(ay+by)/2-10;g.fillStyle="rgba(230,230,230,.9)";for(let j=0;j<7;j++){const a2=j*.9+nowp/120;g.beginPath();g.arc(mx+Math.cos(a2)*18,my+Math.sin(a2)*12,12+Math.sin(nowp/60+j)*3,0,7);g.fill()}
+      icon(["👊","💥","⭐"][Math.floor(nowp/150)%3],mx+Math.sin(nowp/70)*14,my-6,26);icon("💥",mx-16,my-18+Math.sin(nowp/90)*6,18);break}
+    case "egg":{if(k<.75){const kk=k/.75,x=ax+(bx-ax)*kk,y=ay+(by-ay)*kk-50-Math.sin(kk*Math.PI)*60;icon("🥚",x,y,22)}else{g.fillStyle="#fff";g.beginPath();g.ellipse(bx,by-40,16,8,0,0,7);g.fill();g.fillStyle="#ffcc33";g.beginPath();g.arc(bx,by-40,6,0,7);g.fill()}break}
+    case "fart":{for(let j=0;j<5;j++){g.fillStyle=`rgba(140,200,90,${.6-j*.1})`;g.beginPath();g.arc(ax+Math.sin(j+k*3)*20,ay-k*40-j*6,10+k*14,0,7);g.fill()}icon("💨",ax+16,ay-30,22);break}
+    case "alarm":icon("⏰",ax+Math.sin(nowp/30)*4,ay-55,26);break}
+   g.restore()}}
  // 飄字：剛做完的動作讓數值變多少
  {const mw2=walkers[me],nowp=performance.now();for(let i=floaters.length-1;i>=0;i--){const f=floaters[i],age=(nowp-f.born)/1400;if(age>1){floaters.splice(i,1);continue}if(age<0)continue;
   g.globalAlpha=1-age;g.font="700 15px sans-serif";g.textAlign="center";g.lineWidth=4;g.strokeStyle="rgba(0,0,0,.6)";const fx2=(mw2.x+.5)*T+(i%2?14:-14),fy2=(mw2.y+.5)*T-70-age*40;g.strokeText(f.t,fx2,fy2);g.fillStyle=f.good?"#7CFC8A":"#ff8a80";g.fillText(f.t,fx2,fy2);g.globalAlpha=1}}
