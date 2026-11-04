@@ -680,6 +680,36 @@ kYrYrkrYrYk.
 ...kkTkk....
 ....kTk.....
 ...kkkkk....`,
+cup:`
+............
+...k.k.k....
+....k.k.....
+.kkkkkkkk...
+.kwwwwwwkkk.
+.kwTTTTwk.k.
+.kwTTTTwkkk.
+.kwwwwwwk...
+..kkkkkk....
+.kkkkkkkkk..`,
+dumbbell:`
+............
+.kk......kk.
+kddk....kddk
+kddkkkkkkddk
+kddkSSSSkddk
+kddkkkkkkddk
+kddk....kddk
+.kk......kk.`,
+film:`
+kkkkkkkkkkkk
+kwkwkwkwkwkk
+kkkkkkkkkkkk
+kBBBBkBBBBBk
+kBwBBkBBwBBk
+kBBBBkBBBBBk
+kkkkkkkkkkkk
+kwkwkwkwkwkk
+kkkkkkkkkkkk`,
 plate:`
 ............
 ...kkkkkk...
@@ -730,7 +760,7 @@ function draw(name){if(cache[name])return cache[name];const c=document.createEle
 const MAP={"🍚":"bowl","⚡":"bolt","🚽":"toilet","🛁":"bath","🎉":"face:happy","💰":"money","💗":"heart","💞":"heart","🎁":"gift","📦":"box","📱":"mobile","📲":"mobile","📞":"call","💌":"mail","✉️":"mail","💼":"case","✨":"star","⭐":"star",
  "🤝":"hands","🙌":"hands","👋":"hands","👆":"hands","🤲":"hands","💪":"fist","🏛️":"hall","🥚":"egg","🥤":"can","💨":"fart","🍖":"meat","🍽️":"plate","🍳":"plate","🍪":"cookie","🍠":"potato","🛵":"scooter","💥":"burst","💢":"burst","👊":"fist","🪙":"coin",
  "🐱":"cat","🐕":"dog","🐦":"bird","🐟":"fish","🐷":"face:happy","🔒":"lock","😴":"face:sleepy","💤":"zzz","🌙":"moon","🎈":"balloon","⏰":"alarm","🎨":"palette","🗺️":"map","🔔":"bell","🔕":"belloff","🏡":"house","🏠":"house","🏘️":"house","📺":"tv","☀️":"sun",
- "👥":"people","👗":"shirt","📰":"news","🏆":"trophy","🥇":"medal:1","🥈":"medal:2","🥉":"medal:3","🚪":"door","📍":"pin","🖼️":"picture","🔍":"search","🗑️":"trash","🎠":"swing","🚶":"walk","🎵":"note","🎸":"guitar","🌧️":"rain","💦":"drops","💩":"poop","🍀":"clover","🕹️":"joy","🃏":"card","♠":"card","♠️":"card","🎡":"wheel","✂️":"scissors","🪨":"rock","📄":"paper","✊":"rock","✋":"paper","✌️":"scissors","🏆":"trophy",
+ "👥":"people","👗":"shirt","📰":"news","🏆":"trophy","🥇":"medal:1","🥈":"medal:2","🥉":"medal:3","🚪":"door","📍":"pin","🖼️":"picture","🔍":"search","🗑️":"trash","🎠":"swing","🚶":"walk","🎵":"note","🎸":"guitar","🌧️":"rain","💦":"drops","💩":"poop","🍀":"clover","🕹️":"joy","☕":"cup","🎬":"film","🏋️":"dumbbell","🃏":"card","♠":"card","♠️":"card","🎡":"wheel","✂️":"scissors","🪨":"rock","📄":"paper","✊":"rock","✋":"paper","✌️":"scissors","🏆":"trophy",
  "👀":"eyes","🧽":"sponge","⚔️":"swords","🛣️":"road","🛍️":"bag","😤":"face:angry","😒":"face:meh","😊":"face:happy","🙂":"face:smile","😵":"face:dizzy","😣":"face:sad","😪":"face:sleepy","🥺":"face:sad","😂":"face:laugh","🤕":"face:hurt"};
 window.PIXICON=e=>draw(MAP[e]||MAP[e.replace(/️/g,"")]||MAP[e+"️"]||"star");
 window.PIXICON_NAME=n=>draw(n);

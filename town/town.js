@@ -5,7 +5,7 @@ const rpc=(fn,body={})=>fetch(SB+fn,{method:"POST",keepalive:true,headers:{apike
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 // ── 地圖：寬 34 格。市中心固定；住宅一排 3 間（5×4 格，門在正下方），住滿就往下多開一條街，最多 4 排 ──
-const T=32,COLS=34,MAXROWS=4;let NR=2;
+const T=32,COLS=44,MAXROWS=4;let NR=2;
 const setRows=n=>{NR=clamp(n||2,2,MAXROWS)};
 const mapRows=()=>NR<=2?23:30+7*(NR-3);
 const STREETS=["小豬大道","豬尾巴街","豬鼻子街","豬蹄巷"];
@@ -18,13 +18,16 @@ const PLACES={
  market:{r:[24,9,8,5],door:[28,14],name:"超市",block:1},
  office:{r:[26,0,7,6],door:[29,6],name:"公司",block:1},
  park:{r:[25,17,9,5],door:[29,19],name:"公園"},
+ cafe:{r:[35,0,6,5],door:[37,5],name:"咖啡廳",block:1},
+ cinema:{r:[35,9,8,5],door:[39,14],name:"電影院",block:1},
+ gym:{r:[35,17,6,4],door:[37,21],name:"健身房",block:1},
  plaza:{r:[12,8,10,7],door:[14,11],name:"廣場"}};
 const FOUNTAIN=[16,10,2,3];
 // 路上物件：位置要和資料庫 town_obj_near 一致；用法：[名稱, 按鈕, 說明]
 const OBJS={vend:{x:19,y:5,name:"自動販賣機",acts:[["投一罐飲料 🥤","€10 · 精力 +12 · 偶爾掉兩罐"]]},trash:{x:8,y:14,name:"垃圾桶",acts:[["撿垃圾 🗑️","心情 +4 · 說不定撿到東西"]]},
  stall:{x:22,y:14,name:"烤地瓜攤",acts:[["買烤地瓜 🍠","€8 · 飽足 +25"]]},well:{place:"plaza",name:"小豬噴水池",acts:[["丟硬幣許願 🪙","€1 · 一成機率願望成真"]]},
  swing:{place:"park",name:"鞦韆",acts:[["盪鞦韆","心情 +12"]]},cat:{place:"park",name:"流浪貓",acts:[["摸摸貓 🐱","心情 +8 · 可能被抓"],["餵貓吃零食","用一包零食 · 心情 +15","feed"]]}};
-const HOURS={office:[9,19,"公司","9:00～19:00"],restaurant:[11,22,"餐廳","11:00～22:00"],market:[8,23,"超市","8:00～23:00"],stall:[16,24,"烤地瓜攤","16:00～24:00"]};
+const HOURS={cafe:[7,21,"咖啡廳","7:00～21:00"],cinema:[12,24,"電影院","12:00～24:00"],gym:[6,23,"健身房","6:00～23:00"],office:[9,19,"公司","9:00～19:00"],restaurant:[11,22,"餐廳","11:00～22:00"],market:[8,23,"超市","8:00～23:00"],stall:[16,24,"烤地瓜攤","16:00～24:00"]};
 const tpHour=()=>new Date(Date.now()+8*36e5).getUTCHours();
 const closedMsg=k=>{const h=HOURS[k];if(!h)return null;const x=tpHour();return x>=h[0]&&x<h[1]?null:`${h[2]}休息中，營業時間 ${h[3]}`};
 const objNear=(k,x,y,place)=>{const o=OBJS[k];return o.place?place==o.place:Math.abs(x-o.x)+Math.abs(y-o.y)<=2};
@@ -212,7 +215,7 @@ async function mayorPanel(){let inv="";try{inv=(await rpc("town_mayor",{rid:me,p
 // ── 動作 ──
 const floaters=[],fxs=[],FXIMG={};
 // 動作對應的動畫：自己的動作在 act() 播；別人（或自己）的社交事件在收到新動態時播
-const ACT_FX={eat:"eat",dine:"eat",snack:"eat",toilet:"toilet",shower:"bubbles",tv:"tv",sleep:"zzz",work:"coins",play:"hearts",browse:"sparkle",buy:"bag",paint:"paint",wake:"sun"};
+const ACT_FX={coffee:"can",movie:"sparkle",workout:"fist",nap:"zzz",eat:"eat",dine:"eat",snack:"eat",toilet:"toilet",shower:"bubbles",tv:"tv",sleep:"zzz",work:"coins",play:"hearts",browse:"sparkle",buy:"bag",paint:"paint",wake:"sun"};
 const OBJ_FX={vend:"can",trash:"sparkle",stall:"eat",well:"coin",swing:"hearts",cat:"hearts"};
 const EV_FX={feed:["eat","t"],wash:["bubbles","t"],visit:["hearts","both"],gift:["gift","fly"],note:["msg","fly"],call:["phone","both"],delivery:["scooter","fly"],thank:["hearts","fly"],greet:["clap","mid"],fight:["fight","mid"],egg:["egg","fly"],prank:["fart","t"],makeup:["hearts","mid"],cowork:["coins","both"],feast:["eat","both"],wakeup:["alarm","t"],luck:["sparkle","a"],tier:["hearts","both"],look:["sparkle","a"],meet:["clap","a"],together:["hearts","a"]};
 const spawnFx=(type,a,b)=>{if(!walkers[a])return;fxs.push({type,a,b:b&&walkers[b]?b:null,born:performance.now(),dur:type=="fight"?1800:type=="scooter"?2200:1500})};
@@ -237,7 +240,7 @@ const GROUP={tip:"建議下一步",self:"照顧自己",friend:"在他家",place:
 function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),p=r.place,list=[];let title="",note="";
  if(walkers[me]&&walkers[me].path.length){title="走路中…";note="到了就可以做事"}
  else if(r.sleeping){title=`在${placeName(p)}睡覺 💤`;list.push(btn("起床","",()=>act("wake")))}
- else if(p=="home:"+me){title="你家";list.push(btn("吃飯","飽足 +40 · €10",()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),btn("洗澡","清潔回滿 · 15 分鐘一次",()=>act("shower")),btn("看電視","心情 +15 · 30 分鐘一次",()=>act("tv")),btn("睡覺","精力慢慢回來",()=>act("sleep")),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal()))}
+ else if(p=="home:"+me){title="你家";list.push(btn("吃飯","飽足 +40 · €10",()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),btn("洗澡","清潔回滿 · 15 分鐘一次",()=>act("shower")),btn("看電視","心情 +15 · 30 分鐘一次",()=>act("tv")),btn("小睡","精力 +12 · 45 分鐘一次",()=>act("nap")),btn("睡覺","精力每小時 +20",()=>act("sleep")),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal()))}
  else if(p&&p.startsWith("home:")&&R[p.slice(5)]){const id=+p.slice(5),t=tickLocal(R[id],now());title=`${t.name} 家`;
   const gifts=(r.items||{}).gift||0,giftB=gifts?btn("送禮物",`他心情 +20 · 背包 🎁${gifts}`,()=>act("gift",{target:id})):btn("送禮物","先去超市買",()=>toast("背包沒有禮物，去超市買一份"));
   if(t.place!=p){note=`${t.name} 不在家，在${placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
@@ -249,6 +252,9 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  else if(p=="restaurant"){title="餐廳";list.push(btn("吃一頓","飽足 +55 · 心情 +10 · €30",()=>act("dine")));note="朋友也在的話，點他可以請吃大餐"}
  else if(p=="office"){title="公司";list.push(btn("打工","+€100 · 2 小時一次 · 累",()=>act("work")));note="有同事在的話，點他可以一起加班，薪水加倍"}
  else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")));if(p=="plaza")list.push(btn("小豬街機 🕹️","猜拳、比大小、命運輪盤、21 點",()=>gamesModal()))}
+ else if(p=="cafe"){title="咖啡廳";list.push(btn("喝咖啡 ☕","€15 · 精力 +25 · 膀胱 −10 · 1 小時一次",()=>act("coffee")))}
+ else if(p=="cinema"){title="電影院";list.push(btn("看電影 🎬","€25 · 心情 +35 · 2 小時一次",()=>act("movie")))}
+ else if(p=="gym"){title="健身房";list.push(btn("健身 🏋️",`精力 −15 · 心情 +10 · 打架更強（${Math.min(10,(r.items||{}).fit||0)}/10）`,()=>act("workout")))}
  else if(p=="market"){title="超市";list.push(btn("買禮物 🎁","€20 · 送朋友心情 +20",()=>act("buy",{item:"gift"})),btn("買零食 🍪","€15 · 隨時吃，飽足 +20",()=>act("buy",{item:"snack"})),btn("🛍️ 造型與擺飾","新衣服、家門口擺飾",()=>shopModal()),btn("逛逛","心情 +6",()=>act("browse")))}
  else{title="路上";note="點地圖上的房子或地點，就會走過去"}
  // 公共場所遇到人：可以擊掌；一起吃飯、玩、加班時在場的人心情都會變好
@@ -275,8 +281,10 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
    const cost=+((b.sub||"").match(/€(\d+)(?!\d)/)||[])[1]||0,poor=cost&&/€\d+/.test(b.sub)&&!/\+€/.test(b.sub)&&r.money<cost,bad=/扁|雞蛋|臭屁|惡作劇|叫醒/.test(b.label);
    return `<button data-i="${i}" class="act${b.g=="tip"?" cta":""}${bad?" bad":""}${poor?" poor":""}${b.g=="move"?" ghost":""}" ${busy?"disabled":""}><span class="ai">${ic}</span><span class="at"><b>${esc(txt)}</b>${b.sub||poor?`<small>${poor?`錢不夠（要 €${cost}）`:b.sub}</small>`:""}</span></button>`}).join("")).join("");
  panelFns=list;if(html!=lastPanel){lastPanel=html;$("acts").innerHTML=html;pxify($("acts"));$("acts").querySelectorAll("button").forEach(b=>b.onclick=()=>panelFns[b.dataset.i].fn())}}
+let lastNeeds="";
 function renderNeeds(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now());
- $("needs").innerHTML=NEEDS.map(k=>{const v=Math.round(r[k]),[ic,nm]=NEED_INFO[k];return `<div class="need${v<20?" low":""}" title="${nm} ${v}"><span>${ic}</span><i><b style="width:${v}%;background:${v<20?"var(--bad)":v<50?"var(--warn)":"var(--good)"}"></b></i><small><em>${nm} </em>${v}</small></div>`}).join("")+`<div class="need money"><span>💰</span><small>€${r.money}${(r.items||{}).gift?` · 🎁${r.items.gift}`:""}${(r.items||{}).snack?` · 🍪${r.items.snack}`:""}</small></div>`}
+ const html=NEEDS.map(k=>{const v=Math.round(r[k]),[ic,nm]=NEED_INFO[k];return `<div class="need${v<20?" low":""}" title="${nm} ${v}"><span>${ic}</span><i><b style="width:${v}%;background:${v<20?"var(--bad)":v<50?"var(--warn)":"var(--good)"}"></b></i><small><em>${nm} </em>${v}</small></div>`}).join("")+`<div class="need money"><span>💰</span><small>€${r.money}${(r.items||{}).gift?` · 🎁${r.items.gift}`:""}${(r.items||{}).snack?` · 🍪${r.items.snack}`:""}</small></div>`;
+ if(html!=lastNeeds){lastNeeds=html;$("needs").innerHTML=html;pxify($("needs"))}}
 // 每週排行（最近 7 天）
 // 排行榜：頒獎台（前三名大頭貼）＋其餘名次＋你的名次；最近 7 天的事件，加上現在的存款和好友數
 function renderRank(){const w=(S&&S.week)||{},all=Object.values(R);
@@ -349,7 +357,7 @@ function nextStep(r,p){if(r.sleeping||(walkers[me]&&walkers[me].path.length))ret
   if(k=="hunger")return p=="restaurant"?btn("吃一頓 🍽️",sub,()=>act("dine")):atHome?btn("吃飯 🍚",sub,()=>act("eat")):btn("回家吃飯 🍚",sub,()=>goHouse(r.slot));
   if(k=="bladder")return atHome?btn("上廁所 🚽",sub,()=>act("toilet")):btn("回家上廁所 🚽",sub,()=>goHouse(r.slot));
   if(k=="hygiene")return atHome?btn("洗澡 🛁",sub,()=>act("shower")):btn("回家洗澡 🛁",sub,()=>goHouse(r.slot));
-  if(k=="energy")return atHome?btn("睡覺 😴",sub,()=>act("sleep")):btn("回家睡覺 😴",sub,()=>goHouse(r.slot));
+  if(k=="energy")return atHome?btn("小睡一下 😴",sub,()=>act("nap")):p=="cafe"&&!closedMsg("cafe")?btn("喝咖啡 ☕",sub,()=>act("coffee")):!closedMsg("cafe")?btn("去咖啡廳 ☕",sub+" · 喝咖啡回精力",()=>walkTo("cafe",PLACES.cafe.door)):btn("回家睡覺 😴",sub,()=>goHouse(r.slot));
   return p=="park"||p=="plaza"?btn("玩一下 🎈",sub,()=>act("play")):btn("去公園走走 🎈",sub,()=>walkTo("park",PLACES.park.door))}
  if(r.money<30)return p=="office"?btn("打工 💼",`只剩 €${r.money}，賺點錢`,()=>act("work")):btn("去公司打工 💼",`只剩 €${r.money}`,()=>walkTo("office",PLACES.office.door));
  const du=((S&&S.duels)||[]).find(d=>d.b==me&&R[d.a]);if(du)return btn(`應戰 ${R[du.a].name} 的戰帖 ✊`,`猜拳賭 €${du.bet}`,()=>duelModal(du.a,du));
@@ -460,6 +468,9 @@ function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas")
  bld("office","#b8c4cf","#5f6b78",(X,Y,W,H)=>{for(let a=0;a<5;a++)for(let b=0;b<3;b++)win(X+16+a*40,Y+36+b*40);m.fillStyle="#555";m.fillRect(X+W/2-14,Y+H-36,28,36)});
  bld("restaurant","#fff3e0","#c0392b",(X,Y,W,H)=>{for(let k=0;k<W;k+=24){m.fillStyle=(k/24)%2?"#fff":"#e74c3c";m.fillRect(X+k,Y+20,24,16)}win(X+20,Y+60);win(X+W-36,Y+60);m.fillStyle="#7a4a24";m.fillRect(X+W/2-12,Y+H-44,24,44)});
  bld("market","#eef7ea","#2e8b57",(X,Y,W,H)=>{m.fillStyle=night?"#ffe9a8":"#cfeefc";m.fillRect(X+14,Y+44,W-28,46);m.fillStyle="#2e8b57";for(let k=X+14;k<X+W-14;k+=28)m.fillRect(k,Y+44,3,46);m.fillStyle="#7a4a24";m.fillRect(X+W/2-14,Y+H-44,28,44)});
+ bld("cafe","#f3e1c7","#6b4423",(X,Y,W,H)=>{for(let k=0;k<W;k+=24){m.fillStyle=(k/24)%2?"#fff":"#2e7d32";m.fillRect(X+k,Y+20,24,14)}win(X+18,Y+50);win(X+W-34,Y+50);m.fillStyle="#7a4a24";m.fillRect(X+W/2-12,Y+H-40,24,40);m.fillStyle="#fff";m.fillRect(X+W/2-30,Y+56,14,10);m.fillStyle="#6b4423";m.fillRect(X+W/2-28,Y+58,10,6)});
+ bld("cinema","#3b2a4a","#c0392b",(X,Y,W,H)=>{m.fillStyle="#1b1b2f";m.fillRect(X+20,Y+26,W-40,26);m.fillStyle="#fee761";m.font="bold 18px sans-serif";m.textAlign="center";m.fillText("CINEMA",X+W/2,Y+46);for(let k=X+10;k<X+W-10;k+=16){m.fillStyle=night?"#ffe36a":"#d6b33a";m.fillRect(k,Y+58,6,6)}m.fillStyle="#7a1d2b";m.fillRect(X+W/2-20,Y+H-44,40,44)});
+ bld("gym","#c9d1dc","#34495e",(X,Y,W,H)=>{win(X+16,Y+40);win(X+W-32,Y+40);m.fillStyle="#222";m.fillRect(X+W/2-22,Y+34,44,6);m.fillRect(X+W/2-28,Y+28,8,18);m.fillRect(X+W/2+20,Y+28,8,18);m.fillStyle="#555";m.fillRect(X+W/2-12,Y+H-36,24,36)});
  const trees=[];for(let j=0;j<ROWS;j++)for(let i=0;i<COLS;i++)if(!blocked(i,j)&&!isRoad(i,j)&&!inRect(i,j,PLACES.plaza.r)&&!inRect(i,j,PLACES.park.r)&&grassV[j][i]<.1&&![...Array(NR*3).keys()].some(s=>{const d=door(s);return Math.abs(d[0]-i)<=1&&Math.abs(d[1]-j)<=1}))trees.push([i,j]);
  [[26,18],[28,18],[31,18],[33,18],[27,20],[32,20]].forEach(t=>trees.push(t));
  trees.forEach(([i,j])=>{const x=i*T+16,y=j*T+18;m.fillStyle="rgba(0,0,0,.2)";m.beginPath();m.ellipse(x+4,y+12,14,5,0,0,7);m.fill();m.fillStyle="#6b4423";m.fillRect(x-3,y,6,12);m.fillStyle=night?"#2f6b3a":"#3f9a4c";m.beginPath();m.arc(x,y-4,14,0,7);m.fill();m.fillStyle=night?"#3d7f48":"#5cbf63";m.beginPath();m.arc(x-4,y-9,7,0,7);m.fill()});
@@ -469,7 +480,7 @@ function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas")
   X=o.trash.x*T;Y=o.trash.y*T;R0(X+8,Y+4,16,22,"#2e7d32");R0(X+6,Y,20,5,"#1b5e20");
   X=o.stall.x*T;Y=o.stall.y*T;R0(X+2,Y+8,28,16,"#8b5a2b");R0(X,Y-10,32,8,"#e74c3c");R0(X+14,Y-2,4,10,"#5a3a1a");R0(X+6,Y+4,6,4,"#c0602b");R0(X+16,Y+4,6,4,"#c0602b");
   X=29*T;Y=21*T;R0(X,Y-24,4,30,"#6b4423");R0(X+28,Y-24,4,30,"#6b4423");R0(X,Y-26,32,4,"#6b4423");R0(X+10,Y-22,2,18,"#888");R0(X+20,Y-22,2,18,"#888");R0(X+8,Y-4,16,4,"#d8901a")}
- sign("公司",29.5*T,10);sign("餐廳",5*T,9*T+10);sign("超市",28*T,9*T+10);sign("公園",29.5*T,17*T+12);sign("小豬廣場",17*T,8*T+14);
+ sign("公司",29.5*T,10);sign("餐廳",5*T,9*T+10);sign("超市",28*T,9*T+10);sign("公園",29.5*T,17*T+12);sign("小豬廣場",17*T,8*T+14);sign("咖啡廳",38*T,10);sign("電影院",39*T,9*T+10);sign("健身房",38*T,17*T+10);
  if(night){m.fillStyle="rgba(18,28,78,.45)";m.fillRect(0,0,c.width,c.height)}
  return c}
 // 畫一個角色：(x,y) 是身體中心，u 是一格像素的大小
@@ -609,8 +620,9 @@ $("logout").onclick=()=>{if(!confirm("登出後要再輸入一次邀請碼才能
 $("towns").onclick=()=>go("");
 $("invite").onclick=async()=>{if(R[me].mayor){try{shareModal((await rpc("town_mayor",{rid:me,pin,act:"invite"})).invite)}catch(e){toast(e.message)}}else{const text=`來「${S.town.name}」當鄰居！🐷\n${townURL()}\n（邀請碼請問鎮長）`;try{await navigator.clipboard.writeText(text);toast("已複製網址，邀請碼請鎮長給")}catch(e){toast(townURL())}}};
 $("mayor").onclick=mayorPanel;// 抽屜：點一下在「一般 → 拉高 → 收起」之間切換；也可以上下滑
-$("grip").onclick=()=>{const p=$("panel");if(p.classList.contains("max")){p.classList.remove("max");p.classList.add("min")}else if(p.classList.contains("min"))p.classList.remove("min");else p.classList.add("max")};
-{let sy=null;$("grip").addEventListener("touchstart",e=>{sy=e.touches[0].clientY},{passive:true});$("grip").addEventListener("touchend",e=>{if(sy==null)return;const dy=e.changedTouches[0].clientY-sy,p=$("panel");if(dy<-30){p.classList.remove("min");p.classList.add("max")}else if(dy>30){if(p.classList.contains("max"))p.classList.remove("max");else p.classList.add("min")}sy=null})}
+const gripLabel=()=>{const p=$("panel");$("grip").textContent=p.classList.contains("min")?"▲ 展開":"▼ 收起"};
+$("grip").onclick=()=>{const p=$("panel");p.classList.toggle("min");p.classList.remove("max");gripLabel()};gripLabel();
+{let sy=null;$("grip").addEventListener("touchstart",e=>{sy=e.touches[0].clientY},{passive:true});$("grip").addEventListener("touchend",e=>{if(sy==null)return;const dy=e.changedTouches[0].clientY-sy,p=$("panel");if(dy<-30){p.classList.remove("min");p.classList.add("max")}else if(dy>30){if(p.classList.contains("max"))p.classList.remove("max");else p.classList.add("min")}sy=null;gripLabel()})}
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("on",x==b));["feed","rank","ppl"].forEach(k=>$("tab-"+k).classList.toggle("hide",k!=b.dataset.tab));if(b.dataset.tab=="feed")markSeen()});
 document.querySelectorAll("[data-ff]").forEach(b=>b.onclick=()=>{feedFilter=b.dataset.ff;document.querySelectorAll("[data-ff]").forEach(x=>x.classList.toggle("on",x==b));renderFeed()});
 // 看過動態就清掉未讀（記在這台手機）
