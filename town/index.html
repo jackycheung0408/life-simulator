@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>小豬鎮｜和朋友住在同一個小鎮</title>
 <meta name="description" content="和朋友住在同一個像素小鎮：照顧自己吃飯睡覺洗澡，去朋友家幫忙、送禮、惡作劇，或扁他一頓。手機打開就能玩，不用下載。">
 <meta property="og:type" content="website"><meta property="og:url" content="https://jackycheung0408.github.io/life-simulator/town/">
@@ -77,6 +77,32 @@ textarea{width:100%;font:inherit;color:var(--fg);background:var(--btn);border:1p
 .hero{display:flex;gap:14px;align-items:center;margin-bottom:8px}.hero canvas{width:72px;height:90px;flex:none;background:#7cc46a;border-radius:14px}
 .choose{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.big{display:flex;align-items:center;gap:12px;text-align:left;padding:14px;border-radius:14px;min-height:70px}.big .ai{font-size:28px}.big b{display:block;font-size:16px}.big small{display:block;color:var(--mut);font-size:12px}.big.pri small{color:#fff;opacity:.9}
 .list .big{width:100%}.list>button.big{flex-direction:row;align-items:center}button.ghost{background:transparent;border-style:dashed}.tips{border-color:var(--ac)}.tips p{margin:6px 0}
+/* ── 側邊選單：從右邊滑出 ── */
+#menuBack{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:44;opacity:0;pointer-events:none;transition:opacity .2s}body.menu-open #menuBack{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(290px,82vw);z-index:45;background:var(--card);border-left:1px solid var(--line);display:flex;flex-direction:column;gap:4px;padding:calc(env(safe-area-inset-top) + 14px) 12px calc(env(safe-area-inset-bottom) + 14px);transform:translateX(105%);transition:transform .22s ease;overflow:auto;box-shadow:-10px 0 30px rgba(0,0,0,.35)}
+body.menu-open .drawer{transform:none}
+.drawer>button{text-align:left;padding:12px;border:none;background:transparent;font-size:16px;border-radius:10px}.drawer>button:hover{background:var(--btnh)}
+.dhead{display:flex;gap:10px;align-items:center;padding:4px 4px 12px;border-bottom:1px solid var(--line);margin-bottom:4px}.dhead canvas{width:40px;height:50px;background:#7cc46a;border-radius:10px}.dhead b{display:block;font-size:16px}.dhead small{color:var(--mut)}.dhead #menuClose{margin-left:auto;border:none;background:transparent;font-size:18px}
+.dsec{font-size:12px;color:var(--mut);font-weight:700;letter-spacing:1px;margin:10px 6px 2px}
+/* ── 手機：地圖全螢幕，其他東西疊在上面 ── */
+.mob-only{display:none}
+@media (max-width:700px){
+ body.ingame{overflow:hidden;overscroll-behavior:none}
+ body.ingame .wrap{padding:0;max-width:none}
+ body.ingame .bar{position:fixed;top:calc(env(safe-area-inset-top) + 6px);right:6px;z-index:30;margin:0}body.ingame .bar h1{display:none}
+ body.ingame #menuBtn{padding:6px 10px;background:rgba(0,0,0,.6);color:#fff;border:none}
+ body.ingame #stage{position:fixed;inset:0;border:none;border-radius:0;z-index:1}
+ body.ingame #needs{position:fixed;top:0;left:0;right:76px;z-index:20;margin:0;padding:calc(env(safe-area-inset-top) + 6px) 6px 6px;background:linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,0));grid-template-columns:repeat(6,1fr);gap:3px}
+ body.ingame .need{background:rgba(20,18,15,.7);border-color:rgba(255,255,255,.12);color:#fff;padding:3px 2px}body.ingame .need small{color:#ddd}
+ body.ingame .tools{top:calc(env(safe-area-inset-top) + 64px);right:6px;flex-direction:column;align-items:flex-end}
+ body.ingame #strip{top:calc(env(safe-area-inset-top) + 64px);bottom:auto;left:6px;right:110px;flex-wrap:nowrap;overflow-x:auto;pointer-events:auto;scrollbar-width:none}body.ingame #strip::-webkit-scrollbar{display:none}body.ingame #strip button{flex:none}
+ body.ingame .mob-only{display:inline-flex}
+ body.ingame #panel{position:fixed;left:0;right:0;bottom:0;margin:0;z-index:25;max-height:36vh;overflow:auto;border-radius:18px 18px 0 0;padding:6px 12px calc(env(safe-area-inset-bottom) + 10px);box-shadow:0 -8px 24px rgba(0,0,0,.4)}
+ body.ingame #panel.max{max-height:78vh}body.ingame #panel.min{max-height:none}body.ingame #panel.min #acts,body.ingame #panel.min #note{display:none}
+ body.ingame #social{display:none}body.ingame.social #social{display:block;position:fixed;inset:0;z-index:35;margin:0;border-radius:0;overflow:auto;padding:calc(env(safe-area-inset-top) + 10px) 12px 20px}
+ body.ingame #socialClose{margin-bottom:8px}
+ body.ingame #tips,body.ingame #away{position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top) + 110px);z-index:32;max-height:60vh;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+}
 @media (max-width:520px){.choose{grid-template-columns:1fr}}
 @media (max-width:520px){#panel{position:sticky;bottom:0;z-index:6;margin:12px -16px 0;border-radius:18px 18px 0 0;max-height:44vh;overflow:auto;box-shadow:0 -8px 24px rgba(0,0,0,.35);padding-top:6px}
  #grip{display:block;width:44px;height:5px;margin:0 auto 8px;padding:0;border:none;border-radius:3px;background:var(--line)}#panel.min #acts,#panel.min #note{display:none}#panel.min{max-height:none}}
@@ -86,19 +112,23 @@ textarea{width:100%;font:inherit;color:var(--fg);background:var(--btn);border:1p
 <body>
 <div class="wrap">
  <div class="bar"><h1 id="title">🐷 小豬鎮</h1><button id="menuBtn" class="hide">☰ 選單</button></div>
- <div id="menu" class="card hide menu"><button id="relook">👗 換造型</button><button id="invite">✉️ 邀請朋友</button><button id="bell">🔕 開啟通知</button><button id="install" class="hide">📲 加到主畫面</button><button id="mayor" class="hide">🏛️ 鎮長</button><button id="towns">🏘️ 我的小鎮</button><button id="logout">登出</button></div>
+ <div id="menuBack"></div>
+ <nav id="menu" class="drawer" aria-label="選單"><div class="dhead"><canvas id="meCv" width="40" height="50"></canvas><div><b id="meName"></b><small id="meSub"></small></div><button id="menuClose" aria-label="關閉">✕</button></div>
+  <div class="dsec">小鎮</div><button data-go-tab="feed">📰 動態</button><button data-go-tab="rank">🏆 本週排行</button><button data-go-tab="ppl">👥 人際關係</button><button id="invite">✉️ 邀請朋友</button><button id="mayor" class="hide">🏛️ 鎮長管理</button>
+  <div class="dsec">我</div><button id="relook">👗 換造型</button><button id="bell">🔕 開啟通知</button><button id="install" class="hide">📲 加到主畫面</button>
+  <div class="dsec">其他</div><button id="towns">🏘️ 我的小鎮</button><button id="logout">🚪 登出</button></nav>
  <section id="login"><div class="card" id="lg"><p class="mut">載入中…</p></div></section>
  <section id="game" class="hide">
   <div id="tips" class="card hide tips"></div><div id="away" class="card hide"></div>
   <div id="needs"></div>
-  <div id="stage"><canvas id="cv"></canvas><div class="tools"><button id="home">📍 我</button><button id="zoom">🗺️ 看全鎮</button></div><div id="strip"></div></div>
+  <div id="stage"><canvas id="cv"></canvas><div class="tools"><button id="home">📍 我</button><button id="zoom">🗺️ 看全鎮</button><button id="feedBtn" class="mob-only">📰 動態<i id="feedBadge2" class="badge hide"></i></button></div><div id="strip"></div></div>
   <div class="card" id="panel"><button id="grip" aria-label="收合"></button><div id="here"></div><div id="note" class="mut"></div><div id="acts"></div></div>
-  <div class="card"><div class="tabs" role="tablist"><button data-tab="feed" class="on">動態<i id="feedBadge" class="badge hide"></i></button><button data-tab="rank">本週排行</button><button data-tab="ppl">人際</button></div>
+  <div class="card" id="social"><button id="socialClose" class="mob-only">✕ 回地圖</button><div class="tabs" role="tablist"><button data-tab="feed" class="on">動態<i id="feedBadge" class="badge hide"></i></button><button data-tab="rank">本週排行</button><button data-tab="ppl">人際</button></div>
    <div id="tab-feed"><div class="chips"><button data-ff="all" class="on">全部</button><button data-ff="me">跟我有關</button><button data-ff="good">好事</button><button data-ff="bad">壞事</button><button id="report" class="chip-r">🖼️ 日報圖</button></div><div id="feed"></div></div><div id="tab-rank" class="hide"></div><div id="tab-ppl" class="hide"></div></div>
  </section>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide"><div class="card" id="mbody"></div></div>
-<script src="town.js?v=18"></script>
+<script src="town.js?v=20"></script>
 </body>
 </html>
