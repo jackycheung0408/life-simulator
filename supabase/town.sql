@@ -124,6 +124,8 @@ $$;
 
 -- 鎮長可以關掉的設施（off 裡面的就是沒開）
 alter table public.town_towns add column if not exists off text[] not null default '{}';
+-- 鎮長選的貨幣符號（只影響畫面顯示，金額不變）
+alter table public.town_towns add column if not exists currency text not null default '€';
 create or replace function public.town_feature(what text) returns text language sql immutable as $$
   select case when what in ('cafe','coffee') then 'cafe' when what in ('cinema','movie') then 'cinema' when what in ('gym','workout') then 'gym'
     when what in ('arena','spar') then 'arena' when what in ('slaughter','sneak') then 'slaughter' else null end
@@ -172,6 +174,19 @@ begin
 end $$;
 revoke all on function public.town_track(bigint,text,text,text) from public;
 grant execute on function public.town_track(bigint,text,text,text) to anon, authenticated;
+create or replace function public.town_currency(rid bigint, pin text, cur text) returns json
+language plpgsql security definer set search_path = public as $$
+declare r public.town_residents;
+begin
+  r := public.town_auth(rid, pin);
+  if r.id is null then return json_build_object('error','密碼不對'); end if;
+  if not r.mayor then raise exception '只有鎮長可以做這件事'; end if;
+  if cur is null or cur !~ '^[^<>&"''\s]{1,4}$' then raise exception '貨幣符號 1～4 個字，不能有空白或特殊符號'; end if;
+  update public.town_towns set currency = cur where id = r.town_id;
+  return json_build_object('ok',true);
+end $$;
+revoke all on function public.town_currency(bigint,text,text) from public;
+grant execute on function public.town_currency(bigint,text,text) to anon, authenticated;
 revoke all on function public.town_features(bigint,text,text[]) from public;
 grant execute on function public.town_features(bigint,text,text[]) to anon, authenticated;
 
@@ -254,7 +269,7 @@ begin
     update public.town_residents set hunger=r.hunger,energy=r.energy,bladder=r.bladder,hygiene=r.hygiene,fun=r.fun,sleeping=r.sleeping,place=r.place,x=r.x,y=r.y,updated_at=r.updated_at where id=r.id;
     acc := acc || public.town_pub(r);
   end loop;
-  return json_build_object('now',now(),'town',json_build_object('id',t.id,'name',t.name,'rows',t.rows,'off',t.off),'residents',array_to_json(acc),
+  return json_build_object('now',now(),'town',json_build_object('id',t.id,'name',t.name,'rows',t.rows,'off',t.off,'cur',t.currency),'residents',array_to_json(acc),
     'bonds',(select coalesce(json_agg(json_build_object('a',a,'b',b,'s',score)),'[]') from public.town_bonds where town_id = t.id),
     'duels',(select coalesce(json_agg(json_build_object('id',id,'a',a,'b',b,'bet',bet,'at',created_at)),'[]') from public.town_duels where town_id = t.id and status = 'open' and created_at > now() - interval '24 hours'),
     -- 每週排行（最近 7 天）：最勤勞、最受歡迎、最欠扁、最愛照顧人

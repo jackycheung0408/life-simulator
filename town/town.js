@@ -73,8 +73,8 @@ const KEEP=[];function preloadIcons(){if(!window.PIXICON)return;Object.keys(wind
 function pxIcon(e){return PXC[e]||(PXC[e]=window.PIXICON?PIXICON(e):"")}
 setTimeout(preloadIcons,0);
 const EMO=/(\p{Extended_Pictographic}(\uFE0F|\u200D\p{Extended_Pictographic})*)/gu;
-function pxify(root){if(!root)return;const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),nodes=[];while(w.nextNode()){const n=w.currentNode;if(EMO.test(n.nodeValue)&&!n.parentElement.closest("textarea,input,canvas"))nodes.push(n);EMO.lastIndex=0}
- for(const n of nodes){const span=document.createElement("span");span.innerHTML=n.nodeValue.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])).replace(EMO,m=>`<img class="px" alt="${m}" src="${pxIcon(m)}">`);n.replaceWith(...span.childNodes)}}
+function pxify(root){if(!root)return;const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),nodes=[];while(w.nextNode()){const n=w.currentNode;if((EMO.test(n.nodeValue)||(CUR!="€"&&n.nodeValue.includes("€")))&&!n.parentElement.closest("textarea,input,canvas,select"))nodes.push(n);EMO.lastIndex=0}
+ for(const n of nodes){const tv=CUR=="€"?n.nodeValue:n.nodeValue.replace(/€/g,()=>CUR);if(!EMO.test(tv)){EMO.lastIndex=0;n.nodeValue=tv;continue}EMO.lastIndex=0;const span=document.createElement("span");span.innerHTML=tv.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])).replace(EMO,m=>`<img class="px" alt="${m}" src="${pxIcon(m)}">`);n.replaceWith(...span.childNodes)}}
 // 畫面任何地方新增的 emoji 都自動變成像素圖示（選單、彈窗、首頁、需求列）
 {let q=new Set(),pend=false;new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)q.add(n.nodeType==3?n.parentElement:n);if(!pend){pend=true;requestAnimationFrame(()=>{pend=false;const l=[...q];q.clear();l.forEach(el=>el&&el.isConnected&&pxify(el))})}}).observe(document.body,{childList:true,subtree:true,characterData:false});
  addEventListener("load",()=>pxify(document.body))}
@@ -84,6 +84,9 @@ const rp=a=>a[Math.floor(Math.random()*a.length)];
 const randLook=()=>({skin:rp(SKIN),hair:rp(HAIR),shirt:rp(SHIRT),style:rp(["短髮","長髮","馬尾","捲髮","瀏海"]),eyes:rp(["圓眼","瞇眼","眼鏡"]),top:rp(["T恤","帽T","襯衫"]),pants:rp(["#2b2b3a","#3b5a8a","#6b4a2b"]),bottom:rp(["長褲","短褲","裙子"]),acc:"無"});
 const QS=new URLSearchParams(location.search),TID=(QS.get("t")||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);
 {const i=(QS.get("i")||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);if(i&&TID){try{sessionStorage.setItem("town-inv-"+TID,i)}catch(e){}history.replaceState(null,"","?t="+TID)}}
+let CUR="€";
+const CURS=[["€","歐元 €"],["$","美元 $"],["NT$","台幣 NT$"],["¥","日圓／人民幣 ¥"],["£","英鎊 £"],["₩","韓元 ₩"],["豬幣","豬幣"],["★","星幣 ★"]];
+const curSel=cur=>`<label>貨幣<select id="cur" style="width:100%;margin-top:4px">${CURS.map(([v,n])=>`<option value="${v}" ${v==cur?"selected":""}>${n}</option>`).join("")}</select></label>`;
 let S=null,R={},offset=0,me=null,pin=null,sel=null,zoomFar=false,camFree=false,busy=false,lastSeen=null;
 const walkers={};// 每個人畫面上的位置與正在走的路
 const now=()=>Date.now()+offset;
@@ -120,7 +123,7 @@ function landing(){document.body.classList.remove("ingame");$("title").textConte
    <button class="big" id="cNew"><span class="ai">🏛️</span><span><b>建立新小鎮</b><small>自己當鎮長，邀請朋友搬進來</small></span></button></div>
   <div id="fJoin" class="hide"><h2>加入朋友的小鎮</h2><p class="mut" style="margin:-4px 0 6px">輸入朋友給你的邀請碼。點朋友傳來的邀請連結會自動填好。</p><div class="inline"><input id="code" placeholder="邀請碼，例如 RCDR4V" maxlength="8" autocomplete="off" style="text-transform:uppercase"><button class="pri" id="join">前往</button></div><p class="err" id="jerr"></p></div>
   <div id="fNew" class="hide"><h2>建立新小鎮</h2><label>小鎮名稱<input id="tn" maxlength="16" placeholder="例如：我們的小豬鎮"></label><label>你的名字<input id="mn" maxlength="12" placeholder="鎮上大家怎麼叫你"></label>
-  <h2 style="margin-top:12px">小鎮特色</h2><p class="mut" style="margin:-4px 0 6px">勾選要開的設施，之後在鎮長設定隨時能改</p>${featChecks([])}
+  ${curSel("€")}<h2 style="margin-top:12px">小鎮特色</h2><p class="mut" style="margin:-4px 0 6px">勾選要開的設施，之後在鎮長設定隨時能改</p>${featChecks([])}
   <div id="lk"></div><p class="err" id="cerr"></p><div class="row"><button class="pri" id="create">建立小鎮，當鎮長</button></div></div>
   ${standalone?"":`<p style="margin-top:14px"><button class="ghost" id="inst2">📲 加到手機主畫面，像 App 一樣打開</button></p>`}`;
  const show=k=>{$("fJoin").classList.toggle("hide",k!="j");$("fNew").classList.toggle("hide",k!="n");$("cJoin").classList.toggle("pri",k!="n");$("cNew").classList.toggle("pri",k=="n");(k=="j"?$("code"):$("tn")).focus()};
@@ -132,13 +135,13 @@ function landing(){document.body.classList.remove("ingame");$("title").textConte
  let look=randLook();lookPicker($("lk"),look,l=>look=l);
  $("create").onclick=async()=>{const tn=$("tn").value.trim(),mn=$("mn").value.trim(),p=newKey();
   if(!tn){$("cerr").textContent="幫小鎮取個名字";return}if(!mn){$("cerr").textContent="填你的名字";return}
-  $("create").disabled=true;try{const r=await rpc("town_create",{town_name:tn,my_name:mn,pin:p,look});const off=readFeats();if(off.length)try{await rpc("town_features",{rid:r.resident_id,pin:p,off})}catch(e){}saveMine({tid:r.town_id,name:tn,rid:r.resident_id,pin:p,me:mn,invite:r.invite});go(r.town_id)}
+  $("create").disabled=true;try{const r=await rpc("town_create",{town_name:tn,my_name:mn,pin:p,look});const off=readFeats();if(off.length)try{await rpc("town_features",{rid:r.resident_id,pin:p,off})}catch(e){}const cu=$("cur").value;if(cu!="€")try{await rpc("town_currency",{rid:r.resident_id,pin:p,cur:cu})}catch(e){}saveMine({tid:r.town_id,name:tn,rid:r.resident_id,pin:p,me:mn,invite:r.invite});go(r.town_id)}
   catch(e){$("cerr").textContent=e.message;$("create").disabled=false}}}
 
 // ── 鎮內登入：我住在這裡，或用邀請碼搬進來 ──
 async function refresh(){const st=await rpc("town_state",{tid:TID});apply(st)}
 const seenLuck=new Set();
-function apply(st){S=st;try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>e.kind=="luck"&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
+function apply(st){S=st;CUR=(st.town&&st.town.cur)||"€";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>e.kind=="luck"&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
  st.residents.forEach(r=>{R[r.id]=r;const w=walkers[r.id];
   if(!w)walkers[r.id]={x:r.x,y:r.y,path:[],tx:r.x,ty:r.y};else if(r.id!=me&&(Math.abs(w.tx-r.x)>.01||Math.abs(w.ty-r.y)>.01)){const p=bfs([Math.round(w.x),Math.round(w.y)],[Math.round(r.x),Math.round(r.y)]);w.path=p?p.slice(1):[[r.x,r.y]]}
   walkers[r.id].tx=r.x;walkers[r.id].ty=r.y});
@@ -219,11 +222,13 @@ async function mayorPanel(){let inv="",cta=[];try{cta=(await rpc("town_mayor",{r
  const ctaHTML=()=>{const sh=cta.reduce((a,c)=>a+c.shows,0),cl=cta.reduce((a,c)=>a+c.clicks,0);return cta.length?`<p class="mut">近 7 天共顯示 ${sh} 次、點了 ${cl} 次（${sh?Math.round(cl/sh*100):0}%）</p><div class="list">${cta.map(c=>`<div class="mrow"><span><b>${esc(c.key)}</b></span><small class="mut">顯示 ${c.shows} · 點 ${c.clicks} · ${c.shows?Math.round(c.clicks/c.shows*100):0}%</small></div>`).join("")}</div>`:`<p class="mut">還沒有資料，大家玩一陣子就會出現。</p>`};try{inv=(await rpc("town_mayor",{rid:me,pin,act:"invite"})).invite}catch(e){toast(e.message);return}
  const draw=()=>{$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>🏛️ 鎮長</h2><p>邀請碼：<b class="code">${esc(inv)}</b></p>
   <div class="row" style="justify-content:flex-start"><button class="pri" id="msh">邀請朋友</button><button id="mni">換一組新邀請碼</button></div>
+  <h2 style="margin-top:16px">貨幣</h2>${curSel(CUR)}<div class="row" style="justify-content:flex-start"><button class="pri" id="mcs">儲存貨幣</button></div>
   <h2 style="margin-top:16px">小鎮特色</h2>${featChecks([...OFF])}<div class="row" style="justify-content:flex-start"><button class="pri" id="mfs">儲存設施</button></div>
   <h2 style="margin-top:16px">建議下一步統計</h2>${ctaHTML()}
   <h2 style="margin-top:16px">鎮民（${Object.keys(R).length}/12）</h2><div class="list">${Object.values(R).sort((a,b)=>a.slot-b.slot).map(r=>`<div class="mrow"><span><b>${esc(r.name)}</b> <small class="mut">${houseName(r.slot)}${r.mayor?" · 鎮長":""}</small></span>${r.id==me?"":`<button data-k="${r.id}">請他搬走</button>`}</div>`).join("")}</div>
   <div class="row"><button id="mc">關閉</button></div>`;
   $("mc").onclick=()=>$("modal").classList.add("hide");$("msh").onclick=()=>shareModal(inv);
+  $("mcs").onclick=async()=>{try{await rpc("town_currency",{rid:me,pin,cur:$("cur").value});toast("貨幣換好了");setTimeout(()=>location.reload(),600)}catch(e){toast(e.message)}};
   $("mfs").onclick=async()=>{try{await rpc("town_features",{rid:me,pin,off:readFeats()});await refresh();toast("設施更新好了");draw()}catch(e){toast(e.message)}};
   $("mni").onclick=async()=>{if(!confirm("換新邀請碼後，舊的就不能用了。確定嗎？"))return;try{inv=(await rpc("town_mayor",{rid:me,pin,act:"newinvite"})).invite;toast("換好了");draw()}catch(e){toast(e.message)}};
   $("mbody").querySelectorAll("[data-k]").forEach(b=>b.onclick=async()=>{const r=R[b.dataset.k];if(!confirm(`確定請 ${r.name} 搬離小鎮？他的資料會被刪除，不能復原。`))return;
@@ -260,7 +265,7 @@ function feedback(ok,msg){clearWorking();const b=pressed!=null&&$("acts").queryS
 async function act(a,extra={}){if(busy)return;busy=true;$("acts").classList.add("busy");const b0=tickLocal(R[me],now());try{const st=await rpc("town_act",{rid:me,pin,act:a,...extra});apply(st);
   if(ACT_FX[a])spawnFx(ACT_FX[a],me);if(a=="obj"&&OBJ_FX[extra.item])spawnFx(OBJ_FX[extra.item],me);
   const b1=tickLocal(R[me],now()),ic={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"€"};let k=0;
-  for(const f of ["money",...NEEDS]){const d=Math.round(b1[f]-b0[f]);if(Math.abs(d)>=1&&a!="move")floaters.push({t:f=="money"?`${d>0?"+":"−"}€${Math.abs(d)}`:`${ic[f]} ${d>0?"+":""}${d}`,good:d>0,born:performance.now()+k++*180})}
+  for(const f of ["money",...NEEDS]){const d=Math.round(b1[f]-b0[f]);if(Math.abs(d)>=1&&a!="move")floaters.push({t:f=="money"?`${d>0?"+":"−"}${CUR}${Math.abs(d)}`:`${ic[f]} ${d>0?"+":""}${d}`,good:d>0,born:performance.now()+k++*180})}
   if(a!="move")feedback(true,sumChanges(b0,b1,ic))}
  catch(e){toast(e.message);feedback(false,e.message)}busy=false;$("acts").classList.remove("busy");renderPanel()}
 function sumChanges(b0,b1,ic){const o=[];for(const f of ["money",...NEEDS]){const d=Math.round(b1[f]-b0[f]);if(Math.abs(d)>=1)o.push(f=="money"?`${d>0?"+":"−"}€${Math.abs(d)}`:`${ic[f]}${d>0?"+":""}${d}`)}return o.join(" ")||"完成"}
