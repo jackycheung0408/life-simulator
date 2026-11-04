@@ -457,7 +457,7 @@ begin
       insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'work', r.name || ' 打工賺了 €100');
     elsif act = 'play' then r.fun := r.fun + 20; r.energy := r.energy - 5;
     elsif act in ('coffee','movie','workout') then
-      if (r.items->'cd'->>act) is not null and (r.items->'cd'->>act)::timestamptz > now() - case act when 'coffee' then interval '1 hour' else interval '2 hours' end then raise exception '剛剛才去過，晚點再來'; end if;
+      if (r.items->'cd'->>act) is not null and (r.items->'cd'->>act)::timestamptz > now() - (case act when 'coffee' then interval '1 hour' else interval '2 hours' end) then raise exception '剛剛才去過，晚點再來'; end if;
       r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object(act, now()));
       if act = 'coffee' then if r.money < 15 then raise exception '錢不夠，咖啡 €15'; end if; r.money := r.money - 15; r.energy := r.energy + 25; r.fun := r.fun + 3; r.bladder := r.bladder - 10;
       elsif act = 'movie' then if r.money < 25 then raise exception '錢不夠，電影票 €25'; end if; r.money := r.money - 25; r.fun := r.fun + 35; r.energy := r.energy - 5;
