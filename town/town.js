@@ -248,7 +248,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
    if(!t.sleeping)list.push(...faceActs(id))}}
  else if(p=="restaurant"){title="餐廳";list.push(btn("吃一頓","飽足 +55 · 心情 +10 · €30",()=>act("dine")));note="朋友也在的話，點他可以請吃大餐"}
  else if(p=="office"){title="公司";list.push(btn("打工","+€100 · 2 小時一次 · 累",()=>act("work")));note="有同事在的話，點他可以一起加班，薪水加倍"}
- else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")))}
+ else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")));if(p=="plaza")list.push(btn("小豬街機 🕹️","猜拳、比大小、命運輪盤、21 點",()=>gamesModal()))}
  else if(p=="market"){title="超市";list.push(btn("買禮物 🎁","€20 · 送朋友心情 +20",()=>act("buy",{item:"gift"})),btn("買零食 🍪","€15 · 隨時吃，飽足 +20",()=>act("buy",{item:"snack"})),btn("🛍️ 造型與擺飾","新衣服、家門口擺飾",()=>shopModal()),btn("逛逛","心情 +6",()=>act("browse")))}
  else{title="路上";note="點地圖上的房子或地點，就會走過去"}
  // 公共場所遇到人：可以擊掌；一起吃飯、玩、加班時在場的人心情都會變好
@@ -297,7 +297,7 @@ function renderPeople(){const list=Object.values(R).filter(o=>o.id!=me).map(o=>(
   +`<p class="mut" style="margin-top:10px">送禮 +5、煮飯洗澡 +4、請吃大餐 +4、串門子一起加班 +3、道謝擊掌 +2、留言 +1；叫醒 −1、丟雞蛋 −2、惡作劇 −3、扁人 −6、和好 +8。好麻吉以上照顧對方效果 ×1.3。</p>`;
  $("tab-ppl").querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{sel=+b.dataset.w;lastPanel="";renderPanel();$("here").scrollIntoView({behavior:"smooth",block:"center"})})}
 // 動態：每種事一個圖示，名字粗體，分今天／昨天，跟我有關的用左邊色條標出來
-const KIND_ICON={feed:"🍚",wash:"🛁",visit:"🏠",note:"📱",call:"📞",delivery:"🛵",gift:"🎁",thank:"💗",greet:"🙌",fight:"👊",egg:"🥚",prank:"💨",makeup:"🤝",wakeup:"⏰",cowork:"💼",feast:"🍖",tier:"💞",look:"✨",join:"🏡",found:"🏛️",expand:"🛣️",leave:"📦",meet:"👋",together:"🎉",accident:"💦",passout:"😵",luck:"🍀"};
+const KIND_ICON={duel:"✊",feed:"🍚",wash:"🛁",visit:"🏠",note:"📱",call:"📞",delivery:"🛵",gift:"🎁",thank:"💗",greet:"🙌",fight:"👊",egg:"🥚",prank:"💨",makeup:"🤝",wakeup:"⏰",cowork:"💼",feast:"🍖",tier:"💞",look:"✨",join:"🏡",found:"🏛️",expand:"🛣️",leave:"📦",meet:"👋",together:"🎉",accident:"💦",passout:"😵",luck:"🍀"};
 const GOOD=["feed","wash","visit","note","call","delivery","gift","thank","greet","makeup","cowork","feast"],BADK=["fight","egg","prank","wakeup"];
 let feedFilter="all",feedSeen=0;
 function renderFeed(){renderRank();renderPeople();const all=((S&&S.events)||[]).slice().sort((a,b)=>b.at.localeCompare(a.at)||b.id-a.id);
@@ -352,6 +352,7 @@ function nextStep(r,p){if(r.sleeping||(walkers[me]&&walkers[me].path.length))ret
   if(k=="energy")return atHome?btn("睡覺 😴",sub,()=>act("sleep")):btn("回家睡覺 😴",sub,()=>goHouse(r.slot));
   return p=="park"||p=="plaza"?btn("玩一下 🎈",sub,()=>act("play")):btn("去公園走走 🎈",sub,()=>walkTo("park",PLACES.park.door))}
  if(r.money<30)return p=="office"?btn("打工 💼",`只剩 €${r.money}，賺點錢`,()=>act("work")):btn("去公司打工 💼",`只剩 €${r.money}`,()=>walkTo("office",PLACES.office.door));
+ const du=((S&&S.duels)||[]).find(d=>d.b==me&&R[d.a]);if(du)return btn(`應戰 ${R[du.a].name} 的戰帖 ✊`,`猜拳賭 €${du.bet}`,()=>duelModal(du.a,du));
  const th=thankable()[0];if(th&&R[th.actor])return btn(`謝謝 ${R[th.actor].name} 💗`,"他剛照顧過你",()=>act("thank",{target:th.actor}));
  if(Object.keys(R).length<2&&R[me].mayor)return btn("邀請朋友搬進來 ✉️","小鎮只有你一個人",()=>$("invite").click());
  return null}
@@ -361,7 +362,55 @@ function onlineActs0(id){const t=R[id],gifts=((R[me].items||{}).gift)||0;return 
   btn(`📱 傳訊息給 ${t.name}`,"在哪都能傳 · 好感 +1",()=>noteModal(id)),
   btn(`📞 打電話給 ${t.name}`,t.sleeping?"他在睡覺，會被你吵醒 · 好感 −1":"兩人心情 +5 · 好感 +1",()=>act("call",{target:id})),
   btn(`🛵 幫 ${t.name} 叫外送`,"€25 · 他飽足 +30 · 好感 +3",()=>act("delivery",{target:id})),
+  btn(`✊ 向 ${t.name} 下戰帖`,"猜拳賭錢，他回來應戰",()=>duelModal(id)),
   btn(`📦 寄禮物給 ${t.name}`,gifts?`€5 運費 · 他心情 +20 · 背包 🎁${gifts}`:"先去超市買禮物",()=>gifts?act("gift",{target:id}):toast("背包沒有禮物，去超市買一份"))]}
+// ── 街機小遊戲（在廣場玩，和莊家比，結果由伺服器決定）──
+const RPS={r:["✊","石頭"],p:["✋","布"],s:["✌️","剪刀"]},CARD=n=>({1:"A",11:"J",12:"Q",13:"K"}[n]||String(n));
+const bjTotal=cs=>{let t=0,a=0;for(const c of cs){if(c==1){a++;t+=11}else t+=Math.min(c,10)}while(t>21&&a){t-=10;a--}return t};
+const cardHTML=(n,hidden)=>`<span class="pcard${hidden?" back":""}">${hidden?"?":CARD(n)}</span>`;
+let gameTab="rps",gameBet=10;
+async function playGame(game,extra={}){const res=await rpc("town_game",{rid:me,pin,game,bet:gameBet,...extra});R[me].money=res.money;renderNeeds();return res.game}
+function gamesModal(){$("modal").classList.remove("hide");const tabs=[["rps","✊ 猜拳"],["hl","🃏 比大小"],["wheel","🎡 輪盤"],["bj","♠ 21點"]];
+ $("mbody").innerHTML=`<h2>🕹️ 小豬街機</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b> · 押注 €5～€50 · 一天 30 局</p>
+  <div class="tabs">${tabs.map(([k,l])=>`<button data-g="${k}" class="${gameTab==k?"on":""}">${l}</button>`).join("")}</div>
+  <div class="chips">押注 ${[5,10,20,50].map(b=>`<button data-bet="${b}" class="${gameBet==b?"on":""}">€${b}</button>`).join("")}</div>
+  <div id="gArea" class="garea"></div><div class="row"><button id="mc">離開街機</button></div>`;
+ $("mc").onclick=()=>{$("modal").classList.add("hide");refresh().catch(()=>{})};
+ $("mbody").querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{gameTab=b.dataset.g;gamesModal()});
+ $("mbody").querySelectorAll("[data-bet]").forEach(b=>b.onclick=()=>{gameBet=+b.dataset.bet;$("mbody").querySelectorAll("[data-bet]").forEach(x=>x.classList.toggle("on",x==b))});
+ const area=$("gArea"),money=()=>$("gMoney").textContent=R[me].money,err=e=>{area.querySelector(".gres")?area.querySelector(".gres").textContent=e.message:toast(e.message)};
+ const result=(win,extra="")=>`<p class="gres ${win>gameBet?"good":win==gameBet?"":"bad"}">${win>gameBet?`贏了 €${win-gameBet}！`:win==gameBet?"平手，退回押注":`輸了 €${gameBet}`}${extra}</p>`;
+ if(gameTab=="rps"){area.innerHTML=`<p>出一個：</p><div class="gbtns">${Object.entries(RPS).map(([k,[ic,n]])=>`<button class="gbig" data-m="${k}">${ic}<span>${n}</span></button>`).join("")}</div><div id="gShow" class="gshow"></div>`;
+  area.querySelectorAll("[data-m]").forEach(b=>b.onclick=async()=>{area.querySelectorAll("[data-m]").forEach(x=>x.disabled=true);const show=$("gShow");let i=0;const spin=setInterval(()=>{show.innerHTML=`<div class="vs"><b>${RPS[b.dataset.m][0]}</b> VS <b>${Object.values(RPS)[i++%3][0]}</b></div>`},90);
+   try{const g=await playGame("rps",{choice:b.dataset.m});await new Promise(r=>setTimeout(r,700));clearInterval(spin);show.innerHTML=`<div class="vs"><b>${RPS[g.you][0]}</b> VS <b>${RPS[g.house][0]}</b></div><p class="mut">你出${RPS[g.you][1]}，莊家出${RPS[g.house][1]}</p>`+result(g.win);money()}catch(e){clearInterval(spin);show.innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
+   area.querySelectorAll("[data-m]").forEach(x=>x.disabled=false)})}
+ if(gameTab=="hl"){area.innerHTML=`<p class="mut">翻一張牌，猜下一張更大還是更小（一樣大算輸）。越難猜中賠越多。</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="hlGo">發牌（押 €${gameBet}）</button></div>`;
+  $("hlGo").onclick=async()=>{try{const g=await playGame("hl_start");money();const c=g.card,hi=13-c,lo=c-1,pay=k=>k?(0.92*13/k).toFixed(2):"—";
+   $("gShow").innerHTML=`<div class="cards">${cardHTML(c)}${cardHTML(0,true)}</div>`;
+   area.querySelector(".gbtns").innerHTML=`<button class="gbig" data-hl="hi" ${hi?"":"disabled"}>▲ 更大<span>×${pay(hi)}</span></button><button class="gbig" data-hl="lo" ${lo?"":"disabled"}>▼ 更小<span>×${pay(lo)}</span></button>`;
+   area.querySelectorAll("[data-hl]").forEach(b=>b.onclick=async()=>{try{const r2=await playGame("hl_guess",{choice:b.dataset.hl});$("gShow").innerHTML=`<div class="cards">${cardHTML(r2.card)}${cardHTML(r2.next)}</div>`+result(r2.win);money();
+    area.querySelector(".gbtns").innerHTML=`<button class="pri" id="hlGo">再來一局（押 €${gameBet}）</button>`;$("hlGo").onclick=()=>gamesModal()}catch(e){toast(e.message)}})}catch(e){toast(e.message)}}}
+ if(gameTab=="wheel"){const SEG=["銘謝","銘謝","銘謝","銘謝","銘謝","銘謝","×0.5","×1","×2","×5"],COL=["#3a4a8c","#2b3870","#3a4a8c","#2b3870","#3a4a8c","#2b3870","#2e9e5b","#d8901a","#e0779b","#d4a017"];
+  area.innerHTML=`<div class="wheelbox"><canvas id="wh" width="240" height="240"></canvas><div class="wptr">▼</div></div><div class="gbtns"><button class="pri" id="whGo">轉！（押 €${gameBet}）</button></div><div id="gShow"></div>`;
+  const cv2=$("wh"),m=cv2.getContext("2d");let ang=0;const draw=a=>{m.clearRect(0,0,240,240);for(let i=0;i<10;i++){const a0=a+i*Math.PI/5-Math.PI/2-Math.PI/10;m.beginPath();m.moveTo(120,120);m.arc(120,120,110,a0,a0+Math.PI/5);m.fillStyle=COL[i];m.fill();m.strokeStyle="#0b0b14";m.lineWidth=3;m.stroke();
+    m.save();m.translate(120,120);m.rotate(a0+Math.PI/10);m.fillStyle="#fff";m.font="bold 13px Cubic11,sans-serif";m.textAlign="right";m.fillText(SEG[i],100,5);m.restore()}m.beginPath();m.arc(120,120,16,0,7);m.fillStyle="#fff";m.fill();m.stroke()};draw(0);
+  $("whGo").onclick=async()=>{$("whGo").disabled=true;try{const g=await playGame("wheel");const target=-g.slot*Math.PI/5,start=ang,end=target-Math.PI*2*(5+Math.floor(Math.random()*2)),t0=performance.now();
+   await new Promise(res=>{const step=t=>{const k=Math.min(1,(t-t0)/2600),e=1-Math.pow(1-k,3);ang=start+(end-start)*e;draw(ang);if(k<1)requestAnimationFrame(step);else res()};requestAnimationFrame(step)});ang=target;
+   $("gShow").innerHTML=result(g.win,` · 轉到「${SEG[g.slot]}」`);money()}catch(e){toast(e.message)}$("whGo").disabled=false}}
+ if(gameTab=="bj"){area.innerHTML=`<p class="mut">比莊家接近 21 點又不爆。莊家補到 17 點。開局 21 點賠 2.5 倍。</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="bjGo">發牌（押 €${gameBet}）</button></div>`;
+  const show=(g)=>{const p=bjTotal(g.p),d=bjTotal(g.d);$("gShow").innerHTML=`<p>莊家 <b>${g.done?d:"?"}</b></p><div class="cards">${g.d.map(c=>cardHTML(c)).join("")}${g.done?"":cardHTML(0,true)}</div><p>你 <b>${p}</b>${g.bust?" 爆了！":g.bj?" 21 點！":""}</p><div class="cards">${g.p.map(c=>cardHTML(c)).join("")}</div>`+(g.done?result(g.win):"");
+   area.querySelector(".gbtns").innerHTML=g.done?`<button class="pri" id="bjGo">再來一局（押 €${gameBet}）</button>`:`<button class="gbig" id="bjHit">要牌</button><button class="gbig" id="bjStand">停牌</button>`;
+   if(g.done){$("bjGo").onclick=()=>gamesModal();money()}else{$("bjHit").onclick=async()=>{try{show(await playGame("bj_hit"))}catch(e){toast(e.message)}};$("bjStand").onclick=async()=>{try{show(await playGame("bj_stand"))}catch(e){toast(e.message)}}}};
+  $("bjGo").onclick=async()=>{try{show(await playGame("bj_start"));money()}catch(e){toast(e.message)}}}}
+// 猜拳戰帖：發起（線上就能下）、應戰
+function duelModal(id,duel){const t=R[id];let bet=20,mv=null;$("modal").classList.remove("hide");
+ $("mbody").innerHTML=duel?`<h2>✊ ${esc(t.name)} 向你下戰帖</h2><p>押注 €${duel.bet}，贏的人拿走 €${duel.bet*2}。他已經出好拳了，你出什麼？</p><div class="gbtns">${Object.entries(RPS).map(([k,[ic,n]])=>`<button class="gbig" data-m="${k}">${ic}<span>${n}</span></button>`).join("")}</div><div class="row"><button id="dno">拒絕（他拿回押注）</button><button id="mc">之後再說</button></div>`
+  :`<h2>✊ 向 ${esc(t.name)} 下戰帖</h2><p class="mut">先押錢並出拳，他應戰時出拳就比；24 小時沒回應自動退錢。</p><div class="chips">押注 ${[5,20,50,100].map(b=>`<button data-bet="${b}" class="${bet==b?"on":""}">€${b}</button>`).join("")}</div><div class="gbtns">${Object.entries(RPS).map(([k,[ic,n]])=>`<button class="gbig" data-m="${k}">${ic}<span>${n}</span></button>`).join("")}</div><div class="row"><button id="mc">取消</button></div>`;
+ $("mc").onclick=()=>$("modal").classList.add("hide");
+ $("mbody").querySelectorAll("[data-bet]").forEach(b=>b.onclick=()=>{bet=+b.dataset.bet;$("mbody").querySelectorAll("[data-bet]").forEach(x=>x.classList.toggle("on",x==b))});
+ if($("dno"))$("dno").onclick=async()=>{try{apply(await rpc("town_duel",{rid:me,pin,act:"decline",duel:duel.id}));$("modal").classList.add("hide")}catch(e){toast(e.message)}};
+ $("mbody").querySelectorAll("[data-m]").forEach(b=>b.onclick=async()=>{try{const st=await rpc("town_duel",duel?{rid:me,pin,act:"accept",choice:b.dataset.m,duel:duel.id}:{rid:me,pin,act:"challenge",target:id,bet,choice:b.dataset.m});apply(st);$("modal").classList.add("hide");
+  toast(duel?(st.events[0]||{}).msg||"比完了":`戰帖送出，等 ${t.name} 應戰`)}catch(e){toast(e.message)}})}
 // 超市：造型與擺飾
 function shopModal(){const it=R[me].items||{},w=new Set(it.w||[]),d=new Set(it.d||[]);$("modal").classList.remove("hide");
  const row=(id,name,price,has,kind)=>`<div class="mrow"><span><b>${name}</b> <small class="mut">€${price}</small></span>${has?`<small class="mut">✔ 已擁有</small>`:`<button data-b="${kind}:${id}">買</button>`}</div>`;
