@@ -682,7 +682,7 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
  g.fillStyle="#bfe6ff";g.fillRect(fx-1,fy-26-((tk%30)/30)*16,3,5);
  // 公園的流浪貓：在公園裡慢慢走來走去
  {const cx=(25.5+4*(1+Math.sin(t/7000)))*T,cy=(18.6+.8*Math.sin(t/3100))*T;g.fillStyle="#555";g.fillRect(cx-8,cy-4,16,8);g.fillRect(cx+6,cy-10,8,8);g.fillRect(cx+6,cy-12,2,3);g.fillRect(cx+12,cy-12,2,3);g.fillRect(cx-12,cy-8+Math.sin(t/300)*2,4,8);g.fillStyle="#ffd23f";g.fillRect(cx+8,cy-8,2,2);g.fillRect(cx+11,cy-8,2,2)}
- for(const q of POOPS){const im=cimgP("poop");if(im.complete)g.drawImage(im,q.x*T+2,q.y*T+2,T-4,T-4)}
+ for(const q of POOPS){const im=cimgP("💩");if(im.complete)g.drawImage(im,q.x*T+2,q.y*T+2,T-4,T-4)}
  // 人：依 y 排序，前面的蓋住後面的；在家睡覺的人在屋裡看不到，改在屋頂畫 💤；晚上有人在家的窗戶亮燈
  const list=Object.values(R).map(r=>({id:r.id,w:walkers[r.id],r:tickLocal(r,now())})).filter(o=>!(o.r.sleeping&&o.r.place=="home:"+o.id&&!o.w.path.length)).sort((a,b)=>a.w.y-b.w.y);
  const nowMs=Date.now();for(const o of list){const bb=bubbles[o.id]||(bubbles[o.id]={next:nowMs+2e3+Math.random()*15e3});if(nowMs>bb.next){bb.text=Math.random()<.6?moodLine(o.id,o.r):null;bb.until=nowMs+4500;bb.next=nowMs+18e3+Math.random()*25e3}
