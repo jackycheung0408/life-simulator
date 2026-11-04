@@ -58,7 +58,7 @@ if(typeof document!=="undefined")addEventListener("DOMContentLoaded",init);
 function init(){
 const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const PXC={};
-function pxIcon(e){if(PXC[e])return PXC[e];const c=document.createElement("canvas");c.width=c.height=16;const m=c.getContext("2d");m.textAlign="center";m.textBaseline="middle";m.font="14px 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif";m.fillText(e,8,9);return PXC[e]=c.toDataURL()}
+function pxIcon(e){return PXC[e]||(PXC[e]=window.PIXICON?PIXICON(e):"")}
 const EMO=/(\p{Extended_Pictographic}(\uFE0F|\u200D\p{Extended_Pictographic})*)/gu;
 function pxify(root){if(!root)return;const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),nodes=[];while(w.nextNode()){const n=w.currentNode;if(EMO.test(n.nodeValue)&&!n.parentElement.closest("textarea,input,canvas"))nodes.push(n);EMO.lastIndex=0}
  for(const n of nodes){const span=document.createElement("span");span.innerHTML=n.nodeValue.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])).replace(EMO,m=>`<img class="px" alt="${m}" src="${pxIcon(m)}">`);n.replaceWith(...span.childNodes)}}
@@ -278,8 +278,20 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
 function renderNeeds(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now());
  $("needs").innerHTML=NEEDS.map(k=>{const v=Math.round(r[k]),[ic,nm]=NEED_INFO[k];return `<div class="need${v<20?" low":""}" title="${nm} ${v}"><span>${ic}</span><i><b style="width:${v}%;background:${v<20?"var(--bad)":v<50?"var(--warn)":"var(--good)"}"></b></i><small><em>${nm} </em>${v}</small></div>`}).join("")+`<div class="need money"><span>💰</span><small>€${r.money}${(r.items||{}).gift?` · 🎁${r.items.gift}`:""}${(r.items||{}).snack?` · 🍪${r.items.snack}`:""}</small></div>`}
 // 每週排行（最近 7 天）
-function renderRank(){const w=(S&&S.week)||{},med=["🥇","🥈","🥉"],cat=[["work","💼 最勤勞","次打工"],["popular","💗 最受歡迎","次被照顧"],["kind","🤲 最愛照顧人","次照顧別人"],["punched","🤕 最欠扁","次被欺負"]];
- $("tab-rank").innerHTML=`<p class="mut">最近 7 天</p>`+cat.map(([k,t,u])=>`<div class="rank"><b>${t}</b>${(w[k]||[]).length?(w[k]).map((x,i)=>`<p>${med[i]} ${esc((R[x.id]||{}).name||"搬走的鄰居")} <small class="mut">${x.n} ${u}</small></p>`).join(""):`<p class="mut">還沒有人上榜</p>`}</div>`).join("")}
+// 排行榜：頒獎台（前三名大頭貼）＋其餘名次＋你的名次；最近 7 天的事件，加上現在的存款和好友數
+function renderRank(){const w=(S&&S.week)||{},all=Object.values(R);
+ const fromWeek=k=>(w[k]||[]).filter(x=>R[x.id]).map(x=>({id:x.id,n:x.n}));
+ const rich=all.map(r=>({id:r.id,n:r.money})).sort((a,b)=>b.n-a.n),friends=all.map(r=>({id:r.id,n:((S&&S.bonds)||[]).filter(b=>(b.a==r.id||b.b==r.id)&&b.s>=10).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
+ const cats=[["work","💼","最勤勞","次打工",fromWeek("work")],["popular","💗","最受歡迎","次被照顧",fromWeek("popular")],["kind","🤲","最愛照顧人","次照顧別人",fromWeek("kind")],
+  ["rich","💰","小鎮首富","€",rich],["friends","🤝","人緣最好","個好朋友",friends],["punched","🤕","最欠扁","次被欺負",fromWeek("punched")]];
+ const av=(id,big)=>`<canvas class="rav${big?" big":""}" width="28" height="34" data-look='${esc(JSON.stringify((R[id]||{}).look||{}))}'></canvas>`;
+ const val=(c,x)=>c[0]=="rich"?`€${x.n}`:`${x.n} ${c[3]}`;
+ $("tab-rank").innerHTML=`<p class="mut" style="margin:0 0 8px">次數類是最近 7 天；首富和人緣是現在的狀態。</p>`+cats.map(c=>{const L=c[4];if(!L.length)return `<div class="rk"><div class="rkh">${c[1]} ${c[2]}</div><p class="mut">還沒有人上榜，搶第一！</p></div>`;
+  const top=[L[1],L[0],L[2]],mine=L.findIndex(x=>x.id==me);
+  return `<div class="rk"><div class="rkh">${c[1]} ${c[2]}</div><div class="podium">${top.map((x,i)=>x?`<div class="pd p${[2,1,3][i]}${x.id==me?" me":""}">${av(x.id,i==1)}<b>${esc(R[x.id].name)}</b><small>${val(c,x)}</small><div class="step">${[2,1,3][i]}</div></div>`:`<div class="pd empty"></div>`).join("")}</div>
+   ${L.length>3?`<div class="rest">${L.slice(3,8).map((x,i)=>`<div class="rr${x.id==me?" me":""}"><span>${i+4}</span><b>${esc(R[x.id].name)}</b><small>${val(c,x)}</small></div>`).join("")}</div>`:""}
+   ${me&&mine<0&&c[0]!="punched"?`<p class="mut mine">你還沒上榜</p>`:mine>=0?`<p class="mine">你是第 <b>${mine+1}</b> 名</p>`:""}</div>`}).join("");
+ $("tab-rank").querySelectorAll("canvas.rav").forEach(c=>{try{const l=JSON.parse(c.dataset.look);miniPerson(c,l)}catch(e){}})}
 function renderPeople(){const list=Object.values(R).filter(o=>o.id!=me).map(o=>({o,v:bondWith(o.id)})).sort((a,b)=>b.v-a.v);
  $("tab-ppl").innerHTML=(list.length?list.map(({o,v})=>`<div class="mrow"><span><b>${esc(o.name)}</b> <small class="mut">${bondLabel(v)} · ${v>0?"+":""}${v}</small><i class="bond"><b style="left:50%;width:${Math.abs(v)/2}%;${v<0?`left:${50-Math.abs(v)/2}%;background:var(--bad)`:"background:var(--good)"}"></b></i><small class="mut">${tierHint(v)} · 在${placeName(o.place)}</small></span><button data-w="${o.id}">互動</button></div>`).join(""):`<p class="mut">鎮上還沒有其他人，邀請朋友搬進來吧。</p>`)
   +`<p class="mut" style="margin-top:10px">送禮 +5、煮飯洗澡 +4、請吃大餐 +4、串門子一起加班 +3、道謝擊掌 +2、留言 +1；叫醒 −1、丟雞蛋 −2、惡作劇 −3、扁人 −6、和好 +8。好麻吉以上照顧對方效果 ×1.3。</p>`;
@@ -434,14 +446,18 @@ function drawChar(c,x,y,u,L0,st,tk){const L=normLook(L0),b=st.moving?Math.floor(
   crown:()=>{R(-4,-15,8,2.5,"#f1c40f");R(-4,-16.5,1.2,1.5,"#f1c40f");R(-.6,-17,1.2,2,"#f1c40f");R(2.8,-16.5,1.2,1.5,"#f1c40f");R(-.5,-14.5,1,1,"#e74c3c")},
   pigears:()=>{R(-5,-14.5,3,3,"#f6a5c0");R(2,-14.5,3,3,"#f6a5c0");R(-4.3,-13.8,1.5,1.5,"#ec7fa6");R(2.8,-13.8,1.5,1.5,"#ec7fa6")},
   headphones:()=>{R(-5,-13.2,10,1,"#333");R(-6,-9,2,3,"#333");R(4,-9,2,3,"#333")},scarf:()=>{R(-5,-4,10,2,"#c0392b");R(2,-2,2,3,"#c0392b")},bandage:()=>{R(-4,-11,8,1.5,"#fff");R(2,-12.5,2,1.5,"#fff")}};(ac[L.acc]||(()=>{}))()}
+const CIMG={};const cimg=e=>{if(!CIMG[e]){const i=new Image();i.src=pxIcon(e);CIMG[e]=i}return CIMG[e]};
+// 置中畫一行字，emoji 換成像素圖示；回傳寬度
+function textIcons(t,cx,cy,sz,measureOnly){const parts=t.split(EMO).filter(x=>x&&!/^[\uFE0F\u200D]+$/.test(x));let w=0;const ws=parts.map(p=>{EMO.lastIndex=0;const ic=EMO.test(p);EMO.lastIndex=0;const pw=ic?sz+2:g.measureText(p).width;w+=pw;return [p,ic,pw]});
+ if(measureOnly)return w;let x=cx-w/2;g.textAlign="left";for(const [p,ic,pw] of ws){if(ic){const im=cimg(p);if(im.complete)g.drawImage(im,x+1,cy-sz/2,sz,sz)}else g.fillText(p,x,cy);x+=pw}g.textAlign="center";return w}
 function person(x,y,look,tk,moving,label,isMe,state){const u=1.6;
  if(isMe){g.strokeStyle="#ffd23f";g.lineWidth=3;g.beginPath();g.ellipse(x,y+12*u,11*u,4*u,0,0,7);g.stroke()}
  g.fillStyle="rgba(0,0,0,.25)";g.fillRect(x-5*u,y+10*u,10*u,3*u);drawChar(g,x,y,u,look,{...state,moving},tk);
  if(state.sleeping){g.font="bold 16px sans-serif";g.fillStyle="#fff";g.fillText("Zz",x+14*u,y-6*u+Math.sin(tk/20)*3)}
  if(state.stink){g.strokeStyle="#7bd36b";g.lineWidth=2;for(let k=-1;k<=1;k++){g.beginPath();for(let s=0;s<10;s++)g.lineTo(x+k*8*u+Math.sin(tk/6+s)*2,y-16*u-s*2.2);g.stroke()}}
- g.font="600 13px sans-serif";g.textAlign="center";g.textBaseline="middle";const tag=label+(state.bruised?" 🤕":"")+(state.hungry?" 🍚":""),w=g.measureText(tag).width+10,ty=y-32*u;g.fillStyle=isMe?"rgba(160,110,0,.9)":"rgba(0,0,0,.65)";g.fillRect(x-w/2,ty,w,18);g.fillStyle="#fff";g.fillText(tag,x,ty+9);
+ g.font="600 13px sans-serif";g.textAlign="center";g.textBaseline="middle";const tag=label+(state.bruised?" 🤕":"")+(state.hungry?" 🍚":""),w=textIcons(tag,0,0,14,true)+10,ty=y-32*u;g.fillStyle=isMe?"rgba(160,110,0,.9)":"rgba(0,0,0,.65)";g.fillRect(x-w/2,ty,w,18);g.fillStyle="#fff";textIcons(tag,x,ty+9,14);
  // 心情泡泡
- if(state.bubble){g.font="500 12px sans-serif";const bw=g.measureText(state.bubble).width+14,by=ty-26;g.fillStyle="rgba(255,255,255,.95)";g.beginPath();g.roundRect?g.roundRect(x-bw/2,by,bw,22,8):g.rect(x-bw/2,by,bw,22);g.fill();g.beginPath();g.moveTo(x-5,by+22);g.lineTo(x+5,by+22);g.lineTo(x,by+28);g.fill();g.fillStyle="#2c2620";g.fillText(state.bubble,x,by+11)}}
+ if(state.bubble){g.font="500 12px sans-serif";const bw=textIcons(state.bubble,0,0,13,true)+14,by=ty-26;g.fillStyle="rgba(255,255,255,.95)";g.beginPath();g.roundRect?g.roundRect(x-bw/2,by,bw,22,8):g.rect(x-bw/2,by,bw,22);g.fill();g.beginPath();g.moveTo(x-5,by+22);g.lineTo(x+5,by+22);g.lineTo(x,by+28);g.fill();g.fillStyle="#2c2620";textIcons(state.bubble,x,by+11,13)}}
 function miniPerson(c,L){const m=c.getContext("2d"),u=c.height/30;m.clearRect(0,0,c.width,c.height);drawChar(m,c.width/2,17.5*u,u,L,{},0)}
 let W=0,Hh=0,dpr=1;
 const isMob=()=>matchMedia("(max-width:700px)").matches;
@@ -474,7 +490,7 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
  const nowMs=Date.now();for(const o of list){const bb=bubbles[o.id]||(bubbles[o.id]={next:nowMs+2e3+Math.random()*15e3});if(nowMs>bb.next){bb.text=Math.random()<.6?moodLine(o.id,o.r):null;bb.until=nowMs+4500;bb.next=nowMs+18e3+Math.random()*25e3}
   person((o.w.x+.5)*T,(o.w.y+.5)*T,o.r.look,tk,o.w.moving,o.r.name,o.id==me,{sleeping:o.r.sleeping&&!o.w.path.length,stink:o.r.hygiene<25,dirty:o.r.hygiene<25,hungry:o.r.hunger<20,bruised:o.r.bruised,bubble:!o.r.sleeping&&bb.text&&nowMs<bb.until?bb.text:null})}
  for(const r of Object.values(R)){if(r.place!="home:"+r.id)continue;const [hx,hy]=homeXY(r.slot);if(night){g.fillStyle="rgba(255,215,106,.35)";g.fillRect(hx*T+16,hy*T+T+22,24,22);g.fillRect(hx*T+5*T-40,hy*T+T+22,24,22)}
-  if(r.sleeping){g.font="bold 18px sans-serif";g.fillStyle="#fff";g.textAlign="center";g.fillText("💤",hx*T+4.2*T,hy*T+T+4+Math.sin(tk/25)*4)}}
+  if(r.sleeping){g.font="bold 18px sans-serif";g.fillStyle="#fff";g.textAlign="center";{const im=cimg("💤");if(im.complete)g.drawImage(im,hx*T+4.2*T-10,hy*T+T-12+Math.sin(tk/25)*4,20,20)}}}
  // 互動動畫
  {const nowp=performance.now(),IMG=FXIMG;const img=e=>{if(!IMG[e]){const i=new Image();i.src=pxIcon(e);IMG[e]=i}return IMG[e]};const icon=(e,x,y,s)=>{const i=img(e);if(i.complete)g.drawImage(i,x-s/2,y-s/2,s,s)};
   const pos=id=>{const w=walkers[id];return [(w.x+.5)*T,(w.y+.5)*T]};

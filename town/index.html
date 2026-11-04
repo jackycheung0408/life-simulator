@@ -77,6 +77,11 @@ textarea{width:100%;font:inherit;color:var(--fg);background:var(--btn);border:1p
 .hero{display:flex;gap:14px;align-items:center;margin-bottom:8px}.hero canvas{width:72px;height:90px;flex:none;background:#7cc46a;border-radius:14px}
 .choose{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.big{display:flex;align-items:center;gap:12px;text-align:left;padding:14px;border-radius:14px;min-height:70px}.big .ai{font-size:28px}.big b{display:block;font-size:16px}.big small{display:block;color:var(--mut);font-size:12px}.big.pri small{color:#fff;opacity:.9}
 .list .big{width:100%}.list>button.big{flex-direction:row;align-items:center}button.ghost{background:transparent;border-style:dashed}.tips{border-color:var(--ac)}.tips p{margin:6px 0}
+.rk{background:rgba(0,0,0,.18);border:2px solid rgba(255,255,255,.15);border-radius:6px;padding:10px;margin-bottom:10px}.rkh{font-weight:700;font-size:16px;margin-bottom:6px}
+.podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;align-items:end;text-align:center}.pd{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}.pd b{font-size:13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pd small{font-size:11px;color:#cfd6f5}
+.pd .step{width:100%;margin-top:4px;background:#3a4a8c;border:3px solid var(--ink);font-weight:700;color:#fff;box-shadow:inset 3px 3px 0 rgba(255,255,255,.2)}.p1 .step{height:44px;background:#d4a017}.p2 .step{height:32px;background:#8d97b0}.p3 .step{height:24px;background:#a0632e}
+.pd.me b{color:var(--gold)}canvas.rav{width:34px;height:42px;image-rendering:pixelated}canvas.rav.big{width:44px;height:54px}
+.rest{margin-top:8px}.rr{display:grid;grid-template-columns:24px 1fr auto;gap:6px;padding:3px 4px;border-top:1px dashed rgba(255,255,255,.12);font-size:13px}.rr.me{color:var(--gold)}.rk .mine{margin:6px 0 0;font-size:13px}
 /* ── 側邊選單：從右邊滑出 ── */
 #menuBack{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:44;opacity:0;pointer-events:none;transition:opacity .2s}body.menu-open #menuBack{opacity:1;pointer-events:auto}
 .drawer{position:fixed;top:0;right:0;bottom:0;width:min(290px,82vw);z-index:45;background:var(--card);border-left:1px solid var(--line);display:flex;flex-direction:column;gap:4px;padding:calc(env(safe-area-inset-top) + 14px) 12px calc(env(safe-area-inset-bottom) + 14px);transform:translateX(105%);transition:transform .22s ease;overflow:auto;box-shadow:-10px 0 30px rgba(0,0,0,.35)}
@@ -112,7 +117,7 @@ body.menu-open .drawer{transform:none}
 @font-face{font-family:"Cubic11";src:url("https://cdn.jsdelivr.net/gh/ACh-K/Cubic-11@1.500/fonts/web/Cubic_11.woff2") format("woff2");font-display:swap}
 :root{--ink:#0b0b14;--box:#1b2450;--box2:#26306a;--gold:#ffd23f}
 body{font-family:"Cubic11","PingFang TC","Noto Sans TC",sans-serif;letter-spacing:.5px;-webkit-font-smoothing:none;font-smooth:never}
-img.px{image-rendering:pixelated;width:1.35em;height:1.35em;vertical-align:-.3em;display:inline-block}
+img.px{image-rendering:pixelated;image-rendering:crisp-edges;width:1.35em;height:1.35em;vertical-align:-.3em;display:inline-block}
 .card,.drawer,#panel,#modal .card,.need{background:var(--box);color:#f4f1de;border:3px solid #fff;border-radius:6px;box-shadow:0 0 0 3px var(--ink),6px 6px 0 3px rgba(0,0,0,.35)}
 .card .mut,.drawer small,.need small,#note,.ev .tm,.day,.grp,.dsec{color:#b9c2e8}
 h1,h2,h3,#here{text-shadow:2px 2px 0 var(--ink);letter-spacing:1px}
@@ -159,6 +164,6 @@ body.ingame .need{background:rgba(27,36,80,.88)}
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide"><div class="card" id="mbody"></div></div>
-<script src="town.js?v=22"></script>
+<script src="icons.js?v=2"></script><script src="town.js?v=24"></script>
 </body>
 </html>
