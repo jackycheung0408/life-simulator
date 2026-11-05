@@ -11,17 +11,8 @@ function askNow(q,opts,info){
   $("choice").innerHTML=`<h2 style="margin-top:10px">${q}</h2>${info?`<p class="mut">${info}</p>`:""}`+opts.map((o,i)=>{const ok=!o[3]||o[3]();return `<button class="opt" data-i="${i}" ${ok?"":"disabled"}>${o[0]}${o[2]?`<small>${o[2]}</small>`:""}</button>`}).join("");
   $("choice").querySelectorAll(".opt").forEach(b=>b.onclick=()=>{const o=opts[b.dataset.i],before=ovr(P);b.classList.add("picked");$("choice").querySelectorAll(".opt").forEach(x=>x.disabled=true);
    const go=forced=>{say(`${q} → ${o[0]}`);o[1](forced);setTimeout(()=>{$("modal").classList.add("hide");render();const d=ovr(P)-before;toast(d?`${o[0]}：能力 ${d>0?"+":""}${d}`:`選擇了「${o[0]}」`);res()},380)};
-   if(o[4]!=null)chanceMeter(o[4],o[0]).then(go);else go()})});
+   go()})});
 }
-// ── 機率動畫：綠色區域＝成功率；按「出腳！」讓指針停下。結果在按下時依成功率擲骰，指針只是把結果演出來，不看反應速度 ──
-function chanceMeter(c,label){return new Promise(res=>{const w=c*100,s=R()*(100-w),box=document.createElement("div");box.className="meterbox";
- box.innerHTML=`<p><b>${label}</b></p><div class="meter"><div class="mz" style="left:${s}%;width:${w}%"></div><i class="mn"></i></div><p class="mres mut">綠色區域＝成功率 ${Math.round(w)}%</p><button class="pri" id="mstop">⚽ 出腳！</button>`;
- $("choice").appendChild(box);box.scrollIntoView({block:"nearest"});const nd=box.querySelector(".mn");let x=R()*100,v=(1.1+R()*.6)*(R()<.5?-1:1),run=true,last=performance.now();
- const tick=now=>{if(!run)return;const dt=Math.min(50,now-last)/16;last=now;x+=v*dt;if(x<0||x>100){v=-v;x=clamp(x,0,100)}nd.style.left=x+"%";requestAnimationFrame(tick)};requestAnimationFrame(tick);
- let done=false;const stop=()=>{if(done)return;done=true;run=false;const btn=box.querySelector("#mstop");btn.disabled=true;
-  const ok=R()<c,lo=[0,s],hi=[s+w,100],seg=ok?[s,s+w]:(s<=0?hi:s+w>=100?lo:(R()<s/(100-w)?lo:hi)),to=seg[0]+(seg[1]-seg[0])*(.15+R()*.7),from=x,t0=performance.now();
-  const ease=now=>{const k=Math.min(1,(now-t0)/650),e=1-Math.pow(1-k,3);nd.style.left=(from+(to-from)*e)+"%";if(k<1)requestAnimationFrame(ease);else{box.classList.add(ok?"win":"lose");box.querySelector(".mres").innerHTML=ok?"<b style='color:var(--g)'>成功！</b>":"<b style='color:var(--ac)'>沒有成功</b>";setTimeout(()=>res(ok),750)}};requestAnimationFrame(ease)};
- box.querySelector("#mstop").onclick=stop;setTimeout(stop,9000)})}
 
 // ── 成長：訓練重心 + 天賦上限 + 上場時間 + 年齡 ──
 // ── 人際：教練、經紀人、最好的隊友、伴侶，各有名字與關係值（0～100）──
