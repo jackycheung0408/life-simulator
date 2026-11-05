@@ -111,7 +111,6 @@ $$;
 -- 營業時間（台灣時間）：回傳 null 表示營業中，否則回傳休息說明
 create or replace function public.town_closed(what text) returns text language sql stable as $$
   select case
-    when what in ('work','cowork') and not (h between 9 and 18) then '公司下班了，營業時間 9:00～19:00'
     when what in ('dine','feast') and not (h between 11 and 21) then '餐廳休息中，營業時間 11:00～22:00'
     when what in ('buy','browse') and not (h between 8 and 22) then '超市休息中，營業時間 8:00～23:00'
     when what = 'stall' and not (h between 16 and 23) then '烤地瓜攤還沒開，營業時間 16:00～24:00'
