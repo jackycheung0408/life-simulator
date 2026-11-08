@@ -216,7 +216,7 @@
 - 拉菲的辦公室（建築名，`place='rafi'`，位置 `[43,17,7,4]` 門 `[46,21]`，全天營業，`FEATS` 可關）：要公司累計打工 ≥ 10 次（員工）；行政專員 320／企劃（15 次）450／業務經理（40 次）650；每次精力 −15、飽足 −8、心情 −18、清潔 −4。
 - 實測腳本：`supabase/town_jobs_test.sql`（整段最後 rollback，會把 `town_closed` 暫時改成永遠營業，不留痕跡，結果在錯誤訊息裡）。
 
-## 設施小事件、一起加成、邀請一起做（SQL 待套用：`supabase/town_social.sql`，要在 `town.sql` 之後）
+## 設施小事件、一起加成、邀請一起做（SQL 已套用（2026-11-09，實測通過）：`supabase/town_social.sql`，要在 `town.sql` 之後）
 - **不改 `town_act`**：全是獨立 RPC `town_pevent(rid,pin,op,item)`、`town_invite(rid,pin,op,target)`。實測 `supabase/town_social_test.sql`（最後 rollback，結果在錯誤訊息 REPORT）。
 - **設施小事件**：13 個地點（餐廳、超市、咖啡廳、電影院、健身房、公園、廣場、公司、格鬥場、證交所、拉菲、車行、屠宰場）各 3 個事件、2 個選項。文字在前端 `PEV`（`[標題,說明,A,A提示,B,B提示]`），效果在 SQL `town_pe_eff`（`[心情,精力,錢,好感,成功%,失敗心情,失敗精力,失敗錢,失敗好感]`），兩邊順序要一致；新增地點要同步 `town_pe_place`、`PEV`、`JT`。每個賭的選項金錢期望值 ≤ 0、安全選項不給錢，`node town/test.js` 會檢查。
 - 流程：前端畫面開著、在設施裡、沒在走路時每 20 秒 `poll`；進地點或超過 5 分鐘沒回報（離線）會重新計時 10～20 分鐘（不累積）；每天（台灣日）最多 8 個；事件 5 分鐘內要選（`pick`），關掉不會重跳（`peSeen`）。資料 `items.pe = {pl,nx,lp,d,n,q}`。好感是對同地點醒著的隨機一人，走 `town_bond`（吃每日上限）。
