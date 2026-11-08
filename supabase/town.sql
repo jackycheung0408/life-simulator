@@ -1092,6 +1092,7 @@ do $mig$ begin
   end if;
 end $mig$;
 alter table public.town_residents alter column money set default 2000;
+alter table public.town_towns alter column currency set default 'NT$';
 
 revoke all on function public.town_state(text), public.town_create(text,text,text,jsonb), public.town_join(text,text,text,text,jsonb,int),
   public.town_login(bigint,text,jsonb), public.town_mayor(bigint,text,text,bigint), public.town_act(bigint,text,text,bigint,real,real,text,text,text) from public;
