@@ -1225,7 +1225,7 @@ begin
     c := (r.items->'hl'->>'card')::int; bet := (r.items->'hl'->>'bet')::int; c2 := public.town_card();
     d1 := c % 100; d2 := c2 % 100; -- 比的是點數，花色只是好看
     -- 賠率看機率：猜中的牌越少賠越多（期望值 0.92）
-    if choice not in ('hi','lo') then raise exception '猜更大或更小'; end if;
+    if coalesce(choice,'') not in ('hi','lo') then raise exception '猜更大或更小'; end if;
     p := case when choice = 'hi' then 13 - d1 else d1 - 1 end;
     if p > 0 and ((choice = 'hi' and d2 > d1) or (choice = 'lo' and d2 < d1)) then win := floor(bet * .92 * 13 / p); end if;
     r.items := r.items - 'hl';
@@ -1256,7 +1256,7 @@ begin
     end if;
   elsif game = 'dice' then
     -- 三顆骰：大（11～17）／小（4～10）三顆一樣莊家通吃，賠 1 倍（期望 0.972）；押單一點數：出現幾顆賠幾倍（期望 0.921）
-    if choice not in ('big','small','1','2','3','4','5','6') then raise exception '押大、小或一個點數'; end if;
+    if coalesce(choice,'') not in ('big','small','1','2','3','4','5','6') then raise exception '押大、小或一個點數'; end if;
     d1 := 1 + floor(random()*6)::int; d2 := 1 + floor(random()*6)::int; d3 := 1 + floor(random()*6)::int; p := d1 + d2 + d3;
     if choice = 'big' then if p >= 11 and not (d1 = d2 and d2 = d3) then win := bet*2; end if;
     elsif choice = 'small' then if p <= 10 and not (d1 = d2 and d2 = d3) then win := bet*2; end if;
