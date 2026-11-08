@@ -775,10 +775,10 @@ $$;
 create or replace function public.town_traffic(r public.town_residents, vk text, px real, py real, dest text) returns public.town_residents language plpgsql as $$
 declare cx int := round(r.x)::int; cy int := round(r.y)::int; tx int := round(px)::int; ty int := round(py)::int; xx int; yy int; k int := 0; sg int;
   mult real := case vk when 'moto' then 2.5 when 'car' then 3 else 1.5 end; ms double precision := extract(epoch from clock_timestamp()) * 1000;
-  full boolean := coalesce((r.items#>>'{veh,f}')::int,0) = 1; red int := 0; zt int := 0; ys int[] := '{}'; yn int := 0; hr int := extract(hour from now() at time zone 'Asia/Taipei')::int;
+  rush boolean := coalesce((r.items#>>'{veh,f}')::int,0) = 1; red int := 0; zt int := 0; ys int[] := '{}'; yn int := 0; hr int := extract(hour from now() at time zone 'Asia/Taipei')::int;
   nf real := case when hr >= 23 or hr < 5 then .5 else 1 end; motor boolean := vk in ('moto','car'); i int;
 begin
-  if full then
+  if rush then
     sg := case when tx >= cx then 1 else -1 end;
     xx := cx;
     while xx <> tx loop
