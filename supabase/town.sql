@@ -108,19 +108,9 @@ create or replace function public.town_obj_near(o text, x real, y real, place te
     when 'claw' then abs(x-33)+abs(y-14) <= 2 when 'news' then abs(x-14)+abs(y-19) <= 2 when 'pwc' then abs(x-18)+abs(y-19) <= 2 when 'lottery' then abs(x-8)+abs(y-19) <= 2 else false end
 $$;
 
--- 營業時間（台灣時間）：回傳 null 表示營業中，否則回傳休息說明
-create or replace function public.town_closed(what text) returns text language sql stable as $$
-  select case
-    when what in ('dine','feast') and not (h between 11 and 21) then '餐廳休息中，營業時間 11:00～22:00'
-    when what in ('buy','browse') and not (h between 8 and 22) then '超市休息中，營業時間 8:00～23:00'
-    when what = 'stall' and not (h between 16 and 23) then '烤地瓜攤還沒開，營業時間 16:00～24:00'
-    when what = 'coffee' and not (h between 7 and 20) then '咖啡廳休息中，營業時間 7:00～21:00'
-    when what = 'movie' and not (h between 12 and 23) then '電影院休息中，營業時間 12:00～24:00'
-    when what = 'workout' and not (h between 6 and 22) then '健身房休息中，營業時間 6:00～23:00'
-    when what = 'spar' and not (h between 10 and 23) then '格鬥場休息中，營業時間 10:00～24:00'
-    when what = 'rafi' and not (h between 9 and 18) then '拉菲的辦公室休息中，營業時間 9:00～19:00'
-    else null end
-  from (select extract(hour from (now() at time zone 'Asia/Taipei'))::int h, extract(minute from (now() at time zone 'Asia/Taipei'))::int mi, extract(isodow from (now() at time zone 'Asia/Taipei'))::int dw) x
+-- 營業時間：已取消，所有設施全天營業（保留函式，呼叫處不用改；設施開關仍由鎮長 town_feature 控制）
+create or replace function public.town_closed(what text) returns text language sql immutable as $$
+  select null::text
 $$;
 
 -- 鎮長可以關掉的設施（off 裡面的就是沒開）
@@ -223,12 +213,22 @@ create or replace function public.town_pay(base int, m text, workaholic boolean)
   select (base * public.town_mood_wage(m) * (case when workaholic then 110 else 100 end) * 2 + 10000) / 20000
 $$;
 -- 好感增加的倍率由 town_act 開頭存在交易設定 town.bm（百分比 ×100：心情 × 社交達人）；只放大正數
+alter table public.town_bonds add column if not exists dday text;
+alter table public.town_bonds add column if not exists dpos int not null default 0;
+alter table public.town_bonds add column if not exists dneg int not null default 0;
+-- 每對朋友每天（台灣日）正向好感最多 +12、負向最多 −6，超過的部分不算好感（心情／體力效果照給）
 create or replace function public.town_bond(tid text, x bigint, y bigint, d int) returns void language plpgsql as $$
 declare o int := public.town_bond_get(x,y); n int; na text; nb text; bmp int := coalesce(nullif(current_setting('town.bm', true), ''), '10000')::int;
+  today text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); dp int := 0; dn int := 0; bd text;
 begin
   if d > 0 then d := greatest(1, (d * bmp * 2 + 10000) / 20000); end if;
+  select dday, dpos, dneg into bd, dp, dn from public.town_bonds where a = least(x,y) and b = greatest(x,y);
+  if bd is distinct from today then dp := 0; dn := 0; end if;
+  if d > 0 then d := least(d, greatest(0, 12 - dp)); dp := dp + d;
+  elsif d < 0 then d := -least(-d, greatest(0, 6 - dn)); dn := dn - d; end if;
   n := greatest(-100, least(100, o + d));
-  insert into public.town_bonds(town_id,a,b,score) values (tid, least(x,y), greatest(x,y), n) on conflict (a,b) do update set score = n;
+  insert into public.town_bonds(town_id,a,b,score,dday,dpos,dneg) values (tid, least(x,y), greatest(x,y), n, today, dp, dn)
+    on conflict (a,b) do update set score = n, dday = today, dpos = dp, dneg = dn;
   if public.town_tier(o) <> public.town_tier(n) and public.town_tier(n) <> '普通鄰居' then
     select name into na from public.town_residents where id = town_bond.x; select name into nb from public.town_residents where id = town_bond.y;
     insert into public.town_events(town_id,actor,target,kind,msg) values (tid, x, y, 'tier',
@@ -994,7 +994,7 @@ begin
     if target is null or target = rid then raise exception '要選一位朋友'; end if;
     select * into t from public.town_residents where id = target and town_id = r.town_id for update;
     if not found then raise exception '找不到這位鄰居'; end if;
-    if exists (select 1 from public.town_events e where e.actor = rid and e.target = t.id and e.kind = act and e.at > now() - case act when 'thank' then interval '2 hours' when 'makeup' then interval '30 minutes' when 'fight' then case when r.place = 'arena' then interval '5 minutes' else interval '10 minutes' end when 'egg' then interval '10 minutes' when 'prank' then interval '10 minutes' when 'cowork' then interval '1 hour' when 'feast' then interval '1 hour' else interval '30 minutes' end) then raise exception '剛剛才做過，等一下再來'; end if;
+    if exists (select 1 from public.town_events e where e.actor = rid and e.target = t.id and e.kind = act and e.at > now() - case act when 'thank' then interval '2 hours' when 'makeup' then interval '2 hours' when 'greet' then interval '1 hour' when 'note' then interval '1 hour' when 'call' then interval '1 hour' when 'wakeup' then interval '1 hour' when 'fight' then case when r.place = 'arena' then interval '5 minutes' else interval '10 minutes' end when 'egg' then interval '30 minutes' when 'prank' then interval '30 minutes' when 'cowork' then interval '1 hour' when 'feast' then interval '1 hour' else interval '30 minutes' end) then raise exception '剛剛才做過，等一下再來'; end if;
     t := public.town_tick(t); tn := t.name; bond := public.town_bond_get(rid, t.id);
     -- 面對面：在同一個地方（不算路上），或在路上距離 2 格以內
     near := (r.place = t.place and r.place <> 'street') or (abs(r.x - t.x) + abs(r.y - t.y) <= 2.5);
@@ -1014,7 +1014,7 @@ begin
       if pa >= pb then t.fun := t.fun - 12; t.hygiene := t.hygiene - 15; t.bruised_until := now() + interval '2 hours'; r.fun := r.fun + 10;
       else r.fun := r.fun - 12; r.hygiene := r.hygiene - 15; r.bruised_until := now() + interval '2 hours'; t.fun := t.fun + 10; end if;
       -- 好麻吉之間是打打鬧鬧，感情反而更好
-      perform public.town_bond(r.town_id, rid, t.id, case when bond >= 30 then 1 when r.place = 'arena' and t.place = 'arena' then -1 else -4 end);
+      perform public.town_bond(r.town_id, rid, t.id, case when bond >= 30 then 0 when r.place = 'arena' and t.place = 'arena' then (case when bond >= 10 then 0 else -1 end) when bond >= 10 then -1 else -3 end);
       -- 擂台上的友誼賽：贏的人 €100，每人 30 分鐘最多領一次（不然兩個人互打就能無限印錢）
       if r.place = 'arena' and t.place = 'arena' then
         if pa >= pb and not (r.items->'cd'->>'afp' is not null and (r.items->'cd'->>'afp')::timestamptz > now() - interval '30 minutes') then
@@ -1030,7 +1030,7 @@ begin
     elsif act = 'makeup' then
       if not near then raise exception '要和 % 面對面才能和好', tn; end if;
       if bond >= 0 then raise exception '你們本來就沒有不合'; end if;
-      t.fun := t.fun + 5; r.fun := r.fun + 5; perform public.town_bond(r.town_id, rid, t.id, 10);
+      t.fun := t.fun + 5; r.fun := r.fun + 5; perform public.town_bond(r.town_id, rid, t.id, 8);
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 向 ' || tn || ' 伸出手，兩人握手言和 🤝');
     elsif act in ('cowork','feast') then
       if not near or t.sleeping then raise exception '要和 % 面對面，而且他醒著', tn; end if;
@@ -1039,7 +1039,7 @@ begin
         if r.energy < 15 or t.energy < 15 then raise exception '有人太累了，加不了班'; end if;
         r.money := r.money + 2 * public.town_pay(public.town_wage(public.town_job_lv(coalesce((r.items->>'works')::int,0))), mo, public.town_has(r,'workaholic')) * public.town_work_pct(public.town_dc_get(r,'work')) / 100;
         t.money := t.money + 2 * public.town_pay(public.town_wage(public.town_job_lv(coalesce((t.items->>'works')::int,0))), public.town_mood(t), public.town_has(t,'workaholic')) * public.town_work_pct(public.town_dc_get(t,'work')) / 100;
-        r := public.town_dc_inc(r,'work'); t := public.town_dc_inc(t,'work'); r.energy := r.energy - 15; t.energy := t.energy - 15; perform public.town_bond(r.town_id, rid, t.id, 3);
+        r := public.town_dc_inc(r,'work'); t := public.town_dc_inc(t,'work'); r.energy := r.energy - 15; t.energy := t.energy - 15; perform public.town_bond(r.town_id, rid, t.id, 2);
         insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 和 ' || tn || ' 一起加班，薪水加倍 💼');
       else
         if r.place <> 'restaurant' then raise exception '要一起在餐廳才能請吃大餐'; end if;
@@ -1049,7 +1049,7 @@ begin
       end if;
     elsif act = 'greet' then
       if not near or t.sleeping then raise exception '要和 % 面對面，而且他醒著', tn; end if;
-      t.fun := t.fun + 8; r.fun := r.fun + 8; perform public.town_bond(r.town_id, rid, t.id, 2);
+      t.fun := t.fun + 8; r.fun := r.fun + 8; perform public.town_bond(r.town_id, rid, t.id, 1);
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 和 ' || tn || ' 在' || public.town_place_name(r.place) || '擊掌 🙌');
     elsif act in ('note','call','delivery') or (act = 'gift' and r.place <> 'home:' || target) then
       -- 線上互動：用手機就能做，不用走過去（像現實生活：傳訊息、打電話、叫外送、寄禮物）
@@ -1066,19 +1066,19 @@ begin
         end if;
       elsif act = 'delivery' then
         if r.money < 200 then raise exception '錢不夠，外送要 €200'; end if;
-        r.money := r.money - 200; t.hunger := t.hunger + 30; perform public.town_bond(r.town_id, rid, t.id, 3);
+        r.money := r.money - 200; t.hunger := t.hunger + 30; perform public.town_bond(r.town_id, rid, t.id, 2);
         insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 幫 ' || tn || ' 叫了外送 🛵');
       else
         if coalesce((r.items->>'gift')::int,0) < 1 then raise exception '背包裡沒有禮物，去超市買'; end if;
         if r.money < 60 then raise exception '寄送要 €60 運費'; end if;
-        r.items := jsonb_set(r.items, '{gift}', to_jsonb((r.items->>'gift')::int - 1)); r.money := r.money - 60; t.fun := t.fun + 20*gm; perform public.town_bond(r.town_id, rid, t.id, 5*gm); perform public.town_rg_add(t.id, rid, r.name);
+        r.items := jsonb_set(r.items, '{gift}', to_jsonb((r.items->>'gift')::int - 1)); r.money := r.money - 60; t.fun := t.fun + 20*gm; perform public.town_bond(r.town_id, rid, t.id, 4*gm); perform public.town_rg_add(t.id, rid, r.name);
         insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 寄了一份禮物給 ' || tn || ' 📦');
       end if;
     else
       if r.place <> 'home:' || target then raise exception '要先走到他家'; end if;
       if act = 'gift' then
         if coalesce((r.items->>'gift')::int,0) < 1 then raise exception '背包裡沒有禮物，去超市買'; end if;
-        r.items := jsonb_set(r.items, '{gift}', to_jsonb((r.items->>'gift')::int - 1)); t.fun := t.fun + 20*gm; r.fun := r.fun + 5; perform public.town_bond(r.town_id, rid, t.id, 5*gm); perform public.town_rg_add(t.id, rid, r.name);
+        r.items := jsonb_set(r.items, '{gift}', to_jsonb((r.items->>'gift')::int - 1)); t.fun := t.fun + 20*gm; r.fun := r.fun + 5; perform public.town_bond(r.town_id, rid, t.id, 4*gm); perform public.town_rg_add(t.id, rid, r.name);
         insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || case when public.town_inside(t) then ' 送了一份禮物給 ' || tn || ' 🎁' else ' 在 ' || tn || ' 家門口放了一份禮物 🎁' end);
       elsif act = 'egg' then
         if public.town_inside(t) then t.hygiene := t.hygiene - 10; t.fun := t.fun - 5; end if; r.fun := r.fun + 8;
@@ -1092,9 +1092,9 @@ begin
       else
         if not public.town_inside(t) then raise exception '% %。可以留言或放禮物', tn, case when t.place = 'home:' || target then '還在家門口，沒進屋' else '不在家，在' || public.town_place_name(t.place) end; end if;
         m := case when bond >= 30 then 1.3 else 1 end;
-        if act = 'feed' then if r.money < 60 then raise exception '錢不夠買食材'; end if; t.hunger := t.hunger + 35*m; r.money := r.money - 60; r.fun := r.fun + 5; perform public.town_bond(r.town_id, rid, t.id, 4);
+        if act = 'feed' then if r.money < 60 then raise exception '錢不夠買食材'; end if; t.hunger := t.hunger + 35*m; r.money := r.money - 60; r.fun := r.fun + 5; perform public.town_bond(r.town_id, rid, t.id, 3);
           insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 煮了一餐給 ' || tn || ' 吃');
-        elsif act = 'wash' then t.hygiene := t.hygiene + 45*m; perform public.town_bond(r.town_id, rid, t.id, 4);
+        elsif act = 'wash' then t.hygiene := t.hygiene + 45*m; perform public.town_bond(r.town_id, rid, t.id, 3);
           insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 幫 ' || tn || ' 洗了澡');
         elsif act = 'wakeup' then if not t.sleeping then raise exception '% 醒著', tn; end if;
           -- 越累睡越沉：精力低的人比較叫不醒（25%～70%），叫不醒就繼續睡
@@ -1104,7 +1104,7 @@ begin
             t.sleeping := false; t.fun := t.fun - 5; perform public.town_bond(r.town_id, rid, t.id, -1);
             insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 把 ' || tn || ' 叫醒了');
           end if;
-        elsif act = 'visit' then if t.sleeping then raise exception '% 在睡覺，不方便串門子', tn; end if; t.fun := t.fun + 15*m; r.fun := r.fun + 15*m; perform public.town_bond(r.town_id, rid, t.id, 3);
+        elsif act = 'visit' then if t.sleeping then raise exception '% 在睡覺，不方便串門子', tn; end if; t.fun := t.fun + 15*m; r.fun := r.fun + 15*m; perform public.town_bond(r.town_id, rid, t.id, 2);
           insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 去 ' || tn || ' 家串門子');
         else t.fun := t.fun - 8; r.fun := r.fun + 12; perform public.town_bond(r.town_id, rid, t.id, -2);
           insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 在 ' || tn || ' 家門口放了一個臭屁');
