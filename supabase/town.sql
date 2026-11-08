@@ -613,9 +613,9 @@ begin
   end if;
   update public.town_residents set seen_at = now() where id = rid;
   -- 每日生活費：只動錢和 items.rent，不碰其他欄位
-  if coalesce(r.items->>'rent','') <> to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD') then
-    r := public.town_rent(r);
-    update public.town_residents set money = greatest(0, r.money), items = jsonb_set(items, '{rent}', r.items->'rent') where id = rid;
+  if coalesce(r.items->>'rent','') <> to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD') or coalesce(r.items->'al'->>'d','') <> to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD') then
+    r := public.town_al_touch(r); r := public.town_rent(r);
+    update public.town_residents set money = greatest(0, r.money), items = jsonb_set(jsonb_set(jsonb_set(items, '{rent}', r.items->'rent'), '{al}', r.items->'al'), '{titles}', coalesce(r.items->'titles','[]'::jsonb)) where id = rid;
   end if;
   return json_build_object('ok',true,'town_id',r.town_id,'last_seen',r.seen_at);
 end $$;
@@ -696,12 +696,48 @@ revoke all on function public.town_pjob_place(text), public.town_pjob_key(text),
 create or replace function public.town_work_pct(n int) returns int language sql immutable as $$
   select 100
 $$;
+-- ── 活躍天數等級（items.al = {n:累計活躍天, d:最後活躍台灣日, s:連續天數, lv}）；只給便利，前端 AL 表要一致 ──
+create or replace function public.town_lv_of(n int) returns int language sql immutable as $$
+  select case when n >= 60 then 5 when n >= 30 then 4 when n >= 10 then 3 when n >= 3 then 2 else 1 end
+$$;
+create or replace function public.town_lv(r public.town_residents) returns int language sql immutable as $$
+  select public.town_lv_of(coalesce((r.items->'al'->>'n')::int, 0))
+$$;
+create or replace function public.town_wk_min(r public.town_residents) returns int language sql immutable as $$
+  select (array[10,10,9,8,8])[public.town_lv(r)]
+$$;
+create or replace function public.town_bag_max(r public.town_residents) returns int language sql immutable as $$
+  select (array[20,24,26,28,30])[public.town_lv(r)]
+$$;
+create or replace function public.town_rent_pct(r public.town_residents) returns int language sql immutable as $$
+  select (array[0,5,8,12,15])[public.town_lv(r)]
+$$;
+create or replace function public.town_al_touch(r public.town_residents) returns public.town_residents language plpgsql as $$
+declare day text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); al jsonb := coalesce(r.items->'al','{}'::jsonb); prev text := al->>'d';
+  n int; s int; o int; v int; g int; ts text[] := array['','熟面孔','老鄰居','鎮上名人','小鎮元老'];
+begin
+  if coalesce(prev,'') = day then return r; end if;
+  n := coalesce((al->>'n')::int,0); o := public.town_lv_of(n); n := n + 1; v := public.town_lv_of(n);
+  s := case when prev is not null and prev::date = day::date - 1 then coalesce((al->>'s')::int,0) + 1 else 1 end;
+  r.items := jsonb_set(r.items, '{al}', jsonb_build_object('n', n, 'd', day, 's', s, 'lv', v));
+  g := (array[0,30,60,100,150])[v];
+  if g > 0 then
+    r.money := r.money + g;
+    insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, r.id, r.id, 'luck', r.name || ' 今天上線，領到每日登入小禮 €' || g);
+  end if;
+  if v > o then
+    r.items := jsonb_set(r.items, '{titles}', coalesce(r.items->'titles','[]'::jsonb) || to_jsonb(ts[v]));
+    insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, r.id, r.id, 'level', r.name || ' 升到 Lv' || v || '「' || ts[v] || '」');
+  end if;
+  return r;
+end $$;
+revoke all on function public.town_lv_of(int), public.town_lv(public.town_residents), public.town_wk_min(public.town_residents), public.town_bag_max(public.town_residents), public.town_rent_pct(public.town_residents), public.town_al_touch(public.town_residents) from public, anon, authenticated;
 -- 打工冷卻：所有打工（公司、咖啡師…、拉菲、加班）共用 items.cd.wk，每次之間至少 10 分鐘（代表工作一小時）
 create or replace function public.town_wk_check(r public.town_residents) returns void language plpgsql as $$
-declare c timestamptz := (r.items->'cd'->>'wk')::timestamptz;
+declare c timestamptz := (r.items->'cd'->>'wk')::timestamptz; m int := public.town_wk_min(r);
 begin
-  if c is not null and c > now() - interval '10 minutes' then
-    raise exception '剛打完工，還要休息 % 分鐘', greatest(1, ceil(extract(epoch from (c + interval '10 minutes' - now())) / 60)::int);
+  if c is not null and c > now() - make_interval(mins => m) then
+    raise exception '剛打完工，還要休息 % 分鐘', greatest(1, ceil(extract(epoch from (c + make_interval(mins => m) - now())) / 60)::int);
   end if;
 end $$;
 create or replace function public.town_wk_set(r public.town_residents) returns public.town_residents language plpgsql as $$
@@ -732,7 +768,7 @@ create or replace function public.town_rent(r public.town_residents) returns pub
 declare day text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); a int; p int;
 begin
   if coalesce(r.items->>'rent','') = day then return r; end if;
-  a := public.town_rent_amt(coalesce((r.items->>'hl')::int,1)); p := least(a, greatest(0, r.money));
+  a := public.town_rent_amt(coalesce((r.items->>'hl')::int,1)); a := a - a * public.town_rent_pct(r) / 100; p := least(a, greatest(0, r.money));
   r.money := r.money - p; r.items := jsonb_set(r.items, '{rent}', to_jsonb(day));
   insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, r.id, r.id, 'rent', r.name || ' 繳了今天的房租水電 €' || p || case when p < a then '（錢不夠，只扣到 0）' else '' end);
   return r;
@@ -950,6 +986,7 @@ begin
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   fm := case when public.town_has(r,'foodie') then 1.3 else 1 end; gm := case when public.town_has(r,'romantic') then 2 else 1 end; lk := public.town_has(r,'lucky'); mo := public.town_mood(r);
   perform set_config('town.bm', (public.town_mood_bond(mo) * case when public.town_has(r,'social') then 130 else 100 end / case when r.hygiene < 1 then 2 else 1 end)::text, true);
+  r := public.town_al_touch(r);
   r := public.town_rent(r);
   r := public.town_stock_settle(r);
   r := public.town_tk_tick(r);
@@ -1141,12 +1178,12 @@ begin
     if n is null then raise exception '背包裡沒有這份禮物'; end if;
     tn := jf->n->>'name'; jf := jf - n;
     if act = 'regift' then
-      if coalesce((r.items->>'gift')::int,0) >= 20 then raise exception '背包放不下了'; end if;
+      if coalesce((r.items->>'gift')::int,0) >= public.town_bag_max(r) then raise exception '背包放不下了'; end if;
       r.items := jsonb_set(jsonb_set(r.items, '{rg}', jf), '{gift}', to_jsonb(coalesce((r.items->>'gift')::int,0) + 1));
     else
       pa := random(); r.items := jsonb_set(r.items, '{rg}', jf);
       if pa < .4 then n := 100 + floor(random()*501)::int; r.money := r.money + n; mo := '€' || n;
-      elsif pa < .75 and coalesce((r.items->>'snack')::int,0) < 20 then r.items := jsonb_set(r.items, '{snack}', to_jsonb(coalesce((r.items->>'snack')::int,0) + 1)); mo := '一包零食';
+      elsif pa < .75 and coalesce((r.items->>'snack')::int,0) < public.town_bag_max(r) then r.items := jsonb_set(r.items, '{snack}', to_jsonb(coalesce((r.items->>'snack')::int,0) + 1)); mo := '一包零食';
       else r.fun := r.fun + 10; mo := '滿滿的好心情'; end if;
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', r.name || ' 拆開了 ' || tn || ' 送的禮物，裡面是' || mo || ' 🎁');
     end if;
@@ -1285,7 +1322,7 @@ begin
     if item not in ('gift','snack') then raise exception '超市沒有賣這個'; end if;
     n := case item when 'gift' then 300 else 60 end;
     if r.money < n then raise exception '錢不夠，去公司打工吧'; end if;
-    if coalesce((r.items->>item)::int,0) >= 20 then raise exception '背包放不下了'; end if;
+    if coalesce((r.items->>item)::int,0) >= public.town_bag_max(r) then raise exception '背包放不下了'; end if;
     r.money := r.money - n; r.items := jsonb_set(r.items, array[item], to_jsonb(coalesce((r.items->>item)::int,0) + 1)); r.fun := r.fun + 3;
   elsif act = 'job' then
     if item is null or item not in ('cafe','rest','gym','shop','rafi') then raise exception '沒有這份工作'; end if;

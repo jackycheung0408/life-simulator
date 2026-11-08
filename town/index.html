@@ -36,6 +36,8 @@ label{display:block;margin:10px 0}
 .need{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px;text-align:center;min-width:0}
 .need span{font-size:16.5px}.need i{display:block;height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:3px 0}.need i b{display:block;height:100%}
 .need em{font-style:normal}.need small{display:block;font-size:11px;color:var(--mut);white-space:nowrap}.need.low{border-color:var(--bad)!important}.need.money small{font-size:16.5px;color:var(--fg);font-weight:600;margin-top:8px}
+@keyframes lvb{0%{transform:translateY(0) scale(1)}50%{transform:translateY(-14px) scale(1.25)}100%{transform:translateY(0) scale(1)}}
+.lvup{display:flex;justify-content:center;gap:14px;margin:10px 0}.lvup img{width:48px;height:48px;animation:lvb .9s ease-in-out infinite}.lvup img:nth-child(2){animation-delay:.15s}.lvup img:nth-child(3){animation-delay:.3s}
 @keyframes blink{50%{border-color:var(--bad)}}
 #stage{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);touch-action:none}
 #cv{display:block;width:100%;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -211,6 +213,6 @@ body.ingame .need{background:rgba(27,36,80,.88)}
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide"><div class="card" id="mbody"></div></div>
-<script src="icons.js?v=12"></script><script src="town.js?v=68"></script>
+<script src="icons.js?v=12"></script><script src="town.js?v=69"></script>
 </body>
 </html>
