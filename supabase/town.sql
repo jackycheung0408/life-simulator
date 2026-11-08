@@ -237,6 +237,31 @@ begin
   end if;
 end $$;
 
+-- 隨機相遇：在同一個地方做事時，約 20% 遇到同地點醒著的某人，觸發小事件（好感 ±1～2，走 town_bond 所以吃每日上限）。
+-- 每一對 1 小時最多一次；回傳要加在觸發者身上的心情變化。
+create or replace function public.town_encounter(tid text, rid bigint, rname text, pl text) returns int language plpgsql as $$
+declare xid bigint; xname text; k int; bd int; fr int; fx int; ms text;
+begin
+  select id, name into xid, xname from public.town_residents where town_id = tid and place = pl and id <> rid and not sleeping order by random() limit 1;
+  if xid is null or random() > 0.2 then return 0; end if;
+  if exists (select 1 from public.town_events e where e.kind = 'encounter' and e.at > now() - interval '1 hour' and ((e.actor = rid and e.target = xid) or (e.actor = xid and e.target = rid))) then return 0; end if;
+  k := 1 + floor(random() * 6)::int;
+  bd := case k when 1 then 1 when 2 then 1 when 3 then 1 when 4 then 2 when 5 then -1 else -1 end;
+  fr := case k when 1 then 5 when 2 then 3 when 3 then 5 when 4 then 6 when 5 then -3 else -4 end;
+  fx := case k when 1 then 5 when 2 then 3 when 3 then 5 when 4 then 6 when 5 then -4 else -3 end;
+  ms := case k when 1 then rname || ' 和 ' || xname || ' 聊得很開心'
+    when 2 then rname || ' 分了 ' || xname || ' 一口零食'
+    when 3 then rname || ' 和 ' || xname || ' 一起大笑'
+    when 4 then rname || ' 和 ' || xname || ' 發現有共同的興趣'
+    when 5 then rname || ' 不小心撞到 ' || xname
+    else rname || ' 和 ' || xname || ' 搶同一個位子' end;
+  perform public.town_bond(tid, rid, xid, bd);
+  update public.town_residents set fun = least(100, greatest(0, fun + fx)) where id = xid;
+  insert into public.town_events(town_id,actor,target,kind,msg) values (tid, rid, xid, 'encounter', ms);
+  return fr;
+end $$;
+revoke all on function public.town_encounter(text,bigint,text,text) from public, anon, authenticated;
+
 -- ── 職業階梯與人生願望：資料都存在 items（works 累計打工、wish 願望、titles 稱號、meals 吃飯次數）──
 create or replace function public.town_job_lv(n int) returns int language sql immutable as $$
   select case when n >= 150 then 4 when n >= 70 then 3 when n >= 30 then 2 when n >= 10 then 1 else 0 end
@@ -984,7 +1009,7 @@ begin
       select string_agg(name, '、') into others from public.town_residents where town_id = r.town_id and place = r.place and id <> rid and not sleeping;
       if others is not null then
         update public.town_residents set fun = least(100, fun + 5) where town_id = r.town_id and place = r.place and id <> rid and not sleeping;
-        r.fun := r.fun + 5;
+        r.fun := r.fun + 5 + public.town_encounter(r.town_id, rid, r.name, r.place);
         if not exists (select 1 from public.town_events e where e.actor = rid and e.kind = 'together' and e.at > now() - interval '2 hours') then
           insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'together', r.name || ' 和 ' || others || ' 一起' || case act when 'dine' then '在餐廳吃飯' when 'work' then '加班' when 'coffee' then '喝咖啡' when 'movie' then '看電影' when 'workout' then '健身' else '在' || public.town_place_name(r.place) || '玩' end);
         end if;

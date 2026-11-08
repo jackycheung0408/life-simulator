@@ -30,5 +30,14 @@ begin
   begin perform public.town_act(ra,'1234','makeup',target:=rb); rep := rep||'makeup 2nd NOT BLOCKED'||E'\n'; exception when others then rep := rep||'makeup 2nd: '||sqlerrm||E'\n'; end;
   -- 6 營業時間：全天營業
   rep := rep || 'closed(dine)=' || coalesce(public.town_closed('dine'),'null') || E'\n';
+  -- 7 隨機相遇：同地點醒著的兩人，反覆做事 300 次，應有觸發、冷卻 1 小時內同一對只會一次
+  update public.town_residents set place='cafe',sleeping=false where id in (ra,rb);
+  for i in 1..300 loop
+    update public.town_bonds set dday='2000-01-01', dpos=0, dneg=0 where a=least(ra,rb) and b=greatest(ra,rb);
+    delete from public.town_events where kind='encounter' and actor in (ra,rb) and i % 2 = 0;
+    perform public.town_encounter(tid,ra,'甲','cafe');
+  end loop;
+  rep := rep || 'encounter events: ' || (select count(*) from public.town_events where kind='encounter') || ' (約 300×0.2/2=30，上限由冷卻決定)' || E'\n';
+  rep := rep || 'bond after encounters: ' || public.town_bond_get(ra,rb) || E'\n';
   raise exception 'REPORT %', E'\n'||rep;
 end $$;
