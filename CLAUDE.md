@@ -105,7 +105,7 @@
   - 老虎機 `slots`：三輪各 6 種圖案（7、鈴、星、三葉草、蛋、錢），三個一樣 ×40／20／12／10／8／8，剛好兩個一樣 ×1.1 → (98 + 90×1.1)/216 = 0.912。
   - 賓果 `bingo`（choice = 「a,b,c」，1～10 選 3 個）：開 5 個號碼；中 2 個 ×1.4、中 3 個 ×4 → (50×1.4 + 10×4)/120 = 0.917。
 - 單機：打地鼠 `whack`（30 秒、最多 40 次出現，上限 40 分）、記憶翻牌 `memory`（16 張，分數 = 100 − (步數−8)×5，上限 100）。最佳分數存 `items.sp[game]`，每 5 分鐘一次心情 +2（`items.cd.sp`）；排行榜（`renderRank`）直接讀居民的 `items.sp` 顯示前三名。新增單機遊戲：`SOLO` 加一列、`town_score` 的 cap 加上限。
-- 實測：`supabase/town_arcade_test.sql`（最後 rollback，結果在錯誤訊息 REPORT）。
+- 實測：`supabase/town_arcade_test.sql`（最後 rollback，結果在錯誤訊息 REPORT；模擬次數別加大，SQL Editor 約 60 秒會 upstream timeout）。SQL 已套用、實測通過（比大小只押「更大」期望 0.85 是原本設計：點數 K 時沒得賠）。
 
 ## 省 token 建議
 一個大功能一個對話；先讀這份檔再動手；改字／調數值可用較小的模型；少截圖，優先用 `node town/test.js` 與 SQL 實測。

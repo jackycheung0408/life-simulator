@@ -5,7 +5,7 @@ begin
   update public.town_residents set place='plaza', sleeping=false, items='{}'::jsonb where id = rid;
   -- 期望值模擬（每局重設局數、補錢）
   foreach nm in array array['dice:big','dice:small','dice:3','slots:','bingo:1,5,9','rps:r','wheel:','hl:hi'] loop
-    tot := 0; n := case when split_part(nm,':',1)='slots' then 12000 else 5000 end;
+    tot := 0; n := case when split_part(nm,':',1)='slots' then 3000 else 1200 end;
     for i in 1..n loop
       update public.town_residents set money=100000, items=items - 'games' - 'hl' where id = rid;
       if split_part(nm,':',1)='hl' then
@@ -18,7 +18,7 @@ begin
     rep := rep || nm || ' RTP=' || round(tot/(n*bet),4) || ' n='||n||E'\n';
   end loop;
   -- 21 點：基本策略（<17 要牌）模擬 + 花色檢查
-  tot := 0; n := 4000; cnt := array[0,0,0,0,0];
+  tot := 0; n := 600; cnt := array[0,0,0,0,0];
   for i in 1..n loop
     update public.town_residents set money=100000, items=items - 'games' - 'bj' where id = rid;
     g := public.town_game(rid,'1234','bj_start',bet);
@@ -66,7 +66,7 @@ begin
   begin perform public.town_score(rid,'1234','whack',5); rep := rep||'park score ALLOWED'||E'\n'; exception when others then rep := rep||'park score: '||sqlerrm||E'\n'; end;
   begin perform public.town_game(rid,'1234','dice',50,'big'); rep := rep||'park dice ALLOWED'||E'\n'; exception when others then rep := rep||'park dice: '||sqlerrm||E'\n'; end;
   update public.town_residents set place='plaza' where id = rid;
-  update public.town_towns set off = array['arcade'] where id = 'ZZARC';
+  update public.town_towns set off = array['arcade'] where id = (select town_id from public.town_residents where id = rid);
   foreach nm in array array['dice:big','slots:','bingo:1,2,3'] loop
     begin perform public.town_game(rid,'1234',split_part(nm,':',1),50,nullif(split_part(nm,':',2),'')); rep := rep||'off '||nm||' ALLOWED'||E'\n'; exception when others then rep := rep||'off '||nm||': '||sqlerrm||E'\n'; end;
   end loop;
