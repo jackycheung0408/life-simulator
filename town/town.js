@@ -61,7 +61,7 @@ const NEEDS=["hunger","energy","bladder","hygiene","fun"];
 const NEED_INFO={hunger:["🍚","飽足"],energy:["⚡","精力"],bladder:["🚽","膀胱"],hygiene:["🛁","清潔"],fun:["🎉","心情"]};
 // 個性特質（items.tr）與心情（由需求算，規則要和 town.sql 的 town_mood／town_pay 一致）
 const FURN=[["bed","好床",5000,"睡覺精力每小時 +90"],["fridge","冰箱",8000,"在家吃飯 €30、飽足 +48"],["massage","按摩椅",9000,"快速休息精力 +100"],["shelf","書櫃",4000,"之後技能用，先佔位"],["sofa","沙發",6000,"看電視心情 +22"],["tvcab","電視櫃",5000,"看電視 10 分鐘一次"],["rug","地毯",1500,"裝飾"],["plant","盆栽",800,"裝飾"]];
-const HOUSES=[["小屋",0,4],["公寓",10000,6],["獨棟",100000,8],["豪宅",200000,9]];// 名稱、升級價、家具格數
+const HOUSES=[["小屋",0,4],["公寓",13000,6],["獨棟",100000,8],["豪宅",200000,9]];// 名稱、升級價、家具格數
 const hasF=(r,k)=>!!(r.items&&Array.isArray(r.items.fu)&&r.items.fu.includes(k));
 function hasT(r,k){const t=r.items&&r.items.tr;return Array.isArray(t)&&t.includes(k)}
 function moodOf(r){if(r.items&&r.items.sad)return"sad";const a=(r.hunger+r.energy+r.bladder+r.hygiene+r.fun)/5,m=Math.min(r.hunger,r.energy,r.bladder,r.hygiene,r.fun);return a<35||r.fun<20?"low":a<55||m<20||r.fun<40?"annoyed":a>=75&&r.fun>=65&&m>=40?"happy":"normal"}

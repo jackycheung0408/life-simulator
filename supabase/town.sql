@@ -846,7 +846,7 @@ begin
     if r.place <> 'home:' || rid then raise exception '要先回家'; end if;
     jl := coalesce((r.items->>'hl')::int,1);
     if jl >= 4 then raise exception '已經是豪宅了'; end if;
-    n := (array[0,10000,100000,200000])[jl+1];
+    n := (array[0,13000,100000,200000])[jl+1];
     if r.money < n then raise exception '錢不夠，升級要 €%', n; end if;
     r.money := r.money - n; r.fun := r.fun + 15; r.items := jsonb_set(r.items, '{hl}', to_jsonb(jl+1));
     insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', r.name || ' 把家升級成' || (array['小屋','公寓','獨棟','豪宅'])[jl+1] || '了');
@@ -1082,11 +1082,11 @@ do $mig$ begin
   end if;
 end $mig$;
 
--- 物價重整（2025 台灣物價）：一次性把舊居民的錢 ×6（以前一天的生活費約 €100，現在約 €600），並把還是 € 的小鎮貨幣改成 NT$
+-- 物價重整（2025 台灣物價）：一次性把舊居民的錢 ×10（以前一天的生活費約 €100，現在約 €600），並把還是 € 的小鎮貨幣改成 NT$
 do $mig$ begin
   if not exists (select 1 from public.town_migrations where id = 'price2025') then
-    update public.town_residents set money = least(2147483647, money::bigint * 6)::int;
-    update public.town_duels set bet = least(2147483647, bet::bigint * 6)::int where status = 'open';
+    update public.town_residents set money = least(2147483647, money::bigint * 10)::int;
+    update public.town_duels set bet = least(2147483647, bet::bigint * 10)::int where status = 'open';
     update public.town_towns set currency = 'NT$' where currency = '€';
     insert into public.town_migrations(id) values ('price2025');
   end if;
