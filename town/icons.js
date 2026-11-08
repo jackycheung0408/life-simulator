@@ -990,6 +990,30 @@ plate:`
 .kssYYYYssk.
 ..kssssssk..
 ...kkkkkk...`,
+ticket:`
+............
+.kkkkkkkkkk.
+.kwwwwwwwwk.
+.kwrrrrrrwk.
+.kwwwwwwwwk.
+.kwkkkkkkwk.
+.kwwwwwwwwk.
+.kwkkkkwwwk.
+.kwwwwwwwwk.
+.kkkkkkkkkk.`,
+light:`
+....kkkk....
+...kddddk...
+...kdrrdk...
+...kdrrdk...
+...kddddk...
+...kdYYdk...
+...kddddk...
+...kdggdk...
+...kdggdk...
+...kddddk...
+....kkkk....
+.....kk.....`,
 };
 // 表情臉：同一張黃臉，換眼睛和嘴巴
 const FACE=`
@@ -1028,7 +1052,7 @@ function draw(name){if(cache[name])return cache[name];const c=document.createEle
  else paint(parse(A[name]||A.star));
  return cache[name]=c.toDataURL()}
 // emoji → 圖示名稱
-const MAP={"📈":"chart","🛏️":"bed","🛋️":"sofa","🧊":"fridge","🪴":"plant","📚":"shelf","💺":"massage","🟥":"rug","💡":"lamp","🌳":"tree","🌷":"flowers","🪑":"bench","🍚":"bowl","⚡":"bolt","🚽":"toilet","🛁":"bath","🎉":"face:happy","💰":"money","💗":"heart","💞":"heart","🎁":"gift","📦":"box","📱":"mobile","📲":"mobile","📞":"call","💌":"mail","✉️":"mail","💼":"case","✨":"star","⭐":"star",
+const MAP={"🎫":"ticket","🪪":"ticket","🚦":"light","📈":"chart","🛏️":"bed","🛋️":"sofa","🧊":"fridge","🪴":"plant","📚":"shelf","💺":"massage","🟥":"rug","💡":"lamp","🌳":"tree","🌷":"flowers","🪑":"bench","🍚":"bowl","⚡":"bolt","🚽":"toilet","🛁":"bath","🎉":"face:happy","💰":"money","💗":"heart","💞":"heart","🎁":"gift","📦":"box","📱":"mobile","📲":"mobile","📞":"call","💌":"mail","✉️":"mail","💼":"case","✨":"star","⭐":"star",
  "🤝":"hands","🙌":"hands","👋":"hands","👆":"hands","🤲":"hands","💪":"fist","🏛️":"hall","🥚":"egg","🥤":"can","💨":"fart","🍖":"meat","🍽️":"plate","🍳":"plate","🍪":"cookie","🍠":"potato","🛵":"scooter","🚲":"bike","🏍️":"moto","🚗":"car","💥":"burst","💢":"burst","👊":"fist","🪙":"coin",
  "🐱":"cat","🐕":"dog","🐦":"bird","🐟":"fish","🐷":"face:happy","🔒":"lock","😴":"face:sleepy","💤":"zzz","🌙":"moon","🎈":"balloon","⏰":"alarm","🎨":"palette","🗺️":"map","🔔":"bell","🔕":"belloff","🏡":"house","🏠":"house","🏘️":"house","📺":"tv","☀️":"sun",
  "👥":"people","👗":"shirt","📰":"news","🏆":"trophy","🥇":"medal:1","🥈":"medal:2","🥉":"medal:3","🚪":"door","📍":"pin","🖼️":"picture","🔍":"search","🗑️":"trash","🎠":"swing","🚶":"walk","🎵":"note","🎸":"guitar","🌧️":"rain","💦":"drops","💩":"poop","🍀":"clover","🕹️":"joy","☕":"cup","🎬":"film","🏋️":"dumbbell","🃏":"card","🎲":"dice","🎰":"slot","🔢":"bingo","🔨":"mole","🧠":"card","♠":"card","♠️":"card","🎡":"wheel","✂️":"scissors","🪨":"rock","📄":"paper","✊":"rock","✋":"paper","✌️":"scissors","🏆":"trophy",

@@ -1,6 +1,6 @@
 // 小豬鎮自動測試：node town/test.js
 // 檢查：2～4 排房子時每個門都走得到、門不在牆裡、門口位置和資料庫的 town_door 一致、需求扣減算法
-const M=require("./town.js"),fails=[];const check=(ok,msg)=>{if(!ok)fails.push(msg)};let routes=0;
+const COLS_=52;const M=require("./town.js"),fails=[];const check=(ok,msg)=>{if(!ok)fails.push(msg)};let routes=0;
 for(let rows=2;rows<=4;rows++){M.setRows(rows);
  const doors=[...[...Array(rows*3).keys()].map(s=>["房子"+s,M.door(s)]),...Object.entries(M.PLACES).map(([k,p])=>[k,p.door])];
  for(const [n,d] of doors)check(!M.blocked(...d)&&d[1]<M.mapRows(),`${rows} 排：${n} 的門在牆裡或地圖外`);
@@ -67,5 +67,11 @@ check(M.vehOf({id:1,place:"street",items:{veh:{own:["car"],k:"car"}}})=="car"&&M
 M.setRows(2);{const w=M.bfs([4,5],[5,14]);check(w&&w.filter(([x,y])=>M.isRoad(x,y)&&!M.isCross(x,y)).length==0,"行人過馬路應該走斑馬線："+JSON.stringify(w));
  const v=M.bfs([4,5],[5,14],true);check(v&&v.length<=w.length,"騎車路徑不該比走路長")}
 check(M.isSide(4,5)&&!M.isSide(4,6)&&M.isCross(4,6)&&!M.isCross(5,6),"人行道或斑馬線位置不對");
+// 紅綠燈（和 town.sql 的 town_light 一致）：同一組雙線道同相位、每 12 秒換、相鄰路口錯開；路口只在 x=16、17 的橫路列
+M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)&&M.lightG(0,22)==M.lightG(0,23),"同一組雙線道要同相位");
+ check(M.lightG(0,6)!=M.lightG(12000,6)&&M.lightG(0,6)==M.lightG(24000,6)&&M.lightG(0,6)==M.lightG(11999,6),"每 12 秒換一次");
+ check(M.lightG(0,6)==0&&M.lightG(0,15)==1&&M.lightG(0,22)==0,"路口錯開（6→0、15→1、22→0）：6 的 ib=6 偶、15 奇、22 偶");
+ let n=0;for(let y=0;y<M.mapRows();y++)for(let x=0;x<COLS_;x++)if(M.isInter(x,y)){n++;check(M.isRoad(x,y)&&(x==16||x==17),"路口要在路上")}
+ check(n>=8,"路口數量不對："+n);check(M.zoneLim(6)==2&&M.zoneLim(16)==2&&M.zoneLim(5)==2.5&&M.zoneLim(17)==2.5,"速限分區")}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

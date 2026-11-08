@@ -119,7 +119,7 @@ alter table public.town_towns add column if not exists off text[] not null defau
 alter table public.town_towns add column if not exists currency text not null default 'NT$';
 create or replace function public.town_feature(what text) returns text language sql immutable as $$
   select case when what in ('cafe','coffee') then 'cafe' when what in ('cinema','movie') then 'cinema' when what in ('gym','workout') then 'gym'
-    when what in ('arena','spar') then 'arena' when what in ('slaughter','sneak') then 'slaughter' when what = 'rafi' then 'rafi' when what in ('stock','trade') then 'stock' when what in ('carshop','vbuy') then 'carshop' else null end
+    when what in ('arena','spar') then 'arena' when what in ('slaughter','sneak') then 'slaughter' when what = 'rafi' then 'rafi' when what in ('stock','trade') then 'stock' when what in ('carshop','vbuy','license') then 'carshop' else null end
 $$;
 create or replace function public.town_is_off(tid text, f text) returns boolean language sql stable as $$
   select coalesce((select f = any(off) from public.town_towns where id = tid), false)
@@ -721,6 +721,107 @@ begin
 end $$;
 revoke all on function public.town_dc_get(public.town_residents,text), public.town_dc_inc(public.town_residents,text), public.town_work_pct(int), public.town_rent_amt(int), public.town_rent(public.town_residents) from public, anon, authenticated;
 
+-- ── 交通第 2 階段：紅綠燈、速限、駕照、罰單、記點（前端 town.js 的 lightG／zoneLim／FINE 要一致）──
+-- items.lic = {moto:1,car:1}；items.tk = [{id,k,a,at,due,o}] 罰單；items.pts = {d,n} 今日記點；items.sus = 暫停到；
+-- items.tv = {n,red,spd,yld,sw,nl} 累計違規（第 3 階段事故與保險用）；items.veh.f = 1 表示「衝」（不守規矩）
+create or replace function public.town_road_row(y int) returns boolean language sql immutable as $$
+  select y in (6,7,15,16) or (y >= 22 and (y - 22) % 7 < 2)
+$$;
+create or replace function public.town_is_road(x int, y int) returns boolean language sql immutable as $$
+  select public.town_road_row(y) or ((x = 16 or x = 17) and not (y >= 8 and y <= 14))
+$$;
+-- 紅綠燈：每 12 秒換一次，每個路口錯開（同一組雙線道共用）；0 = 東西向綠燈，1 = 南北向綠燈
+create or replace function public.town_light(ms double precision, y int) returns int language sql immutable as $$
+  select ((floor(ms / 12000)::bigint + case when y in (7,16) or (y >= 22 and (y - 22) % 7 = 1) then y - 1 else y end) % 2)::int
+$$;
+create or replace function public.town_is_cross(x int, y int) returns boolean language sql immutable as $$
+  select public.town_is_road(x,y) and ((public.town_road_row(y) and x in (4,11,15,18,22,29,37,42,46)) or ((x = 16 or x = 17) and not public.town_road_row(y) and y in (3,19)))
+$$;
+create or replace function public.town_ticket(r public.town_residents, kind text, amt int, pts int, what text) returns public.town_residents language plpgsql as $$
+declare day text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); tk jsonb := coalesce(r.items->'tk','[]'::jsonb); pn int; tv jsonb := coalesce(r.items->'tv','{}'::jsonb);
+begin
+  if jsonb_array_length(tk) >= 12 then
+    tk := jsonb_set(tk, '{11,a}', to_jsonb((tk->11->>'a')::int + amt));
+  else
+    tk := tk || jsonb_build_array(jsonb_build_object('id', (extract(epoch from clock_timestamp())*1000)::bigint, 'k', kind, 'a', amt, 'at', now(), 'due', now() + interval '24 hours', 'o', 0));
+  end if;
+  r.items := jsonb_set(r.items, '{tk}', tk);
+  tv := jsonb_set(jsonb_set(tv, '{n}', to_jsonb(coalesce((tv->>'n')::int,0) + 1)), array[kind], to_jsonb(coalesce((tv->>kind)::int,0) + 1));
+  r.items := jsonb_set(r.items, '{tv}', tv);
+  insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, r.id, r.id, 'ticket', r.name || ' ' || what || '，被巡邏開了罰單 €' || amt);
+  if pts > 0 then
+    pn := case when coalesce(r.items->'pts'->>'d','') = day then coalesce((r.items->'pts'->>'n')::int,0) else 0 end + pts;
+    r.items := jsonb_set(r.items, '{pts}', jsonb_build_object('d', day, 'n', pn));
+    if pn >= 6 and (coalesce(r.items->>'sus','') = '' or (r.items->>'sus')::timestamptz < now()) then
+      r.items := jsonb_set(r.items, '{sus}', to_jsonb(now() + interval '24 hours'));
+      if r.items#>>'{veh,k}' is not null then r.items := jsonb_set(r.items, '{veh}', (r.items->'veh') - 'k'); end if;
+      insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, r.id, r.id, 'ticket', r.name || ' 今天違規記滿 6 點，車輛暫停使用 1 天');
+    end if;
+  end if;
+  return r;
+end $$;
+-- 逾期（開單後 24 小時）罰款加 50%，只加一次
+create or replace function public.town_tk_tick(r public.town_residents) returns public.town_residents language plpgsql as $$
+begin
+  if r.items->'tk' is null or jsonb_typeof(r.items->'tk') <> 'array' or jsonb_array_length(r.items->'tk') = 0 then return r; end if;
+  if not exists (select 1 from jsonb_array_elements(r.items->'tk') e where (e->>'due')::timestamptz < now() and coalesce((e->>'o')::int,0) = 0) then return r; end if;
+  select jsonb_set(r.items, '{tk}', coalesce(jsonb_agg(case when (e->>'due')::timestamptz < now() and coalesce((e->>'o')::int,0) = 0 then e || jsonb_build_object('a', round((e->>'a')::numeric * 1.5)::int, 'o', 1) else e end), '[]'::jsonb)) into r.items from jsonb_array_elements(r.items->'tk') e;
+  return r;
+end $$;
+create or replace function public.town_tk_debt(r public.town_residents) returns int language sql immutable as $$
+  select coalesce(sum((e->>'a')::int), 0)::int from jsonb_array_elements(case when jsonb_typeof(r.items->'tk') = 'array' then r.items->'tk' else '[]'::jsonb end) e
+$$;
+-- 移動時巡邏判定：路線用「先橫再直」估算；守規矩模式（沒開 items.veh.f）不會闖燈、超速、不禮讓，只有無照和停在人行道會被抓
+create or replace function public.town_traffic(r public.town_residents, vk text, px real, py real, dest text) returns public.town_residents language plpgsql as $$
+declare cx int := round(r.x)::int; cy int := round(r.y)::int; tx int := round(px)::int; ty int := round(py)::int; xx int; yy int; k int := 0; sg int;
+  mult real := case vk when 'moto' then 2.5 when 'car' then 3 else 1.5 end; ms double precision := extract(epoch from clock_timestamp()) * 1000;
+  full boolean := coalesce((r.items#>>'{veh,f}')::int,0) = 1; red int := 0; zt int := 0; ys int[] := '{}'; yn int := 0; hr int := extract(hour from now() at time zone 'Asia/Taipei')::int;
+  nf real := case when hr >= 23 or hr < 5 then .5 else 1 end; motor boolean := vk in ('moto','car'); i int;
+begin
+  if full then
+    sg := case when tx >= cx then 1 else -1 end;
+    xx := cx;
+    while xx <> tx loop
+      xx := xx + sg; k := k + 1;
+      if (xx = 16 or xx = 17) and public.town_road_row(cy) and public.town_light(ms + k / (4.5 * mult) * 1000, cy) = 1 then red := red + 1; end if;
+      if public.town_road_row(cy) and cy between 6 and 16 then zt := zt + 1; end if;
+      if public.town_is_cross(xx, cy) then ys := ys || (xx * 100 + cy); end if;
+    end loop;
+    sg := case when ty >= cy then 1 else -1 end;
+    yy := cy;
+    while yy <> ty loop
+      yy := yy + sg; k := k + 1;
+      if (tx = 16 or tx = 17) and public.town_road_row(yy) and public.town_light(ms + k / (4.5 * mult) * 1000, yy) = 0 then red := red + 1; end if;
+      if (tx = 16 or tx = 17) and yy between 6 and 16 then zt := zt + 1; end if;
+      if public.town_is_cross(tx, yy) then ys := ys || (tx * 100 + yy); end if;
+    end loop;
+    -- 闖紅燈（每個燈各抓一次，一趟最多 3 張）
+    for i in 1..least(red, 3) loop
+      if random() < .40 * nf then r := public.town_ticket(r, 'red', case vk when 'car' then 1350 when 'moto' then 900 else 300 end, case when motor then 2 else 0 end, '闖紅燈'); end if;
+    end loop;
+    -- 超速：在鬧區（速限 ×2）或住宅區（×2.5）衝過 3 格以上
+    if motor and (mult > 2 and zt >= 3 or mult > 2.5 and k - zt >= 3) and random() < .25 * nf then
+      r := public.town_ticket(r, 'spd', case vk when 'car' then 900 else 600 end, 1, '超速');
+    end if;
+    -- 沒禮讓行人：路線上的斑馬線有人站著（醒著、步行、10 分鐘內有動作）
+    if motor and array_length(ys,1) is not null then
+      select count(*) into yn from public.town_residents p where p.town_id = r.town_id and p.id <> r.id and p.place = 'street' and not p.sleeping and p.seen_at > now() - interval '10 minutes'
+        and coalesce(p.items#>>'{veh,k}','') = '' and (round(p.x)::int * 100 + round(p.y)::int) = any(ys);
+      if yn > 0 and random() < .35 * nf then r := public.town_ticket(r, 'yld', case vk when 'car' then 1800 else 1200 end, 2, '沒有禮讓行人'); end if;
+    end if;
+  end if;
+  -- 把車停在人行道上
+  if motor and dest = 'street' and not public.town_is_road(tx, ty) and (public.town_is_road(tx+1,ty) or public.town_is_road(tx-1,ty) or public.town_is_road(tx,ty+1) or public.town_is_road(tx,ty-1)) and random() < .30 * nf then
+    r := public.town_ticket(r, 'sw', case vk when 'car' then 900 else 600 end, 1, '把車開上人行道');
+  end if;
+  -- 無照駕駛（走遠一點才查）
+  if motor and abs(px - r.x) + abs(py - r.y) >= 8 and coalesce((r.items->'lic'->>vk)::int,0) = 0 and random() < .15 * nf then
+    r := public.town_ticket(r, 'nl', 3000, 3, '無照駕駛');
+  end if;
+  return r;
+end $$;
+revoke all on function public.town_road_row(int), public.town_is_road(int,int), public.town_light(double precision,int), public.town_is_cross(int,int), public.town_ticket(public.town_residents,text,int,int,text), public.town_tk_tick(public.town_residents), public.town_tk_debt(public.town_residents), public.town_traffic(public.town_residents,text,real,real,text) from public, anon, authenticated;
+
 create or replace function public.town_act(rid bigint, pin text, act text, target bigint default null, px real default null, py real default null, dest text default null, item text default null, note text default null) returns json
 language plpgsql security definer set search_path = public as $$
 declare r public.town_residents; t public.town_residents; others text; tn text; n int; w int; near boolean; pa real; pb real; bond int; m real; pub text[] := array['plaza','restaurant','market','park','office'];
@@ -732,6 +833,7 @@ begin
   perform set_config('town.bm', (public.town_mood_bond(mo) * case when public.town_has(r,'social') then 130 else 100 end / case when r.hygiene < 1 then 2 else 1 end)::text, true);
   r := public.town_rent(r);
   r := public.town_stock_settle(r);
+  r := public.town_tk_tick(r);
   if r.sleeping and act not in ('wake') then raise exception '你在睡覺，先起床'; end if;
   if public.town_closed(case when act = 'obj' then item when act = 'job' then public.town_pjob_key(item) else act end) is not null then raise exception '%', public.town_closed(case when act = 'obj' then item when act = 'job' then public.town_pjob_key(item) else act end); end if;
   if public.town_is_off(r.town_id, public.town_feature(case when act = 'move' then dest when act = 'job' then public.town_pjob_key(item) else act end)) then raise exception '這個小鎮沒有開這個設施'; end if;
@@ -753,6 +855,7 @@ begin
       r.money := r.money - vf;
       if vf < vneed or dest = 'home:' || rid then r.items := jsonb_set(r.items, '{veh}', (r.items->'veh') - 'k'); end if;
     end if;
+    if vk is not null then r := public.town_traffic(r, vk, px, py, dest); end if;
     r.x := px; r.y := py; r.place := dest;
     r.items := case when dest = 'home:' || rid then jsonb_set(r.items, '{dr}', '1'::jsonb) else r.items - 'dr' end;  -- 走到自己家門口：站在門外，要按「進屋」
     -- 隨機事件：出門走到外面的地方時偶爾發生（家裡不會）
@@ -962,8 +1065,41 @@ begin
     insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'buy', r.name || ' 在車行買了' || case item when 'bike' then '腳踏車' when 'moto' then '機車' else '汽車' end);
   elsif act = 'mount' then
     if public.town_inside(r) then raise exception '要先出門才能上車'; end if;
+    if coalesce(r.items->>'sus','') <> '' and (r.items->>'sus')::timestamptz > now() then raise exception '違規記點滿了，車輛暫停使用到明天'; end if;
+    if public.town_tk_debt(r) >= 3000 then raise exception '罰單欠 €% 以上，先繳清才能上車', 3000; end if;
     if not (coalesce(r.items->'veh'->'own','[]'::jsonb) ? coalesce(item,'')) then raise exception '你沒有這台車'; end if;
     r.items := jsonb_set(r.items, '{veh,k}', to_jsonb(item));
+  elsif act = 'vmode' then
+    r.items := jsonb_set(r.items, '{veh}', coalesce(r.items->'veh','{}'::jsonb) || jsonb_build_object('f', case when item = '1' then 1 else 0 end));
+  elsif act = 'license' then
+    -- 考駕照：在車行，機車 €800、汽車 €1500，三題答對兩題過關；考不過 30 分鐘後才能再考，費用不退
+    if r.place <> 'carshop' then raise exception '要在車行才能考照'; end if;
+    if item not in ('moto','car') then raise exception '只有機車和汽車要駕照'; end if;
+    if coalesce((r.items->'lic'->>item)::int,0) = 1 then raise exception '你已經有這張駕照了'; end if;
+    if (r.items->'cd'->>'lic') is not null and (r.items->'cd'->>'lic')::timestamptz > now() - interval '30 minutes' then raise exception '剛考完，休息 30 分鐘再來'; end if;
+    n := case item when 'moto' then 800 else 1500 end;
+    if r.money < n then raise exception '錢不夠報名費 €%', n; end if;
+    if char_length(coalesce(note,'')) <> 3 then raise exception '三題都要作答'; end if;
+    r.money := r.money - n;
+    w := (case when substr(note,1,1) = substr(case item when 'moto' then '120' else '201' end,1,1) then 1 else 0 end)
+       + (case when substr(note,2,1) = substr(case item when 'moto' then '120' else '201' end,2,1) then 1 else 0 end)
+       + (case when substr(note,3,1) = substr(case item when 'moto' then '120' else '201' end,3,1) then 1 else 0 end);
+    if w >= 2 then
+      r.items := jsonb_set(r.items, '{lic}', coalesce(r.items->'lic','{}'::jsonb) || jsonb_build_object(item, 1));
+      insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'buy', r.name || ' 考到了' || case item when 'moto' then '機車' else '汽車' end || '駕照');
+    else
+      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('lic', now()));
+      insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'ticket', r.name || ' 考' || case item when 'moto' then '機車' else '汽車' end || '駕照沒過（答對 ' || w || ' 題）');
+    end if;
+  elsif act = 'paytk' then
+    -- 繳罰單：item = 罰單 id 或 all（all 依序繳到錢不夠為止）
+    if r.items->'tk' is null or jsonb_array_length(r.items->'tk') = 0 then raise exception '沒有罰單'; end if;
+    with t as (select e, ord, (e->>'a')::int as a, (item = 'all' or (e->>'id') = item) as sel from jsonb_array_elements(r.items->'tk') with ordinality as x(e, ord)),
+      c as (select e, ord, a, sel, sum(case when sel then a else 0 end) over (order by ord) as cum from t)
+    select coalesce(jsonb_agg(e order by ord) filter (where not (sel and cum <= r.money)), '[]'::jsonb), coalesce(sum(a) filter (where sel and cum <= r.money), 0)::int into jf, n from c;
+    if n = 0 then raise exception '錢不夠繳這張罰單'; end if;
+    r.money := r.money - n; r.items := jsonb_set(r.items, '{tk}', jf);
+    insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'ticket', r.name || ' 繳了罰單 €' || n);
   elsif act = 'dismount' then
     if r.items#>>'{veh,k}' is null then raise exception '你沒有騎車'; end if;
     r.items := jsonb_set(r.items, '{veh}', (r.items->'veh') - 'k');
