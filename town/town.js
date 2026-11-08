@@ -546,7 +546,7 @@ function gamesModal(){$("modal").classList.remove("hide");const solo=SOLO.some(g
    area.querySelectorAll("[data-d]").forEach(x=>x.disabled=false)})}
  if(gameTab=="slots"){const SY=['<b class="s7">7</b>',"🔔","⭐","🍀","🥚","💰"],PAY=[40,20,12,10,8,8];
   area.innerHTML=`<p class="mut">三個一樣：${SY.map((y,i)=>`${y}×${PAY[i]}`).join(" ")}；剛好兩個一樣 ×1.1。</p><div class="reels" id="reels">${[0,1,2].map(()=>`<div class="reel">${SY[0]}</div>`).join("")}</div><div class="gbtns"><button class="pri" id="slGo">拉霸（押 €${gameBet}）</button></div><div id="gShow"></div>`;
-  $("slGo").onclick=async()=>{$("slGo").disabled=true;const rs=[...area.querySelectorAll(".reel")];const spin=setInterval(()=>rs.forEach(r=>{r.innerHTML=SY[Math.floor(Math.random()*6)]}),70);
+  $("slGo").onclick=async()=>{$("slGo").disabled=true;const rs=[...area.querySelectorAll(".reel")];rs.forEach(r=>delete r.dataset.stop);const spin=setInterval(()=>rs.forEach(r=>{if(!r.dataset.stop)r.innerHTML=SY[Math.floor(Math.random()*6)]}),70);
    try{const g=await playGame("slots");for(let i=0;i<3;i++){await new Promise(r=>setTimeout(r,500));if(i==2)clearInterval(spin);rs[i].dataset.stop=1;rs[i].innerHTML=SY[g.reels[i]]}
     $("gShow").innerHTML=result(g.win);money()}catch(e){clearInterval(spin);toast(e.message)}$("slGo").disabled=false}}
  if(gameTab=="bingo"){let pick=[];area.innerHTML=`<p class="mut">1～10 選 3 個號碼，開 5 個號碼。中 2 個 ×1.4，中 3 個 ×4。</p><div class="bnums">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button data-n="${n}">${n}</button>`).join("")}</div><div class="gbtns"><button class="pri" id="bgGo" disabled>選滿 3 個再開獎（押 €${gameBet}）</button></div><div id="gShow"></div>`;
