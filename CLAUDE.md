@@ -59,13 +59,13 @@
 `town_towns.currency`（鎮長在建鎮或鎮長面板選，`town_currency`），只影響顯示：程式與資料庫字串一律寫 `€`，前端 `pxify` 在畫面文字裡把 `€` 換成 `CUR`。浮動數字等畫布文字要自己用 `${CUR}`。
 
 ## 股市（證券交易所，`place='stock'`，位置 `[41,0,4,5]` 門 `[42,5]`，`FEATS` 可關）
-- 檔案：`supabase/town_stock.sql`（資料表、價格、買賣；要在 `town.sql` 之後套用，可重複執行）、`supabase/functions/town-stock`（抓證交所 STOCK_DAY_ALL）、實測 `supabase/town_stock_test.sql`（最後 rollback）。前端 `town.js` 的 `stockModal`。
-- 規則（簡化台股）：週一～週五 9:00～13:30（`town_closed('stock')`、前端 `closedMsg`，不考慮國定假日）、±10%、零股 1 股起（1000 股 = 1 張）、手續費 0.1425%（最低 1）、賣出稅 0.3%（ETF 0.1%）。**T+2 簡化**：買進立即扣款、股票立即可賣；賣股的錢進 `items.st.pend`，2 個平日後由 `town_stock_settle` 入帳（`town_act` 與交易時呼叫；不能放 `town_rent`，登入那條路只存錢）。
-- 20 檔熱門股存在 `town_stocks`（改清單只要改這張表；Edge Function 只更新表裡有的代號）。價格 `town_stock_price`：今天已有真實收盤價／週末／開盤前 = 真實收盤價；否則 = 前一真實收盤價 ×（1 + 每 5 分鐘一步偽隨機波動，日波動約 1.5%），鹽值存 `town_stock_meta`（只有伺服器看得到），全鎮同價。真實收盤價 15:00／17:00／20:00（台灣，平日）由 pg_cron 呼叫 `town-stock`。
-- 持股 `items.st = {h:{代號:{q,c}}, pend:[{d,a}], dv:{d,v}}`，缺值用預設。防洗錢：價格與玩家買賣無關、沒有玩家間交易；單筆 ≤ 30000、每人每天成交額 ≤ 60000。
-- 已知漏洞（接受）：模擬價不追真實盤中價，收盤後對齊真實收盤價，勤勞玩家可在 13:30 前對照真實行情賺隔夜差；靠手續費、稅與每日上限壓住（每天最多約 +600）。
-- **持股市值先不納入首富願望**（`town_wish_*` 只算現金），要不要納入、怎麼算，等和使用者討論後再決定。
-- 部署：`supabase functions deploy town-stock --project-ref gerqdagicybtyilihvvm --no-verify-jwt`（使用者自己跑）；SQL 照「測試與部署」套用，先 `town.sql` 再 `town_stock.sql`。
+使用者嫌真實台股版「太專業」，已改成大富翁 6 式的簡單版（虛構股票、全天開、沒手續費沒稅、賣了馬上拿錢）。**不要再加回手續費、T+2、真實股價。**
+- 檔案：`supabase/town_stock.sql`（要在 `town.sql` 之後套用，可重複執行，開頭會清掉舊版資料表）、實測 `supabase/town_stock_test.sql`（最後 rollback）。前端 `town.js` 的 `stockModal`。沒有 Edge Function、沒有排程。
+- 8 檔虛構股票存 `town_market`（豬肉公司、咖啡連鎖、小豬銀行、蛋蛋食品、泥巴建設、豬豬電子、雲朵航空、月亮科技；基準價 20～150、波動倍率 0.5～1.8）。價格每 10 分鐘走一步（`town_market_step`，有人看盤或買賣時才補算，最多補 6 小時，用 `for update` 鎖列），每步 2% 機率利多／利空（±5～12%，寫進 `town_market_news`，面板顯示「今日消息」），輕微拉回基準價，限制 0.4～2.5 倍。走勢存 `hist`（最近 36 步 = 6 小時），畫面漲跌幅跟 6 小時前比，紅漲綠跌。
+- 持股 `items.st = {h:{代號:{q,c}}, dv:{d,v}}`，缺值用預設。買賣用 `town_stock_trade(rid,pin,op,code,qty)`（要在交易所、鎮長沒關），價格用整數 `town_px`。賣股賺 ≥ 2000 寫 `luck` 動態。
+- 防洗錢：價格與玩家買賣無關、沒有玩家間交易；單筆 ≤ 30000、每人每天成交額 ≤ 60000。零期望值（沒有手續費，但也沒有偏袒）。
+- `town_stock_settle`（舊版待入帳款）留在 `town_act` 當保險，沒人會有 pend，可以之後再刪。
+- **持股市值先不納入首富願望**（`town_wish_*` 只算現金），等和使用者討論後再決定。
 
 ## 小豬鎮路線圖（使用者已確認，一項一項做，不要同時改同一批檔案）
 1. ✅ 已完成：個性特質＋心情（見下方「個性特質與心情」）

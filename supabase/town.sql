@@ -119,7 +119,6 @@ create or replace function public.town_closed(what text) returns text language s
     when what = 'workout' and not (h between 6 and 22) then '健身房休息中，營業時間 6:00～23:00'
     when what = 'spar' and not (h between 10 and 23) then '格鬥場休息中，營業時間 10:00～24:00'
     when what = 'rafi' and not (h between 9 and 18) then '拉菲的辦公室休息中，營業時間 9:00～19:00'
-    when what = 'stock' and not (dw between 1 and 5 and h*60+mi between 540 and 809) then '證券交易所休息中，營業時間 週一～週五 9:00～13:30'
     else null end
   from (select extract(hour from (now() at time zone 'Asia/Taipei'))::int h, extract(minute from (now() at time zone 'Asia/Taipei'))::int mi, extract(isodow from (now() at time zone 'Asia/Taipei'))::int dw) x
 $$;
@@ -672,7 +671,7 @@ $$;
 create or replace function public.town_rent_amt(lv int) returns int language sql immutable as $$
   select (array[350,600,1200,2500])[least(4, greatest(1, lv))]
 $$;
--- 股市 T+2 交割：賣股的錢要等 2 個平日才入帳（items.st.pend = [{d:到帳日, a:金額}]）；town_state／town_act 和股票交易會呼叫（登入那條路只存錢，不能在 town_rent 裡入帳）
+-- 舊版股市留下的待入帳款（items.st.pend）；新版賣股馬上拿錢，這個函式只是保險
 create or replace function public.town_stock_settle(r public.town_residents) returns public.town_residents language plpgsql as $$
 declare today date := (now() at time zone 'Asia/Taipei')::date; due int := 0; keep jsonb := '[]'::jsonb; e jsonb; pend jsonb := r.items->'st'->'pend';
 begin

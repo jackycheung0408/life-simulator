@@ -7,7 +7,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ── 地圖：寬 34 格。市中心固定；住宅一排 3 間（5×4 格，門在正下方），住滿就往下多開一條街，最多 4 排 ──
 const T=32,COLS=52,MAXROWS=4;let NR=2,OFF=new Set(),POOPS=[];
 // 鎮長可以關掉的設施
-const FEATS=[["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、比大小、輪盤、21 點、下戰帖"],["rafi","拉菲的辦公室","白領打工，薪水較高"],["stock","證券交易所","買賣台股，價格跟著真實收盤價"]];
+const FEATS=[["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、比大小、輪盤、21 點、下戰帖"],["rafi","拉菲的辦公室","白領打工，薪水較高"],["stock","證券交易所","買賣 8 檔小豬鎮股票"]];
 const setOff=a=>{OFF=new Set(a||[])};const isOn=k=>!OFF.has(k);
 const setRows=n=>{NR=clamp(n||2,2,MAXROWS)};
 const mapRows=()=>NR<=2?23:30+7*(NR-3);
@@ -43,7 +43,7 @@ const OBJS={vend:{x:19,y:5,name:"自動販賣機",acts:[["投一罐飲料 🥤",
  swing:{place:"park",name:"鞦韆",acts:[["盪鞦韆","心情 +12"]]},cat:{place:"park",name:"流浪貓",acts:[["摸摸貓 🐱","心情 +8 · 可能被抓"],["餵貓吃零食","用一包零食 · 心情 +15","feed"]]}};
 const HOURS={cafe:[7,21,"咖啡廳","7:00～21:00"],cinema:[12,24,"電影院","12:00～24:00"],gym:[6,23,"健身房","6:00～23:00"],arena:[10,24,"格鬥場","10:00～24:00"],restaurant:[11,22,"餐廳","11:00～22:00"],market:[8,23,"超市","8:00～23:00"],stall:[16,24,"烤地瓜攤","16:00～24:00"],rafi:[9,19,"拉菲的辦公室","9:00～19:00"]};
 const tpHour=()=>new Date(Date.now()+8*36e5).getUTCHours();
-const closedMsg=k=>{if(k=="stock"&&isOn(k)){const t=new Date(Date.now()+8*36e5),m=t.getUTCHours()*60+t.getUTCMinutes(),d=t.getUTCDay();return d>=1&&d<=5&&m>=540&&m<810?null:"證券交易所休息中，營業時間 週一～週五 9:00～13:30"}if(!isOn(k))return `這個小鎮沒有${(FEATS.find(f=>f[0]==k)||[,"這個設施"])[1]}`;const h=HOURS[k];if(!h)return null;const x=tpHour();return x>=h[0]&&x<h[1]?null:`${h[2]}休息中，營業時間 ${h[3]}`};
+const closedMsg=k=>{if(!isOn(k))return `這個小鎮沒有${(FEATS.find(f=>f[0]==k)||[,"這個設施"])[1]}`;const h=HOURS[k];if(!h)return null;const x=tpHour();return x>=h[0]&&x<h[1]?null:`${h[2]}休息中，營業時間 ${h[3]}`};
 const objNear=(k,x,y,place)=>{const o=OBJS[k];return o.place?place==o.place:Math.abs(x-o.x)+Math.abs(y-o.y)<=2};
 const inRect=(x,y,[rx,ry,rw,rh])=>x>=rx&&x<rx+rw&&y>=ry&&y<ry+rh;
 const roadRowsAt=y=>y==6||y==7||y==15||y==16||(y>=22&&(y-22)%7<2&&Math.floor((y-22)/7)+2<NR);
@@ -327,7 +327,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")));if(p=="plaza"&&isOn("arcade"))list.push(btn("小豬街機 🕹️","賭場 7 種＋單機 2 種",()=>gamesModal()))}
  else if(p=="cafe"){title="咖啡廳";list.push(btn("喝咖啡 ☕","€90 · 精力 +50 · 膀胱 −10 · 30 分鐘一次",()=>act("coffee")),pjBtn("cafe",r));note=pjNote("cafe",r)}
  else if(p=="rafi"){title="拉菲的辦公室";list.push(pjBtn("rafi",r));note=pjNote("rafi",r)+" · 營業 9:00～19:00，薪水比公司高但很傷心情"}
- else if(p=="stock"){title="證券交易所";const cl=closedMsg("stock");list.push(btn("看盤與買賣 📈",cl||"零股可買、價格跟真實收盤價走",()=>stockModal()));note=(cl?cl+"。":"營業中。")+`持股 ${stockN(r)} 檔 · 手續費 0.1425%、賣出稅 0.3%（ETF 0.1%）· 賣股的錢 2 個平日後入帳`}
+ else if(p=="stock"){title="證券交易所";list.push(btn("看盤與買賣 📈","8 檔股票、全天開、沒手續費",()=>stockModal()));note=`低買高賣賺差價，留意今日消息 · 持股 ${stockN(r)} 檔`}
  else if(p=="cinema"){title="電影院";list.push(btn("看電影 🎬","€300 · 心情 +35 · 1 小時一次",()=>act("movie")))}
  else if(p=="gym"){title="健身房";list.push(btn("健身 🏋️",`精力 −15 · 心情 +10 · 打架更強（${Math.min(10,(r.items||{}).fit||0)}/10）`,()=>act("workout")),pjBtn("gym",r));note=pjNote("gym",r)}
  else if(p=="arena"){title="格鬥場";const it=r.items||{};list.push(btn("打擂台 🥊",`精力 −12 · 贏了拿獎金、連勝越多越貴 · 目前 ${it.streak||0} 連勝（最高 ${it.best||0}）`,()=>act("spar")));note="在這裡點別人可以約打：5 分鐘就能再打一次、贏的拿 €100（每人 30 分鐘領一次）、好感只扣 1"}
@@ -645,32 +645,26 @@ function interiorModal(id,sel){const o=R[id],mine=id==me,it=o.items||{},hl=it.hl
  $("mbody").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>go("furn",{item:`set:${sel}:${b.dataset.s}`}));
  $("mbody").querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>go("furn",{item:`clr:${sel}`}));
  $("mbody").querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>go("upgrade"))}
-// ── 證券交易所（規則與 town_stock.sql 一致）──
-const stockItems=r=>{const s=(r.items||{}).st||{};return {h:s.h||{},pend:s.pend||[]}};
+// ── 證券交易所（大富翁式：8 檔虛構股票、全天開、沒手續費；規則與 town_stock.sql 一致）──
+const stockItems=r=>{const s=(r.items||{}).st||{};return {h:s.h||{}}};
 let QUOTES=null;
 const stockN=r=>Object.keys(stockItems(r).h).length;
-const stockVal=r=>{const h=stockItems(r).h;let v=0;for(const c in h){const q=QUOTES&&QUOTES.stocks.find(x=>x.code==c);v+=q?Math.round(q.price*h[c].q):h[c].c}return v.toLocaleString()};
-const pctTxt=(p,ref)=>{const d=(p-ref)/ref*100;return `<b style="color:${d>0?"#e43b44":d<0?"#2f9e44":"inherit"}">${d>0?"▲":d<0?"▼":""}${Math.abs(d).toFixed(2)}%</b>`}; // 台股：紅漲綠跌
-let stockSel="",stockQ=1;
-async function stockModal(){$("modal").classList.remove("hide");$("mbody").innerHTML='<p class="mut">載入行情…</p>';
+const stockVal=r=>{const h=stockItems(r).h;let v=0;for(const c in h){const q=QUOTES&&QUOTES.stocks.find(x=>x.code==c);v+=q?q.price*h[c].q:h[c].c}return v.toLocaleString()};
+const arrow=(p,ref)=>{const d=Math.round((p-ref)/ref*100);return `<b style="color:${d>0?"#e43b44":d<0?"#2f9e44":"inherit"}">${d>0?"▲":d<0?"▼":"－"}${Math.abs(d)}%</b>`}; // 台灣習慣：紅漲綠跌
+const spark=(h,up)=>{const a=h.slice(-36),lo=Math.min(...a),hi=Math.max(...a),sp=hi-lo||1;return `<svg width="84" height="26" viewBox="0 0 84 26"><polyline fill="none" stroke="${up?"#e43b44":"#2f9e44"}" stroke-width="2" points="${a.map((v,i)=>`${Math.round(i/Math.max(1,a.length-1)*82)+1},${Math.round(24-(v-lo)/sp*22)}`).join(" ")}"/></svg>`};
+async function stockModal(){$("modal").classList.remove("hide");if(!QUOTES)$("mbody").innerHTML='<p class="mut">載入行情…</p>';
  let Q;try{Q=QUOTES=await rpc("town_stock_list")}catch(e){$("mbody").innerHTML='<p class="err">行情載入失敗</p><div class="row"><button id="mc">關閉</button></div>';$("mc").onclick=()=>$("modal").classList.add("hide");return}
- const r=tickLocal(R[me],now()),it=stockItems(r),cl=closedMsg("stock"),inside=r.place=="stock";
- const rows=Q.stocks.map(x=>{const h=it.h[x.code],own=h?` · 持有 ${h.q} 股`:"";return `<button class="gm" data-c="${x.code}" style="grid-column:1/-1;flex-direction:row;justify-content:space-between;gap:8px"><span><b>${x.name}</b> <small>${x.code}${x.etf?" ETF":""}${own}</small></span><span>NT$${x.price} ${pctTxt(x.price,x.ref)}</span></button>`}).join("");
- const pend=it.pend.reduce((a,b)=>a+(b.a||0),0);
- $("mbody").innerHTML=`<h2>📈 證券交易所</h2><p class="mut">現金 ${CUR}${r.money} · 持股市值約 NT$${stockVal(r)}${pend?` · 待入帳 NT$${pend}`:""}<br>${cl||"營業中"} · 價格以證交所真實收盤價為基準，盤中是模擬波動。紅漲綠跌。單筆 ≤ 30,000、一天 ≤ 60,000。</p>
- <div class="gmenu">${rows}</div><div id="stArea"></div><div class="row"><button id="mc">離開</button></div>`;
+ const r=tickLocal(R[me],now()),it=stockItems(r),inside=r.place=="stock";
+ const rows=Q.stocks.map(x=>{const h=it.h[x.code],up=x.price>=x.ref,pl=h?x.price*h.q-h.c:0;
+  return `<div class="mrow" style="flex-wrap:wrap;gap:6px"><span style="min-width:96px"><b>${x.name}</b><br><small class="mut">${h?`持有 ${h.q} 股 · ${pl>=0?"賺":"賠"} ${Math.abs(pl)}`:"沒有持股"}</small></span>${spark(x.hist,up)}<span><b style="font-size:22px">${x.price}</b> ${arrow(x.price,x.ref)}</span>
+  <span class="chips" style="margin:0"><button data-b="${x.code}:1">買 1</button><button data-b="${x.code}:5">買 5</button><button data-s="${x.code}:1" ${h?"":"disabled"}>賣 1</button><button data-s="${x.code}:all" ${h?"":"disabled"}>全賣</button></span></div>`}).join("");
+ const news=Q.news.length?Q.news.slice(0,4).map(n=>`<li>${n.msg}</li>`).join(""):"<li class=\"mut\">今天沒什麼大新聞</li>";
+ $("mbody").innerHTML=`<h2>📈 證券交易所</h2><p class="mut">現金 ${CUR}${r.money} · 持股約 ${CUR}${stockVal(r)}${inside?"":" · 要走到交易所才能買賣"}</p>
+ <h3 class="gh">今日消息</h3><ul class="mut" style="margin:0 0 8px 16px">${news}</ul>
+ <h3 class="gh">行情（紅漲綠跌，跟 6 小時前比）</h3><div class="list">${rows}</div><p class="mut">價格每 10 分鐘變一次，偶爾有利多利空。單筆 ≤ 30,000、一天 ≤ 60,000。</p><div class="row"><button id="mc">離開</button></div>`;
  $("mc").onclick=()=>{$("modal").classList.add("hide");refresh().catch(()=>{})};
- $("mbody").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{stockSel=b.dataset.c;pick()});
- function pick(){const x=Q.stocks.find(y=>y.code==stockSel);if(!x)return;const h=it.h[x.code]||{q:0,c:0},A=$("stArea");
-  const tot=q=>Math.round(x.price*q),pl=h.q?Math.round(x.price*h.q-h.c):0;
-  A.innerHTML=`<h3 class="gh">${x.name} ${x.code} · NT$${x.price} ${pctTxt(x.price,x.ref)}</h3><p class="mut">持有 ${h.q} 股${h.q?`（成本 NT$${h.c}，損益 <b style="color:${pl>0?"#e43b44":pl<0?"#2f9e44":"inherit"}">${pl>0?"+":""}${pl}</b>）`:""} · 1000 股 = 1 張</p>
-  <div class="chips">股數 ${[1,10,100,1000].map(q=>`<button data-q="${q}" class="${stockQ==q?"on":""}">${q}</button>`).join("")}</div>
-  <p class="mut" id="stSum"></p><div class="row"><button class="pri" id="stBuy">買進</button><button id="stSell">賣出</button></div>`;
-  const sum=()=>{const a=tot(stockQ),fee=Math.max(1,Math.round(a*.001425)),tax=Math.round(a*(x.etf?.001:.003));$("stSum").textContent=`金額 NT$${a} · 買要 ${a+fee}（手續費 ${fee}）· 賣到手 ${Math.max(0,a-fee-tax)}（稅 ${tax}）`};sum();
-  A.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{stockQ=+b.dataset.q;A.querySelectorAll("[data-q]").forEach(z=>z.classList.toggle("on",z==b));sum()});
-  const go=async op=>{if(!inside){toast("要走到證券交易所才能買賣");return}if(cl){toast(cl);return}try{const res=await rpc("town_stock_trade",{rid:me,pin,op,code:x.code,qty:stockQ});if(res.error)throw new Error(res.error);toast(res.msg);spawnFx("coins",me);await refresh();stockModal()}catch(e){toast(e.message)}};
-  $("stBuy").onclick=()=>go("buy");$("stSell").onclick=()=>go("sell");A.scrollIntoView({block:"nearest"})}
- if(stockSel)pick()}
+ const go=async(op,v)=>{if(!inside){toast("要走到證券交易所才能買賣");return}const [code,q]=v.split(":"),qty=q=="all"?it.h[code].q:+q;try{const res=await rpc("town_stock_trade",{rid:me,pin,op,code,qty});if(res.error)throw new Error(res.error);toast(res.msg);spawnFx("coins",me);await refresh();stockModal()}catch(e){toast(e.message)}};
+ $("mbody").querySelectorAll("[data-b]").forEach(b=>b.onclick=()=>go("buy",b.dataset.b));$("mbody").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>go("sell",b.dataset.s))}
 function noteModal(id){const t=R[id];$("modal").classList.remove("hide");const quick=["記得吃飯！🍚","晚安 🌙","今天加油！💪","想你了 🥺","快去洗澡 🛁","下次一起吃飯？"];
  $("mbody").innerHTML=`<h2>📱 傳訊息給 ${esc(t.name)}</h2><div class="houses">${quick.map(q=>`<button class="sw" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div><input id="ntx" maxlength="30" placeholder="或自己寫（最多 30 字）" style="margin-top:10px"><p class="err" id="nerr"></p>
   <div class="row"><button id="mc">取消</button><button class="pri" id="ms">傳送</button></div>`;
