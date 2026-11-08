@@ -94,7 +94,7 @@ create or replace function public.town_place_name(p text) returns text language 
   select case
     when p like 'home:%' then coalesce((select name from public.town_residents where id = substr(p,6)::bigint), '空屋') || ' 家'
     when p = 'plaza' then '廣場' when p = 'restaurant' then '餐廳' when p = 'market' then '超市'
-    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' else '路上' end
+    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' when p = 'rafi' then '拉菲的辦公室' else '路上' end
 $$;
 create or replace function public.town_name_ok(t text) returns boolean language sql immutable as $$
   select char_length(trim(t)) between 1 and 12 and trim(t) !~ '[<>"]' and not public.has_bad_words(t)
@@ -118,6 +118,7 @@ create or replace function public.town_closed(what text) returns text language s
     when what = 'movie' and not (h between 12 and 23) then '電影院休息中，營業時間 12:00～24:00'
     when what = 'workout' and not (h between 6 and 22) then '健身房休息中，營業時間 6:00～23:00'
     when what = 'spar' and not (h between 10 and 23) then '格鬥場休息中，營業時間 10:00～24:00'
+    when what = 'rafi' and not (h between 9 and 18) then '拉菲的辦公室休息中，營業時間 9:00～19:00'
     else null end
   from (select extract(hour from (now() at time zone 'Asia/Taipei'))::int h) x
 $$;
@@ -128,7 +129,7 @@ alter table public.town_towns add column if not exists off text[] not null defau
 alter table public.town_towns add column if not exists currency text not null default 'NT$';
 create or replace function public.town_feature(what text) returns text language sql immutable as $$
   select case when what in ('cafe','coffee') then 'cafe' when what in ('cinema','movie') then 'cinema' when what in ('gym','workout') then 'gym'
-    when what in ('arena','spar') then 'arena' when what in ('slaughter','sneak') then 'slaughter' else null end
+    when what in ('arena','spar') then 'arena' when what in ('slaughter','sneak') then 'slaughter' when what = 'rafi' then 'rafi' else null end
 $$;
 create or replace function public.town_is_off(tid text, f text) returns boolean language sql stable as $$
   select coalesce((select f = any(off) from public.town_towns where id = tid), false)
@@ -141,7 +142,7 @@ begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if not r.mayor then raise exception '只有鎮長可以做這件事'; end if;
-  if exists (select 1 from unnest(coalesce(off,'{}')) f where f not in ('cafe','cinema','gym','arena','slaughter','arcade')) then raise exception '沒有這個設施'; end if;
+  if exists (select 1 from unnest(coalesce(off,'{}')) f where f not in ('cafe','cinema','gym','arena','slaughter','arcade','rafi')) then raise exception '沒有這個設施'; end if;
   update public.town_towns set off = coalesce(town_features.off,'{}') where id = r.town_id;
   -- 關掉的地方有人在，請他們回到路上
   update public.town_residents set place = 'street' where town_id = r.town_id and place = any(coalesce(town_features.off,'{}'));
@@ -640,6 +641,28 @@ begin
   r.items := jsonb_set(r.items, '{dc}', dc);
   return r;
 end $$;
+-- ── 其他工作（咖啡師／服務生／健身教練／店員／拉菲的辦公室）：各自計數 items.jw[k]，疲勞和公司共用 dc.work ──
+-- 熟練度：0 次 ×1.0、15 次 ×1.15、40 次 ×1.3；拉菲三個職位（行政專員／企劃／業務經理）底薪 320／450／650
+create or replace function public.town_pjob_place(k text) returns text language sql immutable as $$
+  select case k when 'cafe' then 'cafe' when 'rest' then 'restaurant' when 'gym' then 'gym' when 'shop' then 'market' when 'rafi' then 'rafi' end
+$$;
+create or replace function public.town_pjob_key(k text) returns text language sql immutable as $$
+  select case k when 'cafe' then 'coffee' when 'rest' then 'dine' when 'gym' then 'workout' when 'shop' then 'browse' when 'rafi' then 'rafi' end
+$$;
+-- 消耗 {精力,飽足,心情,清潔}
+create or replace function public.town_pjob_fx(k text) returns int[] language sql immutable as $$
+  select case k when 'cafe' then array[-12,-6,-6,-3] when 'rest' then array[-14,-3,-8,-8] when 'gym' then array[-20,-12,-4,-15]
+    when 'shop' then array[-10,-6,-10,-2] when 'rafi' then array[-15,-8,-18,-4] end
+$$;
+create or replace function public.town_pjob_wage(k text, n int) returns int language sql immutable as $$
+  select case when k = 'rafi' then (case when n >= 40 then 650 when n >= 15 then 450 else 320 end)
+    else (case k when 'cafe' then 200 when 'rest' then 210 when 'gym' then 230 when 'shop' then 195 end) * (case when n >= 40 then 130 when n >= 15 then 115 else 100 end) / 100 end
+$$;
+create or replace function public.town_pjob_name(k text, n int) returns text language sql immutable as $$
+  select case k when 'rafi' then (case when n >= 40 then '業務經理' when n >= 15 then '企劃' else '行政專員' end)
+    else (case k when 'cafe' then '咖啡師' when 'rest' then '服務生' when 'gym' then '健身教練' when 'shop' then '店員' end) || (case when n >= 40 then '（資深）' when n >= 15 then '（熟手）' else '' end) end
+$$;
+revoke all on function public.town_pjob_place(text), public.town_pjob_key(text), public.town_pjob_fx(text), public.town_pjob_wage(text,int), public.town_pjob_name(text,int) from public, anon, authenticated;
 -- 打工疲勞：今天前 4 次全額、第 5～8 次 50%、之後 25%（打工與加班都算）
 create or replace function public.town_work_pct(n int) returns int language sql immutable as $$
   select case when n < 4 then 100 when n < 8 then 50 when n < 16 then 25 else 10 end
@@ -662,7 +685,7 @@ revoke all on function public.town_dc_get(public.town_residents,text), public.to
 create or replace function public.town_act(rid bigint, pin text, act text, target bigint default null, px real default null, py real default null, dest text default null, item text default null, note text default null) returns json
 language plpgsql security definer set search_path = public as $$
 declare r public.town_residents; t public.town_residents; others text; tn text; n int; w int; near boolean; pa real; pb real; bond int; m real; pub text[] := array['plaza','restaurant','market','park','office'];
-  fm real := 1; gm int := 1; mo text; lk boolean; jl int; jf jsonb;
+  fm real := 1; gm int := 1; mo text; lk boolean; jl int; jf jsonb; fx int[];
 begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
@@ -670,10 +693,10 @@ begin
   perform set_config('town.bm', (public.town_mood_bond(mo) * case when public.town_has(r,'social') then 130 else 100 end / case when r.hygiene < 1 then 2 else 1 end)::text, true);
   r := public.town_rent(r);
   if r.sleeping and act not in ('wake') then raise exception '你在睡覺，先起床'; end if;
-  if public.town_closed(case when act = 'obj' then item else act end) is not null then raise exception '%', public.town_closed(case when act = 'obj' then item else act end); end if;
-  if public.town_is_off(r.town_id, public.town_feature(case when act = 'move' then dest else act end)) then raise exception '這個小鎮沒有開這個設施'; end if;
+  if public.town_closed(case when act = 'obj' then item when act = 'job' then public.town_pjob_key(item) else act end) is not null then raise exception '%', public.town_closed(case when act = 'obj' then item when act = 'job' then public.town_pjob_key(item) else act end); end if;
+  if public.town_is_off(r.town_id, public.town_feature(case when act = 'move' then dest when act = 'job' then public.town_pjob_key(item) else act end)) then raise exception '這個小鎮沒有開這個設施'; end if;
   if act = 'move' then
-    if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter')
+    if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter','rafi')
        or (dest ~ '^home:\d+$' and exists (select 1 from public.town_residents where id = substr(dest,6)::bigint and town_id = r.town_id))) then raise exception '去不了那裡'; end if;
     if px is null or py is null or px < 0 or px > 52 or py < 0 or py > 40 then raise exception '位置不對'; end if;
     -- 走過別人留下的便便會踩到（路線離便便不到 0.6 格）
@@ -698,7 +721,7 @@ begin
       else r.money := r.money + 2000; tn := r.name || ' 買刮刮樂中了 €2000！🎉'; end if;
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', tn); tn := null;
     end if;
-    if dest in ('plaza','restaurant','market','park','cafe','cinema','gym','arena','slaughter') then
+    if dest in ('plaza','restaurant','market','park','cafe','cinema','gym','arena','slaughter','rafi') then
       select string_agg(name, '、') into others from public.town_residents where town_id = r.town_id and place = dest and id <> rid and not sleeping;
       if others is not null and not exists (select 1 from public.town_events e where e.actor = rid and e.kind = 'meet' and e.at > now() - interval '2 hours') then
         insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'meet', r.name || ' 在' || public.town_place_name(dest) || '遇到了 ' || others);
@@ -901,6 +924,22 @@ begin
     if r.money < n then raise exception '錢不夠，去公司打工吧'; end if;
     if coalesce((r.items->>item)::int,0) >= 20 then raise exception '背包放不下了'; end if;
     r.money := r.money - n; r.items := jsonb_set(r.items, array[item], to_jsonb(coalesce((r.items->>item)::int,0) + 1)); r.fun := r.fun + 3;
+  elsif act = 'job' then
+    if item is null or item not in ('cafe','rest','gym','shop','rafi') then raise exception '沒有這份工作'; end if;
+    if r.place <> public.town_pjob_place(item) then raise exception '要在%才能做這份工作', public.town_place_name(public.town_pjob_place(item)); end if;
+    if item = 'rafi' and coalesce((r.items->>'works')::int,0) < 10 then raise exception '拉菲的辦公室要先在公司升到「員工」（累計打工 10 次）才能應徵'; end if;
+    fx := public.town_pjob_fx(item);
+    if r.energy < greatest(15, -fx[1]) then raise exception '太累了，先回家睡覺'; end if;
+    n := coalesce((r.items->'jw'->>item)::int,0);
+    w := public.town_pay(public.town_pjob_wage(item, n), mo, public.town_has(r,'workaholic')) * public.town_work_pct(public.town_dc_get(r,'work')) / 100;
+    r := public.town_dc_inc(r,'work');
+    r.items := jsonb_set(r.items, '{jw}', coalesce(r.items->'jw','{}'::jsonb) || jsonb_build_object(item, n + 1));
+    r.money := r.money + w; r.energy := r.energy + fx[1]; r.hunger := r.hunger + fx[2]; r.fun := r.fun + fx[3]; r.hygiene := r.hygiene + fx[4];
+    if item = 'gym' then r.items := jsonb_set(r.items, '{fit}', to_jsonb(least(10, coalesce((r.items->>'fit')::int,0) + 1))); end if;
+    insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'work', r.name || ' 在' || public.town_place_name(r.place) || '當' || public.town_pjob_name(item, n) || '，賺了 €' || w);
+    if public.town_pjob_name(item, n + 1) <> public.town_pjob_name(item, n) then
+      insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'promo', r.name || ' 在' || public.town_place_name(r.place) || '升職了！成為「' || public.town_pjob_name(item, n + 1) || '」，每次 €' || public.town_pjob_wage(item, n + 1));
+    end if;
   elsif act in ('dine','work','play','browse','coffee','movie','workout') then
     if (act = 'dine' and r.place <> 'restaurant') or (act = 'work' and r.place <> 'office') or (act = 'play' and r.place not in ('park','plaza')) or (act = 'browse' and r.place <> 'market')
        or (act = 'coffee' and r.place <> 'cafe') or (act = 'movie' and r.place <> 'cinema') or (act = 'workout' and r.place <> 'gym') then raise exception '不在那個地方'; end if;
