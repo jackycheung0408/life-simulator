@@ -680,8 +680,8 @@ create or replace function public.town_pjob_key(k text) returns text language sq
 $$;
 -- 消耗 {精力,飽足,心情,清潔}
 create or replace function public.town_pjob_fx(k text) returns int[] language sql immutable as $$
-  select case k when 'cafe' then array[-12,-6,-6,-3] when 'rest' then array[-14,-3,-8,-8] when 'gym' then array[-20,-12,-4,-15]
-    when 'shop' then array[-10,-6,-10,-2] when 'rafi' then array[-15,-8,-18,-4] end
+  select case k when 'cafe' then array[-19,-6,-6,-3] when 'rest' then array[-22,-3,-8,-8] when 'gym' then array[-32,-12,-4,-15]
+    when 'shop' then array[-16,-6,-10,-2] when 'rafi' then array[-25,-8,-18,-4] end
 $$;
 create or replace function public.town_pjob_wage(k text, n int) returns int language sql immutable as $$
   select case when k = 'rafi' then (case when n >= 40 then 650 when n >= 15 then 450 else 320 end)
@@ -692,13 +692,27 @@ create or replace function public.town_pjob_name(k text, n int) returns text lan
     else (case k when 'cafe' then '咖啡師' when 'rest' then '服務生' when 'gym' then '健身教練' when 'shop' then '店員' end) || (case when n >= 40 then '（資深）' when n >= 15 then '（熟手）' else '' end) end
 $$;
 revoke all on function public.town_pjob_place(text), public.town_pjob_key(text), public.town_pjob_fx(text), public.town_pjob_wage(text,int), public.town_pjob_name(text,int) from public, anon, authenticated;
--- 打工疲勞：今天前 4 次全額、第 5～8 次 50%、之後 25%（打工與加班都算）
+-- 打工不再遞減（town_work_pct 固定 100，保留函式相容），改用 10 分鐘冷卻 town_wk_check
 create or replace function public.town_work_pct(n int) returns int language sql immutable as $$
-  select case when n < 4 then 100 when n < 8 then 50 when n < 16 then 25 else 10 end
+  select 100
 $$;
+-- 打工冷卻：所有打工（公司、咖啡師…、拉菲、加班）共用 items.cd.wk，每次之間至少 10 分鐘（代表工作一小時）
+create or replace function public.town_wk_check(r public.town_residents) returns void language plpgsql as $$
+declare c timestamptz := (r.items->'cd'->>'wk')::timestamptz;
+begin
+  if c is not null and c > now() - interval '10 minutes' then
+    raise exception '剛打完工，還要休息 % 分鐘', greatest(1, ceil(extract(epoch from (c + interval '10 minutes' - now())) / 60)::int);
+  end if;
+end $$;
+create or replace function public.town_wk_set(r public.town_residents) returns public.town_residents language plpgsql as $$
+begin
+  r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('wk', now()));
+  return r;
+end $$;
+revoke all on function public.town_wk_check(public.town_residents), public.town_wk_set(public.town_residents) from public, anon, authenticated;
 -- 每日生活費（房租＋水電）：每個台灣日第一次上線扣一次，最多扣到 0，離線的日子不補扣
 create or replace function public.town_rent_amt(lv int) returns int language sql immutable as $$
-  select (array[350,600,1200,2500])[least(4, greatest(1, lv))]
+  select (array[400,800,1800,4000])[least(4, greatest(1, lv))]
 $$;
 -- 舊版股市留下的待入帳款（items.st.pend）；新版賣股馬上拿錢，這個函式只是保險
 create or replace function public.town_stock_settle(r public.town_residents) returns public.town_residents language plpgsql as $$
@@ -1252,11 +1266,11 @@ begin
     if r.items#>>'{veh,k}' is null then raise exception '你沒有騎車'; end if;
     r.items := jsonb_set(r.items, '{veh}', (r.items->'veh') - 'k');
   elsif act = 'upgrade' then
-    -- 房子升級：1 小屋、2 公寓 €10000、3 獨棟 €100000、4 豪宅 €200000
+    -- 房子升級：1 小屋、2 公寓 €20000、3 獨棟 €150000、4 豪宅 €400000
     if not public.town_inside(r) then raise exception '要先進屋'; end if;
     jl := coalesce((r.items->>'hl')::int,1);
     if jl >= 4 then raise exception '已經是豪宅了'; end if;
-    n := (array[0,13000,100000,200000])[jl+1];
+    n := (array[0,20000,150000,400000])[jl+1];
     if r.money < n then raise exception '錢不夠，升級要 €%', n; end if;
     r.money := r.money - n; r.fun := r.fun + 15; r.items := jsonb_set(r.items, '{hl}', to_jsonb(jl+1));
     insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', r.name || ' 把家升級成' || (array['小屋','公寓','獨棟','豪宅'])[jl+1] || '了');
@@ -1277,6 +1291,7 @@ begin
     if item is null or item not in ('cafe','rest','gym','shop','rafi') then raise exception '沒有這份工作'; end if;
     if r.place <> public.town_pjob_place(item) then raise exception '要在%才能做這份工作', public.town_place_name(public.town_pjob_place(item)); end if;
     if item = 'rafi' and coalesce((r.items->>'works')::int,0) < 10 then raise exception '拉菲的辦公室要先在公司升到「員工」（累計打工 10 次）才能應徵'; end if;
+    perform public.town_wk_check(r); r := public.town_wk_set(r);
     fx := public.town_pjob_fx(item);
     if r.energy < greatest(15, -fx[1]) then raise exception '太累了，先回家睡覺'; end if;
     n := coalesce((r.items->'jw'->>item)::int,0);
@@ -1293,11 +1308,12 @@ begin
     if (act = 'dine' and r.place <> 'restaurant') or (act = 'work' and r.place <> 'office') or (act = 'play' and r.place not in ('park','plaza')) or (act = 'browse' and r.place <> 'market')
        or (act = 'coffee' and r.place <> 'cafe') or (act = 'movie' and r.place <> 'cinema') or (act = 'workout' and r.place <> 'gym') then raise exception '不在那個地方'; end if;
     if act = 'dine' then if r.money < 250 then raise exception '錢不夠，去公司打工吧'; end if; r.items := jsonb_set(r.items, '{meals}', to_jsonb(coalesce((r.items->>'meals')::int,0) + 1)); r.hunger := r.hunger + 55*fm; r.energy := r.energy + 20; r.fun := r.fun + 10; r.money := r.money - 250;
-    elsif act = 'work' then if r.energy < 15 then raise exception '太累了，先回家睡覺'; end if;
+    elsif act = 'work' then if r.energy < 25 then raise exception '太累了，先回家睡覺'; end if;
+      perform public.town_wk_check(r); r := public.town_wk_set(r);
       r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('work', now())); n := coalesce((r.items->>'works')::int,0);
       w := public.town_pay(public.town_wage(public.town_job_lv(n)), mo, public.town_has(r,'workaholic')) * public.town_work_pct(public.town_dc_get(r,'work')) / 100;
       r := public.town_dc_inc(r,'work');
-      r.items := jsonb_set(r.items, '{works}', to_jsonb(n + 1)); r.money := r.money + w; r.energy := r.energy - 15; r.fun := r.fun - 10; r.hunger := r.hunger - 8;
+      r.items := jsonb_set(r.items, '{works}', to_jsonb(n + 1)); r.money := r.money + w; r.energy := r.energy - 25; r.fun := r.fun - 10; r.hunger := r.hunger - 8;
       insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'work', r.name || ' 打工賺了 €' || w);
       if public.town_job_lv(n + 1) > public.town_job_lv(n) then
         insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'promo', r.name || ' 升職了！成為「' || public.town_job_name(public.town_job_lv(n + 1)) || '」，每次打工 €' || public.town_wage(public.town_job_lv(n + 1)));
@@ -1370,10 +1386,11 @@ begin
       if not near or t.sleeping then raise exception '要和 % 面對面，而且他醒著', tn; end if;
       if act = 'cowork' then
         if r.place <> 'office' then raise exception '要一起在公司才能加班'; end if;
-        if r.energy < 15 or t.energy < 15 then raise exception '有人太累了，加不了班'; end if;
+        if r.energy < 25 or t.energy < 25 then raise exception '有人太累了，加不了班'; end if;
+        perform public.town_wk_check(r); perform public.town_wk_check(t); r := public.town_wk_set(r); t := public.town_wk_set(t);
         r.money := r.money + 2 * public.town_pay(public.town_wage(public.town_job_lv(coalesce((r.items->>'works')::int,0))), mo, public.town_has(r,'workaholic')) * public.town_work_pct(public.town_dc_get(r,'work')) / 100;
         t.money := t.money + 2 * public.town_pay(public.town_wage(public.town_job_lv(coalesce((t.items->>'works')::int,0))), public.town_mood(t), public.town_has(t,'workaholic')) * public.town_work_pct(public.town_dc_get(t,'work')) / 100;
-        r := public.town_dc_inc(r,'work'); t := public.town_dc_inc(t,'work'); r.energy := r.energy - 15; t.energy := t.energy - 15; perform public.town_bond(r.town_id, rid, t.id, 2);
+        r := public.town_dc_inc(r,'work'); t := public.town_dc_inc(t,'work'); r.energy := r.energy - 25; t.energy := t.energy - 25; perform public.town_bond(r.town_id, rid, t.id, 2);
         insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 和 ' || tn || ' 一起加班，薪水加倍 💼');
       else
         if r.place <> 'restaurant' then raise exception '要一起在餐廳才能請吃大餐'; end if;

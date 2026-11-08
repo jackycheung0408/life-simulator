@@ -52,7 +52,7 @@ check(Math.abs(M.tickLocal(mk({},["clean"]),10*36e5).hygiene-(80-35))<1e-6,"愛�
 // 家具：好床睡覺精力 +90/小時；家具表和房子等級
 check(Math.round(M.tickLocal({...base,sleeping:true,energy:0,items:{fu:["bed"]}},1*36e5).energy)==90,"好床睡 1 小時精力應該是 90");
 check(M.hasF({items:{fu:["","fridge"]}},"fridge")&&!M.hasF({items:{f:["fridge"]}},"fridge"),"只有擺出來的家具才有效果");
-check(M.FURN.length==8&&M.HOUSES.map(h=>h[2]).join()=="4,6,8,9"&&M.HOUSES.map(h=>h[1]).join()=="0,13000,100000,200000","家具或房子等級表不對");
+check(M.FURN.length==8&&M.HOUSES.map(h=>h[2]).join()=="4,6,8,9"&&M.HOUSES.map(h=>h[1]).join()=="0,20000,150000,400000","家具或房子等級表不對");
 // 路邊物件：不在牆裡、從每間房子的門都走得到、人站的位置和資料庫的距離判斷一致
 for(let rows=2;rows<=4;rows++){M.setRows(rows);for(const [k,o] of Object.entries(M.OBJS)){if(o.x==null)continue;check(!M.blocked(o.x,o.y)||false,`${rows} 排：物件 ${k} 在牆裡`);const stand=[o.x,o.y+(o.y==5?1:0)];check(!M.blocked(...stand),`${rows} 排：物件 ${k} 站不上去`);for(let s=0;s<rows*3;s++)check(M.bfs(M.door(s),stand),`${rows} 排：房子 ${s} 走不到物件 ${k}`)}}
 // 其他工作：薪水階梯、拉菲辦公室座標（要和 town.sql 一致）

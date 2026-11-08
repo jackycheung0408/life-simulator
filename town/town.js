@@ -31,7 +31,7 @@ const PLACES={
  slaughter:{r:[45,9,7,5],door:[48,14],name:"屠宰場",block:1},
  plaza:{r:[12,8,10,7],door:[14,11],name:"廣場"}};
 // 其他工作（和 town.sql 的 town_pjob_* 一致）：[名稱, 地點, 底薪, [精力,飽足,心情,清潔]]；熟練 15 次 ×1.15、40 次 ×1.3；拉菲底薪 320／450／650，要先升到「員工」
-const PJ={cafe:["咖啡師","cafe",200,[-12,-6,-6,-3],"cafe"],rest:["服務生","restaurant",210,[-14,-3,-8,-8],"restaurant"],gym:["健身教練","gym",230,[-20,-12,-4,-15],"gym"],shop:["店員","market",195,[-10,-6,-10,-2],"market"],rafi:["行政專員","rafi",320,[-15,-8,-18,-4],"rafi"]};
+const PJ={cafe:["咖啡師","cafe",200,[-19,-6,-6,-3],"cafe"],rest:["服務生","restaurant",210,[-22,-3,-8,-8],"restaurant"],gym:["健身教練","gym",230,[-32,-12,-4,-15],"gym"],shop:["店員","market",195,[-16,-6,-10,-2],"market"],rafi:["行政專員","rafi",320,[-25,-8,-18,-4],"rafi"]};
 const pjWage=(k,n)=>k=="rafi"?(n>=40?650:n>=15?450:320):Math.floor(PJ[k][2]*(n>=40?130:n>=15?115:100)/100);
 const pjName=(k,n)=>k=="rafi"?(n>=40?"業務經理":n>=15?"企劃":"行政專員"):PJ[k][0]+(n>=40?"（資深）":n>=15?"（熟手）":"");
 const FOUNTAIN=[16,10,2,3];
@@ -104,7 +104,7 @@ const NEEDS=["hunger","energy","bladder","hygiene","fun"];
 const NEED_INFO={hunger:["🍚","飽足"],energy:["⚡","精力"],bladder:["🚽","膀胱"],hygiene:["🛁","清潔"],fun:["🎉","心情"]};
 // 個性特質（items.tr）與心情（由需求算，規則要和 town.sql 的 town_mood／town_pay 一致）
 const FURN=[["bed","好床",5000,"睡覺精力每小時 +90"],["fridge","冰箱",8000,"在家吃飯 €30、飽足 +48"],["massage","按摩椅",9000,"快速休息精力 +100"],["shelf","書櫃",4000,"之後技能用，先佔位"],["sofa","沙發",6000,"看電視心情 +22"],["tvcab","電視櫃",5000,"看電視 10 分鐘一次"],["rug","地毯",1500,"裝飾"],["plant","盆栽",800,"裝飾"]];
-const HOUSES=[["小屋",0,4],["公寓",13000,6],["獨棟",100000,8],["豪宅",200000,9]];// 名稱、升級價、家具格數
+const HOUSES=[["小屋",0,4],["公寓",20000,6],["獨棟",150000,8],["豪宅",400000,9]];// 名稱、升級價、家具格數
 const hasF=(r,k)=>!!(r.items&&Array.isArray(r.items.fu)&&r.items.fu.includes(k));
 // 在屋裡：人在自己家，且沒有「站在門口」旗標 items.dr（舊角色沒有旗標＝在屋裡），和 SQL town_inside 一致
 function inside(r){return !!r&&r.place=="home:"+r.id&&!(r.items&&String(r.items.dr)=="1")}
@@ -378,7 +378,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
    if(!t.sleeping)list.push(btn("串門子","兩人心情 +15",()=>act("visit",{target:id})));list.push(btn("整蠱他","惡作劇、丟雞蛋",()=>prankModal(id)));
    if(!t.sleeping)list.push(...faceActs(id))}}
  else if(p=="restaurant"){title="餐廳";list.push(btn("吃一頓","飽足 +55 · 精力 +20 · 心情 +10 · €250",()=>act("dine")),pjBtn("rest",r));note="朋友也在的話，點他可以請吃大餐 · "+pjNote("rest",r)}
- else if(p=="office"){title="公司";list.push(btn("打工",`+€${myWage()} · 隨時可打 · 累`,()=>act("work")));note=`今天已打工 ${workToday(R[me])} 次，目前薪水 ${workPct(workToday(R[me]))}%（前 4 次全額、5～8 次 50%、9～16 次 25%、之後 10%，次數不限）。有同事在的話，點他可以一起加班，薪水加倍`}
+ else if(p=="office"){title="公司";list.push(btn("打工",(wkLeft(R[me])?`休息中，${fmtLeft(wkLeft(R[me]))}後可再打 · `:"")+`+€${myWage()} · 精力 −25 · 每 10 分鐘一次`,()=>act("work")));note=`今天已打工 ${workToday(R[me])} 次。每次薪水全額、不遞減，但每次打工之間要隔 10 分鐘（所有打工共用），而且很耗精力，累了要回家睡。有同事在的話，點他可以一起加班，薪水加倍`}
  else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")));if(p=="plaza"&&isOn("arcade"))list.push(btn("小豬街機 🕹️","賭場 7 種＋單機 2 種",()=>gamesModal()))}
  else if(p=="cafe"){title="咖啡廳";list.push(btn("喝咖啡 ☕","€90 · 精力 +50 · 膀胱 −10 · 30 分鐘一次",()=>act("coffee")),pjBtn("cafe",r));note=pjNote("cafe",r)}
  else if(p=="rafi"){title="拉菲的辦公室";list.push(pjBtn("rafi",r));note=pjNote("rafi",r)+" · 薪水比公司高但很傷心情"}
@@ -456,14 +456,15 @@ const jobLv=n=>JOBS.reduce((a,j,i)=>n>=j[1]?i:a,0);
 const career=r=>{const n=(r.items&&r.items.works)||0,lv=jobLv(n),nx=JOBS[lv+1];return{n,lv,name:JOBS[lv][0],wage:JOBS[lv][2],next:nx?nx[0]:null,left:nx?nx[1]-n:0}};
 const dayKey=()=>new Date(now()+8*36e5).toISOString().slice(0,10);
 const workToday=r=>{const d=r.items&&r.items.dc;return d&&d.d==dayKey()?(d.work||0):0};
-const workPct=n=>n<4?100:n<8?50:n<16?25:10;// 今天前 4 次全額、5～8 次 50%、之後 25%（打工與加班都算，台灣時間 0 點重置）
-const RENT=[350,600,1200,2500];const rentOf=r=>RENT[Math.min(3,Math.max(0,((r.items&&r.items.hl)||1)-1))];
+const workPct=n=>100;// 薪水不再遞減，改用 10 分鐘冷卻 wkLeft（所有打工共用）
+const wkLeft=r=>Math.max(0,Date.parse((r.items.cd||{}).wk||0)+6e5-now());
+const RENT=[400,800,1800,4000];const rentOf=r=>RENT[Math.min(3,Math.max(0,((r.items&&r.items.hl)||1)-1))];
 // 其他工作（和 town.sql 的 town_pjob_* 一致）：[名稱, 地點, 底薪, [精力,飽足,心情,清潔], SQL 的 act 營業鍵]；熟練 15 次 ×1.15、40 次 ×1.3；拉菲底薪 320／450／650，要先升到「員工」
 const pjN=(r,k)=>((r.items&&r.items.jw)||{})[k]||0;
 const pjPay=(k,r)=>Math.floor(payOf(pjWage(k,pjN(r,k)),r)*workPct(workToday(r))/100);
 const pjFx=k=>["精力","飽足","心情","清潔"].map((l,i)=>`${l} ${PJ[k][3][i]}`).join(" · ");
-const pjBtn=(k,r)=>{const n=pjN(r,k);if(k=="rafi"&&((r.items&&r.items.works)||0)<10)return btn("應徵（還不夠資格）","先在公司升到「員工」（累計打工 10 次）",()=>toast("先在公司打工 10 次升到員工，再來應徵"));return btn(`打工：${pjName(k,n)} 💼`,`+€${pjPay(k,r)} · ${pjFx(k)}`,()=>act("job",{item:k}))};
-const pjNote=(k,r)=>{const n=pjN(r,k),nx=n<15?15:n<40?40:0;return `${pjName(k,n)} · 這裡已做 ${n} 次${nx?`，再 ${nx-n} 次升「${pjName(k,nx)}」`:"，已是最高職位"} · 今天全部打工共 ${workToday(r)} 次，薪水 ${workPct(workToday(r))}%（和公司共用疲勞）`};
+const pjBtn=(k,r)=>{const n=pjN(r,k);if(k=="rafi"&&((r.items&&r.items.works)||0)<10)return btn("應徵（還不夠資格）","先在公司升到「員工」（累計打工 10 次）",()=>toast("先在公司打工 10 次升到員工，再來應徵"));return btn(`打工：${pjName(k,n)} 💼`,(wkLeft(r)?`休息中，${fmtLeft(wkLeft(r))}後可再打 · `:"")+`+€${pjPay(k,r)} · ${pjFx(k)}`,()=>act("job",{item:k}))};
+const pjNote=(k,r)=>{const n=pjN(r,k),nx=n<15?15:n<40?40:0;return `${pjName(k,n)} · 這裡已做 ${n} 次${nx?`，再 ${nx-n} 次升「${pjName(k,nx)}」`:"，已是最高職位"} · 今天全部打工共 ${workToday(r)} 次 · 薪水全額，每 10 分鐘一次（和公司共用冷卻）`};
 const myWage=()=>Math.floor(payOf(career(R[me]).wage,tickLocal(R[me],now()))*workPct(workToday(R[me]))/100);
 const WISHES={rich:["首富","持有金錢",[30000,100000,300000],["小富翁","大富翁","小豬首富"],r=>r.money],pop:["人氣王","好朋友以上的人數",[5,10,20],["交友廣闊","萬人迷","人氣王"],r=>(S.bonds||[]).filter(b=>(b.a==r.id||b.b==r.id)&&b.s>=10).length],
  fight:["格鬥冠軍","擂台最高連勝",[3,7,15],["擂台新秀","擂台猛將","格鬥冠軍"],r=>(r.items&&r.items.best)||0],food:["美食家","累計吃飯／大餐",[30,100,300],["老饕","美食家","食神"],r=>(r.items&&r.items.meals)||0],
@@ -481,7 +482,7 @@ function traitModal(){const sel=[];$("modal").classList.remove("hide");$("mbody"
 function lifeModal(){const r=R[me],c=career(r),w=(r.items&&r.items.wish)||{},k=WISHES[w.k],m=w.m||0,t=titlesOf(r);$("modal").classList.remove("hide");
  let wh;if(k){const v=k[4](r),ms=k[2],cur=ms[Math.min(m,2)];wh=`<div class="mrow"><span><b>${k[0]}</b> <small class="mut">${m>=3?"三個里程碑都達成了":w.k=="work"?`第 ${m+1} 關：升到「${JOBS[cur][0]}」（現在${c.name}）`:`第 ${m+1} 關：${k[1]} ${Math.min(v,cur)} / ${cur}`}</small></span></div><div class="list">${ms.map((x,i)=>`<div class="mrow"><span>${i<m?"✔":"・"} ${w.k=="work"?"升到「"+JOBS[x][0]+"」":k[1]+" "+x}　<small class="mut">稱號「${k[3][i]}」＋€${WISH_BONUS[i]}</small></span></div>`).join("")}</div>`;if(m>=3)wh+=`<div class="row" style="justify-content:flex-start"><button id="lwNew">換一個新願望</button></div>`}
  else wh=`<p class="mut">${w.k=="none"?"你選擇先不訂願望。":"還沒選願望。"}</p><div class="row" style="justify-content:flex-start"><button id="lwNew" class="pri">選一個願望</button></div>`;
- $("mbody").innerHTML=`<h2>我的人生</h2><div class="mrow"><span><b>${c.name}</b> <small class="mut">每次打工 €${payOf(c.wage,tickLocal(r,now()))} · 已打工 ${c.n} 次</small></span></div><p class="mut">今天已打工 ${workToday(r)} 次，目前薪水 ${workPct(workToday(r))}% · 每天房租水電 €${rentOf(r)}（每天第一次上線扣）</p>${Object.keys(PJ).some(k=>pjN(r,k))?`<p class="mut">其他工作：${Object.keys(PJ).filter(k=>pjN(r,k)).map(k=>pjName(k,pjN(r,k))+" "+pjN(r,k)+" 次").join("、")}</p>`:""}<p class="mut">${c.next?`再打工 ${c.left} 次升「${c.next}」`:"已經是最高職位了"}</p>
+ $("mbody").innerHTML=`<h2>我的人生</h2><div class="mrow"><span><b>${c.name}</b> <small class="mut">每次打工 €${payOf(c.wage,tickLocal(r,now()))} · 已打工 ${c.n} 次</small></span></div><p class="mut">今天已打工 ${workToday(r)} 次，薪水全額、每 10 分鐘可打一次 · 每天房租水電 €${rentOf(r)}（每天第一次上線扣）</p>${Object.keys(PJ).some(k=>pjN(r,k))?`<p class="mut">其他工作：${Object.keys(PJ).filter(k=>pjN(r,k)).map(k=>pjName(k,pjN(r,k))+" "+pjN(r,k)+" 次").join("、")}</p>`:""}<p class="mut">${c.next?`再打工 ${c.left} 次升「${c.next}」`:"已經是最高職位了"}</p>
  <h3>個性與心情</h3><p><span class="sw on">${MOOD[moodOf(tickLocal(r,now()))][0]} ${MOOD[moodOf(tickLocal(r,now()))][1]}</span> <small class="mut">${MOOD[moodOf(tickLocal(r,now()))][2]}</small></p>${(r.items&&r.items.tr&&r.items.tr.length)?r.items.tr.map(k=>`<div class="mrow"><span><b>${TRAITS[k][0]}</b> <small class="mut">${TRAITS[k][1]}</small></span></div>`).join(""):`<p class="mut">還沒有個性特質。</p><div class="row" style="justify-content:flex-start"><button id="ltNew" class="pri">選個性</button></div>`}
  <h3>人生願望</h3>${wh}<h3>稱號</h3><p>${t.length?t.map(x=>`<span class="sw on">${esc(x)}</span>`).join(" "):'<span class="mut">還沒有稱號</span>'}</p><div class="row"><button id="lclose">關閉</button></div>`;
  $("lclose").onclick=()=>$("modal").classList.add("hide");if($("lwNew"))$("lwNew").onclick=()=>wishModal();if($("ltNew"))$("ltNew").onclick=()=>traitModal()}
