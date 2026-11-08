@@ -313,14 +313,14 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  if(walkers[me]&&walkers[me].path.length){title="走路中…";note="到了就可以做事"}
  else if(r.sleeping){title=`在${placeName(p)}睡覺 💤`;list.push(btn("起床","",()=>act("wake")))}
  else if(p=="home:"+me&&!inside(r)){title="家門口";note="走進屋裡才能吃飯、洗澡、睡覺、擺家具";list.push(btn("進屋",`回到家裡 · ${HOUSES[((r.items||{}).hl||1)-1][0]}`,()=>act("enter")))}
- else if(p=="home:"+me){title="你家（屋裡）";list.push(btn("吃飯",`飽足 +${hasF(r,"fridge")?48:40} · 精力 +15 · €${hasF(r,"fridge")?30:60}`,()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),btn("洗澡","清潔回滿 · 精力 +10 · 10 分鐘一次",()=>act("shower")),btn("看電視",`心情 +${hasF(r,"sofa")?22:15} · ${hasF(r,"tvcab")?10:15} 分鐘一次`,()=>act("tv")),btn("快速休息",`精力 +${hasF(r,"massage")?100:70} · 15 分鐘一次`,()=>act("nap")),btn("睡覺",`精力每小時 +${hasF(r,"bed")?90:80} · 睡多久回多少`,()=>act("sleep")),btn("快速睡覺",`睡 15 分鐘自動醒 · 精力約 +${hasF(r,"bed")?56:50} · 30 分鐘一次`,()=>act("qsleep")),btn("室內","擺家具、升級房子",()=>interiorModal(me)),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal()),btn("出門","回到家門口",()=>act("exit")))}
+ else if(p=="home:"+me){title="你家（屋裡）";list.push(btn("吃飯",`飽足 +${hasF(r,"fridge")?48:40} · 精力 +15 · €${hasF(r,"fridge")?30:60}`,()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),btn("洗澡","清潔回滿 · 精力 +10 · 10 分鐘一次",()=>act("shower")),btn("看電視",`心情 +${hasF(r,"sofa")?22:15} · ${hasF(r,"tvcab")?10:15} 分鐘一次`,()=>act("tv")),btn("休息／睡覺","小睡、快速休息、睡到飽，三選一",()=>restModal()),btn("室內","擺家具、升級房子",()=>interiorModal(me)),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal()),btn("出門","回到家門口",()=>act("exit")))}
  else if(p&&p.startsWith("home:")&&R[p.slice(5)]){const id=+p.slice(5),t=tickLocal(R[id],now());title=`${t.name} 家`;const peek=btn("看室內",`${HOUSES[((R[id].items||{}).hl||1)-1][0]} · 看他怎麼布置`,()=>interiorModal(id));
   const gifts=(r.items||{}).gift||0,giftB=gifts?btn("送禮物",`他心情 +20 · 背包 🎁${gifts}`,()=>act("gift",{target:id})):btn("送禮物","先去超市買",()=>toast("背包沒有禮物，去超市買一份"));
-  if(!inside(t)){note=`${t.name} ${t.place==p?"在家門口，還沒進屋":"不在家，在"+placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,peek,btn("丟雞蛋 🥚","好感 −1",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
+  if(!inside(t)){note=`${t.name} ${t.place==p?"在家門口，還沒進屋":"不在家，在"+placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,peek,btn("整蠱他","丟雞蛋",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
   else{note=`${t.name}${t.sleeping?" 在睡覺":""}：飽足 ${Math.round(t.hunger)}、清潔 ${Math.round(t.hygiene)}、心情 ${Math.round(t.fun)} · ${bondLabel(bondWith(id))}`;list.push(giftB);
    list.push(peek,btn("煮飯給他","他飽足 +35 · €60",()=>act("feed",{target:id})),btn("幫他洗澡","他清潔 +45",()=>act("wash",{target:id})));
    if(t.sleeping)list.push(btn("叫醒他","",()=>act("wakeup",{target:id})));
-   if(!t.sleeping)list.push(btn("串門子","兩人心情 +15",()=>act("visit",{target:id})));list.push(btn("惡作劇","放個臭屁 💨 · 好感 −2",()=>act("prank",{target:id})),btn("丟雞蛋 🥚","好感 −1",()=>act("egg",{target:id})));
+   if(!t.sleeping)list.push(btn("串門子","兩人心情 +15",()=>act("visit",{target:id})));list.push(btn("整蠱他","惡作劇、丟雞蛋",()=>prankModal(id)));
    if(!t.sleeping)list.push(...faceActs(id))}}
  else if(p=="restaurant"){title="餐廳";list.push(btn("吃一頓","飽足 +55 · 精力 +20 · 心情 +10 · €250",()=>act("dine")),pjBtn("rest",r));note="朋友也在的話，點他可以請吃大餐 · "+pjNote("rest",r)}
  else if(p=="office"){title="公司";list.push(btn("打工",`+€${myWage()} · 隨時可打 · 累`,()=>act("work")));note=`今天已打工 ${workToday(R[me])} 次，目前薪水 ${workPct(workToday(R[me]))}%（前 4 次全額、5～8 次 50%、9～16 次 25%、之後 10%，次數不限）。有同事在的話，點他可以一起加班，薪水加倍`}
@@ -613,6 +613,10 @@ function bagModal(tab){tab=tab||"food";const r=R[me],it=r.items||{},look=normLoo
  bind("[data-w]",b=>wearOn(b.dataset.w));
  $("mbody").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{if(inside(R[me]))interiorModal(me);else toast("要先進屋才能擺家具")})}
 // 在家裝潢：換屋頂、牆壁顏色（€300）
+function choiceModal(h,sub,rows){$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>${h}</h2><p class="mut">${sub}</p>${rows.map((x,i)=>`<button class="act" data-c="${i}"><b>${x[0]}</b><small>${x[1]}</small></button>`).join("")}<div class="row"><button id="mc">關閉</button></div>`;pxify($("mbody"));
+ $("mc").onclick=()=>$("modal").classList.add("hide");$("mbody").querySelectorAll("[data-c]").forEach(b=>b.onclick=async()=>{b.classList.add("working");$("modal").classList.add("hide");await rows[+b.dataset.c][2]()})}
+function restModal(){const r=R[me];choiceModal("休息／睡覺","精力不夠就選一個",[["快速休息",`精力 +${hasF(r,"massage")?100:70} · 15 分鐘一次`,()=>act("nap")],["快速睡覺",`睡 15 分鐘自動醒 · 精力約 +${hasF(r,"bed")?56:50} · 30 分鐘一次`,()=>act("qsleep")],["睡覺",`精力每小時 +${hasF(r,"bed")?90:80} · 睡多久回多少`,()=>act("sleep")]])}
+function prankModal(id){choiceModal("整蠱他","對方有冷卻，好感會下降",[["惡作劇 💨","放個臭屁 · 好感 −2",()=>act("prank",{target:id})],["丟雞蛋 🥚","好感 −1",()=>act("egg",{target:id})]])}
 function paintModal(){const it=R[me].items||{};$("modal").classList.remove("hide");
  const pal=(k,arr,cur)=>`<div class="houses">${arr.map(c=>`<button class="sw dot${cur==c?" on":""}" data-p="${k}:${c}" style="background:${c}" aria-label="${k}"></button>`).join("")}</div>`;
  $("mbody").innerHTML=`<h2>🎨 裝潢</h2><p class="mut">換一次 €300，你有 €${R[me].money}。</p><h3>屋頂</h3>${pal("roof",ROOF_C,it.roof||ROOFS[R[me].slot])}<h3>牆壁</h3>${pal("wall",WALL_C,it.wall||"#f4ead6")}
