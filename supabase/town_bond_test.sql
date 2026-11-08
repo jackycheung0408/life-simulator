@@ -1,6 +1,6 @@
 -- 好感平衡實測：接在 town.sql 之後執行，結果在錯誤訊息 REPORT，整段 rollback
 do $$
-declare cr json; ra bigint; rb bigint; rep text := ''; i int; s int; r1 public.town_residents; jn json; tid text;
+declare cr json; ra bigint; rb bigint; rep text := ''; i int; s int; n1 int := 0; n2 int := 0; r1 public.town_residents; jn json; tid text;
 begin
   cr := public.town_create('ZZBOND','甲','1234'); ra := (cr->>'resident_id')::bigint; tid := cr->>'town_id';
   jn := public.town_join(tid, (select invite from public.town_towns where id = tid), '乙','1234'); rb := (jn->>'resident_id')::bigint;
@@ -30,14 +30,15 @@ begin
   begin perform public.town_act(ra,'1234','makeup',target:=rb); rep := rep||'makeup 2nd NOT BLOCKED'||E'\n'; exception when others then rep := rep||'makeup 2nd: '||sqlerrm||E'\n'; end;
   -- 6 營業時間：全天營業
   rep := rep || 'closed(dine)=' || coalesce(public.town_closed('dine'),'null') || E'\n';
-  -- 7 隨機相遇：同地點醒著的兩人，反覆做事 300 次，應有觸發、冷卻 1 小時內同一對只會一次
-  update public.town_residents set place='cafe',sleeping=false where id in (ra,rb);
-  for i in 1..300 loop
-    update public.town_bonds set dday='2000-01-01', dpos=0, dneg=0 where a=least(ra,rb) and b=greatest(ra,rb);
-    delete from public.town_events where kind='encounter' and actor in (ra,rb) and i % 2 = 0;
-    perform public.town_encounter(tid,ra,'甲','cafe');
+  -- 7 隨機相遇：觸發率約 20%（500 次）；第一次觸發後，同一對 1 小時內再呼叫 300 次應全部被冷卻擋下
+  update public.town_residents set place='cafe',sleeping=false,fun=50 where id in (ra,rb);
+  for i in 1..500 loop
+    delete from public.town_events where kind='encounter';
+    if public.town_encounter(tid,ra,'甲','cafe') <> 0 then n1 := n1 + 1; end if;
   end loop;
-  rep := rep || 'encounter events: ' || (select count(*) from public.town_events where kind='encounter') || ' (約 300×0.2/2=30，上限由冷卻決定)' || E'\n';
-  rep := rep || 'bond after encounters: ' || public.town_bond_get(ra,rb) || E'\n';
+  delete from public.town_events where kind='encounter';
+  i := 0; while i < 200 and public.town_encounter(tid,ra,'甲','cafe') = 0 loop i := i + 1; end loop;
+  for i in 1..300 loop if public.town_encounter(tid,ra,'甲','cafe') <> 0 then n2 := n2 + 1; end if; end loop;
+  rep := rep || 'encounter rate ' || n1 || '/500 (約 100)；第一次觸發後冷卻內再觸發 ' || n2 || ' 次 (expect 0)' || E'\n';
   raise exception 'REPORT %', E'\n'||rep;
 end $$;
