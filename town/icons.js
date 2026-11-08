@@ -375,6 +375,37 @@ kkkkkkkkkkk.
 .kk.....kk..
 kddk...kddk.
 .kk.....kk..`,
+bike:`
+.......kk...
+.......kBk..
+..kkkkkkk...
+..k.rkr.k...
+.kkk.r.kkk..
+kSddk.kSddk.
+kdSdk.kdSdk.
+kSddk.kSddk.
+.kkk...kkk..`,
+moto:`
+.......kkk..
+......kBBk..
+..kkkkkkk...
+.krrrrrrYk..
+kkrrkkrrkk..
+kSddkkkSddk.
+kdSdk.kdSdk.
+kSddk.kSddk.
+.kkk...kkk..`,
+car:`
+............
+...kkkkkk...
+..kbbkbbbk..
+.kkbbkbbbkk.
+krrrrrrrrrrk
+kYrrrrrrrrYk
+krrrrrrrrrrk
+.kkkkkkkkkk.
+.kddk..kddk.
+..kk....kk..`,
 burst:`
 .k...k...k..
 ..kokYkok...
@@ -998,7 +1029,7 @@ function draw(name){if(cache[name])return cache[name];const c=document.createEle
  return cache[name]=c.toDataURL()}
 // emoji → 圖示名稱
 const MAP={"📈":"chart","🛏️":"bed","🛋️":"sofa","🧊":"fridge","🪴":"plant","📚":"shelf","💺":"massage","🟥":"rug","💡":"lamp","🌳":"tree","🌷":"flowers","🪑":"bench","🍚":"bowl","⚡":"bolt","🚽":"toilet","🛁":"bath","🎉":"face:happy","💰":"money","💗":"heart","💞":"heart","🎁":"gift","📦":"box","📱":"mobile","📲":"mobile","📞":"call","💌":"mail","✉️":"mail","💼":"case","✨":"star","⭐":"star",
- "🤝":"hands","🙌":"hands","👋":"hands","👆":"hands","🤲":"hands","💪":"fist","🏛️":"hall","🥚":"egg","🥤":"can","💨":"fart","🍖":"meat","🍽️":"plate","🍳":"plate","🍪":"cookie","🍠":"potato","🛵":"scooter","💥":"burst","💢":"burst","👊":"fist","🪙":"coin",
+ "🤝":"hands","🙌":"hands","👋":"hands","👆":"hands","🤲":"hands","💪":"fist","🏛️":"hall","🥚":"egg","🥤":"can","💨":"fart","🍖":"meat","🍽️":"plate","🍳":"plate","🍪":"cookie","🍠":"potato","🛵":"scooter","🚲":"bike","🏍️":"moto","🚗":"car","💥":"burst","💢":"burst","👊":"fist","🪙":"coin",
  "🐱":"cat","🐕":"dog","🐦":"bird","🐟":"fish","🐷":"face:happy","🔒":"lock","😴":"face:sleepy","💤":"zzz","🌙":"moon","🎈":"balloon","⏰":"alarm","🎨":"palette","🗺️":"map","🔔":"bell","🔕":"belloff","🏡":"house","🏠":"house","🏘️":"house","📺":"tv","☀️":"sun",
  "👥":"people","👗":"shirt","📰":"news","🏆":"trophy","🥇":"medal:1","🥈":"medal:2","🥉":"medal:3","🚪":"door","📍":"pin","🖼️":"picture","🔍":"search","🗑️":"trash","🎠":"swing","🚶":"walk","🎵":"note","🎸":"guitar","🌧️":"rain","💦":"drops","💩":"poop","🍀":"clover","🕹️":"joy","☕":"cup","🎬":"film","🏋️":"dumbbell","🃏":"card","🎲":"dice","🎰":"slot","🔢":"bingo","🔨":"mole","🧠":"card","♠":"card","♠️":"card","🎡":"wheel","✂️":"scissors","🪨":"rock","📄":"paper","✊":"rock","✋":"paper","✌️":"scissors","🏆":"trophy",
  "👀":"eyes","🧽":"sponge","⚔️":"swords","🛣️":"road","🛍️":"bag","😤":"face:angry","😒":"face:meh","😊":"face:happy","🙂":"face:smile","😵":"face:dizzy","😣":"face:sad","😪":"face:sleepy","🥺":"face:sad","😂":"face:laugh","🤕":"face:hurt"};

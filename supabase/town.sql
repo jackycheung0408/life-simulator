@@ -94,7 +94,7 @@ create or replace function public.town_place_name(p text) returns text language 
   select case
     when p like 'home:%' then coalesce((select name from public.town_residents where id = substr(p,6)::bigint), '空屋') || ' 家'
     when p = 'plaza' then '廣場' when p = 'restaurant' then '餐廳' when p = 'market' then '超市'
-    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' when p = 'rafi' then '拉菲的辦公室' when p = 'stock' then '證券交易所' else '路上' end
+    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' when p = 'rafi' then '拉菲的辦公室' when p = 'stock' then '證券交易所' when p = 'carshop' then '車行' else '路上' end
 $$;
 create or replace function public.town_name_ok(t text) returns boolean language sql immutable as $$
   select char_length(trim(t)) between 1 and 12 and trim(t) !~ '[<>"]' and not public.has_bad_words(t)
@@ -119,7 +119,7 @@ alter table public.town_towns add column if not exists off text[] not null defau
 alter table public.town_towns add column if not exists currency text not null default 'NT$';
 create or replace function public.town_feature(what text) returns text language sql immutable as $$
   select case when what in ('cafe','coffee') then 'cafe' when what in ('cinema','movie') then 'cinema' when what in ('gym','workout') then 'gym'
-    when what in ('arena','spar') then 'arena' when what in ('slaughter','sneak') then 'slaughter' when what = 'rafi' then 'rafi' when what in ('stock','trade') then 'stock' else null end
+    when what in ('arena','spar') then 'arena' when what in ('slaughter','sneak') then 'slaughter' when what = 'rafi' then 'rafi' when what in ('stock','trade') then 'stock' when what in ('carshop','vbuy') then 'carshop' else null end
 $$;
 create or replace function public.town_is_off(tid text, f text) returns boolean language sql stable as $$
   select coalesce((select f = any(off) from public.town_towns where id = tid), false)
@@ -132,7 +132,7 @@ begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if not r.mayor then raise exception '只有鎮長可以做這件事'; end if;
-  if exists (select 1 from unnest(coalesce(off,'{}')) f where f not in ('cafe','cinema','gym','arena','slaughter','arcade','rafi','stock')) then raise exception '沒有這個設施'; end if;
+  if exists (select 1 from unnest(coalesce(off,'{}')) f where f not in ('cafe','cinema','gym','arena','slaughter','arcade','rafi','stock','carshop')) then raise exception '沒有這個設施'; end if;
   update public.town_towns set off = coalesce(town_features.off,'{}') where id = r.town_id;
   -- 關掉的地方有人在，請他們回到路上
   update public.town_residents set place = 'street' where town_id = r.town_id and place = any(coalesce(town_features.off,'{}'));
@@ -724,7 +724,7 @@ revoke all on function public.town_dc_get(public.town_residents,text), public.to
 create or replace function public.town_act(rid bigint, pin text, act text, target bigint default null, px real default null, py real default null, dest text default null, item text default null, note text default null) returns json
 language plpgsql security definer set search_path = public as $$
 declare r public.town_residents; t public.town_residents; others text; tn text; n int; w int; near boolean; pa real; pb real; bond int; m real; pub text[] := array['plaza','restaurant','market','park','office'];
-  fm real := 1; gm int := 1; mo text; lk boolean; jl int; jf jsonb; fx int[];
+  fm real := 1; gm int := 1; mo text; lk boolean; jl int; jf jsonb; fx int[]; vk text; vf int; vneed int;
 begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
@@ -736,7 +736,7 @@ begin
   if public.town_closed(case when act = 'obj' then item when act = 'job' then public.town_pjob_key(item) else act end) is not null then raise exception '%', public.town_closed(case when act = 'obj' then item when act = 'job' then public.town_pjob_key(item) else act end); end if;
   if public.town_is_off(r.town_id, public.town_feature(case when act = 'move' then dest when act = 'job' then public.town_pjob_key(item) else act end)) then raise exception '這個小鎮沒有開這個設施'; end if;
   if act = 'move' then
-    if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter','rafi','stock')
+    if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter','rafi','stock','carshop')
        or (dest ~ '^home:\d+$' and exists (select 1 from public.town_residents where id = substr(dest,6)::bigint and town_id = r.town_id))) then raise exception '去不了那裡'; end if;
     if px is null or py is null or px < 0 or px > 52 or py < 0 or py > 40 then raise exception '位置不對'; end if;
     -- 走過別人留下的便便會踩到（路線離便便不到 0.6 格）
@@ -744,6 +744,14 @@ begin
     if n is not null then
       delete from public.town_poops where id = n; r.hygiene := r.hygiene - 20; r.fun := r.fun - 5;
       insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'step', r.name || ' 一腳踩到了便便');
+    end if;
+    -- 交通工具（items.veh = {own:[...], k:現在騎的}）：機車每格 0.4、汽車每格 1 的油錢，錢不夠就付到 0 並下車；走回自己家會把車停好（下車）
+    vk := r.items#>>'{veh,k}';
+    if vk is not null then
+      vneed := ceil((abs(px - r.x) + abs(py - r.y)) * case vk when 'moto' then .4 when 'car' then 1 else 0 end)::int;
+      vf := least(vneed, r.money);
+      r.money := r.money - vf;
+      if vf < vneed or dest = 'home:' || rid then r.items := jsonb_set(r.items, '{veh}', (r.items->'veh') - 'k'); end if;
     end if;
     r.x := px; r.y := py; r.place := dest;
     r.items := case when dest = 'home:' || rid then jsonb_set(r.items, '{dr}', '1'::jsonb) else r.items - 'dr' end;  -- 走到自己家門口：站在門外，要按「進屋」
@@ -761,7 +769,7 @@ begin
       else r.money := r.money + 2000; tn := r.name || ' 買刮刮樂中了 €2000！🎉'; end if;
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', tn); tn := null;
     end if;
-    if dest in ('plaza','restaurant','market','park','cafe','cinema','gym','arena','slaughter','rafi','stock') then
+    if dest in ('plaza','restaurant','market','park','cafe','cinema','gym','arena','slaughter','rafi','stock','carshop') then
       select string_agg(name, '、') into others from public.town_residents where town_id = r.town_id and place = dest and id <> rid and not sleeping;
       if others is not null and not exists (select 1 from public.town_events e where e.actor = rid and e.kind = 'meet' and e.at > now() - interval '2 hours') then
         insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'meet', r.name || ' 在' || public.town_place_name(dest) || '遇到了 ' || others);
@@ -770,6 +778,7 @@ begin
     end if;
   elsif act = 'enter' then
     if r.place <> 'home:' || rid then raise exception '要先走到自己家門口'; end if;
+    if r.items#>>'{veh,k}' is not null then r.items := jsonb_set(r.items, '{veh}', (r.items->'veh') - 'k'); end if;
     r.items := r.items - 'dr';
   elsif act = 'exit' then
     if not public.town_inside(r) then raise exception '你不在屋裡'; end if;
@@ -942,6 +951,22 @@ begin
       jf := jsonb_set(jf, array[split_part(item,':',2)], to_jsonb(split_part(item,':',3)));
     else raise exception '家具指令不對'; end if;
     r.items := jsonb_set(r.items, '{fu}', jf);
+  elsif act = 'vbuy' then
+    if r.place <> 'carshop' then raise exception '要在車行才能買'; end if;
+    n := case item when 'bike' then 3000 when 'moto' then 30000 when 'car' then 120000 else null end;
+    if n is null then raise exception '車行沒有賣這個'; end if;
+    if coalesce(r.items->'veh'->'own','[]'::jsonb) ? item then raise exception '你已經有了'; end if;
+    if r.money < n then raise exception '錢不夠，去公司打工吧'; end if;
+    r.money := r.money - n; r.fun := r.fun + 10;
+    r.items := jsonb_set(r.items, '{veh}', coalesce(r.items->'veh','{}'::jsonb) || jsonb_build_object('own', coalesce(r.items->'veh'->'own','[]'::jsonb) || to_jsonb(item)));
+    insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'buy', r.name || ' 在車行買了' || case item when 'bike' then '腳踏車' when 'moto' then '機車' else '汽車' end);
+  elsif act = 'mount' then
+    if public.town_inside(r) then raise exception '要先出門才能上車'; end if;
+    if not (coalesce(r.items->'veh'->'own','[]'::jsonb) ? coalesce(item,'')) then raise exception '你沒有這台車'; end if;
+    r.items := jsonb_set(r.items, '{veh,k}', to_jsonb(item));
+  elsif act = 'dismount' then
+    if r.items#>>'{veh,k}' is null then raise exception '你沒有騎車'; end if;
+    r.items := jsonb_set(r.items, '{veh}', (r.items->'veh') - 'k');
   elsif act = 'upgrade' then
     -- 房子升級：1 小屋、2 公寓 €10000、3 獨棟 €100000、4 豪宅 €200000
     if not public.town_inside(r) then raise exception '要先進屋'; end if;

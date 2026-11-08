@@ -60,5 +60,12 @@ check(M.pjWage("cafe",0)==200&&M.pjWage("cafe",15)==230&&M.pjWage("cafe",40)==26
 check(M.pjName("rafi",15)=="企劃"&&M.pjName("cafe",40)=="咖啡師（資深）","其他工作職稱不對");
 check(M.PLACES.rafi&&M.PLACES.rafi.door[0]==46&&M.PLACES.rafi.door[1]==21,"拉菲辦公室門口不對");
 check(M.PLACES.stock&&M.PLACES.stock.door[0]==42&&M.PLACES.stock.door[1]==5&&!M.blocked(42,5),"證券交易所門口不對");
+// 交通：車行門口、價格與速度（和 town.sql 的 vbuy／move 一致）、斑馬線與人行道
+check(M.PLACES.carshop&&M.PLACES.carshop.door[0]==43&&M.PLACES.carshop.door[1]==14&&!M.blocked(43,14),"車行門口不對");
+check(M.VEH.bike[1]==3000&&M.VEH.moto[1]==30000&&M.VEH.car[1]==120000&&M.VEH.bike[2]==1.5&&M.VEH.moto[2]==2.5&&M.VEH.car[2]==3&&M.VEH.bike[3]==0&&M.VEH.moto[3]==.4&&M.VEH.car[3]==1,"交通工具價格／速度／油錢表不對");
+check(M.vehOf({id:1,place:"street",items:{veh:{own:["car"],k:"car"}}})=="car"&&M.vehOf({id:1,place:"home:1",items:{veh:{own:["car"],k:"car"}}})==null&&M.vehOf({id:1,place:"street",items:{}})==null,"vehOf 判斷");
+M.setRows(2);{const w=M.bfs([4,5],[5,14]);check(w&&w.filter(([x,y])=>M.isRoad(x,y)&&!M.isCross(x,y)).length==0,"行人過馬路應該走斑馬線："+JSON.stringify(w));
+ const v=M.bfs([4,5],[5,14],true);check(v&&v.length<=w.length,"騎車路徑不該比走路長")}
+check(M.isSide(4,5)&&!M.isSide(4,6)&&M.isCross(4,6)&&!M.isCross(5,6),"人行道或斑馬線位置不對");
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
