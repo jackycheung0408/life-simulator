@@ -51,9 +51,9 @@ begin
   end loop;
   rep := rep||'有強制險＋任意險撞一次：money='||r.money||' 欠款='||coalesce((r.items->'db'->>'a'),'0')||' wear='||public.town_wear(r,'moto')||'（醫藥費全免、車自動修好只付 20%）'||E'\n';
   -- 還款
-  update public.town_residents set money=300, items = items || '{"db":{"a":1000}}'::jsonb where id = rid;
+  update public.town_residents set money=1500, items = items || '{"db":{"a":3000}}'::jsonb where id = rid;
   perform public.town_act(rid,'1234','paydebt',null,null,null,null,'all');
-  select * into r from public.town_residents where id = rid; rep := rep||'paydebt all with 300: money='||r.money||' debt='||coalesce(r.items->'db'->>'a','-')||' (預期 0、700)'||E'\n';
+  select * into r from public.town_residents where id = rid; rep := rep||'paydebt all with 1500 (扣完房租水電後的錢先全還): money='||r.money||' debt='||coalesce(r.items->'db'->>'a','-')||' (預期 money 0、欠款 = 3000 − 1500 + 房租)'||E'\n';
   -- 上車限制：欠款 ≥ 5000 不能開機車，但腳踏車可以
   update public.town_residents set place='street', money=100, items='{"veh":{"own":["bike","moto"]},"lic":{"moto":1},"db":{"a":6000}}'::jsonb where id = rid;
   begin perform public.town_act(rid,'1234','mount',null,null,null,null,'moto'); rep := rep||'mount moto with debt ALLOWED'||E'\n'; exception when others then rep := rep||'mount moto with debt: '||sqlerrm||E'\n'; end;
