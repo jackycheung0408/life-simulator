@@ -1182,11 +1182,12 @@ grant execute on function public.town_state(text), public.town_create(text,text,
 
 -- ── 小遊戲：廣場的街機（和莊家玩，結果由伺服器決定），以及朋友之間的猜拳戰帖 ──
 -- 押注 €50～€1000，一天最多 40 局；整體期望值略低於 1，不會變成印鈔機
-create or replace function public.town_card() returns int language sql volatile as $$ select 1 + floor(random()*13)::int $$;
+create or replace function public.town_card() returns int language sql volatile as $$ select (1 + floor(random()*4)::int) * 100 + 1 + floor(random()*13)::int $$;
+-- 牌的編碼：花色*100 + 點數（花色 1=黑桃 2=紅心 3=方塊 4=梅花）；舊格式只有點數 1～13（沒有花色），一律用 % 100 取點數
 create or replace function public.town_bj_total(cs jsonb) returns int language plpgsql immutable as $$
 declare t int := 0; aces int := 0; c int;
 begin
-  for c in select (x)::int from jsonb_array_elements_text(cs) x loop
+  for c in select (x)::int % 100 from jsonb_array_elements_text(cs) x loop
     if c = 1 then aces := aces + 1; t := t + 11; else t := t + least(c, 10); end if;
   end loop;
   while t > 21 and aces > 0 loop t := t - 10; aces := aces - 1; end loop;
@@ -1195,7 +1196,7 @@ end $$;
 
 create or replace function public.town_game(rid bigint, pin text, game text, bet int default 0, choice text default null) returns json
 language plpgsql security definer set search_path = public as $$
-declare r public.town_residents; day text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); n int; res json; win int := 0; house text; c int; c2 int; mult real; st jsonb; p int; d int; dc jsonb;
+declare r public.town_residents; day text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); n int; res json; win int := 0; house text; c int; c2 int; mult real; st jsonb; p int; d int; dc jsonb; d1 int; d2 int; d3 int; k int; pk int[]; dr int[]; sy int[]; ch text; m int;
 begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
@@ -1203,7 +1204,7 @@ begin
   if public.town_is_off(r.town_id, 'arcade') then raise exception '這個小鎮沒有開街機'; end if;
   if r.place <> 'plaza' then raise exception '街機在小豬廣場，走過去再玩'; end if;
   -- 開新一局才要檢查押注與次數；21 點和比大小的後續動作不用
-  if game in ('rps','hl_start','wheel','bj_start') then
+  if game in ('rps','hl_start','wheel','bj_start','dice','slots','bingo') then
     if bet is null or bet < 50 or bet > 1000 then raise exception '押注要在 €50～€1000 之間'; end if;
     if r.money < bet then raise exception '錢不夠'; end if;
     n := case when r.items->'games'->>'day' = day then coalesce((r.items->'games'->>'n')::int,0) else 0 end;
@@ -1222,9 +1223,11 @@ begin
   elsif game = 'hl_guess' then
     if r.items->'hl' is null then raise exception '先開一局'; end if;
     c := (r.items->'hl'->>'card')::int; bet := (r.items->'hl'->>'bet')::int; c2 := public.town_card();
+    d1 := c % 100; d2 := c2 % 100; -- 比的是點數，花色只是好看
     -- 賠率看機率：猜中的牌越少賠越多（期望值 0.92）
-    p := case when choice = 'hi' then 13 - c else c - 1 end;
-    if p > 0 and ((choice = 'hi' and c2 > c) or (choice = 'lo' and c2 < c)) then win := floor(bet * .92 * 13 / p); end if;
+    if choice not in ('hi','lo') then raise exception '猜更大或更小'; end if;
+    p := case when choice = 'hi' then 13 - d1 else d1 - 1 end;
+    if p > 0 and ((choice = 'hi' and d2 > d1) or (choice = 'lo' and d2 < d1)) then win := floor(bet * .92 * 13 / p); end if;
     r.items := r.items - 'hl';
     res := json_build_object('card',c,'next',c2,'win',win);
   elsif game = 'wheel' then
@@ -1251,12 +1254,54 @@ begin
       win := case when d > 21 or p > d then bet*2 when p = d then bet else 0 end;
       r.items := r.items - 'bj'; res := json_build_object('p',st->'p','d',dc,'done',true,'win',win);
     end if;
+  elsif game = 'dice' then
+    -- 三顆骰：大（11～17）／小（4～10）三顆一樣莊家通吃，賠 1 倍（期望 0.972）；押單一點數：出現幾顆賠幾倍（期望 0.921）
+    if choice not in ('big','small','1','2','3','4','5','6') then raise exception '押大、小或一個點數'; end if;
+    d1 := 1 + floor(random()*6)::int; d2 := 1 + floor(random()*6)::int; d3 := 1 + floor(random()*6)::int; p := d1 + d2 + d3;
+    if choice = 'big' then if p >= 11 and not (d1 = d2 and d2 = d3) then win := bet*2; end if;
+    elsif choice = 'small' then if p <= 10 and not (d1 = d2 and d2 = d3) then win := bet*2; end if;
+    else k := (d1 = choice::int)::int + (d2 = choice::int)::int + (d3 = choice::int)::int; if k > 0 then win := bet * (k + 1); end if; end if;
+    res := json_build_object('dice',json_build_array(d1,d2,d3),'win',win);
+  elsif game = 'slots' then
+    -- 三輪各 6 種圖案（0=7 1=鈴 2=星 3=櫻桃 4=檸檬 5=西瓜）：三個一樣 ×40／20／12／10／8／8，剛好兩個一樣 ×1.1（期望 0.912）
+    sy := array[floor(random()*6)::int, floor(random()*6)::int, floor(random()*6)::int];
+    if sy[1] = sy[2] and sy[2] = sy[3] then win := floor(bet * (array[40,20,12,10,8,8])[sy[1]+1]);
+    elsif sy[1] = sy[2] or sy[2] = sy[3] or sy[1] = sy[3] then win := floor(bet * 1.1); end if;
+    res := json_build_object('reels',to_json(sy),'win',win);
+  elsif game = 'bingo' then
+    -- 賓果：1～10 自己選 3 個，開 5 個號碼；中 2 個 ×1.4、中 3 個 ×4（期望 0.917）
+    begin pk := string_to_array(choice, ',')::int[]; exception when others then raise exception '選 3 個號碼'; end;
+    if coalesce(array_length(pk,1),0) <> 3 or (select count(distinct x) from unnest(pk) x) <> 3 or exists (select 1 from unnest(pk) x where x < 1 or x > 10) then raise exception '選 3 個不同的號碼（1～10）'; end if;
+    select array_agg(x) into dr from (select x from generate_series(1,10) x order by random() limit 5) q;
+    select count(*) into k from unnest(pk) x where x = any(dr);
+    win := case k when 3 then bet*4 when 2 then floor(bet*1.4) else 0 end;
+    res := json_build_object('pick',to_json(pk),'draw',to_json(dr),'hit',k,'win',win);
   else raise exception '沒有這個遊戲'; end if;
   r.money := r.money + win; r.fun := least(100, r.fun + 3);
   -- 只有淨賺 ≥100 才公告（淨賺 = 拿回的錢 − 押注），平手不公告
   if win - bet >= 1000 then insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', r.name || ' 在街機淨賺了 €' || (win - bet) || ' 🕹️'); end if;
   update public.town_residents set money = r.money, fun = r.fun, items = r.items, seen_at = now() where id = rid;
   return json_build_object('game', res, 'money', r.money);
+end $$;
+
+-- 單機遊戲（打地鼠 whack、記憶翻牌 memory）：前端自己玩，伺服器只收個人最佳分數並檢查上限；不給錢，每 5 分鐘最多一次心情 +2
+create or replace function public.town_score(rid bigint, pin text, game text, score int) returns json
+language plpgsql security definer set search_path = public as $$
+declare r public.town_residents; cap int; best int; gain int := 0; cd timestamptz;
+begin
+  r := public.town_auth(rid, pin);
+  if r.id is null then return json_build_object('error','密碼不對'); end if;
+  if public.town_is_off(r.town_id, 'arcade') then raise exception '這個小鎮沒有開街機'; end if;
+  if r.place <> 'plaza' then raise exception '街機在小豬廣場，走過去再玩'; end if;
+  cap := case game when 'whack' then 40 when 'memory' then 100 else null end;
+  if cap is null then raise exception '沒有這個遊戲'; end if;
+  if score is null or score < 0 or score > cap then raise exception '分數不合理'; end if;
+  best := coalesce((r.items->'sp'->>game)::int, 0);
+  if score > best then best := score; r.items := jsonb_set(r.items, '{sp}', coalesce(r.items->'sp','{}'::jsonb) || jsonb_build_object(game, best)); end if;
+  cd := (r.items->'cd'->>'sp')::timestamptz;
+  if cd is null or cd < now() - interval '5 minutes' then gain := 2; r.fun := least(100, r.fun + 2); r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('sp', now())); end if;
+  update public.town_residents set fun = r.fun, items = r.items, seen_at = now() where id = rid;
+  return json_build_object('best', best, 'gain', gain);
 end $$;
 
 -- 猜拳戰帖：發起的人先押錢並出拳，對方應戰時出拳立刻比；24 小時沒回就退錢
@@ -1320,5 +1365,7 @@ begin
 end $$;
 
 revoke all on function public.town_card(), public.town_bj_total(jsonb) from public, anon, authenticated;
+revoke all on function public.town_score(bigint,text,text,int) from public;
+grant execute on function public.town_score(bigint,text,text,int) to anon, authenticated;
 revoke all on function public.town_game(bigint,text,text,int,text), public.town_duel(bigint,text,text,bigint,int,text,bigint) from public;
 grant execute on function public.town_game(bigint,text,text,int,text), public.town_duel(bigint,text,text,bigint,int,text,bigint) to anon, authenticated;
