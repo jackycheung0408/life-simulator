@@ -783,7 +783,7 @@ begin
     xx := cx;
     while xx <> tx loop
       xx := xx + sg; k := k + 1;
-      if (xx = 16 or xx = 17) and public.town_road_row(cy) and public.town_light(ms + k / (4.5 * mult) * 1000, cy) = 1 then red := red + 1; end if;
+      if (xx = 16 or xx = 17) and not (xx - sg in (16,17)) and public.town_road_row(cy) and public.town_light(ms + k / (4.5 * mult) * 1000, cy) = 1 then red := red + 1; end if;
       if public.town_road_row(cy) and cy between 6 and 16 then zt := zt + 1; end if;
       if public.town_is_cross(xx, cy) then ys := ys || (xx * 100 + cy); end if;
     end loop;
@@ -791,7 +791,7 @@ begin
     yy := cy;
     while yy <> ty loop
       yy := yy + sg; k := k + 1;
-      if (tx = 16 or tx = 17) and public.town_road_row(yy) and public.town_light(ms + k / (4.5 * mult) * 1000, yy) = 0 then red := red + 1; end if;
+      if (tx = 16 or tx = 17) and public.town_road_row(yy) and not public.town_road_row(yy - sg) and public.town_light(ms + k / (4.5 * mult) * 1000, yy) = 0 then red := red + 1; end if;
       if (tx = 16 or tx = 17) and yy between 6 and 16 then zt := zt + 1; end if;
       if public.town_is_cross(tx, yy) then ys := ys || (tx * 100 + yy); end if;
     end loop;
