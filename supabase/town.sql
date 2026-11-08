@@ -1199,7 +1199,7 @@ grant execute on function public.town_state(text), public.town_create(text,text,
 -- ── 小遊戲：廣場的街機（和莊家玩，結果由伺服器決定），以及朋友之間的猜拳戰帖 ──
 -- 押注 €50～€1000，一天最多 40 局；整體期望值略低於 1，不會變成印鈔機
 create or replace function public.town_card() returns int language sql volatile as $$ select (1 + floor(random()*4)::int) * 100 + 1 + floor(random()*13)::int $$;
--- 牌的編碼：花色*100 + 點數（花色 1=黑桃 2=紅心 3=方塊 4=梅花）；舊格式只有點數 1～13（沒有花色），一律用 % 100 取點數
+-- 牌的編碼：花色*100 + 點數（花色 1=黑桃 2=紅心 3=方塊 4=梅花），點數 = 編碼 % 100。只有這一種格式；舊格式（只有點數 1～13）的進行中牌局在 town_game 開頭退回押注並作廢
 create or replace function public.town_bj_total(cs jsonb) returns int language plpgsql immutable as $$
 declare t int := 0; aces int := 0; c int;
 begin
@@ -1219,6 +1219,11 @@ begin
   if r.sleeping then raise exception '你在睡覺，先起床'; end if;
   if public.town_is_off(r.town_id, 'arcade') then raise exception '這個小鎮沒有開街機'; end if;
   if r.place <> 'plaza' then raise exception '街機在小豬廣場，走過去再玩'; end if;
+  -- 舊格式（沒有花色，點數 < 100）的進行中牌局：退回押注、清掉，請重開
+  if game in ('hl_guess','bj_hit','bj_stand') and ((game = 'hl_guess' and (r.items->'hl'->>'card')::int < 100) or (game <> 'hl_guess' and (r.items->'bj'->'p'->>0)::int < 100)) then
+    update public.town_residents set money = money + coalesce((r.items->(case when game = 'hl_guess' then 'hl' else 'bj' end)->>'bet')::int,0), items = items - (case when game = 'hl_guess' then 'hl' else 'bj' end) where id = rid;
+    return json_build_object('error','舊版牌局已作廢，押注已退回，請重新開局');
+  end if;
   -- 開新一局才要檢查押注與次數；21 點和比大小的後續動作不用
   if game in ('rps','hl_start','wheel','bj_start','dice','slots','bingo') then
     if bet is null or bet < 50 or bet > 1000 then raise exception '押注要在 €50～€1000 之間'; end if;

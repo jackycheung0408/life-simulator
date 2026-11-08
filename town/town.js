@@ -493,9 +493,9 @@ function onlineActs0(id){const t=R[id],gifts=((R[me].items||{}).gift)||0;return 
 // ── 街機小遊戲（在廣場玩，和莊家比，結果由伺服器決定）──
 const RPS={r:["✊","石頭"],p:["✋","布"],s:["✌️","剪刀"]},CARD=n=>({1:"A",11:"J",12:"Q",13:"K"}[n%100]||String(n%100));
 const bjTotal=cs=>{let t=0,a=0;for(let c of cs){c%=100;if(c==1){a++;t+=11}else t+=Math.min(c,10)}while(t>21&&a){t-=10;a--}return t};
-// 牌：花色*100+點數（1 黑桃 2 紅心 3 方塊 4 梅花）；舊牌局只有點數，沒花色就不畫
+// 牌：花色*100+點數（1 黑桃 2 紅心 3 方塊 4 梅花）
 const SUIT=["","suitS","suitH","suitD","suitC"],SUITRED=[0,0,1,1,0];
-const cardHTML=(n,hidden)=>{if(hidden)return `<span class="pcard back">?</span>`;const s=Math.floor(n/100);return `<span class="pcard${SUITRED[s]?" red":""}"><b>${CARD(n)}</b>${s?`<img class="px" alt="" src="${window.PIXICON_NAME?PIXICON_NAME(SUIT[s]):""}">`:""}</span>`};
+const cardHTML=(n,hidden)=>{if(hidden)return `<span class="pcard back">?</span>`;const s=Math.floor(n/100);return `<span class="pcard${SUITRED[s]?" red":""}"><b>${CARD(n)}</b><img class="px" alt="" src="${window.PIXICON_NAME?PIXICON_NAME(SUIT[s]):""}"></span>`};
 const spOf=(r,k)=>((r.items||{}).sp||{})[k]||0;
 const CASINO=[["rps","✊","猜拳","贏 ×2，平手退九成"],["hl","🃏","比大小","越難猜賠越多"],["wheel","🎡","輪盤","最高 ×5"],["bj","♠","21 點","開局 21 點 ×2.5"],["dice","🎲","骰子大小","三顆骰，押大小或點數"],["slots","🎰","老虎機","三個一樣最高 ×40"],["bingo","🔢","賓果","選 3 號，開 5 號"]],
  SOLO=[["whack","🔨","打地鼠","30 秒，打越多越高分"],["memory","🧠","記憶翻牌","步數越少越高分"]];
