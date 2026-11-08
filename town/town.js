@@ -31,7 +31,7 @@ const FOUNTAIN=[16,10,2,3];
 // 路上物件：位置要和資料庫 town_obj_near 一致；用法：[名稱, 按鈕, 說明]
 const OBJS={vend:{x:19,y:5,name:"自動販賣機",acts:[["投一罐飲料 🥤","€10 · 精力 +12 · 偶爾掉兩罐"]]},trash:{x:8,y:14,name:"垃圾桶",acts:[["撿垃圾 🗑️","心情 +4 · 說不定撿到東西"]]},
  stall:{x:22,y:14,name:"烤地瓜攤",acts:[["買烤地瓜 🍠","€8 · 飽足 +25"]]},well:{place:"plaza",name:"小豬噴水池",acts:[["丟硬幣許願 🪙","€1 · 一成機率願望成真"]]},
- bench:{x:14,y:5,name:"長椅",acts:[["坐一下 💤","免費 · 精力 +20"]]},cooler:{x:10,y:14,name:"飲水機",acts:[["喝杯水 💦","免費 · 精力 +3 · 飽足 +3"]]},pwc:{x:18,y:19,name:"公共廁所",acts:[["上公廁 🚽","免費 · 膀胱回滿"]]},
+ dummy:{x:22,y:11,name:"人型靶",acts:[["揍人型靶 👊","免費 · 心情 +5 · 精力 −3 · 沒有冷卻，每揍 10 下體能 +1"]]},bench:{x:14,y:5,name:"長椅",acts:[["坐一下 💤","免費 · 精力 +20"]]},cooler:{x:10,y:14,name:"飲水機",acts:[["喝杯水 💦","免費 · 精力 +3 · 飽足 +3"]]},pwc:{x:18,y:19,name:"公共廁所",acts:[["上公廁 🚽","免費 · 膀胱回滿"]]},
  mailbox:{x:34,y:5,name:"郵筒",acts:[["查信箱 💌","免費 · 偶爾收到退款 · 一天最多領 3 次"]]},news:{x:14,y:19,name:"報攤",acts:[["買份報紙 📰","€5 · 心情 +8"]]},claw:{x:33,y:14,name:"夾娃娃機",acts:[["夾娃娃 🎁","€10 · 兩成夾到禮物"]]},lottery:{x:8,y:19,name:"刮刮樂攤",acts:[["刮一張 🍀","€20 · 有機會中大獎"]]},
  busker:{place:"plaza",name:"街頭藝人",acts:[["打賞 🎸","€5 · 心情 +15"]]},pond:{place:"park",name:"池塘",acts:[["餵鴨子 🐦","用一包零食 · 心情 +12","feed"]]},
  swing:{place:"park",name:"鞦韆",acts:[["盪鞦韆","心情 +12"]]},cat:{place:"park",name:"流浪貓",acts:[["摸摸貓 🐱","心情 +8 · 可能被抓"],["餵貓吃零食","用一包零食 · 心情 +15","feed"]]}};
@@ -254,7 +254,7 @@ async function mayorPanel(){let inv="",cta=[];try{cta=(await rpc("town_mayor",{r
 const floaters=[],fxs=[],FXIMG={};
 // 動作對應的動畫：自己的動作在 act() 播；別人（或自己）的社交事件在收到新動態時播
 const ACT_FX={coffee:"can",movie:"sparkle",workout:"fist",spar:"fight",sneak:"scooter",nap:"zzz",eat:"eat",dine:"eat",snack:"eat",toilet:"toilet",shower:"bubbles",tv:"tv",sleep:"zzz",work:"coins",play:"hearts",browse:"sparkle",buy:"bag",paint:"paint",wake:"sun"};
-const OBJ_FX={bench:"zzz",cooler:"bubbles",pwc:"toilet",mailbox:"sparkle",news:"sparkle",claw:"hearts",lottery:"coins",busker:"hearts",pond:"hearts",vend:"can",trash:"sparkle",stall:"eat",well:"coin",swing:"hearts",cat:"hearts"};
+const OBJ_FX={dummy:"fight",bench:"zzz",cooler:"bubbles",pwc:"toilet",mailbox:"sparkle",news:"sparkle",claw:"hearts",lottery:"coins",busker:"hearts",pond:"hearts",vend:"can",trash:"sparkle",stall:"eat",well:"coin",swing:"hearts",cat:"hearts"};
 const EV_FX={feed:["eat","t"],wash:["bubbles","t"],visit:["hearts","both"],gift:["gift","fly"],note:["msg","fly"],call:["phone","both"],delivery:["scooter","fly"],thank:["hearts","fly"],greet:["clap","mid"],fight:["fight","mid"],egg:["egg","fly"],prank:["fart","t"],makeup:["hearts","mid"],cowork:["coins","both"],promo:["sparkle","a"],wish:["sparkle","a"],feast:["eat","both"],wakeup:["alarm","t"],luck:["sparkle","a"],tier:["hearts","both"],look:["sparkle","a"],meet:["clap","a"],together:["hearts","a"]};
 const spawnFx=(type,a,b)=>{if(!walkers[a])return;fxs.push({type,a,b:b&&walkers[b]?b:null,born:performance.now(),dur:type=="fight"?1800:type=="scooter"?2200:1500})};
 let lastEvId=null;
@@ -300,14 +300,14 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  else if(p=="home:"+me){title="你家";list.push(btn("吃飯",`飽足 +${hasF(r,"fridge")?48:40} · 精力 +15 · €${hasF(r,"fridge")?5:10}`,()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),btn("洗澡","清潔回滿 · 精力 +10 · 10 分鐘一次",()=>act("shower")),btn("看電視",`心情 +${hasF(r,"sofa")?22:15} · ${hasF(r,"tvcab")?10:15} 分鐘一次`,()=>act("tv")),btn("快速休息",`精力 +${hasF(r,"massage")?100:70} · 15 分鐘一次`,()=>act("nap")),btn("睡覺",`精力每小時 +${hasF(r,"bed")?90:80}`,()=>act("sleep")),btn("室內","擺家具、升級房子",()=>interiorModal(me)),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal()))}
  else if(p&&p.startsWith("home:")&&R[p.slice(5)]){const id=+p.slice(5),t=tickLocal(R[id],now());title=`${t.name} 家`;const peek=btn("看室內",`${HOUSES[((R[id].items||{}).hl||1)-1][0]} · 看他怎麼布置`,()=>interiorModal(id));
   const gifts=(r.items||{}).gift||0,giftB=gifts?btn("送禮物",`他心情 +20 · 背包 🎁${gifts}`,()=>act("gift",{target:id})):btn("送禮物","先去超市買",()=>toast("背包沒有禮物，去超市買一份"));
-  if(t.place!=p){note=`${t.name} 不在家，在${placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,peek,btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
+  if(t.place!=p){note=`${t.name} 不在家，在${placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,peek,btn("丟雞蛋 🥚","好感 −1",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
   else{note=`${t.name}${t.sleeping?" 在睡覺":""}：飽足 ${Math.round(t.hunger)}、清潔 ${Math.round(t.hygiene)}、心情 ${Math.round(t.fun)} · ${bondLabel(bondWith(id))}`;list.push(giftB);
    list.push(peek,btn("煮飯給他","他飽足 +35 · €10",()=>act("feed",{target:id})),btn("幫他洗澡","他清潔 +45",()=>act("wash",{target:id})));
    if(t.sleeping)list.push(btn("叫醒他","",()=>act("wakeup",{target:id})));
-   if(!t.sleeping)list.push(btn("串門子","兩人心情 +15",()=>act("visit",{target:id})));list.push(btn("惡作劇","放個臭屁 💨 · 好感 −3",()=>act("prank",{target:id})),btn("丟雞蛋 🥚","好感 −2",()=>act("egg",{target:id})));
+   if(!t.sleeping)list.push(btn("串門子","兩人心情 +15",()=>act("visit",{target:id})));list.push(btn("惡作劇","放個臭屁 💨 · 好感 −2",()=>act("prank",{target:id})),btn("丟雞蛋 🥚","好感 −1",()=>act("egg",{target:id})));
    if(!t.sleeping)list.push(...faceActs(id))}}
  else if(p=="restaurant"){title="餐廳";list.push(btn("吃一頓","飽足 +55 · 精力 +20 · 心情 +10 · €30",()=>act("dine")));note="朋友也在的話，點他可以請吃大餐"}
- else if(p=="office"){title="公司";list.push(btn("打工",`+€${myWage()} · 隨時可打 · 累`,()=>act("work")));note=`今天已打工 ${workToday(R[me])} 次，目前薪水 ${workPct(workToday(R[me]))}%（前 4 次全額、5～8 次 50%、9～12 次 25%，一天最多 12 次）。有同事在的話，點他可以一起加班，薪水加倍`}
+ else if(p=="office"){title="公司";list.push(btn("打工",`+€${myWage()} · 隨時可打 · 累`,()=>act("work")));note=`今天已打工 ${workToday(R[me])} 次，目前薪水 ${workPct(workToday(R[me]))}%（前 4 次全額、5～8 次 50%、9～16 次 25%、之後 10%，次數不限）。有同事在的話，點他可以一起加班，薪水加倍`}
  else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")));if(p=="plaza"&&isOn("arcade"))list.push(btn("小豬街機 🕹️","猜拳、比大小、命運輪盤、21 點",()=>gamesModal()))}
  else if(p=="cafe"){title="咖啡廳";list.push(btn("喝咖啡 ☕","€15 · 精力 +50 · 膀胱 −10 · 30 分鐘一次",()=>act("coffee")))}
  else if(p=="cinema"){title="電影院";list.push(btn("看電影 🎬","€25 · 心情 +35 · 1 小時一次",()=>act("movie")))}
@@ -363,7 +363,7 @@ function renderRank(){const w=(S&&S.week)||{},all=Object.values(R);
  $("tab-rank").querySelectorAll("canvas.rav").forEach(c=>{try{const l=JSON.parse(c.dataset.look);miniPerson(c,l)}catch(e){}})}
 function renderPeople(){const list=Object.values(R).filter(o=>o.id!=me).map(o=>({o,v:bondWith(o.id)})).sort((a,b)=>b.v-a.v);
  $("tab-ppl").innerHTML=(list.length?list.map(({o,v})=>`<div class="mrow"><span><b>${esc(o.name)}</b> <small class="mut">${esc(career(o).name)}${titlesOf(o).length?" · "+esc(titlesOf(o).slice(-1)[0]):""} · ${bondLabel(v)} · ${v>0?"+":""}${v}</small><i class="bond"><b style="left:50%;width:${Math.abs(v)/2}%;${v<0?`left:${50-Math.abs(v)/2}%;background:var(--bad)`:"background:var(--good)"}"></b></i><small class="mut">${tierHint(v)} · 在${placeName(o.place)}</small></span><button data-w="${o.id}">互動</button></div>`).join(""):`<p class="mut">鎮上還沒有其他人，邀請朋友搬進來吧。</p>`)
-  +`<p class="mut" style="margin-top:10px">送禮 +5、煮飯洗澡 +4、請吃大餐 +4、串門子一起加班 +3、道謝擊掌 +2、留言 +1；叫醒 −1、丟雞蛋 −2、惡作劇 −3、扁人 −6、和好 +8。好麻吉以上照顧對方效果 ×1.3。</p>`;
+  +`<p class="mut" style="margin-top:10px">送禮 +5、煮飯洗澡 +4、請吃大餐 +4、串門子一起加班 +3、道謝擊掌 +2、留言 +1；叫醒 −1、丟雞蛋 −2、惡作劇 −3、扁人 −4、丟雞蛋 −1、惡作劇 −2、和好 +10。好麻吉以上照顧對方效果 ×1.3。</p>`;
  $("tab-ppl").querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{sel=+b.dataset.w;lastPanel="";renderPanel();$("here").scrollIntoView({behavior:"smooth",block:"center"})})}
 // 動態：每種事一個圖示，名字粗體，分今天／昨天，跟我有關的用左邊色條標出來
 // ── 職業階梯與人生願望（資料在 items：works 累計打工、wish、titles、meals；門檻要和 town.sql 一致）──
@@ -372,7 +372,7 @@ const jobLv=n=>JOBS.reduce((a,j,i)=>n>=j[1]?i:a,0);
 const career=r=>{const n=(r.items&&r.items.works)||0,lv=jobLv(n),nx=JOBS[lv+1];return{n,lv,name:JOBS[lv][0],wage:JOBS[lv][2],next:nx?nx[0]:null,left:nx?nx[1]-n:0}};
 const dayKey=()=>new Date(now()+8*36e5).toISOString().slice(0,10);
 const workToday=r=>{const d=r.items&&r.items.dc;return d&&d.d==dayKey()?(d.work||0):0};
-const workPct=n=>n<4?100:n<8?50:25;// 今天前 4 次全額、5～8 次 50%、之後 25%（打工與加班都算，台灣時間 0 點重置）
+const workPct=n=>n<4?100:n<8?50:n<16?25:10;// 今天前 4 次全額、5～8 次 50%、之後 25%（打工與加班都算，台灣時間 0 點重置）
 const RENT=[60,120,200,300];const rentOf=r=>RENT[Math.min(3,Math.max(0,((r.items&&r.items.hl)||1)-1))];
 const myWage=()=>Math.floor(payOf(career(R[me]).wage,tickLocal(R[me],now()))*workPct(workToday(R[me]))/100);
 const WISHES={rich:["首富","持有金錢",[3000,10000,30000],["小富翁","大富翁","小豬首富"],r=>r.money],pop:["人氣王","好朋友以上的人數",[5,10,20],["交友廣闊","萬人迷","人氣王"],r=>(S.bonds||[]).filter(b=>(b.a==r.id||b.b==r.id)&&b.s>=10).length],
@@ -423,7 +423,7 @@ function faceActs0(id){const t=R[id],b=bondWith(id),mp=R[me].place,coop=[];
  if(mp=="office"&&t.place=="office")coop.push(btn(`和 ${t.name} 一起加班 💼`,"薪水加倍 · 2 小時一次",()=>act("cowork",{target:id})));
  if(mp=="restaurant"&&t.place=="restaurant")coop.push(btn(`請 ${t.name} 吃大餐 🍖`,"€60 · 兩人飽足 +70",()=>act("feast",{target:id})));
  const out=[...coop,btn(`和 ${t.name} 擊掌 🙌`,"兩人心情 +8 · 好感 +2",()=>act("greet",{target:id})),
-  btn(`扁 ${t.name} 👊`,b>=30?"好麻吉之間是打打鬧鬧 · 好感 +1":"比精力、心情和運氣 · 好感 −6",()=>act("fight",{target:id}))];
+  btn(`扁 ${t.name} 👊`,b>=30?"好麻吉之間是打打鬧鬧 · 好感 +1":"比精力、心情和運氣 · 好感 −4",()=>act("fight",{target:id}))];
  if(b<0)out.push(btn(`和 ${t.name} 和好 🤝`,"好感 +8",()=>act("makeup",{target:id})));return out}
 // 走到某人身邊：他在室內就走到那個地點的門口，在路上就走到他旁邊
 function walkToPerson(id){const t=R[id];if(!t)return;sel=id;if(t.place.startsWith("home:")){const o=R[t.place.slice(5)];if(o){walkTo(t.place,o.id==me?door(o.slot):visitSpot(o.slot));return}}
@@ -437,7 +437,7 @@ let stripKey="";function renderStrip(){const list=Object.values(R).sort((a,b)=>(
  $("strip").querySelectorAll("[data-p]").forEach((b,i)=>{miniPerson(b.querySelector("canvas"),list[i].look);b.onclick=()=>focusPerson(+b.dataset.p)})}
 function bondsModal(){const list=Object.values(R).filter(o=>o.id!=me).map(o=>({o,v:bondWith(o.id)})).sort((a,b)=>b.v-a.v);$("modal").classList.remove("hide");
  $("mbody").innerHTML=`<h2>👥 人際關係</h2>${list.length?list.map(({o,v})=>`<div class="mrow"><span><b>${esc(o.name)}</b> <small class="mut">${esc(career(o).name)}${titlesOf(o).length?" · "+esc(titlesOf(o).slice(-1)[0]):""} · ${bondLabel(v)} · ${v>0?"+":""}${v}</small><i class="bond"><b style="left:50%;width:${Math.abs(v)/2}%;${v<0?`left:${50-Math.abs(v)/2}%;background:var(--bad)`:"background:var(--good)"}"></b></i><small class="mut">${tierHint(v)}</small></span><button data-w="${o.id}">互動</button></div>`).join(""):`<p class="mut">鎮上還沒有其他人，邀請朋友搬進來吧。</p>`}
-  <p class="mut" style="margin-top:10px">送禮 +5、煮飯洗澡 +4、串門子 +3、道謝擊掌 +2、留言 +1；叫醒 −1、丟雞蛋 −2、惡作劇 −3、扁人 −6、和好 +8。好麻吉以上照顧對方效果 ×1.3。</p><div class="row"><button id="mc">關閉</button></div>`;
+  <p class="mut" style="margin-top:10px">送禮 +5、煮飯洗澡 +4、串門子 +3、道謝擊掌 +2、留言 +1；叫醒 −1、丟雞蛋 −2、惡作劇 −3、扁人 −4、丟雞蛋 −1、惡作劇 −2、和好 +10。好麻吉以上照顧對方效果 ×1.3。</p><div class="row"><button id="mc">關閉</button></div>`;
  $("mc").onclick=()=>$("modal").classList.add("hide");$("mbody").querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{$("modal").classList.add("hide");walkToPerson(+b.dataset.w)})}
 // 新手提示：第一次進小鎮時顯示，看過就不再出現
 function showTips(){let seen=null;try{seen=localStorage.getItem("town-tips")}catch(e){}if(seen)return;const el=$("tips");el.classList.remove("hide");
@@ -637,6 +637,7 @@ function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas")
   S("claw",()=>{R0(X+2,Y-8,28,34,"#e84393");R0(X+6,Y-4,20,18,"#fdebd0");R0(X+14,Y-4,2,8,"#aaa");R0(X+10,Y+16,12,4,"#222")});
   S("news",()=>{R0(X+2,Y+8,28,16,"#e67e22");R0(X,Y-4,32,8,"#2980b9");R0(X+6,Y+10,8,8,"#fff");R0(X+18,Y+10,8,8,"#f1c40f")});
   S("pwc",()=>{R0(X+4,Y-10,24,36,"#7f8c8d");R0(X+8,Y-4,16,10,"#fff");R0(X+12,Y+10,8,16,"#34495e")});
+  S("dummy",()=>{R0(X+14,Y-10,4,40,"#6b4423");R0(X+4,Y-2,24,5,"#8b5a2b");R0(X+8,Y-22,16,14,"#e0c28a");R0(X+8,Y-22,16,3,"#c9a96a");R0(X+11,Y-17,3,3,"#222");R0(X+18,Y-17,3,3,"#222");R0(X+8,Y-6,16,16,"#d9a441");R0(X+12,Y-2,8,8,"#c0392b");R0(X+14,Y+0,4,4,"#fff")});
   S("lottery",()=>{R0(X+2,Y+8,28,16,"#c0392b");R0(X,Y-6,32,10,"#f1c40f");R0(X+8,Y+10,16,8,"#fff")});
   X=29*T;Y=21*T;R0(X,Y-24,4,30,"#6b4423");R0(X+28,Y-24,4,30,"#6b4423");R0(X,Y-26,32,4,"#6b4423");R0(X+10,Y-22,2,18,"#888");R0(X+20,Y-22,2,18,"#888");R0(X+8,Y-4,16,4,"#d8901a")}
  sign("公司",29.5*T,10);sign("餐廳",5*T,9*T+10);sign("超市",28*T,9*T+10);sign("公園",29.5*T,17*T+12);sign("小豬廣場",17*T,8*T+14);if(isOn("cafe"))sign("咖啡廳",38*T,10);if(isOn("cinema"))sign("電影院",39*T,9*T+10);if(isOn("gym"))sign("健身房",38*T,17*T+10);if(isOn("arena"))sign("格鬥場",48.5*T,10);if(isOn("slaughter"))sign("屠宰場",48.5*T,9*T+10);
