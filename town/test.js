@@ -73,5 +73,12 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(M.lightG(0,6)==0&&M.lightG(0,15)==1&&M.lightG(0,22)==0,"路口錯開（6→0、15→1、22→0）：6 的 ib=6 偶、15 奇、22 偶");
  let n=0;for(let y=0;y<M.mapRows();y++)for(let x=0;x<COLS_;x++)if(M.isInter(x,y)){n++;check(M.isRoad(x,y)&&(x==16||x==17),"路口要在路上")}
  check(n>=8,"路口數量不對："+n);check(M.zoneLim(6)==2&&M.zoneLim(16)==2&&M.zoneLim(5)==2.5&&M.zoneLim(17)==2.5,"速限分區")}
+// 設施小事件：每個設施 3 個事件、文字要齊全，且和 town_social.sql 的效果表地點一致
+{const sql=require("fs").readFileSync(__dirname+"/../supabase/town_social.sql","utf8");
+ for(const k of Object.keys(M.PEV)){check(M.PLACES[k]||k=="park"||k=="plaza",`事件地點 ${k} 不存在`);check(M.PEV[k].length==3&&M.PEV[k].every(e=>e.length==6&&e.every(s=>s)),`${k} 要有 3 個事件、每個 6 欄文字`);check(sql.includes(`"${k}":[[[`),`town_social.sql 沒有 ${k} 的效果`);check(sql.includes(`'${k}'`),`town_pe_place 沒有 ${k}`);check(M.JT[k],`${k} 缺一起做的活動`)}
+ check(Object.keys(M.PEV).length>=13,"事件地點太少");
+ // 每個賭的選項期望值要略負（和 SQL 同一份表）
+ const tbl=JSON.parse(sql.match(/'(\{\s*"restaurant".*?\})'::jsonb/s)[1]);
+ for(const [p,evs] of Object.entries(tbl))evs.forEach((e,i)=>e.forEach((o,j)=>{const ev=(o[4]*o[2]+(100-o[4])*o[7])/100;check(ev<=0,`${p} 事件 ${i} 選項 ${j} 金錢期望值 ${ev} 要 ≤ 0`);check(o.length==9,`${p}${i}${j} 長度`)}))}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
