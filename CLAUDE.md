@@ -58,6 +58,15 @@
 ## 貨幣
 `town_towns.currency`（鎮長在建鎮或鎮長面板選，`town_currency`），只影響顯示：程式與資料庫字串一律寫 `€`，前端 `pxify` 在畫面文字裡把 `€` 換成 `CUR`。浮動數字等畫布文字要自己用 `${CUR}`。
 
+## 股市（證券交易所，`place='stock'`，位置 `[41,0,4,5]` 門 `[42,5]`，`FEATS` 可關）
+- 檔案：`supabase/town_stock.sql`（資料表、價格、買賣；要在 `town.sql` 之後套用，可重複執行）、`supabase/functions/town-stock`（抓證交所 STOCK_DAY_ALL）、實測 `supabase/town_stock_test.sql`（最後 rollback）。前端 `town.js` 的 `stockModal`。
+- 規則（簡化台股）：週一～週五 9:00～13:30（`town_closed('stock')`、前端 `closedMsg`，不考慮國定假日）、±10%、零股 1 股起（1000 股 = 1 張）、手續費 0.1425%（最低 1）、賣出稅 0.3%（ETF 0.1%）。**T+2 簡化**：買進立即扣款、股票立即可賣；賣股的錢進 `items.st.pend`，2 個平日後由 `town_stock_settle` 入帳（`town_act` 與交易時呼叫；不能放 `town_rent`，登入那條路只存錢）。
+- 20 檔熱門股存在 `town_stocks`（改清單只要改這張表；Edge Function 只更新表裡有的代號）。價格 `town_stock_price`：今天已有真實收盤價／週末／開盤前 = 真實收盤價；否則 = 前一真實收盤價 ×（1 + 每 5 分鐘一步偽隨機波動，日波動約 1.5%），鹽值存 `town_stock_meta`（只有伺服器看得到），全鎮同價。真實收盤價 15:00／17:00／20:00（台灣，平日）由 pg_cron 呼叫 `town-stock`。
+- 持股 `items.st = {h:{代號:{q,c}}, pend:[{d,a}], dv:{d,v}}`，缺值用預設。防洗錢：價格與玩家買賣無關、沒有玩家間交易；單筆 ≤ 30000、每人每天成交額 ≤ 60000。
+- 已知漏洞（接受）：模擬價不追真實盤中價，收盤後對齊真實收盤價，勤勞玩家可在 13:30 前對照真實行情賺隔夜差；靠手續費、稅與每日上限壓住（每天最多約 +600）。
+- **持股市值先不納入首富願望**（`town_wish_*` 只算現金），要不要納入、怎麼算，等和使用者討論後再決定。
+- 部署：`supabase functions deploy town-stock --project-ref gerqdagicybtyilihvvm --no-verify-jwt`（使用者自己跑）；SQL 照「測試與部署」套用，先 `town.sql` 再 `town_stock.sql`。
+
 ## 小豬鎮路線圖（使用者已確認，一項一項做，不要同時改同一批檔案）
 1. ✅ 已完成：個性特質＋心情（見下方「個性特質與心情」）
 2. ✅ 已完成：房子升級＋室內家具（見下方「房子與室內」）

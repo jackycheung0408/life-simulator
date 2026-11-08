@@ -94,7 +94,7 @@ create or replace function public.town_place_name(p text) returns text language 
   select case
     when p like 'home:%' then coalesce((select name from public.town_residents where id = substr(p,6)::bigint), '空屋') || ' 家'
     when p = 'plaza' then '廣場' when p = 'restaurant' then '餐廳' when p = 'market' then '超市'
-    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' when p = 'rafi' then '拉菲的辦公室' else '路上' end
+    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' when p = 'rafi' then '拉菲的辦公室' when p = 'stock' then '證券交易所' else '路上' end
 $$;
 create or replace function public.town_name_ok(t text) returns boolean language sql immutable as $$
   select char_length(trim(t)) between 1 and 12 and trim(t) !~ '[<>"]' and not public.has_bad_words(t)
@@ -119,8 +119,9 @@ create or replace function public.town_closed(what text) returns text language s
     when what = 'workout' and not (h between 6 and 22) then '健身房休息中，營業時間 6:00～23:00'
     when what = 'spar' and not (h between 10 and 23) then '格鬥場休息中，營業時間 10:00～24:00'
     when what = 'rafi' and not (h between 9 and 18) then '拉菲的辦公室休息中，營業時間 9:00～19:00'
+    when what = 'stock' and not (dw between 1 and 5 and h*60+mi between 540 and 809) then '證券交易所休息中，營業時間 週一～週五 9:00～13:30'
     else null end
-  from (select extract(hour from (now() at time zone 'Asia/Taipei'))::int h) x
+  from (select extract(hour from (now() at time zone 'Asia/Taipei'))::int h, extract(minute from (now() at time zone 'Asia/Taipei'))::int mi, extract(isodow from (now() at time zone 'Asia/Taipei'))::int dw) x
 $$;
 
 -- 鎮長可以關掉的設施（off 裡面的就是沒開）
@@ -129,7 +130,7 @@ alter table public.town_towns add column if not exists off text[] not null defau
 alter table public.town_towns add column if not exists currency text not null default 'NT$';
 create or replace function public.town_feature(what text) returns text language sql immutable as $$
   select case when what in ('cafe','coffee') then 'cafe' when what in ('cinema','movie') then 'cinema' when what in ('gym','workout') then 'gym'
-    when what in ('arena','spar') then 'arena' when what in ('slaughter','sneak') then 'slaughter' when what = 'rafi' then 'rafi' else null end
+    when what in ('arena','spar') then 'arena' when what in ('slaughter','sneak') then 'slaughter' when what = 'rafi' then 'rafi' when what in ('stock','trade') then 'stock' else null end
 $$;
 create or replace function public.town_is_off(tid text, f text) returns boolean language sql stable as $$
   select coalesce((select f = any(off) from public.town_towns where id = tid), false)
@@ -142,7 +143,7 @@ begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if not r.mayor then raise exception '只有鎮長可以做這件事'; end if;
-  if exists (select 1 from unnest(coalesce(off,'{}')) f where f not in ('cafe','cinema','gym','arena','slaughter','arcade','rafi')) then raise exception '沒有這個設施'; end if;
+  if exists (select 1 from unnest(coalesce(off,'{}')) f where f not in ('cafe','cinema','gym','arena','slaughter','arcade','rafi','stock')) then raise exception '沒有這個設施'; end if;
   update public.town_towns set off = coalesce(town_features.off,'{}') where id = r.town_id;
   -- 關掉的地方有人在，請他們回到路上
   update public.town_residents set place = 'street' where town_id = r.town_id and place = any(coalesce(town_features.off,'{}'));
@@ -671,6 +672,20 @@ $$;
 create or replace function public.town_rent_amt(lv int) returns int language sql immutable as $$
   select (array[350,600,1200,2500])[least(4, greatest(1, lv))]
 $$;
+-- 股市 T+2 交割：賣股的錢要等 2 個平日才入帳（items.st.pend = [{d:到帳日, a:金額}]）；town_state／town_act 和股票交易會呼叫（登入那條路只存錢，不能在 town_rent 裡入帳）
+create or replace function public.town_stock_settle(r public.town_residents) returns public.town_residents language plpgsql as $$
+declare today date := (now() at time zone 'Asia/Taipei')::date; due int := 0; keep jsonb := '[]'::jsonb; e jsonb; pend jsonb := r.items->'st'->'pend';
+begin
+  if pend is null or jsonb_typeof(pend) <> 'array' or jsonb_array_length(pend) = 0 then return r; end if;
+  for e in select x from jsonb_array_elements(pend) x loop
+    if (e->>'d')::date <= today then due := due + coalesce((e->>'a')::int,0); else keep := keep || jsonb_build_array(e); end if;
+  end loop;
+  if jsonb_array_length(keep) <> jsonb_array_length(pend) then
+    r.money := r.money + due; r.items := jsonb_set(r.items, '{st,pend}', keep);
+  end if;
+  return r;
+end $$;
+revoke all on function public.town_stock_settle(public.town_residents) from public, anon, authenticated;
 create or replace function public.town_rent(r public.town_residents) returns public.town_residents language plpgsql as $$
 declare day text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); a int; p int;
 begin
@@ -692,11 +707,12 @@ begin
   fm := case when public.town_has(r,'foodie') then 1.3 else 1 end; gm := case when public.town_has(r,'romantic') then 2 else 1 end; lk := public.town_has(r,'lucky'); mo := public.town_mood(r);
   perform set_config('town.bm', (public.town_mood_bond(mo) * case when public.town_has(r,'social') then 130 else 100 end / case when r.hygiene < 1 then 2 else 1 end)::text, true);
   r := public.town_rent(r);
+  r := public.town_stock_settle(r);
   if r.sleeping and act not in ('wake') then raise exception '你在睡覺，先起床'; end if;
   if public.town_closed(case when act = 'obj' then item when act = 'job' then public.town_pjob_key(item) else act end) is not null then raise exception '%', public.town_closed(case when act = 'obj' then item when act = 'job' then public.town_pjob_key(item) else act end); end if;
   if public.town_is_off(r.town_id, public.town_feature(case when act = 'move' then dest when act = 'job' then public.town_pjob_key(item) else act end)) then raise exception '這個小鎮沒有開這個設施'; end if;
   if act = 'move' then
-    if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter','rafi')
+    if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter','rafi','stock')
        or (dest ~ '^home:\d+$' and exists (select 1 from public.town_residents where id = substr(dest,6)::bigint and town_id = r.town_id))) then raise exception '去不了那裡'; end if;
     if px is null or py is null or px < 0 or px > 52 or py < 0 or py > 40 then raise exception '位置不對'; end if;
     -- 走過別人留下的便便會踩到（路線離便便不到 0.6 格）
@@ -721,7 +737,7 @@ begin
       else r.money := r.money + 2000; tn := r.name || ' 買刮刮樂中了 €2000！🎉'; end if;
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', tn); tn := null;
     end if;
-    if dest in ('plaza','restaurant','market','park','cafe','cinema','gym','arena','slaughter','rafi') then
+    if dest in ('plaza','restaurant','market','park','cafe','cinema','gym','arena','slaughter','rafi','stock') then
       select string_agg(name, '、') into others from public.town_residents where town_id = r.town_id and place = dest and id <> rid and not sleeping;
       if others is not null and not exists (select 1 from public.town_events e where e.actor = rid and e.kind = 'meet' and e.at > now() - interval '2 hours') then
         insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'meet', r.name || ' 在' || public.town_place_name(dest) || '遇到了 ' || others);

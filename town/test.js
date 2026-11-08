@@ -59,5 +59,6 @@ for(let rows=2;rows<=4;rows++){M.setRows(rows);for(const [k,o] of Object.entries
 check(M.pjWage("cafe",0)==200&&M.pjWage("cafe",15)==230&&M.pjWage("cafe",40)==260&&M.pjWage("gym",0)==230&&M.pjWage("shop",15)==224&&M.pjWage("rest",40)==273&&M.pjWage("rafi",0)==320&&M.pjWage("rafi",15)==450&&M.pjWage("rafi",40)==650,"其他工作薪水表不對");
 check(M.pjName("rafi",15)=="企劃"&&M.pjName("cafe",40)=="咖啡師（資深）","其他工作職稱不對");
 check(M.PLACES.rafi&&M.PLACES.rafi.door[0]==46&&M.PLACES.rafi.door[1]==21,"拉菲辦公室門口不對");
+check(M.PLACES.stock&&M.PLACES.stock.door[0]==42&&M.PLACES.stock.door[1]==5&&!M.blocked(42,5),"證券交易所門口不對");
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
