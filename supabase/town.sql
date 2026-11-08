@@ -388,9 +388,13 @@ begin
   if fa then r.sleeping := true; end if;
   -- 昏倒滿 1 小時：醒來，扣醫藥費 €1500（不夠就扣到 0）
   if (r.items->>'faint') is not null and not fa then
-    r.sleeping := false; r.items := r.items - 'faint';
-    insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, r.id, 'faint', r.name || ' 在醫院醒來，付了醫藥費 €' || least(1500, greatest(0, r.money)));
-    r.money := greatest(0, r.money - 1500);
+    if r.items ? 'hosp' then
+      insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, r.id, 'faint', r.name || ' 出院了（醫藥費車禍當下已結清）');
+    else
+      insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, r.id, 'faint', r.name || ' 在醫院醒來，付了醫藥費 €' || least(1500, greatest(0, r.money)));
+      r.money := greatest(0, r.money - 1500);
+    end if;
+    r.sleeping := false; r.items := r.items - 'faint' - 'hosp';
   end if;
   -- 清潔歸零：發臭，同地點醒著的人心情 −2（只在剛歸零那一次）
   if hyg0 > 0 and r.hygiene <= 0 then
@@ -822,6 +826,107 @@ begin
 end $$;
 revoke all on function public.town_road_row(int), public.town_is_road(int,int), public.town_light(double precision,int), public.town_is_cross(int,int), public.town_ticket(public.town_residents,text,int,int,text), public.town_tk_tick(public.town_residents), public.town_tk_debt(public.town_residents), public.town_traffic(public.town_residents,text,real,real,text) from public, anon, authenticated;
 
+-- ── 交通第 3 階段：事故、保險、維修 ──
+-- items.veh.w = {車種:耗損 0~100}；veh.lk = 全部車輛暫停到（小車禍）；veh.rp = {車種:送修到}（嚴重事故）
+-- items.ins = {moto:{c:強制險到期, f:任意險到期}, car:{...}}；items.ac = {n:事故次數}；items.db = {a:欠款}；items.hosp = 1 住院中（醒來不再收固定 €1500）
+create or replace function public.town_vprice(k text) returns int language sql immutable as $$
+  select case k when 'bike' then 3000 when 'moto' then 30000 when 'car' then 120000 else 0 end
+$$;
+create or replace function public.town_wear(r public.town_residents, k text) returns numeric language sql immutable as $$
+  select coalesce((r.items->'veh'->'w'->>k)::numeric, 0)
+$$;
+create or replace function public.town_set_wear(r public.town_residents, k text, w numeric) returns public.town_residents language plpgsql as $$
+begin
+  r.items := jsonb_set(r.items, '{veh}', coalesce(r.items->'veh','{}'::jsonb) || jsonb_build_object('w', coalesce(r.items->'veh'->'w','{}'::jsonb) || jsonb_build_object(k, round(least(100, greatest(0, w)), 1))));
+  return r;
+end $$;
+-- 保險有效：layer c = 強制險、f = 任意險
+create or replace function public.town_ins_ok(r public.town_residents, k text, layer text) returns boolean language sql stable as $$
+  select coalesce((r.items->'ins'->k->>layer)::timestamptz > now(), false)
+$$;
+-- 保費倍率：違規累計與事故次數越多越貴，最高 ×1.8
+create or replace function public.town_prem_mult(r public.town_residents) returns numeric language sql immutable as $$
+  select least(1.8, 1 + .05 * least(6, coalesce((r.items->'tv'->>'n')::int, 0)) + .1 * least(4, coalesce((r.items->'ac'->>'n')::int, 0)))
+$$;
+-- 保費（7 天／30 天）：強制險 機車 150／500、汽車 300／1000；任意險 機車 400／1400、汽車 900／3000，再乘倍率
+create or replace function public.town_prem(r public.town_residents, k text, layer text, days int) returns int language sql immutable as $$
+  select round((case when layer = 'c' then case when k = 'moto' then (case when days = 7 then 150 else 500 end) else (case when days = 7 then 300 else 1000 end) end
+                     else case when k = 'moto' then (case when days = 7 then 400 else 1400 end) else (case when days = 7 then 900 else 3000 end) end end) * public.town_prem_mult(r))::int
+$$;
+-- 付錢：錢不夠付到 0，剩下記欠款（最多累計 €30000）
+create or replace function public.town_owe(r public.town_residents, amt int) returns public.town_residents language plpgsql as $$
+declare paid int := least(greatest(amt,0), greatest(r.money,0)); db int := coalesce((r.items->'db'->>'a')::int, 0);
+begin
+  r.money := r.money - paid;
+  if amt > paid then r.items := jsonb_set(r.items, '{db}', jsonb_build_object('a', least(30000, db + amt - paid))); end if;
+  return r;
+end $$;
+-- 移動時的耗損與事故判定（騎車開車才會呼叫）。守規矩每格 機車 0.08%、汽車 0.06%、腳踏車 0.04%；衝 ×3、夜間 ×1.5、耗損 ×(1+耗損/50)、無照 ×1.8
+create or replace function public.town_crash(r public.town_residents, vk text, px real, py real) returns public.town_residents language plpgsql as $$
+declare d int := ceil(abs(px - r.x) + abs(py - r.y))::int; hr int := extract(hour from now() at time zone 'Asia/Taipei')::int; rush boolean := coalesce((r.items#>>'{veh,f}')::int,0) = 1;
+  nolic boolean := vk <> 'bike' and coalesce((r.items->'lic'->>vk)::int,0) = 0; wr numeric := public.town_wear(r, vk); h numeric; u numeric := random(); sev int; dw numeric; dmg int; med int := 0; t public.town_residents; tk text;
+  mine int; theirs int; sh numeric; dw2 numeric; d2 int := 0; pay1 int; pay2 int; cov boolean; mc boolean; lbl text; mm text := ''; ded int; totpay int := 0;
+begin
+  if d <= 0 then return r; end if;
+  h := case vk when 'moto' then .0008 when 'car' then .0006 else .0004 end * case when rush then 3 else 1 end * case when hr >= 22 or hr < 5 then 1.5 else 1 end * (1 + wr / 50) * case when nolic then 1.8 else 1 end;
+  -- 平常耗損：每格 腳踏車 0.05、機車 0.1、汽車 0.06
+  r := public.town_set_wear(r, vk, wr + d * case vk when 'moto' then .1 when 'car' then .06 else .05 end);
+  if random() >= 1 - power(1 - h, d) then return r; end if;
+  sev := case when u < (case when rush then .55 else .65 end) then 1 when u < (case when rush then .88 else .93 end) then 2 else 3 end;
+  dw := case sev when 1 then 8 + random() * 8 when 2 then 15 + random() * 15 else 40 + random() * 20 end;
+  med := case sev when 1 then 0 when 2 then 300 + floor(random() * 1200)::int else 3000 + floor(random() * 5000)::int end;
+  dmg := round(public.town_vprice(vk) * dw / 100 * .15)::int;
+  lbl := case sev when 1 then '擦撞' when 2 then '小車禍' else '嚴重車禍' end;
+  cov := vk <> 'bike' and not nolic and public.town_ins_ok(r, vk, 'f');   -- 任意險（無照不賠）
+  mc := vk <> 'bike' and public.town_ins_ok(r, vk, 'c');                  -- 強制險
+  -- 另一方：同在路上、醒著、也騎著車（35%）
+  if random() < .35 then
+    select * into t from public.town_residents p where p.town_id = r.town_id and p.id <> r.id and p.place = 'street' and not p.sleeping and p.seen_at > now() - interval '10 minutes' and coalesce(p.items#>>'{veh,k}','') <> '' order by random() limit 1;
+  end if;
+  -- 醫藥費：強制險全額（上限 €20000）；沒有強制險自付，無照無強制險 ×1.5；付不出的記欠款
+  if med > 0 then
+    if mc then mm := '，強制險付了醫藥費 €' || med; med := 0;
+    else if nolic then med := round(med * 1.5)::int; end if; r := public.town_owe(r, med); mm := '，自付醫藥費 €' || med; end if;
+  end if;
+  -- 責任分擔：衝 +2、無照 +1；雙方都沒有就各半
+  if t.id is not null then
+    tk := t.items#>>'{veh,k}'; dw2 := dw * .6; d2 := round(public.town_vprice(tk) * dw2 / 100 * .15)::int;
+    mine := (case when rush then 2 else 0 end) + (case when nolic then 1 else 0 end);
+    theirs := (case when coalesce((t.items#>>'{veh,f}')::int,0) = 1 then 2 else 0 end) + (case when tk <> 'bike' and coalesce((t.items->'lic'->>tk)::int,0) = 0 then 1 else 0 end);
+    sh := (mine + 1)::numeric / (mine + theirs + 2);
+    pay1 := round(sh * d2)::int;            -- 我賠對方
+    pay2 := round((1 - sh) * dmg)::int;     -- 對方賠我
+    if pay1 > 0 then
+      if cov then mm := mm || '，賠償對方由任意險支付 €' || pay1; else r := public.town_owe(r, pay1); mm := mm || '，賠償對方 €' || pay1; end if;
+      t.money := t.money + pay1;
+    end if;
+    if pay2 > 0 then
+      pay2 := least(pay2, greatest(t.money, 0)); t.money := t.money - pay2; r.money := r.money + pay2; mm := mm || '，對方賠了 €' || pay2;
+    end if;
+    t := public.town_set_wear(t, tk, public.town_wear(t, tk) + case when tk <> 'bike' and public.town_ins_ok(t, tk, 'f') then 0 else dw2 end);
+    t.energy := t.energy - 3; t.fun := t.fun - 5;
+    t.items := jsonb_set(t.items, '{ac}', jsonb_build_object('n', coalesce((t.items->'ac'->>'n')::int,0) + 1));
+    update public.town_residents set money = t.money, energy = t.energy, fun = t.fun, items = t.items where id = t.id;
+  end if;
+  -- 我的車：有任意險當場修好，自付 20%；沒有就耗損留著，到車行修
+  if cov then
+    ded := round(dmg * .2)::int; r := public.town_owe(r, ded); mm := mm || '，任意險修車、自付額 €' || ded;
+  else
+    r := public.town_set_wear(r, vk, public.town_wear(r, vk) + dw);
+    mm := mm || '，車損 ' || round(dw)::int || ' 點（修車約 €' || dmg || '）';
+  end if;
+  r.energy := r.energy - case sev when 1 then 3 when 2 then 15 else 30 end; r.fun := r.fun - case sev when 1 then 5 when 2 then 15 else 25 end;
+  r.items := jsonb_set(r.items, '{ac}', jsonb_build_object('n', coalesce((r.items->'ac'->>'n')::int,0) + 1));
+  if sev >= 2 then r.items := jsonb_set(r.items, '{veh}', (r.items->'veh') - 'k' || jsonb_build_object('lk', now() + case when sev = 2 then interval '30 minutes' else interval '2 hours' end)); end if;
+  if sev = 3 then
+    r.items := jsonb_set(jsonb_set(r.items, '{faint}', to_jsonb((now() + interval '2 hours')::text)), '{hosp}', '1'::jsonb); r.sleeping := true;
+    r.items := jsonb_set(r.items, '{veh,rp}', coalesce(r.items#>'{veh,rp}','{}'::jsonb) || jsonb_build_object(vk, now() + interval '3 hours'));
+  end if;
+  insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, r.id, t.id, 'crash', r.name || ' ' || (case when rush then '衝太快，' else '' end) || '發生' || lbl || case when t.id is not null then '，撞到 ' || t.name else '' end || mm || case when sev = 3 then '，送醫住院 2 小時' when sev = 2 then '，休養 30 分鐘不能上車' else '' end);
+  return r;
+end $$;
+revoke all on function public.town_vprice(text), public.town_wear(public.town_residents,text), public.town_set_wear(public.town_residents,text,numeric), public.town_ins_ok(public.town_residents,text,text), public.town_prem_mult(public.town_residents), public.town_prem(public.town_residents,text,text,int), public.town_owe(public.town_residents,int), public.town_crash(public.town_residents,text,real,real) from public, anon, authenticated;
+
 create or replace function public.town_act(rid bigint, pin text, act text, target bigint default null, px real default null, py real default null, dest text default null, item text default null, note text default null) returns json
 language plpgsql security definer set search_path = public as $$
 declare r public.town_residents; t public.town_residents; others text; tn text; n int; w int; near boolean; pa real; pb real; bond int; m real; pub text[] := array['plaza','restaurant','market','park','office'];
@@ -855,7 +960,7 @@ begin
       r.money := r.money - vf;
       if vf < vneed or dest = 'home:' || rid then r.items := jsonb_set(r.items, '{veh}', (r.items->'veh') - 'k'); end if;
     end if;
-    if vk is not null then r := public.town_traffic(r, vk, px, py, dest); end if;
+    if vk is not null then r := public.town_traffic(r, vk, px, py, dest); r := public.town_crash(r, vk, px, py); end if;
     r.x := px; r.y := py; r.place := dest;
     r.items := case when dest = 'home:' || rid then jsonb_set(r.items, '{dr}', '1'::jsonb) else r.items - 'dr' end;  -- 走到自己家門口：站在門外，要按「進屋」
     -- 隨機事件：出門走到外面的地方時偶爾發生（家裡不會）
@@ -1067,6 +1172,9 @@ begin
     if public.town_inside(r) then raise exception '要先出門才能上車'; end if;
     if coalesce(r.items->>'sus','') <> '' and (r.items->>'sus')::timestamptz > now() then raise exception '違規記點滿了，車輛暫停使用到明天'; end if;
     if public.town_tk_debt(r) >= 3000 then raise exception '罰單欠 €% 以上，先繳清才能上車', 3000; end if;
+    if coalesce(r.items->'veh'->>'lk','') <> '' and (r.items->'veh'->>'lk')::timestamptz > now() then raise exception '剛出事故，還在休養，暫時不能上車'; end if;
+    if coalesce(r.items->'veh'->'rp'->>coalesce(item,''),'') <> '' and (r.items->'veh'->'rp'->>item)::timestamptz > now() then raise exception '這台車還在修理廠'; end if;
+    if item <> 'bike' and coalesce((r.items->'db'->>'a')::int,0) >= 5000 then raise exception '事故欠款 €% 以上，先還一部分才能開機車汽車', 5000; end if;
     if not (coalesce(r.items->'veh'->'own','[]'::jsonb) ? coalesce(item,'')) then raise exception '你沒有這台車'; end if;
     r.items := jsonb_set(r.items, '{veh,k}', to_jsonb(item));
   elsif act = 'vmode' then
@@ -1100,6 +1208,46 @@ begin
     if n = 0 then raise exception '錢不夠繳這張罰單'; end if;
     r.money := r.money - n; r.items := jsonb_set(r.items, '{tk}', jf);
     insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'ticket', r.name || ' 繳了罰單 €' || n);
+  elsif act = 'vfix' then
+    -- 維修：在車行，費用 = 車價 ×15% ×耗損%（機車全修 €4500、汽車 €18000、腳踏車 €450）
+    if r.place <> 'carshop' then raise exception '要在車行才能維修'; end if;
+    if not (coalesce(r.items->'veh'->'own','[]'::jsonb) ? coalesce(item,'')) then raise exception '你沒有這台車'; end if;
+    w := ceil(public.town_vprice(item) * .15 * public.town_wear(r, item) / 100)::int;
+    if public.town_wear(r, item) < 1 then raise exception '車況很好，不用修'; end if;
+    if r.money < w then raise exception '錢不夠，維修要 €%', w; end if;
+    r.money := r.money - w; r := public.town_set_wear(r, item, 0);
+    insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'buy', r.name || ' 把' || case item when 'bike' then '腳踏車' when 'moto' then '機車' else '汽車' end || '送修，花了 €' || w);
+  elsif act = 'vsell' then
+    -- 二手車折價：車價 ×60%，每 1 點耗損再少 0.5%（全新 60%、耗損 100 是 30%）；保險一起作廢
+    if r.place <> 'carshop' then raise exception '要在車行才能賣車'; end if;
+    if not (coalesce(r.items->'veh'->'own','[]'::jsonb) ? coalesce(item,'')) then raise exception '你沒有這台車'; end if;
+    n := round(public.town_vprice(item) * .6 * (1 - public.town_wear(r, item) / 200))::int;
+    r.money := r.money + n;
+    r.items := jsonb_set(r.items, '{veh}', ((r.items->'veh') - 'k') || jsonb_build_object('own', (select coalesce(jsonb_agg(e), '[]'::jsonb) from jsonb_array_elements(r.items->'veh'->'own') e where e #>> '{}' <> item), 'w', (coalesce(r.items->'veh'->'w','{}'::jsonb) - item)));
+    r.items := jsonb_set(r.items, '{ins}', coalesce(r.items->'ins','{}'::jsonb) - item);
+    insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'buy', r.name || ' 把二手' || case item when 'bike' then '腳踏車' when 'moto' then '機車' else '汽車' end || '賣給車行，拿到 €' || n);
+  elsif act = 'insure' then
+    -- 買保險：item = 車種:險種:天數（例 moto:c:30）。強制險 c、任意險 f（要先有強制險），7 或 30 天，可疊加續保
+    vk := split_part(coalesce(item,''), ':', 1); tn := split_part(item, ':', 2); n := coalesce(nullif(split_part(item, ':', 3),'')::int, 0);
+    if r.place <> 'carshop' then raise exception '要在車行才能買保險'; end if;
+    if vk not in ('moto','car') or tn not in ('c','f') or n not in (7,30) then raise exception '保險項目不對'; end if;
+    if not (coalesce(r.items->'veh'->'own','[]'::jsonb) ? vk) then raise exception '你沒有這台車'; end if;
+    if tn = 'f' and not public.town_ins_ok(r, vk, 'c') then raise exception '要先有強制險才能加買任意險'; end if;
+    w := public.town_prem(r, vk, tn, n);
+    if r.money < w then raise exception '錢不夠，保費要 €%', w; end if;
+    r.money := r.money - w;
+    r.items := jsonb_set(r.items, '{ins}', coalesce(r.items->'ins','{}'::jsonb) || jsonb_build_object(vk,
+      coalesce(r.items->'ins'->vk,'{}'::jsonb) || jsonb_build_object(tn, greatest(now(), coalesce((r.items->'ins'->vk->>tn)::timestamptz, now())) + make_interval(days => n))));
+    insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'buy', r.name || ' 幫' || case vk when 'moto' then '機車' else '汽車' end || '買了' || n || ' 天' || case tn when 'c' then '強制險' else '任意險' end || '，保費 €' || w);
+  elsif act = 'paydebt' then
+    -- 還事故欠款：item = 金額或 all（可分期）
+    n := coalesce((r.items->'db'->>'a')::int, 0);
+    if n <= 0 then raise exception '沒有欠款'; end if;
+    w := least(n, r.money, case when item = 'all' then n else coalesce(nullif(item,'')::int, 0) end);
+    if w <= 0 then raise exception '錢不夠，先去打工'; end if;
+    r.money := r.money - w;
+    r.items := case when n - w <= 0 then r.items - 'db' else jsonb_set(r.items, '{db}', jsonb_build_object('a', n - w)) end;
+    insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'crash', r.name || ' 還了事故欠款 €' || w || case when n - w > 0 then '，還欠 €' || (n - w) else '，全部還清' end);
   elsif act = 'dismount' then
     if r.items#>>'{veh,k}' is null then raise exception '你沒有騎車'; end if;
     r.items := jsonb_set(r.items, '{veh}', (r.items->'veh') - 'k');

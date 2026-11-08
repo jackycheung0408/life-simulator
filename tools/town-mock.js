@@ -24,6 +24,10 @@ window.fetch=(url,o)=>{const fn=url.split("/rpc/")[1],b=JSON.parse(o.body||"{}")
  if(a=="furn"){const fu=[...Array(9)].map((_,i)=>(r.items.fu||[])[i]||""),[c,i,k]=b.item.split(":");if(c=="set")fu[+i]=k;else fu[+i]="";r.items.fu=fu;return ok(state(r.town_id))}
  if(a=="vbuy"){const P={bike:3000,moto:30000,car:120000},v=r.items.veh=r.items.veh||{own:[]};if(!P[b.item]||r.place!="carshop")return bad("要在車行才能買");if(v.own.includes(b.item))return bad("你已經有了");if(r.money<P[b.item])return bad("錢不夠");r.money-=P[b.item];v.own.push(b.item);return ok(state(r.town_id))}
  if(a=="mount"||a=="dismount"){const v=r.items.veh=r.items.veh||{own:[]};if(a=="mount"){if(!v.own.includes(b.item))return bad("你沒有這台車");v.k=b.item}else delete v.k;return ok(state(r.town_id))}
+ if(a=="insure"){const[k,l,d]=b.item.split(":"),v=r.items.veh=r.items.veh||{own:[]};const P={c:{moto:[150,500],car:[300,1000]},f:{moto:[400,1400],car:[900,3000]}};const c=P[l][k][d==7?0:1];if(r.money<c)return bad("錢不夠");r.money-=c;const i=r.items.ins=r.items.ins||{};i[k]=i[k]||{};i[k][l]=new Date(Math.max(Date.now(),i[k][l]?Date.parse(i[k][l]):0)+d*864e5).toISOString();return ok(state(r.town_id))}
+ if(a=="vfix"){const v=r.items.veh;v.w=v.w||{};v.w[b.item]=0;return ok(state(r.town_id))}
+ if(a=="vsell"){const v=r.items.veh;v.own=v.own.filter(x=>x!=b.item);delete v.k;return ok(state(r.town_id))}
+ if(a=="paydebt"){delete r.items.db;return ok(state(r.town_id))}
  if(a=="vmode"){const v=r.items.veh=r.items.veh||{own:[]};v.f=b.item=="1"?1:0;return ok(state(r.town_id))}
  if(a=="license"){const l=r.items.lic=r.items.lic||{};r.money-=b.item=="moto"?800:1500;if(b.note==(b.item=="moto"?"120":"201"))l[b.item]=1;return ok(state(r.town_id))}
  if(a=="paytk"){const tk=r.items.tk||[],p=b.item=="all"?tk:tk.filter(t=>String(t.id)==b.item),sum=p.reduce((x,t)=>x+t.a,0);if(!sum||sum>r.money)return bad("錢不夠繳這張罰單");r.money-=sum;r.items.tk=tk.filter(t=>!p.includes(t));return ok(state(r.town_id))}

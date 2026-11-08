@@ -72,6 +72,19 @@ const vFull=r=>!!(r&&r.items&&r.items.veh&&r.items.veh.f==1);
 const hasLic=(r,k)=>k=="bike"||!!(((r&&r.items)||{}).lic||{})[k];
 const tkList=r=>((r&&r.items)||{}).tk||[];
 const tkDebt=r=>tkList(r).reduce((a,t)=>a+t.a,0);
+// ── 事故、保險、維修（要和 supabase/town.sql 的 town_crash／town_prem／vfix／vsell 一致）──
+const vwear=(r,k)=>+((((r&&r.items)||{}).veh||{}).w||{})[k]||0;
+const vspd=(r,k)=>VEH[k][2]*(vwear(r,k)>=85?.6:vwear(r,k)>=60?.8:1);
+const insLeft=(r,k,l)=>{const i=((((r&&r.items)||{}).ins||{})[k]||{})[l];return i?Date.parse(i)-now():0};
+const debtOf=r=>+((((r&&r.items)||{}).db||{}).a)||0;
+const premMult=r=>{const it=(r&&r.items)||{};return Math.min(1.8,1+.05*Math.min(6,(it.tv||{}).n||0)+.1*Math.min(4,(it.ac||{}).n||0))};
+const PREM={c:{moto:[150,500],car:[300,1000]},f:{moto:[400,1400],car:[900,3000]}};
+const premOf=(r,k,l,d)=>Math.round(PREM[l][k][d==7?0:1]*premMult(r));
+const fixCost=(r,k)=>Math.ceil(VEH[k][1]*.15*vwear(r,k)/100);
+const sellVal=(r,k)=>Math.round(VEH[k][1]*.6*(1-vwear(r,k)/200));
+const rpLeft=(r,k)=>{const i=((((r&&r.items)||{}).veh||{}).rp||{})[k];return i?Date.parse(i)-now():0};
+const lkLeft=r=>{const i=(((r&&r.items)||{}).veh||{}).lk;return i?Date.parse(i)-now():0};
+const fmtLeft=ms=>{const d=ms/864e5;return d>=1?`${d.toFixed(1)} 天`:`${Math.max(1,Math.round(ms/6e4))} 分鐘`};
 const susLeft=r=>{const s=r&&r.items&&r.items.sus;return s?Date.parse(s)-now():0};
 const stepCost=(x,y,veh)=>isRoad(x,y)?(veh?1:isCross(x,y)?1:3):(veh?2:1);
 // 最短路徑（上下左右走，依成本），找不到就回傳 null
@@ -117,7 +130,7 @@ function tickLocal(r,now){const h=Math.min(72,Math.max(0,(now-Date.parse(r.updat
  if(ss0<=aw0&&ss1>ss0&&ss0==t0){doS();doA()}else{doA();doS()}
  NEEDS.forEach(k=>o[k]=clamp(o[k],0,100));return o}
 
-if(typeof module!=="undefined")module.exports={setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib};
+if(typeof module!=="undefined")module.exports={setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft};
 if(typeof document!=="undefined")addEventListener("DOMContentLoaded",init);
 
 function init(){
@@ -196,7 +209,7 @@ function landing(){document.body.classList.remove("ingame");$("title").textConte
 // ── 鎮內登入：我住在這裡，或用邀請碼搬進來 ──
 async function refresh(){const st=await rpc("town_state",{tid:TID});apply(st)}
 const seenLuck=new Set();
-function apply(st){S=st;POOPS=st.poops||[];CUR=(st.town&&st.town.cur)||"NT$";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>(e.kind=="luck"||e.kind=="rent"||e.kind=="ticket")&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
+function apply(st){S=st;POOPS=st.poops||[];CUR=(st.town&&st.town.cur)||"NT$";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>(e.kind=="luck"||e.kind=="rent"||e.kind=="ticket"||e.kind=="crash")&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
  st.residents.forEach(r=>{R[r.id]=r;const w=walkers[r.id];
   if(!w)walkers[r.id]={x:r.x,y:r.y,path:[],tx:r.x,ty:r.y};else if(r.id!=me&&(Math.abs(w.tx-r.x)>.01||Math.abs(w.ty-r.y)>.01)){const p=bfs([Math.round(w.x),Math.round(w.y)],[Math.round(r.x),Math.round(r.y)],vehOf(r));w.path=p?p.slice(1):[[r.x,r.y]]}
   walkers[r.id].tx=r.x;walkers[r.id].ty=r.y});
@@ -294,8 +307,8 @@ const floaters=[],fxs=[],FXIMG={};
 // 動作對應的動畫：自己的動作在 act() 播；別人（或自己）的社交事件在收到新動態時播
 const ACT_FX={stock:"coins",vbuy:"coins",coffee:"can",movie:"sparkle",workout:"fist",spar:"fight",sneak:"scooter",nap:"zzz",eat:"eat",dine:"eat",snack:"eat",toilet:"toilet",shower:"bubbles",tv:"tv",sleep:"zzz",work:"coins",job:"coins",play:"hearts",browse:"sparkle",buy:"bag",paint:"paint",wake:"sun"};
 const OBJ_FX={dummy:"fight",bench:"zzz",cooler:"bubbles",pwc:"toilet",mailbox:"sparkle",news:"sparkle",claw:"hearts",lottery:"coins",busker:"hearts",pond:"hearts",vend:"can",trash:"sparkle",stall:"eat",well:"coin",swing:"hearts",cat:"hearts"};
-const EV_FX={feed:["eat","t"],wash:["bubbles","t"],visit:["hearts","both"],gift:["gift","fly"],note:["msg","fly"],call:["phone","both"],delivery:["scooter","fly"],thank:["hearts","fly"],greet:["clap","mid"],fight:["fight","mid"],egg:["egg","fly"],prank:["fart","t"],makeup:["hearts","mid"],cowork:["coins","both"],promo:["sparkle","a"],wish:["sparkle","a"],feast:["eat","both"],wakeup:["alarm","t"],luck:["sparkle","a"],tier:["hearts","both"],look:["sparkle","a"],meet:["clap","a"],together:["hearts","a"]};
-const spawnFx=(type,a,b)=>{if(!walkers[a])return;fxs.push({type,a,b:b&&walkers[b]?b:null,born:performance.now(),dur:type=="fight"?1800:type=="scooter"?2200:1500})};
+const EV_FX={feed:["eat","t"],wash:["bubbles","t"],visit:["hearts","both"],gift:["gift","fly"],note:["msg","fly"],call:["phone","both"],delivery:["scooter","fly"],thank:["hearts","fly"],greet:["clap","mid"],fight:["fight","mid"],egg:["egg","fly"],prank:["fart","t"],makeup:["hearts","mid"],cowork:["coins","both"],promo:["sparkle","a"],wish:["sparkle","a"],feast:["eat","both"],wakeup:["alarm","t"],luck:["sparkle","a"],tier:["hearts","both"],look:["sparkle","a"],meet:["clap","a"],together:["hearts","a"],crash:["crash","a"]};
+const spawnFx=(type,a,b)=>{if(!walkers[a])return;fxs.push({type,a,b:b&&walkers[b]?b:null,born:performance.now(),dur:type=="crash"?2000:type=="fight"?1800:type=="scooter"?2200:1500})};
 let lastEvId=null;
 function fxFromEvents(evs){const mx=Math.max(0,...evs.map(e=>e.id));if(lastEvId==null){lastEvId=mx;return}
  evs.filter(e=>e.id>lastEvId).forEach(e=>{const f=EV_FX[e.kind];if(!f)return;const [t,mode]=f;
@@ -354,7 +367,8 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  else if(p=="rafi"){title="拉菲的辦公室";list.push(pjBtn("rafi",r));note=pjNote("rafi",r)+" · 薪水比公司高但很傷心情"}
  else if(p=="stock"){title="證券交易所";list.push(btn("看盤與買賣 📈","8 檔股票、全天開、沒手續費",()=>stockModal()));note=`低買高賣賺差價，留意今日消息 · 持股 ${stockN(r)} 檔`}
  else if(p=="carshop"){title="車行";const own=vehOwn(r);for(const k of ["moto","car"])list.push(hasLic(r,k)?btn(`🎫 ${VEH[k][0]}駕照`,"已考到",()=>toast("你已經有這張駕照了")):btn(`🎫 考${VEH[k][0]}駕照`,`報名費 €${LICFEE[k]} · 三題答對兩題`,()=>licModal(k)));
-  for(const k in VEH){const v=VEH[k];list.push(own.includes(k)?btn(`${v[4]} ${v[0]}`,"已擁有 · 到路上就能上車",()=>toast("你已經有了")):btn(`${v[4]} 買${v[0]}`,`€${v[1]} · 速度 ×${v[2]} · ${v[3]?`油錢 €${v[3]}／格`:"不用油錢"}`,()=>act("vbuy",{item:k})))}note="路上騎車開車比走路快；機車和汽車每走一格扣油錢，沒錢加油會被迫下車。保養與事故之後才有"}
+  list.push(btn("🛡️ 保險、維修、賣車",own.some(k=>k!="bike")||own.length?"強制險、任意險、修車、二手車折價":"買了車才用得到",()=>garageModal()));
+  for(const k in VEH){const v=VEH[k];list.push(own.includes(k)?btn(`${v[4]} ${v[0]}`,"已擁有 · 到路上就能上車",()=>toast("你已經有了")):btn(`${v[4]} 買${v[0]}`,`€${v[1]} · 速度 ×${v[2]} · ${v[3]?`油錢 €${v[3]}／格`:"不用油錢"}`,()=>act("vbuy",{item:k})))}note="路上騎車開車比走路快；機車和汽車每走一格扣油錢，沒錢加油會被迫下車。開車有機率出事故，買保險比較安心，車況差要記得修"}
  else if(p=="cinema"){title="電影院";list.push(btn("看電影 🎬","€300 · 心情 +35 · 1 小時一次",()=>act("movie")))}
  else if(p=="gym"){title="健身房";list.push(btn("健身 🏋️",`精力 −15 · 心情 +10 · 打架更強（${Math.min(10,(r.items||{}).fit||0)}/10）`,()=>act("workout")),pjBtn("gym",r));note=pjNote("gym",r)}
  else if(p=="arena"){title="格鬥場";const it=r.items||{};list.push(btn("打擂台 🥊",`精力 −12 · 贏了拿獎金、連勝越多越貴 · 目前 ${it.streak||0} 連勝（最高 ${it.best||0}）`,()=>act("spar")));note="在這裡點別人可以約打：5 分鐘就能再打一次、贏的拿 €100（每人 30 分鐘領一次）、好朋友以上不扣、其他扣 1"}
@@ -372,10 +386,11 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
   list.length=0;if(face)list.push(...faceActs(t.id));list.push(...onlineActs(t.id));
   if(!face)list.push(btn(`走到 ${t.name} 旁邊`,`他在${placeName(t.place)} · 面對面才能擊掌、扁他`,()=>walkToPerson(t.id)));
   list.push(btn(`去 ${t.name} 家`,"煮飯、洗澡、串門子要到他家",()=>{sel=null;goHouse(t.slot)}),btn("取消","",()=>{sel=null;lastPanel="";renderPanel()}))}
- if(!r.sleeping&&!inside(r)&&!(walkers[me]&&walkers[me].path.length)&&!sel){const vk=vehOf(r);if(vk){list.push(btn(`${VEH[vk][4]} 下車`,`${VEH[vk][0]} · 目前速度 ×${VEH[vk][2]}`,()=>act("dismount"),"move"));
+ if(!r.sleeping&&!inside(r)&&!(walkers[me]&&walkers[me].path.length)&&!sel){const vk=vehOf(r);if(vk){list.push(btn(`${VEH[vk][4]} 下車`,`${VEH[vk][0]} · 速度 ×${vspd(r,vk).toFixed(1)} · 車況 ${Math.round(100-vwear(r,vk))}%${vwear(r,vk)>=60?"（太舊，去車行修）":""}`,()=>act("dismount"),"move"));
   list.push(btn(vFull(r)?"🚦 現在：衝":"🚦 現在：守規矩",vFull(r)?"全速，但闖紅燈、超速、不禮讓會被巡邏開單。按一下改守規矩":"紅燈停、鬧區限速 ×2、住宅區 ×2.5。按一下改成衝",()=>act("vmode",{item:vFull(r)?"0":"1"}),"move"));
   if(vk!="bike"&&!hasLic(r,vk))list.push(btn("🎫 你沒有駕照",`被抓無照罰 €${FINE.nl[2]}。到車行考照`,()=>toast("到車行考駕照"),"move"))}
-  else for(const k of vehOwn(r))list.push(btn(`${VEH[k][4]} ${k=="car"?"開":"騎"}${VEH[k][0]}`,`速度 ×${VEH[k][2]} · ${VEH[k][3]?`油錢 €${VEH[k][3]}／格`:"不用油錢"}${k!="bike"&&!hasLic(r,k)?" · 沒有駕照":""}`,()=>act("mount",{item:k}),"move"))}
+  else for(const k of vehOwn(r))list.push(btn(`${VEH[k][4]} ${k=="car"?"開":"騎"}${VEH[k][0]}`,`${rpLeft(r,k)>0?`修理中，${fmtLeft(rpLeft(r,k))}後取車 · `:""}速度 ×${vspd(r,k).toFixed(1)} · 車況 ${Math.round(100-vwear(r,k))}% · ${VEH[k][3]?`油錢 €${VEH[k][3]}／格`:"不用油錢"}${k!="bike"&&!hasLic(r,k)?" · 沒有駕照":""}${k!="bike"&&!insLeft(r,k,"c")?" · 沒保險":""}`,()=>act("mount",{item:k}),"move"))}
+ if(!sel&&debtOf(r)>0)list.push(btn(`🧾 事故欠款 €${debtOf(r)}`,`錢夠就一次還清，不夠先還手上的。欠 €5000 以上不能開機車汽車${lkLeft(r)>0?` · 休養中 ${fmtLeft(lkLeft(r))}`:""}`,()=>act("paydebt",{item:"all"}),"move"));
  if(!sel&&(tkList(r).length||susLeft(r)>0))list.push(btn(`🎫 罰單 · 欠 €${tkDebt(r)}`,susLeft(r)>0?`違規記滿，車輛暫停到 ${new Date(Date.parse(r.items.sus)).toLocaleString("zh-TW",{hour12:false,month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}`:`${tkList(r).length} 張 · 欠 €3000 以上不能上車`,()=>ticketModal(),"move"));
  // 店家休息中：只留說明，按鈕拿掉
  const cm=closedMsg(p);if(cm&&!sel){title+="（休息中）";note=cm;for(let i=list.length-1;i>=0;i--)if(!list[i].g||list[i].g=="place")list.splice(i,1)}
@@ -455,8 +470,8 @@ function lifeModal(){const r=R[me],c=career(r),w=(r.items&&r.items.wish)||{},k=W
 function wishModal(){$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>選一個人生願望</h2><p class="mut">每達成一個里程碑，有獎金、稱號和動態公告。可以先跳過。</p><div class="list">${Object.entries(WISHES).map(([k,v])=>`<button data-wk="${k}" style="width:100%;text-align:left;margin-bottom:6px"><b>${v[0]}</b><br><small>${v[1]}：${v[2].join("、")}</small></button>`).join("")}</div><div class="row"><button id="wskip">先跳過</button></div>`;
  const pick=async k=>{try{apply(await rpc("town_wish",{rid:me,pin,k}));$("modal").classList.add("hide");if(k!="skip"){toast("願望訂好了");lifeModal()}}catch(e){toast(e.message)}};
  $("mbody").querySelectorAll("[data-wk]").forEach(b=>b.onclick=()=>pick(b.dataset.wk));$("wskip").onclick=()=>pick("skip")}
-const KIND_ICON={encounter:"💬",promo:"📈",wish:"🎯",duel:"✊",feed:"🍚",wash:"🛁",visit:"🏠",note:"📱",call:"📞",delivery:"🛵",gift:"🎁",thank:"💗",greet:"🙌",fight:"👊",egg:"🥚",prank:"💨",makeup:"🤝",wakeup:"⏰",cowork:"💼",feast:"🍖",tier:"💞",look:"✨",join:"🏡",found:"🏛️",expand:"🛣️",leave:"📦",meet:"👋",together:"🎉",accident:"💦",passout:"😵",luck:"🍀",rent:"🧾"};
-const GOOD=["feed","wash","visit","note","call","delivery","gift","thank","greet","makeup","cowork","feast"],BADK=["fight","egg","prank","wakeup"];
+const KIND_ICON={encounter:"💬",promo:"📈",wish:"🎯",duel:"✊",feed:"🍚",wash:"🛁",visit:"🏠",note:"📱",call:"📞",delivery:"🛵",gift:"🎁",thank:"💗",greet:"🙌",fight:"👊",egg:"🥚",prank:"💨",makeup:"🤝",wakeup:"⏰",cowork:"💼",feast:"🍖",tier:"💞",look:"✨",join:"🏡",found:"🏛️",expand:"🛣️",leave:"📦",meet:"👋",together:"🎉",crash:"💥",accident:"💦",passout:"😵",luck:"🍀",rent:"🧾"};
+const GOOD=["feed","wash","visit","note","call","delivery","gift","thank","greet","makeup","cowork","feast"],BADK=["fight","egg","prank","wakeup","crash"];
 let feedFilter="all",feedSeen=0;
 function renderFeed(){renderRank();renderPeople();const all=((S&&S.events)||[]).filter(e=>e.kind!="rent"||e.actor==me).slice().sort((a,b)=>b.at.localeCompare(a.at)||b.id-a.id);
  const day=a=>new Date(Date.parse(a)+8*36e5).toISOString().slice(0,10),today=day(new Date(now()).toISOString()),yest=day(new Date(now()-864e5).toISOString());
@@ -635,6 +650,13 @@ function licModal(k){const qs=LICQ[k],ans=["","",""];$("modal").classList.remove
   $("mbody").querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{ans[+b.dataset.q]=b.dataset.o;draw()});$("mc").onclick=()=>$("modal").classList.add("hide");
   $("lgo").onclick=async()=>{$("modal").classList.add("hide");await act("license",{item:k,note:ans.join("")});if(hasLic(R[me],k))toast("考到了！可以上路");else toast("沒過，30 分鐘後再考")}};draw()}
 // 罰單：列出每張、逾期加罰 50%、可單張或全部繳清
+function garageModal(){const r=R[me],own=vehOwn(r);$("modal").classList.remove("hide");
+ const row=k=>{const w=vwear(r,k),ins=k=="bike"?"":["c","f"].map(l=>`<div class="mrow"><span><b>${l=="c"?"強制險":"任意險"}</b> <small class="mut">${insLeft(r,k,l)>0?`剩 ${fmtLeft(insLeft(r,k,l))}`:"沒有"} · ${l=="c"?"醫藥費全額":"修車付八成、賠償對方全額，無照不賠"}</small></span><span><button data-i="${k}:${l}:7">7天 €${premOf(r,k,l,7)}</button> <button data-i="${k}:${l}:30">30天 €${premOf(r,k,l,30)}</button></span></div>`).join("");
+  return `<div class="mrow"><span>${VEH[k][4]} <b>${VEH[k][0]}</b> <small class="mut">車況 ${Math.round(100-w)}% · 速度 ×${vspd(r,k).toFixed(1)}</small></span><span><button data-f="${k}" ${w<1?"disabled":""}>修 €${fixCost(r,k)}</button> <button data-s="${k}">賣 €${sellVal(r,k)}</button></span></div>${ins}`};
+ $("mbody").innerHTML=`<h3>🛡️ 保險與維修</h3><p class="mut">保費倍率 ×${premMult(r).toFixed(2)}（違規與事故越多越貴）。修車費 = 車價 15% × 耗損。賣車 = 車價 60%，耗損再折。任意險要先有強制險。${debtOf(r)>0?`事故欠款 €${debtOf(r)}`:""}</p>`+(own.length?`<div class="list">${own.map(row).join("")}</div>`:`<p class="mut">還沒有車</p>`)+`<div class="row"><button id="mc">關閉</button></div>`;pxify($("mbody"));
+ const go=async(a,it)=>{await act(a,{item:it});if($("modal").classList.contains("hide"))return;garageModal()};
+ $("mbody").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>go("insure",b.dataset.i));$("mbody").querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>go("vfix",b.dataset.f));
+ $("mbody").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{if(confirm("確定要賣掉這台車嗎？保險也會一起作廢"))go("vsell",b.dataset.s)});$("mc").onclick=()=>$("modal").classList.add("hide")}
 function ticketModal(){const r=R[me],tk=tkList(r),pts=(r.items.pts&&r.items.pts.d==new Date(now()+8*36e5).toISOString().slice(0,10))?r.items.pts.n:0,sl=susLeft(r);$("modal").classList.remove("hide");
  $("mbody").innerHTML=`<h3>🎫 罰單</h3><p class="mut">今天違規記 ${pts}／6 點，滿 6 點車輛暫停 1 天。欠 €3000 以上不能上車。開單 24 小時內沒繳，加罰 50%</p>`+(sl>0?`<p class="err">車輛暫停中，明天才能再上路</p>`:"")+
   (tk.length?`<div class="list">${tk.map(t=>`<div class="mrow"><span><b>${(FINE[t.k]||["違規"])[0]}</b> <small class="mut">€${t.a}${t.o?" · 已逾期加罰":" · 還沒逾期"}</small></span><button data-p="${t.id}">繳</button></div>`).join("")}</div>`:`<p class="mut">沒有罰單，繼續保持</p>`)+
@@ -846,7 +868,7 @@ function drawLights(){const ms=now();for(let y=0;y<mapRows();y++){if(!roadRowsAt
  lamp(X-12,Y+2,ph==0);lamp(X+2*T+2,Y+2*T-18,ph==0);lamp(X+2,Y-18,ph==1);lamp(X+2*T-12,Y+2*T+2,ph==1)}}
 function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimationFrame(frame);if(!S||!me||!R[me]||$("game").classList.contains("hide"))return;
  const night=isNight(),key=night?"n":"d";if(!maps[key])maps[key]=buildMap(night);const MW=COLS*T,MH=mapRows()*T;
- for(const id in walkers){const w=walkers[id];if(!R[id]||!w.path.length)continue;const [nx,ny]=w.path[0],dx=nx-w.x,dy=ny-w.y,d=Math.hypot(dx,dy),vk=vehOf(R[id]),rule=vk&&!vFull(R[id]),vm=vk?VEH[vk][2]:1;
+ for(const id in walkers){const w=walkers[id];if(!R[id]||!w.path.length)continue;const [nx,ny]=w.path[0],dx=nx-w.x,dy=ny-w.y,d=Math.hypot(dx,dy),vk=vehOf(R[id]),rule=vk&&!vFull(R[id]);let vm=vk?vspd(R[id],vk):1;
   if(rule){vm=Math.min(vm,zoneLim(Math.round(w.y)));const cx=Math.round(w.x),cy=Math.round(w.y);
    if(Math.abs(w.x-cx)<.01&&Math.abs(w.y-cy)<.01&&isInter(nx,ny)&&!isInter(cx,cy)&&lightG(now(),ny)!=(dy==0?0:1)){w.moving=false;continue}}
   const sp=4.5*vm*dt;w.moving=true;if(Math.abs(dx)>.01)w.fx=dx<0?-1:1;
@@ -896,6 +918,7 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
     case "clap":{const mx=(ax+bx)/2,my=(ay+by)/2;icon("🙌",mx,my-50-e*10,28);if(k<.5)for(let j=0;j<6;j++){const a2=j*1.05;g.fillStyle="#ffd23f";g.fillRect(mx+Math.cos(a2)*k*60,my-50+Math.sin(a2)*k*60,4,4)}break}
     case "fight":{const mx=(ax+bx)/2,my=(ay+by)/2-10;g.fillStyle="rgba(230,230,230,.9)";for(let j=0;j<7;j++){const a2=j*.9+nowp/120;g.beginPath();g.arc(mx+Math.cos(a2)*18,my+Math.sin(a2)*12,12+Math.sin(nowp/60+j)*3,0,7);g.fill()}
       icon(["👊","💥","⭐"][Math.floor(nowp/150)%3],mx+Math.sin(nowp/70)*14,my-6,26);icon("💥",mx-16,my-18+Math.sin(nowp/90)*6,18);break}
+    case "crash":{g.fillStyle="rgba(240,240,240,.9)";for(let j=0;j<6;j++){const a2=j*1.05+nowp/90;g.fillRect(ax+Math.cos(a2)*(10+k*40),ay-20+Math.sin(a2)*(8+k*28),6,6)}icon("💥",ax,ay-34-e*6,30);icon("🔧",ax+14,ay-48,18);break}
     case "egg":{if(k<.75){const kk=k/.75,x=ax+(bx-ax)*kk,y=ay+(by-ay)*kk-50-Math.sin(kk*Math.PI)*60;icon("🥚",x,y,22)}else{g.fillStyle="#fff";g.beginPath();g.ellipse(bx,by-40,16,8,0,0,7);g.fill();g.fillStyle="#ffcc33";g.beginPath();g.arc(bx,by-40,6,0,7);g.fill()}break}
     case "fart":{for(let j=0;j<5;j++){g.fillStyle=`rgba(140,200,90,${.6-j*.1})`;g.beginPath();g.arc(ax+Math.sin(j+k*3)*20,ay-k*40-j*6,10+k*14,0,7);g.fill()}icon("💨",ax+16,ay-30,22);break}
     case "alarm":icon("⏰",ax+Math.sin(nowp/30)*4,ay-55,26);break}
