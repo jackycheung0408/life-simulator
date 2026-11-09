@@ -179,7 +179,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  let ok1=true,ok2=true,ok3=true;try{ok1=M.roomOf(A,{1:A,2:H})===null}catch(e){ok1=false}
  try{const rm=M.roomOf(W,{2:H,3:W});ok2=!!rm&&rm.visit===true&&rm.hid===2}catch(e){ok2=false}
  try{ok3=M.roomOf(W,{2:{...H,items:{hl:1,dr:1}},3:W})===null}catch(e){ok3=false}
- check(ok1,"roomOf：人在街上不可丟錯、要回 null");check(ok2,"roomOf：站在朋友家門口、他人在屋裡 → 要回訪客室內（visit、hid）");check(ok3,"roomOf：朋友站在門口（dr=1）不算在屋裡，不給室內");}
+ check(require("fs").readFileSync(__dirname+"/town.js","utf8").includes("rm.visit?[tickLocal(R[rm.hid],now())]:[r]"),"站在朋友家門口只畫屋主，不可把自己畫進他家裡（你人在門外）");check(ok1,"roomOf：人在街上不可丟錯、要回 null");check(ok2,"roomOf：站在朋友家門口、他人在屋裡 → 要回訪客室內（visit、hid）");check(ok3,"roomOf：朋友站在門口（dr=1）不算在屋裡，不給室內");}
 // 朋友睡著：叫醒、看室內（曾因叫不醒也寫進 1 小時冷卻而叫不到人、看室內畫面不畫屋主）
 {const fs=require("fs"),tjs=fs.readFileSync(__dirname+"/town.js","utf8"),tsql=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8");
  check(tsql.includes("'wakefail', r.name || ' 搖了 '")&&tsql.includes("e.kind = 'wakefail' and e.at > now() - interval '3 minutes'"),"town.sql：叫不醒要寫 wakefail 事件、只擋 3 分鐘（不可吃 wakeup 的 1 小時冷卻）");
