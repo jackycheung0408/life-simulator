@@ -58,6 +58,8 @@ label{display:block;margin:10px 0}
 #needs{position:sticky;top:0;z-index:5;background:var(--bg);padding:6px 0}
 #away{border-color:var(--ac)}.thx{padding:2px 8px;font-size:11px;margin-left:6px}.bond{display:block;position:relative;height:6px;background:var(--line);border-radius:3px;margin:4px 0;width:160px}.bond b{position:absolute;top:0;bottom:0;border-radius:3px}#away p{margin:4px 0}
 .bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;align-items:center}
+#upd{position:fixed;left:8px;right:8px;top:calc(var(--hud,64px) + 6px);z-index:60;display:none;align-items:center;gap:8px;background:var(--box,#2c2620);color:#fff;border:3px solid #fff;box-shadow:0 0 0 3px var(--ink,#000);border-radius:4px;padding:6px 8px}
+#upd.on{display:flex}#upd span{flex:1}#upd button{min-height:44px;min-width:44px;padding:0 12px;border:3px solid #fff;border-radius:4px;background:#f6a5c0;color:#1c1a17;font:inherit}#upd #updX{background:transparent;color:#fff}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:#2c2620;color:#fff;padding:10px 16px;border-radius:12px;transition:transform .25s;z-index:50;max-width:90vw}
 #toast.on{transform:translateX(-50%) translateY(0)}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:40;padding:16px}
@@ -218,6 +220,6 @@ body.ingame #needs{grid-template-columns:repeat(6,minmax(0,1fr))}body.ingame .ne
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide"><div class="card" id="mbody"></div></div>
-<script src="icons.js?v=12"></script><script src="town.js?v=85"></script>
+<script src="icons.js?v=12"></script><script src="town.js?v=86"></script>
 </body>
 </html>

@@ -160,6 +160,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u22-autoupdate",date:"11/09",title:"小鎮有新版會自己通知",items:["從主畫面打開也不用手動重新整理了","有新版時上面會出現「小鎮有新版本」，按「更新」就換成新的","你在走路或開視窗時不會被打斷，等你有空再顯示"]},
   {id:"u21-hud2",date:"11/09",title:"手機畫面再整理",items:["錢格不再貼邊，下面的禮物、零食數量看得到","站在自己家門口，標題不再寫成「在他家」","上面的角色頁籤右邊淡出，提示可以左右滑"]},
   {id:"u20-needbar",date:"11/09",title:"狀態條的條回來了",items:["手機上方的飽足、精力、膀胱、清潔、心情，條又看得到了","之前被擠成一條細線，現在固定高度，數字和條都清楚","電腦版和手機版都檢查過了"]},
  {id:"u19-home",date:"11/09",title:"家裡可以自由佈置了",items:["家具想放哪就放哪：點家具選取，再點空格移動，也能收回背包","房間會隨房子升級變大，小屋 6×3、豪宅 10×4，可以擺更多東西","超市新增相框、掛畫（掛牆上）、檯燈、玩具、書堆","在家時畫面直接看得到你的佈置，朋友來看室內也看得到","睡覺躺到床上、看電視坐沙發、開冰箱吃東西、按摩椅會震，角色都會走過去"]},
@@ -1136,6 +1137,16 @@ function report(){const c=document.createElement("canvas");c.width=1080;c.height
 const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone;let installEvt=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+// ── 自動更新：主畫面 web app 沒辦法重新整理，所以啟動、回到前景、每 5 分鐘問一次 version.json，有新版就顯示「更新」按鈕（按了才重整，不會在操作到一半自己跳）──
+const MYV=(()=>{try{const sc=[...document.scripts].find(x=>/town\.js/.test(x.src));return sc?+new URL(sc.src).searchParams.get("v")||0:0}catch(e){return 0}})();
+let newV=0;
+function updBusy(){const w=walkers[me];return !$("modal").classList.contains("hide")||(w&&w.path&&w.path.length>0)}
+function updShow(){if(!newV)return;if(updBusy()){clearTimeout(updShow.t);updShow.t=setTimeout(updShow,10000);return}
+ let b=$("upd");if(!b){b=document.createElement("div");b.id="upd";document.body.appendChild(b)}
+ b.innerHTML=`<span>小鎮有新版本</span><button id="updGo">更新</button><button id="updX" aria-label="先不要">✕</button>`;b.classList.add("on");
+ $("updGo").onclick=()=>{try{flush()}catch(e){}location.reload()};$("updX").onclick=()=>b.classList.remove("on")}
+async function checkVer(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const j=await r.json();if(MYV&&j.v>MYV&&j.v>newV){newV=j.v;updShow()}}catch(e){}}
+if(typeof document!=="undefined"&&MYV){checkVer();setInterval(checkVer,3e5);document.addEventListener("visibilitychange",()=>{if(document.visibilityState=="visible")checkVer()})}
 function installHelp(){if(installEvt){installEvt.prompt();installEvt.userChoice.then(c=>{if(c.outcome=="accepted")toast("裝好了，從主畫面打開小豬鎮吧");installEvt=null});return}
  const ua=navigator.userAgent,wx=/MicroMessenger/i.test(ua),ios=/iPhone|iPad|iPod/i.test(ua);$("modal").classList.remove("hide");
  $("mbody").innerHTML=`<h2>📲 加到主畫面</h2>${wx?`<p>在 WeChat 裡不能直接安裝：</p><ol><li>點右上角「⋯」</li><li>選「在瀏覽器打開」${ios?"（Safari）":"（Chrome）"}</li><li>再按一次「📲 加到主畫面」</li></ol>`

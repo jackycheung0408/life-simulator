@@ -15,7 +15,7 @@
 
 ## 規則
 - 改 CSS 後確認大括號有配對（曾因多一個 `.ctrl{` 讓後面所有樣式失效）
-- 改了 js／css，要把對應 `index.html` 裡所有的 `?v=N` 加 1（快取）
+- 改了 js／css，要把對應 `index.html` 裡所有的 `?v=N` 加 1（快取）；小豬鎮改用 `node tools/town-bump.mjs`（連 `version.json` 一起，見「自動更新」）
 - 舊存檔要能繼續玩；平衡改動用 `football/js/home.js` 的 migrate（SAVE_VER）
 - 互動一律用按鈕，不要用超連結
 - 球員一律用英文名字
@@ -33,6 +33,12 @@
 - 後端：`supabase/town.sql`，全部邏輯在 plpgsql security definer 函式（`town_state/create/join/login/device/find/act/mayor/features/game/duel/push_sub`）。資料表全開 RLS、不給直接權限。這個檔可重複執行。
 - 推播：`supabase/functions/town-push`（Verify JWT 要保持關閉）＋ `supabase/town_push.sql`。function 內的消耗速率、離線保護要和 `town_tick` 同步；改了要重新部署：`supabase functions deploy town-push --project-ref gerqdagicybtyilihvvm --no-verify-jwt`（需要 CLI 登入；自動模式會擋，要使用者自己跑）。
 - 登入：免密碼，每台裝置一把金鑰（只存雜湊在 `town_devices`），新裝置用邀請碼。
+
+## 自動更新（小豬鎮；玩家多半從主畫面開 web app，沒辦法重新整理）
+- **改了 `town/` 的 js／css 後，不要手動改 `?v=`，一律跑 `node tools/town-bump.mjs`**：它把 `town/index.html` 裡 `town.js?v=N` 加 1，並把 `town/version.json` 寫成 `{"v":N}`（`--icons` 同時加 `icons.js` 的 `?v=`）。`node town/test.js` 會檢查 `version.json` 與 `?v` 一致。
+- 前端（`town.js` 的 `MYV`／`checkVer`／`updShow`）：啟動、回到前景、每 5 分鐘 `fetch("version.json?t=…",{cache:"no-store"})`，比自己載入的 `town.js?v=` 新就在畫面上方顯示「小鎮有新版本［更新］［✕］」（`#upd`）；**按了才 `location.reload()`**，走路或開 modal 時延後顯示，不會強制重整。
+- `town/sw.js`：`version.json` 不快取、首頁（navigate／index.html）用 `cache:"no-store"` 問伺服器；改了 `sw.js` 要把快取名 `C` 加版號。
+- `tools/town-mock.js` 的 `fetch` 只攔 `/rpc/`，其他網址（如 `version.json`）照常載入；測更新提示時把暫存資料夾的 `version.json` 改大。
 
 ## 更新通知（每次改版必做）
 - **每次改版（玩家看得到的改動）都要在 `town/town.js` 的 `UPDATES` 最前面加一則**：`{id, date, title, items:[3～6 條短句]}`，id 不可重複，繁體中文。`node town/test.js` 會檢查。
@@ -86,7 +92,7 @@
 
 ## 測試與部署（重要）
 - 前端路線測試：`node town/test.js`（所有房子數量下每個設施走得到）。
-- 改了 `town.js` 或 `icons.js`：到 `town/index.html` 把 `?v=` 加 1（快取）。
+- 改了 `town.js` 或 `icons.js`：跑 `node tools/town-bump.mjs`（`?v=` 加 1 並同步 `version.json`，icons 有改加 `--icons`）。
 - 推上去前先 `git pull --rebase`：另一個 session 也在改這個資料夾（足球）。pre-push 會跑足球測試，偶爾不穩，重跑即可。
 - SQL 不會自動套用：到 Supabase SQL Editor，抓 `raw.githubusercontent.com/jackycheung0408/life-simulator/<commit>/supabase/town.sql`，用 `monaco.editor.getModels()[0].setValue(...)` 貼上，按 ⌘↵，確認「Potential issue」對話框後執行。
 - 資料庫實測：在同一段 SQL 後面接一個 `do $$ ... $$` 區塊（建測試鎮、呼叫 `town_act`、把結果寫進 `zz_town_test`、最後 `delete from town_towns`），看完結果就 `drop table zz_town_test`。plpgsql 變數不要和欄位／參數同名。

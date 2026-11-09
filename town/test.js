@@ -9,6 +9,11 @@ for(let rows=2;rows<=4;rows++){M.setRows(rows);
 // 和 supabase/town.sql 的 town_door 一樣：x = [2,9,20][s%3]+2；y = 第 0 排 5、第 1 排 21、之後每排 +7（28、35）
 for(let s=0;s<12;s++){const k=Math.floor(s/3),d=M.door(s),y=(k==0?1:k==1?17:24+7*(k-2))+4;check(d[0]==[2,9,20][s%3]+2&&d[1]==y,`房子 ${s} 門口和資料庫不一致`)}
 check(M.door(7)[0]==11&&M.door(7)[1]==28,"房子 7 的門應該在 (11,28)，和資料庫測試結果一致");
+// 自動更新：version.json 要和 index.html 裡 town.js 的 ?v 一致（改版請跑 node tools/town-bump.mjs）
+{const fs=require("fs"),html=fs.readFileSync(__dirname+"/index.html","utf8"),m=html.match(/town\.js\?v=(\d+)/),vj=JSON.parse(fs.readFileSync(__dirname+"/version.json","utf8"));
+ check(m&&vj.v==+m[1],"town/version.json 的 v（"+vj.v+"）要等於 index.html 的 town.js?v（"+(m&&m[1])+"）。跑 node tools/town-bump.mjs");
+ const sw=fs.readFileSync(__dirname+"/sw.js","utf8");check(/version/.test(sw)&&/no-store/.test(sw),"sw.js 對首頁與 version.json 要 no-store");
+ check(/checkVer/.test(fs.readFileSync(__dirname+"/town.js","utf8")),"town.js 要有 checkVer 自動更新檢查")}
 // 需求（×2 速率）：醒著 10 小時，飽足 80 → 0；睡覺 8 小時，飽足 80 → 40
 const base={sleeping:false,hunger:80,energy:80,bladder:80,hygiene:80,fun:80,updated_at:new Date(0).toISOString()};
 const tk=(o,h)=>M.tickLocal({...base,...o},h*36e5);
