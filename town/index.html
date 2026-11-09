@@ -159,14 +159,14 @@ input,textarea{font-family:inherit;background:#0f1530;color:#fff;border:3px soli
 body.ingame .need{background:rgba(27,36,80,.88)}
 /* ── 手機版分區：狀態列／工具列／地圖／抽屜，不再互相疊在一起 ── */
 @media (max-width:700px){
- body.ingame{--hud:calc(env(safe-area-inset-top) + 58px);--tb:52px}
+ body.ingame{--hud:calc(env(safe-area-inset-top) + 64px);--tb:52px}
  body.ingame #needs{right:0;height:var(--hud);padding:calc(env(safe-area-inset-top) + 4px) 64px 4px 4px;background:var(--ink);border-bottom:3px solid #fff;gap:3px;align-items:stretch}
  body.ingame .need{box-shadow:none;border:2px solid #fff;padding:2px 1px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
  body.ingame .need span{flex:none;height:16px;line-height:16px}body.ingame .need span img.px{width:16px;height:16px;display:block}body.ingame .need i{flex:none;height:6px;min-height:6px;width:86%;margin:1px 0;border-width:1px;box-sizing:border-box}body.ingame .need i b{display:block;height:100%}
- body.ingame .need small{font-size:11px;line-height:1.1}body.ingame .need.money small{margin-top:0}
+ body.ingame .need small{font-size:11px;line-height:1.1}.need u{text-decoration:none}body.ingame .need u.cu{display:none}body.ingame .need.money small{margin-top:0}
  body.ingame .bar{top:calc(env(safe-area-inset-top) + 4px);right:4px}
  body.ingame #menuBtn{height:48px;width:54px;padding:2px;font-size:11px;line-height:1.2;background:#3a4a8c;border:2px solid #fff;box-shadow:none}
- body.ingame #strip{position:fixed;top:var(--hud);left:0;right:0;height:var(--tb);bottom:auto;z-index:19;margin:0;padding:4px 6px;right:auto;width:calc(100% - 184px);background:#141a3a;border-bottom:3px solid var(--ink);align-items:center;gap:4px;box-sizing:border-box}
+ body.ingame #strip{position:fixed;top:var(--hud);left:0;right:0;height:var(--tb);bottom:auto;z-index:19;margin:0;padding:4px 6px;right:auto;width:calc(100% - 184px);-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);background:#141a3a;border-bottom:3px solid var(--ink);align-items:center;gap:4px;box-sizing:border-box}
  body.ingame #stage::before{content:"";position:fixed;left:0;right:0;top:var(--hud);height:calc(var(--tb) + 3px);background:#141a3a;border-bottom:3px solid var(--ink);z-index:18}
  body.ingame #strip button{background:#26306a;border:2px solid var(--ink);box-shadow:none;flex-direction:row;gap:3px;padding:1px 6px;height:44px;align-items:center}
  body.ingame #strip canvas{width:18px;height:26px}body.ingame #strip span{font-size:11px}
@@ -218,6 +218,6 @@ body.ingame #needs{grid-template-columns:repeat(6,minmax(0,1fr))}body.ingame .ne
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide"><div class="card" id="mbody"></div></div>
-<script src="icons.js?v=12"></script><script src="town.js?v=84"></script>
+<script src="icons.js?v=12"></script><script src="town.js?v=85"></script>
 </body>
 </html>

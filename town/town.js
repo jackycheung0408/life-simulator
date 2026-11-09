@@ -160,6 +160,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u21-hud2",date:"11/09",title:"手機畫面再整理",items:["錢格不再貼邊，下面的禮物、零食數量看得到","站在自己家門口，標題不再寫成「在他家」","上面的角色頁籤右邊淡出，提示可以左右滑"]},
   {id:"u20-needbar",date:"11/09",title:"狀態條的條回來了",items:["手機上方的飽足、精力、膀胱、清潔、心情，條又看得到了","之前被擠成一條細線，現在固定高度，數字和條都清楚","電腦版和手機版都檢查過了"]},
  {id:"u19-home",date:"11/09",title:"家裡可以自由佈置了",items:["家具想放哪就放哪：點家具選取，再點空格移動，也能收回背包","房間會隨房子升級變大，小屋 6×3、豪宅 10×4，可以擺更多東西","超市新增相框、掛畫（掛牆上）、檯燈、玩具、書堆","在家時畫面直接看得到你的佈置，朋友來看室內也看得到","睡覺躺到床上、看電視坐沙發、開冰箱吃東西、按摩椅會震，角色都會走過去"]},
  {id:"u18-inside",date:"11/09",title:"可以走進設施裡面了",items:["咖啡廳、餐廳、健身房：走到門口會自動走進去，裡面有吧台、咖啡機、跑步機等像素佈置","點咖啡機、廚房窗口、沙包、鏡子旁的櫃子等物件，就是做那一項互動，角色會走過去並播動畫","同在裡面的人各站一格不重疊；在裡面的人不會站在街上，窗戶會亮燈","電影院、公園、廣場的互動也有動畫了；按「出門」或走去別處就會離開"]},
@@ -493,7 +494,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  $("here").textContent=title;$("note").textContent=note;
  // 內容沒變就不重畫，避免按到一半按鈕被換掉
  if(!sel){const t=nextStep(r,p);if(t){list.unshift({...t,g:"tip"});track("show",t.label)}}
- const dg=inside(r)?"self":p&&p.startsWith("home:")?"friend":"place";list.forEach(b=>{if(!b.g)b.g=/^(走|去 |取消)/.test(b.label)?"move":/^(打工|應徵)/.test(b.label)?"work":dg});
+ const dg=inside(r)?"self":p&&p.startsWith("home:")&&p!=="home:"+me?"friend":"place";list.forEach(b=>{if(!b.g)b.g=/^(走|去 |取消)/.test(b.label)?"move":/^(打工|應徵)/.test(b.label)?"work":dg});
  const GORD=["tip","self","place","eat","fun","soc","work","home","friend","face","online","move"],order=[...new Set(list.map(b=>b.g))].sort((a,b)=>GORD.indexOf(a)-GORD.indexOf(b)),multi=order.length>1;
  const html=order.map(g=>(multi?`<div class="grp">${GROUP[g]}</div>`:"")+list.map((b,i)=>{if(b.g!=g)return "";
    // 圖示放大在左邊；壞事用紅色；錢不夠就標出來
@@ -504,7 +505,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
 $("acts").addEventListener("click",ev=>{const b=ev.target.closest("button[data-i]");if(!b||busy)return;const f=panelFns[b.dataset.i];if(f){if(f.dis){toast(f.dis);return}if(f.g=="tip")track("click",f.label);press(b,f.fn)}});
 let lastNeeds="";
 function renderNeeds(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now());
- const html=NEEDS.map(k=>{const v=Math.round(r[k]),[ic,nm]=NEED_INFO[k];return `<div class="need${v<20?" low":""}" title="${nm} ${v}"><span>${ic}</span><i><b style="width:${v}%;background:${v<20?"var(--bad)":v<50?"var(--warn)":"var(--good)"}"></b></i><small><em>${nm} </em>${v}</small></div>`}).join("")+`<div class="need money"><span>${MOOD[moodOf(r)][0]}</span><small>€${r.money>=10000?(r.money/1000).toFixed(1).replace(/\.0$/,"")+"k":r.money}${(r.items||{}).gift||(r.items||{}).snack?"<br>":""}${(r.items||{}).gift?`🎁${r.items.gift}`:""}${(r.items||{}).gift&&(r.items||{}).snack?" ":""}${(r.items||{}).snack?`🍪${r.items.snack}`:""}</small></div>`;
+ const html=NEEDS.map(k=>{const v=Math.round(r[k]),[ic,nm]=NEED_INFO[k];return `<div class="need${v<20?" low":""}" title="${nm} ${v}"><span>${ic}</span><i><b style="width:${v}%;background:${v<20?"var(--bad)":v<50?"var(--warn)":"var(--good)"}"></b></i><small><em>${nm} </em>${v}</small></div>`}).join("")+`<div class="need money"><span>${MOOD[moodOf(r)][0]}</span><small title="€${r.money}"><u class="cu">€</u>${r.money>=10000?(r.money/1000).toFixed(1).replace(/\.0$/,"")+"k":r.money}${(r.items||{}).gift||(r.items||{}).snack?"<br>":""}${(r.items||{}).gift?`🎁${r.items.gift}`:""}${(r.items||{}).gift&&(r.items||{}).snack?" ":""}${(r.items||{}).snack?`🍪${r.items.snack}`:""}</small></div>`;
  if(html!=lastNeeds){lastNeeds=html;patchList($("needs"),html)}}
 // 每週排行（最近 7 天）
 // 排行榜：頒獎台（前三名大頭貼）＋其餘名次＋你的名次；最近 7 天的事件，加上現在的存款和好友數

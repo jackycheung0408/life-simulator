@@ -123,6 +123,8 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
 // 手機狀態條：條（.need i）不能被壓扁（曾因圖示行高 24.75px、固定高度而被擠成 2px，看起來像能力條不見）
 {const html=require("fs").readFileSync(__dirname+"/index.html","utf8");
  check(/body\.ingame \.need i\{flex:none;height:6px;min-height:6px/.test(html),"狀態條 body.ingame .need i 要 flex:none 並固定 6px（不可被壓扁）");
+ check(/p&&p\.startsWith\("home:"\)&&p!=="home:"\+me\?"friend"/.test(require("fs").readFileSync(__dirname+"/town.js","utf8")),"自己家門口不能算「在他家」（dg 要排除 home:"+"me）");
+ check(/body\.ingame \.need u\.cu\{display:none\}/.test(html),"手機錢格要隱藏貨幣符號（寬度只有約 50px）");
  check(/body\.ingame \.need span\{flex:none;height:16px;line-height:16px\}/.test(html),"狀態條圖示格要固定 16px 高（行高過大會擠掉條）");}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

@@ -143,7 +143,7 @@
 - 像素字型 Cubic 11 只在 11／16.5／22px 清楚，別用其他字級；字距保持 0。
 - 手機（≤700px）分四塊：狀態列（`#needs`）、工具列（`#strip` + `.tools`）、地圖（`#stage`）、底部抽屜（`#panel`，有收起鈕）。
 - 數值欄只在內容有變時重畫（`lastNeeds`），不要讓它閃。
-- **狀態條的「條」不能被壓扁**：`body.ingame .need` 是固定高度（`--hud`）的直排 flex，圖示格 `span` 曾因行高 24.75px（16.5px×1.5）擠掉 `i` 條，條被壓成 2px、填色 0px，看起來像「能力條不見」。現在 `span` 固定 16px 高、`i` `flex:none` 6px；改狀態列內容或字級後要用 `getBoundingClientRect` 量 `.need i` 高度，`node town/test.js` 會檢查這兩條 CSS 還在。
+- **狀態條的「條」不能被壓扁**：`body.ingame .need` 是固定高度（`--hud`）的直排 flex，圖示格 `span` 曾因行高 24.75px（16.5px×1.5）擠掉 `i` 條，條被壓成 2px、填色 0px，看起來像「能力條不見」。現在 `span` 固定 16px 高、`i` `flex:none` 6px；錢格在遊戲中（`body.ingame`）只顯示數字（貨幣符號 `u.cu` 隱藏、完整金額在 title），手機 `--hud` 為 64px 才放得下第二行禮物／零食；`#strip` 右緣用 mask 淡出提示可滑動；面板分組標題自己家門口不是「在他家」（`dg` 排除 `home:`+自己）。改狀態列內容或字級後要用 `getBoundingClientRect` 量 `.need i` 高度，`node town/test.js` 會檢查這兩條 CSS 還在。
 - 手機觸控：按鈕高度 ≥ 44px（工具列 `--tb:52px`、`#strip` 與 `.tools` 的按鈕 44px、`#grip`、`#menuClose`）；`#strip` 寬度要預留 `.tools` 的寬（目前 `calc(100% - 184px)`），改了工具列按鈕要重量。modal 裡用 `class="act"` 的選項按鈕（`choiceModal`）由 `#mbody button.act` 排版，標題與說明上下兩行。字距一律 0（`.dsec` 已改）。狀態列錢格（`.need.money`）寬只有約 49px：≥10000 顯示 `12.3k`，禮物／零食數量換行顯示，格子用 `minmax(0,1fr)` 防止撐開。iPhone Safari 底部工具列區域會露出頁面底色，不是排版錯誤。
 
 ## 遊戲平衡（目前數值）
