@@ -22,6 +22,14 @@ window.fetch=(url,o)=>{if(!String(url).includes("/rpc/"))return _fetch(url,o);co
  if(fn=="town_traits"){const r=R(b.rid);r.items=r.items||{};r.items.tr=b.ks||[];return ok(state(r.town_id))}
  if(fn=="town_wish"){const r=R(b.rid);r.items=r.items||{};r.items.wish={k:b.k=="skip"?"none":b.k,m:0};if(b.k=="rich"){r.items.titles=["小富翁"];r.items.wish.m=1}return ok(state(r.town_id))}
  if(fn=="town_fac"){return ok({m:0,f:3,msg:"（假資料）"+b.act})}
+ if(fn=="town_jail"){const r=R(b.rid);r.items=Object.assign({},r.items);const it=r.items;const iso=ms=>new Date(ms).toISOString();
+  if(b.act=="labor"){it.jp=Object.assign({},it.jp,{n:((it.jp||{}).n||0)+1});r.money+=120;r.energy-=20;it.jl=iso(Date.parse(it.jl)-6e5);return ok({m:120,e:-20,f:-3,msg:"做了一小時勞動，領了 €120，刑期縮短 10 分鐘"})}
+  if(b.act=="yard"){r.fun=Math.min(100,r.fun+6);r.energy-=3;it.cd=Object.assign({},it.cd,{yard:now()});return ok({f:6,e:-3,msg:"在放風場曬了太陽、走了一圈，心情好多了"})}
+  if(b.act=="parole"){delete it.jl;delete it.jp;it.pl=iso(Date.now()+864e5);it.pr={u:iso(Date.now()+864e5),n:1};return ok({msg:"表現良好，獲准假釋！24 小時內別再犯事",paroled:true})}
+  if(b.act=="escape"){it.cd=Object.assign({},it.cd,{esc:now()});if(window.__escOK){delete it.jl;delete it.jp;it.wt=iso(Date.now()+3*36e5);it.pr={u:iso(Date.now()+27*36e5),n:1};r.place="street";return ok({e:-20,msg:"越獄成功！被通緝 3 小時",escaped:true})}it.jl=iso(Date.parse(it.jl)+36e5);it.jp=Object.assign({},it.jp,{bad:1});r.money=Math.max(0,r.money-500);return ok({m:-500,e:-15,f:-10,msg:"越獄失敗，被獄警抓回來：加刑 1 小時、罰款 €500",escaped:false})}
+  if(b.act=="bail"){delete it.jl;delete it.jp;r.money-=600;it.pr={u:iso(Date.now()+864e5),n:1};return ok({m:-600,msg:"付了保釋金 €600，提早出獄"})}
+  return ok({msg:"（假資料）"+b.act})}
+ if(fn=="town_jail_ev"){const r=R(b.rid);if(b.op=="poll"){if(!r.__je&&r.place=="jail"){r.__je=1;return ok({ev:{k:1,at:String(Date.now())}})}return ok({ev:null})}return ok({hit:true,f:8,e:-5,m:0,b:0,dl:0})}
  if(fn=="town_fi"){const r=R(b.rid);r.items=Object.assign({},r.items);if(b.op=="enter")r.items.fi=b.pl;else delete r.items.fi;return ok({ok:true,fi:r.items.fi||null})}
  if(fn=="town_pevent"){const r=R(b.rid);if(b.op=="poll"){if(!r.__pe&&r.place&&r.place!="street"&&!r.place.startsWith("home")){r.__pe=1;return ok({ev:{pl:r.place,k:0,at:String(Date.now())}})}return ok({ev:null})}r.fun=Math.min(100,r.fun+6);return ok({hit:true,f:6,e:-3,m:0,b:1,who:"小美",tg:true})}
  if(fn=="town_invite"){const r=R(b.rid);if(b.op=="send"){const t=R(b.target);t.items=t.items||{};t.items.iv={f:r.id,at:now(),p:r.place};return ok({sent:true})}if(b.op=="yes"){delete r.items.iv;r.fun=Math.min(100,r.fun+8);return ok({ok:true,bonus:true})}delete r.items.iv;return ok({ok:true})}

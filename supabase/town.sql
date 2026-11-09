@@ -412,8 +412,21 @@ begin
   end if;
   -- 刑滿：清掉 items.jl（人還在監獄門口，自己走出去）
   if (r.items->>'jl') is not null and not jld then
-    r.items := r.items - 'jl';
+    r.items := r.items - 'jl' - 'jp';
     insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, r.id, 'jail', r.name || ' 刑期滿了，出獄了');
+  end if;
+  -- 通緝中（越獄成功後 3 小時，items.wt）：上線中出了家門就可能被巡警抓回去（每分鐘約 3.5%），關 90 分鐘、不能假釋；躲在家裡（home:）不會被抓
+  if (r.items->>'wt') is not null then
+    if (r.items->>'wt')::timestamptz <= now() then
+      r.items := r.items - 'wt';
+    elsif not jld and not r.sleeping and r.place not like 'home:%' and r.place <> 'jail' and now() < r.seen_at + interval '30 minutes' and random() < 1 - exp(-2.1 * least(h, .25)) then
+      r.items := jsonb_set(r.items - 'wt' - 'dr' - 'fi', '{jl}', to_jsonb((now() + interval '90 minutes')::text));
+      r.items := jsonb_set(r.items, '{jp}', jsonb_build_object('t', now(), 'e', now() + interval '90 minutes', 'n', 0, 'bad', 1));
+      r := public.town_prior_set(r, now() + interval '90 minutes', true);
+      if r.items#>>'{veh,k}' is not null then r.items := jsonb_set(r.items, '{veh}', (r.items->'veh') - 'k'); end if;
+      bn := public.town_place_name(r.place); r.place := 'jail'; r.x := 61; r.y := 5;
+      insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, r.id, 'jail', r.name || ' 被通緝，在' || bn || '被巡警抓回監獄，關 90 分鐘');
+    end if;
   end if;
   -- 清潔歸零：發臭，同地點醒著的人心情 −2（只在剛歸零那一次）
   if hyg0 > 0 and r.hygiene <= 0 then
@@ -859,7 +872,7 @@ create or replace function public.town_traffic(r public.town_residents, vk text,
 declare cx int := round(r.x)::int; cy int := round(r.y)::int; tx int := round(px)::int; ty int := round(py)::int; xx int; yy int; k int := 0; sg int;
   mult real := case vk when 'moto' then 2.5 when 'car' then 3 else 1.5 end; ms double precision := extract(epoch from clock_timestamp()) * 1000;
   rush boolean := coalesce((r.items#>>'{veh,f}')::int,0) = 1; red int := 0; zt int := 0; ys int[] := '{}'; yn int := 0; hr int := extract(hour from now() at time zone 'Asia/Taipei')::int;
-  nf real := case when hr >= 23 or hr < 5 then .5 else 1 end; motor boolean := vk in ('moto','car'); i int;
+  nf real := case when hr >= 23 or hr < 5 then .5 else 1 end * public.town_pr_mult(r); motor boolean := vk in ('moto','car'); i int;
 begin
   if rush then
     sg := case when tx >= cx then 1 else -1 end;
@@ -1352,7 +1365,7 @@ begin
     fx := public.town_pjob_fx(item);
     if r.energy < greatest(15, -fx[1]) then raise exception '太累了，先回家睡覺'; end if;
     n := coalesce((r.items->'jw'->>item)::int,0);
-    w := public.town_pay(public.town_pjob_wage(item, n), mo, public.town_has(r,'workaholic')) * public.town_work_pct(public.town_dc_get(r,'work')) / 100;
+    w := public.town_pay(public.town_pjob_wage(item, n), mo, public.town_has(r,'workaholic')) * public.town_work_pct(public.town_dc_get(r,'work')) / 100 * public.town_pr_pct(r) / 100;
     r := public.town_dc_inc(r,'work');
     r.items := jsonb_set(r.items, '{jw}', coalesce(r.items->'jw','{}'::jsonb) || jsonb_build_object(item, n + 1));
     r.money := r.money + w; r.energy := r.energy + fx[1]; r.hunger := r.hunger + fx[2]; r.fun := r.fun + fx[3]; r.hygiene := r.hygiene + fx[4];
@@ -1368,7 +1381,7 @@ begin
     elsif act = 'work' then if r.energy < 25 then raise exception '太累了，先回家睡覺'; end if;
       perform public.town_wk_check(r); r := public.town_wk_set(r);
       r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('work', now())); n := coalesce((r.items->>'works')::int,0);
-      w := public.town_pay(public.town_wage(public.town_job_lv(n)), mo, public.town_has(r,'workaholic')) * public.town_work_pct(public.town_dc_get(r,'work')) / 100;
+      w := public.town_pay(public.town_wage(public.town_job_lv(n)), mo, public.town_has(r,'workaholic')) * public.town_work_pct(public.town_dc_get(r,'work')) / 100 * public.town_pr_pct(r) / 100;
       r := public.town_dc_inc(r,'work');
       r.items := jsonb_set(r.items, '{works}', to_jsonb(n + 1)); r.money := r.money + w; r.energy := r.energy - 25; r.fun := r.fun - 10; r.hunger := r.hunger - 8;
       insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'work', r.name || ' 打工賺了 €' || w);
@@ -1445,8 +1458,8 @@ begin
         if r.place <> 'office' then raise exception '要一起在公司才能加班'; end if;
         if r.energy < 25 or t.energy < 25 then raise exception '有人太累了，加不了班'; end if;
         perform public.town_wk_check(r); perform public.town_wk_check(t); r := public.town_wk_set(r); t := public.town_wk_set(t);
-        r.money := r.money + 2 * public.town_pay(public.town_wage(public.town_job_lv(coalesce((r.items->>'works')::int,0))), mo, public.town_has(r,'workaholic')) * public.town_work_pct(public.town_dc_get(r,'work')) / 100;
-        t.money := t.money + 2 * public.town_pay(public.town_wage(public.town_job_lv(coalesce((t.items->>'works')::int,0))), public.town_mood(t), public.town_has(t,'workaholic')) * public.town_work_pct(public.town_dc_get(t,'work')) / 100;
+        r.money := r.money + 2 * public.town_pay(public.town_wage(public.town_job_lv(coalesce((r.items->>'works')::int,0))), mo, public.town_has(r,'workaholic')) * public.town_work_pct(public.town_dc_get(r,'work')) / 100 * public.town_pr_pct(r) / 100;
+        t.money := t.money + 2 * public.town_pay(public.town_wage(public.town_job_lv(coalesce((t.items->>'works')::int,0))), public.town_mood(t), public.town_has(t,'workaholic')) * public.town_work_pct(public.town_dc_get(t,'work')) / 100 * public.town_pr_pct(t) / 100;
         r := public.town_dc_inc(r,'work'); t := public.town_dc_inc(t,'work'); r.energy := r.energy - 25; t.energy := t.energy - 25; perform public.town_bond(r.town_id, rid, t.id, 2);
         insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 和 ' || tn || ' 一起加班，薪水加倍 💼');
       else

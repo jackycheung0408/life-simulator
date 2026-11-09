@@ -86,12 +86,21 @@
 - 事件 kind：`slash`／`jail`／`bail`／`visitjail`／`jaillabor`。`node town/test.js` 會比對座標、勞動、保釋金、傷害與抓人機率和 SQL 是否一致。
 - `town_jail.sql` 要在 `town.sql` 之後套用（`town.sql` 含 `town_jailed`、入獄檢查、jail 地點、`px > 64`，改了 `town_tick`／`town_act`，套用前先確認）。
 
+### 牢裡情境（2026-11-09 擴充；SQL 待套用：**先套 `supabase/town_jail.sql`，再套 `town.sql`**，兩份都改了；`town_fi.sql` 白名單加了 jail，也要重新套用；實測 `supabase/town_jail2_test.sql`，最後 rollback，結果在錯誤訊息 REPORT）
+- 角色一樣**不會死**；新增的懲罰都不永久、缺值 = 沒有（舊角色不用遷移）。資料全在 `items`：`pr = {u 到期, n 累計}` 前科、`wt` 通緝到期、`pl` 假釋到期、`jp = {t 入獄, e 原定出獄, n 牢裡勞動次數, bad 惹事}` 服刑紀錄、`je = {nx,lp,d,n,q}` 獄友事件、`cd.yard／cd.esc` 冷卻。前端 `JAILX／JE／jpOf／priorOn／wantedOn／paroleOn／statLine／paroleWhy／escP`（數字和 SQL 一致，`node town/test.js` 會比對）。
+- **前科**：入獄時 `pr.u` = 出獄時間 + 24 小時；提早出獄（勞動滿刑、保釋、假釋）改成「出獄當下 + 24 小時」（`town_prior_set`）。期間 **薪水 −8%**（`town_pr_pct`，`town.sql` 的公司打工、其他工作、加班都乘上它）、**巡警機率 ×1.5**（`town_pr_mult`：砍人被抓與 `town_traffic` 的 `nf`）。「我的人生」與各地點面板有一行 `statLine`。
+- **放風** `yard`：心情 +6、精力 −3、30 分鐘一次。**假釋** `parole`：要做滿 2 次牢裡勞動、沒惹事（`jp.bad`）、服滿一半刑期，免費；成功後 `pl` 24 小時，期間再被關刑期加倍（最多 6 小時）且不能再假釋。灰掉的按鈕寫原因（`paroleWhy`）。
+- **越獄** `escape`：精力 ≥ 30、1 小時一次；成功 12%（23～5 點 18%）回到街上、通緝 3 小時、精力 −20、記前科；失敗加刑 60 分鐘、罰款最多 €500（付到 0、不欠款）、精力 −15 心情 −10、算惹事。**通緝**：巡警機率 ×2.5；`town_tick` 對「上線中、不在家（home:）、不在牢裡」的通緝犯每分鐘約 3.5%（`1 - exp(-2.1 × 小時)`）抓回牢裡關 90 分鐘、不能假釋；躲在家不會被抓。
+- **獄友事件** `town_jail_ev(rid,pin,op,item)`（poll／pick，和設施小事件同格式）：4 個事件（聊天、被欺負、交換物品、幫忙）× 2 個選項，效果表 `town_jail_ev_eff`（12 欄：心情、精力、錢、好感、成功%、失敗心情／精力／錢／好感、成功刑期分、失敗刑期分、惹事），前端 `JE` 文字順序要一致；每天最多 8 個、約 5～10 分鐘一個；賭的選項金錢期望值 ≤ 0（牌 −10）、減刑到 0 就出獄。
+- **監獄室內**：`ROOMS.jail`（鐵窗、通風口、探監窗口、大門、保釋櫃檯、上下鋪、勞動工作台、放風場）。**入獄中的人自動算在裡面**（`fin` 對 `place=="jail" && jailed(r)` 為 true，面板不顯示「出門」）；探監的人用 `town_fi` 的「進去」。動畫 `ROOM_ACT`：勞動→工作台敲打、放風→曬太陽、探望→窗口冒愛心、越獄→通風口搖晃、假釋→大門透光、保釋→櫃檯數錢。新圖示 `bars／hammer／glass／vent`。
+- **教訓**：頂層函式（`init()` 外面的，例如 `jlLeft`）不能用 `init()` 裡的 `now()`（沒有定義，只要有人被關著就會出錯）；用頂層的 `nowFn()`（`init()` 建好 `now` 後指到它）。
+
 ## 走進設施裡面（咖啡廳、餐廳、健身房；SQL 已套用 2026-11-09，實測通過：`supabase/town_fi.sql`，要在 `town.sql`、`town_social.sql` 之後；實測 `supabase/town_fi_test.sql`，最後 rollback，結果在錯誤訊息 REPORT）
 - 獨立 RPC `town_fi(rid,pin,op,place)`（op = enter／exit），不改 `town_act`。資料 `items.fi` = 地點代號（`cafe`／`restaurant`／`gym`），**只有 `fi` 等於現在的 `place` 才算在裡面**（SQL `town_fin`、前端 `fin(r)`），走到別處 place 一變就自動失效（離線超過一小時回家睡也一樣），舊角色缺值 = 在外面；和自家進屋的 `items.dr` 互不相干。設施互動（`town_fac`）不要求一定在室內，沒進去也能照常用。
 - 流程：走到設施門口（`arrived`）自動呼叫 enter（失敗就留在門口，面板第一顆是「進去」）；面板在裡面時標題加「（店裡）」並多一顆「出門」；`walkTo` 一開始會先 exit（`leaveRoomLocal`）；在裡面的人地圖上不畫（`draw` 的 `fin` 過濾）、設施兩扇窗戶亮燈。
 - 畫面：面板標題下方的 `<canvas id="room">`（12×5 格、每格 24px，第 0 列是牆，`drawRoom`）。**室內格子系統**（之後家裡擺家具可共用）：物件 = `[代號,格x,格y]`，代號查 `ITEM`（`[像素圖示, 名稱, 對應面板按鈕的文字（null = 裝飾）, 是否擋住站位]`）；場景 `ROOMS[地點] = {floor, wall, items:[[代號,x,y]…]}`。點物件 = 按面板上文字比對到的那顆按鈕；同在裡面的人（`fin` 且醒著）由 `roomSpots` 依離中央遠近排在沒被擋住的地板格，一人一格不重疊，名字在頭上。
 - **互動動畫**：地圖上 `FAC_FX`（設施互動 → `spawnFx` 類型，新增 steam／notes／check／disc／fishing／flash，電影院、公園、廣場也有）；室內 `ROOM_ACT`（互動 → 物件代號）＋`playRoomFx`／`roomFxDraw`：角色走到物件旁（0.4 秒）→ 播動畫（0.9 秒）→ 走回（0.3 秒）。新增動畫用像素方塊或 `PIXICON_NAME`，不要用 emoji 文字。`node town/test.js` 檢查：地點存在、物件在格內不重疊、每個物件對得到按鈕、SQL 白名單和 `ROOMS` 一致、`fin` 判斷。
-- **新增可進入的設施**：`ROOMS` 加一列（物件要用 `ITEM` 已有的代號，新物件先加進 `ITEM`）、`town_fi.sql` 白名單（`pl not in (...)`，測試會比對）加地點、用 `tools/town-mock.js`（已有 `town_fi` 假回應）看畫面。目前只有三間，其餘設施之後陸續開放。
+- **新增可進入的設施**：`ROOMS` 加一列（物件要用 `ITEM` 已有的代號，新物件先加進 `ITEM`）、`town_fi.sql` 白名單（`pl not in (...)`，測試會比對）加地點、用 `tools/town-mock.js`（已有 `town_fi` 假回應）看畫面。目前有咖啡廳、餐廳、健身房、監獄（監獄：入獄的人自動算在裡面，探監的人才需要「進去」；`town_fi.sql` 白名單含 jail），其餘設施之後陸續開放。
 
 ## 加一個新設施的清單（全都要改）
 1. `town.js`：`PLACES`（座標 r、door、block:1）、`HOURS`、`FEATS`（讓鎮長能開關）、面板按鈕、`buildMap` 的 `bld(...)` 與 `sign(...)`、`ACT_FX`。

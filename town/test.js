@@ -132,14 +132,42 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(town.includes("town_jailed")&&town.includes("when p = 'jail' then '監獄'")&&town.includes("'carshop','jail')"),"town.sql 要有 town_jailed 與 jail 地點");
  const near=Object.entries(M.PLACES).filter(([k,p])=>k!="jail"&&p.block).filter(([k,p])=>{const [x,y,w,h]=P.r,[a,b,c,d]=p.r;return !(a>=x+w+2||a+c<=x-2||b>=y+h+2||b+d<=y-2)});check(near.length==0,"監獄離其他建築至少要 2 格："+near.map(x=>x[0]))}
 // 走進設施裡面：ROOMS 的地點要存在、物件在 12×4 格內、點物件要對得到面板按鈕；SQL 的 town_fi 白名單要和 ROOMS 一致；fin 只有 items.fi 等於現在的 place 才算
-{const sql=require("fs").readFileSync(__dirname+"/../supabase/town_fi.sql","utf8"),labels=[...Object.values(M.FAC).map(d=>d[0]),"坐下逗留 🪑","起身 🪑","打工：咖啡師 💼","打工：服務生 💼","打工：健身教練 💼","喝咖啡 ☕","吃一頓","健身 🏋️"];
+{const sql=require("fs").readFileSync(__dirname+"/../supabase/town_fi.sql","utf8"),labels=[...Object.values(M.FAC).map(d=>d[0]),"坐下逗留 🪑","起身 🪑","打工：咖啡師 💼","打工：服務生 💼","打工：健身教練 💼","喝咖啡 ☕","吃一頓","健身 🏋️","做牢裡的勞動 💼","放風 ☀️","申請假釋 🪪","越獄 🕳️","付保釋金出去 💰","探望 乙 🤝","替 乙 保釋 💰"];
  check(sql.includes("pl not in ("+Object.keys(M.ROOMS).map(k=>"'"+k+"'").join(",")+")"),"town_fi.sql 的地點白名單要和 ROOMS 一致");
- const need={cafe:["coffee","jukebox","bar","table","plant"],restaurant:["kitchen","menu","bar","table","lamp"],gym:["treadmill","rack","bag","mirror","locker"]};
+ const need={cafe:["coffee","jukebox","bar","table","plant"],restaurant:["kitchen","menu","bar","table","lamp"],gym:["treadmill","rack","bag","mirror","locker"],jail:["bars","vent","glass","gate","bailDesk","bunk","work","yard"]};
  for(const [k,rm] of Object.entries(M.ROOMS)){check(M.PLACES[k],`ROOMS ${k} 不是地點`);const seen=new Set();
   for(const o of rm.items){const d=M.ITEM[o[0]];check(!!d,`${k} 的物件代號 ${o[0]} 沒有定義`);if(!d)continue;check(o[1]>=0&&o[1]<M.RW&&o[2]>=0&&o[2]<M.RH,`${k} 物件 ${o[0]} 超出格子`);check(!seen.has(o[1]+","+o[2]),`${k} 物件重疊 ${o[1]},${o[2]}`);seen.add(o[1]+","+o[2]);if(d[2])check(labels.some(l=>d[2].test(l)),`${k} 的 ${d[1]} 對不到任何按鈕`)}
   for(const c of need[k])check(rm.items.some(o=>o[0]==c),`${k} 要有 ${c}`);
   const sp=M.roomSpots(rm);check(sp.length>=8,`${k} 站位不夠（${sp.length}）`);check(new Set(sp.map(p=>p.join(","))).size==sp.length&&sp.every(p=>!rm.items.some(o=>M.ITEM[o[0]][3]&&o[1]==p[0]&&o[2]==p[1])),`${k} 站位和擋住的物件重疊`)}
- check(M.fin({place:"cafe",items:{fi:"cafe"}})&&!M.fin({place:"park",items:{fi:"cafe"}})&&!M.fin({place:"cafe",items:{}})&&!M.fin({place:"park",items:{fi:"park"}}),"fin 判斷不對（舊角色缺值要算在外面）")}
+ check(M.fin({place:"cafe",items:{fi:"cafe"}})&&!M.fin({place:"park",items:{fi:"cafe"}})&&!M.fin({place:"cafe",items:{}})&&!M.fin({place:"park",items:{fi:"park"}}),"fin 判斷不對（舊角色缺值要算在外面）")
+ const jr={place:"jail",items:{jl:new Date(Date.now()+36e5).toISOString()}},jf={place:"jail",items:{jl:new Date(Date.now()-36e5).toISOString()}};
+ check(M.fin(jr)&&!M.fin(jf)&&!M.fin({place:"jail",items:{}}),"fin：入獄中的人算在牢房裡，刑滿或沒被關的人要自己走進去")}
+// 牢裡情境（假釋、越獄、放風、前科、通緝、獄友事件）：前後端數字要一致
+{const sql=require("fs").readFileSync(__dirname+"/../supabase/town_jail.sql","utf8"),town=require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8"),X=M.JAILX;
+ check(X.parole[0]==2&&sql.includes("if n < 2 then")&&sql.includes("interval '24 hours')::text)")&&X.parole[1]==24,"假釋條件（勞動 2 次、假釋 24 小時）和 SQL 不一致");
+ check(sql.includes("(j->>'escaped')")==false&&sql.includes("case when hr >= 23 or hr < 5 then .18 else .12 end")&&X.escP[0]==12&&X.escP[1]==18,"越獄成功率和 JAILX 不一致");
+ check(sql.includes("if r.energy < "+X.esc[0]+" then")&&sql.includes("r.energy := r.energy - "+X.esc[1]+"; e := -"+X.esc[1])&&sql.includes("interval '"+X.esc[2]+" minutes'")&&sql.includes("least("+X.esc[3]+", greatest(0, r.money))")&&sql.includes("interval '"+X.esc[4]+" minutes'"),"越獄精力／加刑／罰款／冷卻和 JAILX 不一致");
+ check(sql.includes("r.fun := r.fun + "+X.yard[0]+"; r.energy := r.energy - "+X.yard[1])&&sql.includes("interval '"+X.yard[2]+" minutes'"),"放風數字和 JAILX 不一致");
+ check(sql.includes("then 92 else 100")&&X.prior[1]==92&&sql.includes("when public.town_wanted(r) then 2.5 when public.town_pr_on(r) then 1.5")&&X.prior[2]==1.5&&X.wanted[1]==2.5&&sql.includes("interval '24 hours')::text, 'n'"),"前科（薪水 −8%、×1.5）和通緝（×2.5）和 SQL 不一致");
+ check(sql.includes("(now() + interval '3 hours')::text)")&&X.wanted[0]==3&&town.includes("interval '"+X.wanted[2]+" minutes'")&&town.includes("1 - exp(-2.1 * least(h, .25))"),"通緝 3 小時／抓回關 90 分鐘和 SQL 不一致");
+ check(town.includes("public.town_pr_mult(r)")&&(town.match(/town_pr_pct\(r\)/g)||[]).length==3&&(town.match(/town_pr_pct\(t\)/g)||[]).length==1,"town.sql 的打工薪水要乘前科（公司、其他工作、加班各自 r 與 t）");
+ // 獄友事件：4 個事件 × 2 個選項，效果表的順序和 JE 文字一致；賭的選項金錢期望值 ≤ 0
+ const m=sql.match(/town_jail_ev_eff[\s\S]*?'\[([\s\S]*?)\]'::jsonb/),tab=JSON.parse("["+m[1].replace(/\n/g,"")+"]");
+ check(tab.length==4&&M.JE.length==4&&tab.every(e=>e.length==2&&e.every(a=>a.length==12)),"獄友事件表要 4 個事件 × 2 個選項 × 12 欄");
+ for(const [k,e] of tab.entries())for(const [o,a] of e.entries()){const ev=a[4]/100*a[2]+(1-a[4]/100)*a[7];check(ev<=0,`獄友事件 ${k}-${o} 金錢期望值要 ≤ 0（現在 ${ev}）`);check(a[2]<=0||a[4]<100,`獄友事件 ${k}-${o} 不能保證賺錢`)}
+ check(M.JE.every(d=>d.length==6&&d.every(x=>typeof x=="string"&&x)),"JE 每個事件要有標題、說明、兩個選項與提示");
+ check(M.JE[1][5].includes("45%")&&tab[1][1][4]==45&&M.JE[2][5].includes("35%")&&tab[2][1][4]==35&&tab[2][1][2]==120&&tab[2][1][7]==-80&&M.JE[3][5].includes("50%")&&tab[3][1][4]==50,"JE 提示裡的機率和 SQL 效果表不一致");
+ check(sql.includes("if jv->>'d'")==false&&sql.includes("dn < 8")&&sql.includes("floor(random() * 4)::int"),"獄友事件：每天上限 8、4 種事件");
+ // 角色不會死：沒有任何刪除角色或把數值壓到 −1 的寫法
+ check(!/delete from public\.town_residents/.test(sql),"town_jail.sql 不可刪角色（不會死）");
+ // 面板按鈕：灰掉要寫原因
+ const tj=require("fs").readFileSync(__dirname+"/town.js","utf8");
+ check(tj.includes('dz(btn("申請假釋 🪪"')&&tj.includes("paroleWhy")&&tj.includes("escapeModal"),"監獄面板要有假釋（灰掉寫原因）與越獄確認");
+ check(tj.includes('jailed(r)){title+="（牢房裡）"}')&&tj.includes("jePoll"),"入獄的人面板不能有出門鈕，且要有獄友事件輪詢");
+ // 假釋原因
+ const t0=Date.now(),mk=(n,bad,t,e)=>({items:{jp:{t:new Date(t).toISOString(),e:new Date(e).toISOString(),n,bad}}});
+ check(M.paroleWhy({items:{}}).includes("沒有服刑紀錄")&&M.paroleWhy(mk(5,1,t0-9e6,t0+9e6)).includes("惹過事")&&M.paroleWhy(mk(1,0,t0-9e6,t0+9e6)).includes("勞動")&&M.paroleWhy(mk(2,0,t0-1e5,t0+9e6)).includes("一半刑期")&&M.paroleWhy(mk(2,0,t0-9e6,t0+9e6))==="","假釋條件判斷不對（沒紀錄／惹事／勞動不夠／未服滿一半／可以）");
+ check(M.priorOn({items:{pr:{u:new Date(t0+1e6).toISOString()}}})&&!M.priorOn({items:{pr:{u:new Date(t0-1e6).toISOString()}}})&&!M.priorOn({items:{}})&&M.wantedOn({items:{wt:new Date(t0+1e6).toISOString()}})&&M.paroleOn({items:{pl:new Date(t0+1e6).toISOString()}})&&!M.wantedOn({items:{}}),"前科／通緝／假釋判斷不對（過期或缺值 = 沒有）")}
 // 手機狀態條：條（.need i）不能被壓扁（曾因圖示行高 24.75px、固定高度而被擠成 2px，看起來像能力條不見）
 {const html=require("fs").readFileSync(__dirname+"/index.html","utf8");
  check(/body\.ingame \.need i\{flex:none;height:6px;min-height:6px/.test(html),"狀態條 body.ingame .need i 要 flex:none 並固定 6px（不可被壓扁）");
