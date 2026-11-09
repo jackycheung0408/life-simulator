@@ -160,6 +160,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u23-route",date:"11/09",title:"走路會先畫出路線",items:["點地圖、設施或朋友開始走，會用小方塊畫出要走的路","終點有閃動的黃框，走過的路會慢慢消失","走不到的地方會說路被擋住了"]},
   {id:"u22-autoupdate",date:"11/09",title:"小鎮有新版會自己通知",items:["從主畫面打開也不用手動重新整理了","有新版時上面會出現「小鎮有新版本」，按「更新」就換成新的","你在走路或開視窗時不會被打斷，等你有空再顯示"]},
   {id:"u21-hud2",date:"11/09",title:"手機畫面再整理",items:["錢格不再貼邊，下面的禮物、零食數量看得到","站在自己家門口，標題不再寫成「在他家」","上面的角色頁籤右邊淡出，提示可以左右滑"]},
   {id:"u20-needbar",date:"11/09",title:"狀態條的條回來了",items:["手機上方的飽足、精力、膀胱、清潔、心情，條又看得到了","之前被擠成一條細線，現在固定高度，數字和條都清楚","電腦版和手機版都檢查過了"]},
@@ -424,7 +425,7 @@ async function act(a,extra={}){if(busy)return;busy=true;$("acts").classList.add(
  catch(e){toast(e.message);feedback(false,e.message)}busy=false;$("acts").classList.remove("busy");renderPanel()}
 function sumChanges(b0,b1,ic){const o=[];for(const f of ["money",...NEEDS]){const d=Math.round(b1[f]-b0[f]);if(Math.abs(d)>=1)o.push(f=="money"?`${d>0?"+":"−"}€${Math.abs(d)}`:`${ic[f]}${d>0?"+":""}${d}`)}return o.join(" ")||"完成"}
 let pendingThen=null;
-function walkTo(dest,d){if(jailed(R[me])){pendingThen=null;toast(`你被關在監獄裡，還有 ${fmtLeft(jlLeft(R[me]))}`);return}leaveRoomLocal();const w=walkers[me],p=bfs([Math.round(w.x),Math.round(w.y)],d,vehOf(R[me])),th=pendingThen;pendingThen=null;if(!p){toast("走不到那裡");return}
+function walkTo(dest,d){if(jailed(R[me])){pendingThen=null;toast(`你被關在監獄裡，還有 ${fmtLeft(jlLeft(R[me]))}`);return}leaveRoomLocal();const w=walkers[me],p=bfs([Math.round(w.x),Math.round(w.y)],d,vehOf(R[me])),th=pendingThen;pendingThen=null;if(!p){toast("走不到那裡，路被擋住了");return}
  w.path=p.slice(1);w.dest=dest;w.then=th;w.goal=d;camFree=false;if(!w.path.length)arrived(w);renderPanel()}
 function arrived(w){const d=w.dest,th=w.then;w.dest=null;w.then=null;act("move",{px:w.goal[0],py:w.goal[1],dest:d}).then(async()=>{if(ROOMS[d]&&R[me]&&!jailed(R[me]))await enterRoom(d,true);if(th)th()})}
 const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀請朋友搬進來吧`);return}if(o.id==me&&inside(R[me])&&!(walkers[me]&&walkers[me].path.length)){interiorModal(me);return}walkTo("home:"+o.id,o.id==me?door(s):visitSpot(s))};
@@ -1013,6 +1014,10 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
  // 公園的流浪貓：在公園裡慢慢走來走去
  {const cx=(25.5+4*(1+Math.sin(t/7000)))*T,cy=(18.6+.8*Math.sin(t/3100))*T;g.fillStyle="#555";g.fillRect(cx-8,cy-4,16,8);g.fillRect(cx+6,cy-10,8,8);g.fillRect(cx+6,cy-12,2,3);g.fillRect(cx+12,cy-12,2,3);g.fillRect(cx-12,cy-8+Math.sin(t/300)*2,4,8);g.fillStyle="#ffd23f";g.fillRect(cx+8,cy-8,2,2);g.fillRect(cx+11,cy-8,2,2)}
  for(const q of POOPS){const im=cimgP("💩");if(im.complete)g.drawImage(im,q.x*T+2,q.y*T+2,T-4,T-4)}
+ // 預計路徑：只畫自己的；一點一點的小方塊從腳下排到目的地，走過的自然消失；終點有閃動的黃框
+ {const wm=walkers[me];if(wm&&wm.path.length){let px=wm.x,py=wm.y,acc=0;const dots=[];for(const [qx,qy] of wm.path){const sd=Math.hypot(qx-px,qy-py);if(sd>0){let at=.5-acc;while(at<=sd){const f=at/sd;dots.push([px+(qx-px)*f,py+(qy-py)*f]);at+=.5}acc=(acc+sd)%.5}px=qx;py=qy}
+  g.save();for(let i=0;i<dots.length;i++){const [dx,dy]=dots[i],X=Math.round((dx+.5)*T),Y=Math.round((dy+.5)*T);if(Math.hypot(dx-wm.x,dy-wm.y)<.45)continue;g.globalAlpha=.85;g.fillStyle="#2a2a3a";g.fillRect(X-4,Y-4,8,8);g.fillStyle=i%2?"#fff":"#ffd23f";g.fillRect(X-3,Y-3,6,6)}
+  const [ex,ey]=wm.path[wm.path.length-1],EX=Math.round(ex*T),EY=Math.round(ey*T),pu=2+Math.round(Math.sin(tk/8)*2);g.globalAlpha=1;g.strokeStyle="#2a2a3a";g.lineWidth=7;g.strokeRect(EX+5-pu,EY+5-pu,T-10+pu*2,T-10+pu*2);g.strokeStyle="#ffd23f";g.lineWidth=3;g.strokeRect(EX+5-pu,EY+5-pu,T-10+pu*2,T-10+pu*2);g.restore()}}
  // 人：依 y 排序，前面的蓋住後面的；在家睡覺的人在屋裡看不到，改在屋頂畫 💤；晚上有人在家的窗戶亮燈
  const list=Object.values(R).map(r=>({id:r.id,w:walkers[r.id],r:tickLocal(r,now())})).filter(o=>!(inside(o.r)&&!o.w.path.length)&&!(fin(o.r)&&!o.w.path.length)).sort((a,b)=>a.w.y-b.w.y);
  const nowMs=Date.now();for(const o of list){const bb=bubbles[o.id]||(bubbles[o.id]={next:nowMs+2e3+Math.random()*15e3});if(nowMs>bb.next){bb.text=togetherAt(o.r.place)&&!o.r.sleeping&&Math.random()<.5?rp(TOGETHER_LINES):Math.random()<.6?moodLine(o.id,o.r):null;bb.until=nowMs+4500;bb.next=nowMs+18e3+Math.random()*25e3}

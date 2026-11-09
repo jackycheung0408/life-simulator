@@ -40,6 +40,9 @@
 - `town/sw.js`：`version.json` 不快取、首頁（navigate／index.html）用 `cache:"no-store"` 問伺服器；改了 `sw.js` 要把快取名 `C` 加版號。
 - `tools/town-mock.js` 的 `fetch` 只攔 `/rpc/`，其他網址（如 `version.json`）照常載入；測更新提示時把暫存資料夾的 `version.json` 改大。
 
+## 預計路徑（小豬鎮前端，`frame()` 裡「預計路徑」區塊）
+- 自己開始走（點地圖、設施、朋友）時，從腳下沿 `walkers[me].path` 每 0.5 格畫一個黃白交錯的小方塊（深色外框），終點是閃動的黃框；走過的 `path` 被 shift 掉，所以自然消失。別人的路徑不畫；畫在人物之下，不遮住角色。`bfs` 找不到路時 toast「走不到那裡，路被擋住了」。
+
 ## 更新通知（每次改版必做）
 - **每次改版（玩家看得到的改動）都要在 `town/town.js` 的 `UPDATES` 最前面加一則**：`{id, date, title, items:[3～6 條短句]}`，id 不可重複，繁體中文。`node town/test.js` 會檢查。
 - 玩家上線時彈「小鎮更新了」：已看過的 id 存在瀏覽器 localStorage（`town_ups_<角色id>`），沒有紀錄的舊玩家只彈最新一則，之後最多一次彈 3 則；選單「更新紀錄」可看全部。不需要 SQL。
