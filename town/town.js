@@ -1,7 +1,7 @@
 // 小豬鎮：任何人都能建立自己的小鎮，拿邀請碼的朋友搬進來；需求隨現實時間下降，所有改動都經過 Supabase 的資料庫函式
 const SB="https://gerqdagicybtyilihvvm.supabase.co/rest/v1/rpc/",SBK="sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y";
-const rpc=(fn,body={})=>fetch(SB+fn,{method:"POST",keepalive:true,headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify(body)})
- .then(async r=>{const j=await r.json().catch(()=>null);if(!r.ok)throw new Error((j&&j.message)||"連不上小鎮，等一下再試");if(j&&j.error)throw new Error(j.error);return j});
+const rpc=(fn,body={})=>fetch(SB+fn,{method:"POST",keepalive:true,headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify(body)}).catch(()=>{throw new Error("連不上小鎮，檢查網路後再按一次")})
+ .then(async r=>{const j=await r.json().catch(()=>null);if(!r.ok)throw new Error((j&&j.message)||"小鎮暫時沒回應，過一下再按一次");if(j&&j.error)throw new Error(j.error);return j});
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 // ── 地圖：寬 34 格。市中心固定；住宅一排 3 間（5×4 格，門在正下方），住滿就往下多開一條街，最多 4 排 ──
@@ -156,6 +156,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+ {id:"u17-landing",date:"11/09",title:"首頁更好上手",items:["住過的小鎮：第一顆粉紅按鈕直接「回到小鎮」，一鍵進入","介紹縮短，第一眼就知道是和朋友住同一個小鎮","邀請碼、小鎮代碼打錯，或網路斷掉，會告訴你下一步怎麼做","載入太久會提示網路比較慢，進不去時有「再試一次」","新玩家第一次進來，不會先跳更新通知，新手提示等選完個性再出現"]},
  {id:"u16-mobile",date:"11/09",title:"手機畫面更好按",items:["上方工具列的按鈕變大，單手比較好點","狀態列的錢和禮物、零食數量不再蓋到心情格","每日任務等選項按鈕，標題和說明分成上下兩行","選單裡的項目排得更緊，一次看到更多","頁籤和關閉鈕加大，不容易按錯"]},
  {id:"u15-home-rest",date:"11/09",title:"在家休息的人更清楚",items:["回家睡覺或離線在家休息的人，屋頂會一直飄 Z","他在屋裡時，點他只能傳訊息，不能打電話、叫外送、送禮","要互動，走到他家叫醒他，或等他出門"]},
  {id:"u14-jail",date:"11/09",title:"新增監獄，可以砍人（不會死）",items:["地圖左上角多了「監獄」","和有仇的人在路上碰面，可以動手砍他，他會受傷、倒地送醫院","動手可能被巡警抓去關 1～3 小時，關著不能移動","牢裡可以做勞動賺錢、縮短刑期，或付保釋金出去","朋友可以探監、替你保釋","角色不會死，醫藥費和保釋金最多付到 0，不會欠錢"]},
@@ -242,24 +243,25 @@ const newKey=()=>{const a="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz2345
 
 // ── 首頁：建立小鎮、用代碼加入、我住的小鎮 ──
 function landing(){document.body.classList.remove("ingame");$("title").textContent="🐷 小豬鎮";$("game").classList.add("hide");$("login").classList.remove("hide");const list=mine();
- $("lg").innerHTML=`<div class="hero"><canvas id="heroCv" width="96" height="120"></canvas><div><h2 style="margin:0">和朋友住在同一個小鎮</h2><p class="mut" style="margin:4px 0 0">照顧自己吃飯睡覺洗澡，去朋友家幫忙、送禮、惡作劇，或扁他一頓。手機打開就能玩，不用下載。</p></div></div>
-  ${list.length?`<h2>我住的小鎮</h2><div class="list">${list.map(x=>`<button class="big" data-go="${esc(x.tid)}"><span class="ai">🏡</span><span><b>${esc(x.name||x.tid)}</b><small>${esc(x.me||"")} · 點一下回家</small></span></button>`).join("")}</div>`:""}
-  <div class="choose"><button class="big pri" id="cJoin"><span class="ai">💌</span><span><b>加入朋友的小鎮</b><small>有朋友給的邀請碼或連結</small></span></button>
+const tag=list.length?"":`<p class="mut" style="margin:10px 0 0">吃飯、打工、串門子、送禮，也可以惡作劇。</p>`;
+ $("lg").innerHTML=`<div class="hero"><canvas id="heroCv" width="96" height="120"></canvas><div><h2 class="hh">和朋友住同一個小鎮</h2><p class="mut" style="margin:6px 0 0">手機就能玩，免下載。</p></div></div>${tag}
+  ${list.length?`<div class="list">${list.map((x,i)=>`<button class="big${i?"":" pri"}" data-go="${esc(x.tid)}"><span class="ai">🏡</span><span><b>${i?"":"回到 "}${esc(x.name||x.tid)}</b><small>${esc(x.me||"")} · ${i?"點一下進入":"一鍵進入，繼續上次的生活"}</small></span></button>`).join("")}</div><p class="mut" style="margin:12px 0 0">或是</p>`:""}
+  <div class="choose"><button class="big${list.length?"":" pri"}" id="cJoin"><span class="ai">💌</span><span><b>加入朋友的小鎮</b><small>有朋友給的邀請碼或連結</small></span></button>
    <button class="big" id="cNew"><span class="ai">🏛️</span><span><b>建立新小鎮</b><small>自己當鎮長，邀請朋友搬進來</small></span></button></div>
   <div id="fJoin" class="hide"><h2>加入朋友的小鎮</h2><p class="mut" style="margin:-4px 0 6px">輸入朋友給你的邀請碼。點朋友傳來的邀請連結會自動填好。</p><div class="inline"><input id="code" placeholder="邀請碼，例如 RCDR4V" maxlength="8" autocomplete="off" style="text-transform:uppercase"><button class="pri" id="join">前往</button></div><p class="err" id="jerr"></p></div>
   <div id="fNew" class="hide"><h2>建立新小鎮</h2><label>小鎮名稱<input id="tn" maxlength="16" placeholder="例如：我們的小豬鎮"></label><label>你的名字<input id="mn" maxlength="12" placeholder="鎮上大家怎麼叫你"></label>
   ${curSel("NT$")}<h2 style="margin-top:12px">小鎮特色</h2><p class="mut" style="margin:-4px 0 6px">勾選要開的設施，之後在鎮長設定隨時能改</p>${featChecks([])}
   <div id="lk"></div><p class="err" id="cerr"></p><div class="row"><button class="pri" id="create">建立小鎮，當鎮長</button></div></div>
-  ${standalone?"":`<p style="margin-top:14px"><button class="ghost" id="inst2">📲 加到手機主畫面，像 App 一樣打開</button></p>`}`;
- const show=k=>{$("fJoin").classList.toggle("hide",k!="j");$("fNew").classList.toggle("hide",k!="n");$("cJoin").classList.toggle("pri",k!="n");$("cNew").classList.toggle("pri",k=="n");(k=="j"?$("code"):$("tn")).focus()};
+  ${standalone?"":`<p style="margin-top:14px"><button class="ghost" id="inst2" style="width:100%">📲 加到主畫面，像 App 一樣打開</button></p>`}`;
+ const show=k=>{$("fJoin").classList.toggle("hide",k!="j");$("fNew").classList.toggle("hide",k!="n");$("cJoin").classList.toggle("on",k=="j");$("cNew").classList.toggle("on",k=="n");(k=="j"?$("code"):$("tn")).focus()};
  $("cJoin").onclick=()=>show("j");$("cNew").onclick=()=>show("n");miniPerson($("heroCv"),{skin:"#f1c9a5",hair:"#5a3a1a",style:"短髮",eyes:"圓眼",top:"T恤",shirt:"#e0779b",acc:"pigears",blush:true});
  $("lg").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));if($("inst2"))$("inst2").onclick=installHelp;
- $("join").onclick=async()=>{const c=$("code").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.length<4){$("jerr").textContent="邀請碼是 6 個英文或數字";return}
+ $("join").onclick=async()=>{const c=$("code").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.length<4){$("jerr").textContent="邀請碼是 6 個英文或數字，檢查有沒有少打";return}
   // 小鎮代碼或邀請碼都可以；輸入的是邀請碼就記起來，等一下自動填好
-  try{const f=await rpc("town_find",{code:c});if(!f){$("jerr").textContent="邀請碼不對，請朋友再傳一次";return}try{sessionStorage.setItem("town-inv-"+f.town_id,c)}catch(e){}go(f.town_id)}catch(e){$("jerr").textContent=e.message}};
+  try{const f=await rpc("town_find",{code:c});if(!f){$("jerr").textContent="找不到這個小鎮，檢查有沒有打錯，或請朋友再傳一次";return}try{sessionStorage.setItem("town-inv-"+f.town_id,c)}catch(e){}go(f.town_id)}catch(e){$("jerr").textContent=e.message}};
  let look=randLook();lookPicker($("lk"),look,l=>look=l);
  $("create").onclick=async()=>{const tn=$("tn").value.trim(),mn=$("mn").value.trim(),p=newKey();
-  if(!tn){$("cerr").textContent="幫小鎮取個名字";return}if(!mn){$("cerr").textContent="填你的名字";return}
+  if(!tn){$("cerr").textContent="先幫小鎮取個名字，再按建立";return}if(!mn){$("cerr").textContent="再填你的名字，鎮上大家會這樣叫你";return}
   $("create").disabled=true;try{const r=await rpc("town_create",{town_name:tn,my_name:mn,pin:p,look});const off=readFeats();if(off.length)try{await rpc("town_features",{rid:r.resident_id,pin:p,off})}catch(e){}const cu=$("cur").value;if(cu!="NT$")try{await rpc("town_currency",{rid:r.resident_id,pin:p,cur:cu})}catch(e){}saveMine({tid:r.town_id,name:tn,rid:r.resident_id,pin:p,me:mn,invite:r.invite});go(r.town_id)}
   catch(e){$("cerr").textContent=e.message;$("create").disabled=false}}}
 
@@ -288,7 +290,7 @@ function pinStep(id){const r=R[id];$("lg").innerHTML=`<p><b>${esc(r.name)}</b>�
   <label>邀請碼（WeChat 群組裡的邀請訊息有，或問鎮長）<input id="inv" maxlength="8" autocomplete="off" style="text-transform:uppercase" value="${esc(savedInv())}"></label><p class="err" id="lerr"></p>
   <div class="row"><button id="back">← 換人</button><button class="pri" id="go">進入小鎮</button></div>`;
  $("back").onclick=townLogin;$("inv").focus();
- $("go").onclick=async()=>{const inv=$("inv").value.trim().toUpperCase();if(!inv){$("lerr").textContent="填小鎮的邀請碼";return}$("go").disabled=true;
+ $("go").onclick=async()=>{const inv=$("inv").value.trim().toUpperCase();if(!inv){$("lerr").textContent="先填小鎮的邀請碼（向鎮長要）";return}$("go").disabled=true;
   try{const k=newKey();await rpc("town_device",{tid:TID,invite:inv,rid:id,key:k});const res=await rpc("town_login",{rid:id,pin:k});me=id;pin=k;lastSeen=res.last_seen;saveMine({tid:TID,name:S.town.name,rid:id,pin:k,me:r.name});await enter()}catch(e){$("lerr").textContent=e.message;$("go").disabled=false}}}
 function joinStep(){const free=[];for(let s=0;s<12;s++)if(!bySlot(s))free.push(s);const show=free.filter(s=>Math.floor(s/3)<NR);if(!show.length&&free.length)show.push(free[0]);let slot=show[0],look=randLook();
  $("lg").innerHTML=`<p><b>搬進${esc(S.town.name)}</b></p><label>邀請碼（問鎮長）<input id="inv" maxlength="8" autocomplete="off" style="text-transform:uppercase" value="${esc(savedInv())}"></label>
@@ -298,7 +300,7 @@ function joinStep(){const free=[];for(let s=0;s<12;s++)if(!bySlot(s))free.push(s
  $("lg").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{slot=+b.dataset.s;$("lg").querySelectorAll("[data-s]").forEach(x=>x.classList.toggle("on",x==b))});
  lookPicker($("lk"),look,l=>look=l);$("back").onclick=townLogin;
  $("go").onclick=async()=>{const inv=$("inv").value.trim().toUpperCase(),mn=$("mn").value.trim(),p=newKey();
-  if(!inv){$("lerr").textContent="填鎮長給你的邀請碼";return}if(!mn){$("lerr").textContent="填你的名字";return}
+  if(!inv){$("lerr").textContent="先填鎮長給你的邀請碼";return}if(!mn){$("lerr").textContent="再填你的名字，鎮上大家會這樣叫你";return}
   $("go").disabled=true;try{const r=await rpc("town_join",{tid:TID,invite:inv,my_name:mn,pin:p,look,want_slot:slot});me=r.resident_id;pin=p;lastSeen=null;saveMine({tid:TID,name:S.town.name,rid:me,pin:p,me:mn});await enter()}
   catch(e){$("lerr").textContent=e.message;$("go").disabled=false}}}
 // ── 造型目錄（和資料庫 town_shop 一致）：[代號, 名稱, 價格, 解鎖條件]；沒價格的是基本款 ──
@@ -327,7 +329,7 @@ function lookPicker(el,look,cb,items){look=normLook(look);const owned=new Set(((
   miniPerson(el.querySelector("canvas"),look);
   el.querySelectorAll(".sw[data-k]").forEach(b=>b.onclick=()=>{look={...look,[b.dataset.k]:b.dataset.v};cb(look);draw()});
   el.querySelectorAll(".sw[data-t]").forEach(b=>b.onclick=()=>{look={...look,[b.dataset.t]:!look[b.dataset.t]};cb(look);draw()})};cb(look);draw()}
-async function enter(){document.body.classList.add("ingame");$("menuBtn").classList.remove("hide");await refresh();setTimeout(()=>{const r=R[me];if(r&&$("modal").classList.contains("hide")){if(!r.items||r.items.tr===undefined)traitModal();else if(!r.items.wish)wishModal()}},1500);setTimeout(()=>{try{updCheck()}catch(e){}},2600);showTips();refreshBell().catch(()=>{});autoPush().catch(()=>{});$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
+async function enter(){document.body.classList.add("ingame");$("menuBtn").classList.remove("hide");await refresh();setTimeout(()=>{const r=R[me];if(r&&$("modal").classList.contains("hide")){if(!r.items||r.items.tr===undefined)traitModal();else if(!r.items.wish)wishModal()}},1500);{const r0=R[me],fresh=!upsSeen()&&r0&&r0.items&&r0.items.tr===undefined;if(fresh)upsMark();else setTimeout(()=>{try{updCheck()}catch(e){}},2600)}tipsWhenFree();refreshBell().catch(()=>{});autoPush().catch(()=>{});$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
  const w=walkers[me];cam.x=w.x*T;cam.y=w.y*T;resize();$("mayor").classList.toggle("hide",!R[me].mayor);
  const ent=mine().find(x=>x.tid==TID);if(ent&&ent.invite){shareModal(ent.invite,true);delete ent.invite;saveMine(ent);return}
  const mineEv=(S.events||[]).filter(e=>e.target==me&&(!lastSeen||e.at>lastSeen));
@@ -591,6 +593,7 @@ function bondsModal(){const list=Object.values(R).filter(o=>o.id!=me).map(o=>({o
   <p class="mut" style="margin-top:10px">送禮 +4、煮飯洗澡 +3、請吃大餐 +4、串門子／一起加班／外送／道謝 +2、擊掌／訊息／電話 +1；叫醒 −1、丟雞蛋 −1、惡作劇 −2、扁人 −3（好朋友 −1、好麻吉 0）、和好 +8。同一個人每天好感最多 +12／−6。好麻吉以上照顧對方效果 ×1.3。</p><div class="row"><button id="mc">關閉</button></div>`;
  $("mc").onclick=()=>$("modal").classList.add("hide");$("mbody").querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{$("modal").classList.add("hide");walkToPerson(+b.dataset.w)})}
 // 新手提示：第一次進小鎮時顯示，看過就不再出現
+function tipsWhenFree(n=0){let seen=null;try{seen=localStorage.getItem("town-tips")}catch(e){}if(seen||n>8)return;if($("modal").classList.contains("hide")&&$("away").classList.contains("hide"))showTips();else setTimeout(()=>tipsWhenFree(n+1),3000)}
 function showTips(){let seen=null;try{seen=localStorage.getItem("town-tips")}catch(e){}if(seen)return;const el=$("tips");el.classList.remove("hide");
  el.innerHTML=`<b>👋 新手小提示</b><p>🗺️ 點地圖上的房子或地點，角色會自己走過去。</p><p>👆 點地圖上的人，可以傳訊息、打電話；走到他旁邊還能擊掌或扁他。</p><p>🍚 上面的需求會隨現實時間下降，快見底時下方會出現粉紅色的「建議下一步」。</p><div class="row"><button class="pri" id="tipok">知道了</button></div>`;
  $("tipok").onclick=()=>{el.classList.add("hide");try{localStorage.setItem("town-tips","1")}catch(e){}}}
@@ -1176,8 +1179,9 @@ function checkInvite(){const r=R[me];if(!r||!r.items||!r.items.iv||modalOpen()||
  if(age>55e3||age<0||ivSeen==iv.at||!f||r.sleeping||r.place!=iv.p||f.place!=iv.p||!PEV[r.place])return;ivSeen=iv.at;
  choiceModal(`${f.name} 邀請你一起${JT[r.place]}`,"1 分鐘內有效 · 兩人心情 +8、精力 +3、好感 +1",[["好啊","一起做",async()=>{try{const j=await rpc("town_invite",{rid:me,pin,op:"yes",target:f.id});await refresh();spawnFx("hearts",me);spawnFx("hearts",f.id);toast(j.bonus?`和 ${f.name} 一起：心情 +8、精力 +3、好感 +1`:`和 ${f.name} 好感 +1（今天的加成用完了）`)}catch(e){toast(e.message)}renderPanel()}],["下次吧","不接受",async()=>{try{await rpc("town_invite",{rid:me,pin,op:"no",target:f.id});await refresh()}catch(e){}}]])}
 // ── 開始：沒有代碼就是首頁；有代碼就讀小鎮，這台手機住過就自動登入；每 15 秒同步一次 ──
-(async()=>{if(!TID){const l=mine();if(standalone&&l.length==1){go(l[0].tid);return}landing();return}
- try{await refresh()}catch(e){$("lg").innerHTML=`<p class="err">${esc(e.message)}</p><div class="row" style="justify-content:flex-start"><button id="home3">← 小豬鎮首頁</button></div>`;$("home3").onclick=()=>go("");return}
+const slow=setTimeout(()=>{const x=document.querySelector("#lg .ld small");if(x)x.textContent="網路比較慢，再等一下…"},6000);
+(async()=>{if(!TID){clearTimeout(slow);const l=mine();if(standalone&&l.length==1){go(l[0].tid);return}landing();return}
+ try{await refresh()}catch(e){clearTimeout(slow);$("lg").innerHTML=`<h2>進不去這個小鎮</h2><p class="err">${esc(e.message)}</p><p class="mut">網路正常的話，可能是小鎮代碼打錯了。</p><div class="row" style="justify-content:flex-start"><button class="pri" id="retry3">再試一次</button><button id="home3">回小豬鎮首頁</button></div>`;$("home3").onclick=()=>go("");$("retry3").onclick=()=>location.reload();return}clearTimeout(slow);
  const a=mine().find(x=>x.tid==TID);
  if(a&&R[a.rid]){try{const res=await rpc("town_login",{rid:a.rid,pin:a.pin});me=a.rid;pin=a.pin;lastSeen=res.last_seen;await enter()}catch(e){townLogin()}}else townLogin();
  setInterval(()=>{if(document.visibilityState=="visible"&&S)refresh().catch(()=>{})},15000);setInterval(pePoll,20000)})();
