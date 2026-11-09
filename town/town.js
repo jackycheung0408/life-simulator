@@ -147,6 +147,7 @@ const HACT={bed:[/^睡覺/,"好床"],fridge:[/^吃飯/,"冰箱"],sofa:[/^看電�
 const fpOf=it=>Array.isArray(it.fp)?it.fp:(it.fu||[]).map((k,i)=>[k,1+(i%3)*2,1+Math.floor(i/3)]).filter(o=>o[0]);
 const hasF=(r,k)=>!!(r.items&&Array.isArray(r.items.fu)&&r.items.fu.includes(k));
 // 在屋裡：人在自己家，且沒有「站在門口」旗標 items.dr（舊角色沒有旗標＝在屋裡），和 SQL town_inside 一致
+const offTxt=t=>{const m=Math.floor((nowFn()-Date.parse(t.seen_at))/6e4);return t.id!=me&&m>=10?`（離線 ${m} 分鐘，人醒著在家休息，叫不到睡覺）`:""};// 離線很久但沒睡著的人：屋頂不飄 Z，面板寫清楚
 function inside(r){return !!r&&r.place=="home:"+r.id&&!(r.items&&String(r.items.dr)=="1")}
 // 在朋友家屋裡：人在 home:屋主，且 items.fv = 屋主 id（和 SQL town_vin 一致；缺值 = 在門外）
 function vin(r){return !!r&&!!r.items&&r.items.fv!=null&&String(r.items.fv)!==String(r.id)&&r.place=="home:"+r.items.fv}
@@ -192,6 +193,8 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+ {id:"u29-zzz",date:"11/09",title:"屋頂的 Z 只代表真的在睡覺",items:["以前離線的人待在家，屋頂也會飄 Z，看起來像睡著但又叫不醒","現在只有真的睡著的人屋頂才飄 Z，才有「叫醒他」","離線很久但醒著的人，面板會寫他離線幾分鐘、在家休息"]},
+ {id:"u28-visit",date:"11/09",title:"可以走進朋友家了",items:["站在朋友家門口時，屋裡看不到你，進去後才會出現你的身影","門口可以留言、放禮物、丟雞蛋、惡作劇；按「進去」才能煮飯、洗澡、叫醒、串門子","進去後按「出門」回到門口","朋友不在屋裡，或和你關係太差，會進不去"]},
  {id:"u27-furnfx",date:"11/09",title:"家裡沒家具，生活變陽春",items:["沒有好床睡地上：精力每小時 +64、醒來心情 −3","沒有冰箱吃冷食、沒馬桶找角落、沒淋浴間用水桶、沒電視櫃只能發呆","互動照樣能做，按鈕副標會寫現在是陽春版","超市新增馬桶 €2000、淋浴間 €3000，擺進房間才有效","已有的家具效果不變，沒有人被扣錢"]},
  {id:"u20-wake",date:"11/09",title:"叫醒、看室內修好了",items:["朋友在家睡覺時，看室內會看到他躺在床上","你站在朋友家門口，面板下面也看得到他家室內","叫醒他的按鈕會寫這次大約幾成叫得醒，越累睡越沉","叫不醒不再鎖一小時，隔 3 分鐘就能再試"]},
   {id:"u26-jail2",date:"11/09",title:"牢裡更多事",items:["監獄可以走進去了：有鐵窗、上下鋪、工作台、放風場，做事會有動畫","牢裡可以放風、勞動減刑；做滿 2 次勞動、不惹事、服滿一半刑期，可以申請假釋","牢裡會碰到獄友的事（聊天、被欺負、交換東西、幫忙），選項有賺有賠","可以冒險越獄，成功率不高，成功會被通緝 3 小時","關過的人有 24 小時前科：薪水少 8%、巡警更常抓你。角色一樣不會死"]},
@@ -486,8 +489,8 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  else if(p&&p.startsWith("home:")&&R[p.slice(5)]){const id=+p.slice(5),t=tickLocal(R[id],now());title=`${t.name} 家`;const peek=btn("看室內",`${HOUSES[((R[id].items||{}).hl||1)-1][0]} · 看他怎麼布置`,()=>interiorModal(id));
   const gifts=(r.items||{}).gift||0,giftB=gifts?btn("送禮物",`他心情 +20 · 背包 🎁${gifts}`,()=>act("gift",{target:id})):btn("送禮物","先去超市買",()=>toast("背包沒有禮物，去超市買一份"));
   if(!inside(t)){note=`${t.name} ${t.place==p?"在家門口，還沒進屋":"不在家，在"+placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,peek,btn("丟雞蛋 🥚","好感 −1 · 30 分鐘一次",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
-  else{note=`${t.name}${t.sleeping?" 在睡覺":""}：飽足 ${Math.round(t.hunger)}、清潔 ${Math.round(t.hygiene)}、心情 ${Math.round(t.fun)} · ${bondLabel(bondWith(id))}`;list.push(giftB);
-   if(!vin(r)){note=`${t.name}${t.sleeping?" 在睡覺":""}，你在門口 · 按「進去」才能煮飯、洗澡、叫醒、串門子 · ${bondLabel(bondWith(id))}`;
+  else{note=`${t.name}${t.sleeping?" 在睡覺":offTxt(t)}：飽足 ${Math.round(t.hunger)}、清潔 ${Math.round(t.hygiene)}、心情 ${Math.round(t.fun)} · ${bondLabel(bondWith(id))}`;list.push(giftB);
+   if(!vin(r)){note=`${t.name}${t.sleeping?" 在睡覺":offTxt(t)}，你在門口 · 按「進去」才能煮飯、洗澡、叫醒、串門子 · ${bondLabel(bondWith(id))}`;
     list.push(peek,btn("進去",`走進他家 · 進去後才有你的身影`,()=>enterFriend(id)),btn("惡作劇 💨","在門口放個臭屁 · 好感 −2 · 30 分鐘一次",()=>act("prank",{target:id})),btn("丟雞蛋 🥚","好感 −1 · 30 分鐘一次",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
    else{title=`${t.name} 家（屋裡）`;list.push(peek,btn("煮飯給他","他飽足 +35 · €60",()=>act("feed",{target:id})),btn("幫他洗澡","他清潔 +45",()=>act("wash",{target:id})));
     if(t.sleeping)list.push(btn("叫醒他",`越累睡越沉 · 這次約 ${Math.round(100*(1-Math.min(.7,.25+(100-t.energy)/200)))}% 叫得醒 · 叫不醒只要等 3 分鐘`,()=>act("wakeup",{target:id})));
@@ -1084,7 +1087,7 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
  for(const k in ROOMS){if(!isOn(k))continue;if(!Object.values(R).some(o=>fin(o)&&o.place==k&&!(walkers[o.id]&&walkers[o.id].path.length)))continue;const [x,y,w]=PLACES[k].r;g.fillStyle="rgba(255,215,106,.5)";g.fillRect(x*T+14,y*T+34,26,24);g.fillRect((x+w)*T-40,y*T+34,26,24)}
  for(const r of Object.values(R)){if(!inside(r))continue;const [hx,hy]=homeXY(r.slot);if(night){g.fillStyle="rgba(255,215,106,.35)";g.fillRect(hx*T+16,hy*T+T+22,24,22);g.fillRect(hx*T+5*T-40,hy*T+T+22,24,22)}
   // 在屋裡睡覺的人，或離線超過 10 分鐘待在家的人（回家休息了）：屋頂一直飄 Z
-  if(r.sleeping||(r.id!=me&&Date.parse(r.seen_at)<=now()-6e5)){g.textAlign="center";g.lineWidth=3;g.strokeStyle="#2a3a6a";for(let j=0;j<3;j++){const ph=((tk/60)+j*14)%42,al=1-ph/42;g.globalAlpha=Math.max(0,al);g.font="bold "+(12+j*3)+"px sans-serif";const zx=hx*T+4.1*T+ph*.5+j*3,zy=hy*T+T+6-ph;g.strokeText("Z",zx,zy);g.fillStyle="#fff";g.fillText("Z",zx,zy)}g.globalAlpha=1}}
+  if(r.sleeping){g.textAlign="center";g.lineWidth=3;g.strokeStyle="#2a3a6a";for(let j=0;j<3;j++){const ph=((tk/60)+j*14)%42,al=1-ph/42;g.globalAlpha=Math.max(0,al);g.font="bold "+(12+j*3)+"px sans-serif";const zx=hx*T+4.1*T+ph*.5+j*3,zy=hy*T+T+6-ph;g.strokeText("Z",zx,zy);g.fillStyle="#fff";g.fillText("Z",zx,zy)}g.globalAlpha=1}}
  // 互動動畫
  {const nowp=performance.now(),IMG=FXIMG;const img=e=>{if(!IMG[e]){const i=new Image();i.src=pxIcon(e);IMG[e]=i}return IMG[e]};const icon=(e,x,y,s)=>{const i=img(e);if(i.complete)g.drawImage(i,x-s/2,y-s/2,s,s)};
   const pos=id=>{const w=walkers[id];return [(w.x+.5)*T,(w.y+.5)*T]};
