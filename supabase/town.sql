@@ -94,7 +94,7 @@ create or replace function public.town_place_name(p text) returns text language 
   select case
     when p like 'home:%' then coalesce((select name from public.town_residents where id = substr(p,6)::bigint), '空屋') || ' 家'
     when p = 'plaza' then '廣場' when p = 'restaurant' then '餐廳' when p = 'market' then '超市'
-    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' when p = 'rafi' then '拉菲的辦公室' when p = 'stock' then '證券交易所' when p = 'carshop' then '車行' else '路上' end
+    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' when p = 'rafi' then '拉菲的辦公室' when p = 'stock' then '證券交易所' when p = 'carshop' then '車行' when p = 'jail' then '監獄' else '路上' end
 $$;
 create or replace function public.town_name_ok(t text) returns boolean language sql immutable as $$
   select char_length(trim(t)) between 1 and 12 and trim(t) !~ '[<>"]' and not public.has_bad_words(t)
@@ -128,7 +128,7 @@ $$;
 revoke all on function public.town_fund_add(text,text,int) from public, anon, authenticated;
 create or replace function public.town_feature(what text) returns text language sql immutable as $$
   select case when what in ('cafe','coffee') then 'cafe' when what in ('cinema','movie') then 'cinema' when what in ('gym','workout') then 'gym'
-    when what in ('arena','spar') then 'arena' when what in ('slaughter','sneak') then 'slaughter' when what = 'rafi' then 'rafi' when what in ('stock','trade') then 'stock' when what in ('carshop','vbuy','license') then 'carshop' else null end
+    when what in ('arena','spar') then 'arena' when what in ('slaughter','sneak') then 'slaughter' when what = 'rafi' then 'rafi' when what in ('stock','trade') then 'stock' when what in ('carshop','vbuy','license') then 'carshop' when what = 'jail' then 'jail' else null end
 $$;
 create or replace function public.town_is_off(tid text, f text) returns boolean language sql stable as $$
   select coalesce((select f = any(off) from public.town_towns where id = tid), false)
@@ -141,7 +141,7 @@ begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if not r.mayor then raise exception '只有鎮長可以做這件事'; end if;
-  if exists (select 1 from unnest(coalesce(off,'{}')) f where f not in ('cafe','cinema','gym','arena','slaughter','arcade','rafi','stock','carshop','lux')) then raise exception '沒有這個設施'; end if;
+  if exists (select 1 from unnest(coalesce(off,'{}')) f where f not in ('cafe','cinema','gym','arena','slaughter','arcade','rafi','stock','carshop','lux','jail')) then raise exception '沒有這個設施'; end if;
   update public.town_towns set off = coalesce(town_features.off,'{}') where id = r.town_id;
   -- 關掉的地方有人在，請他們回到路上
   update public.town_residents set place = 'street' where town_id = r.town_id and place = any(coalesce(town_features.off,'{}'));
@@ -341,11 +341,16 @@ create or replace function public.town_inside(r public.town_residents) returns b
   select r.place = 'home:' || r.id and coalesce(r.items->>'dr','') <> '1'
 $$;
 revoke all on function public.town_inside(public.town_residents) from public, anon, authenticated;
+-- 入獄中：items.jl = 出獄時間，還沒到就算被關著（不能移動、不能做 town_act 的任何動作；離線也不會被送回家睡）
+create or replace function public.town_jailed(r public.town_residents) returns boolean language sql stable as $$
+  select coalesce((r.items->>'jl') is not null and (r.items->>'jl')::timestamptz > now(), false)
+$$;
+revoke all on function public.town_jailed(public.town_residents) from public, anon, authenticated;
 
 create or replace function public.town_tick(r public.town_residents) returns public.town_residents
 language plpgsql as $$
 declare h real := least(72, greatest(0, extract(epoch from now() - r.updated_at) / 3600));
-  sho real := 0; shf real := 0; aho real := 0; ahf real := 0; nho real := 0; nhf real := 0; sqo real := 0; sqf real := 0; ps real := 0; qe timestamptz := nullif(r.items->>'qs','')::timestamptz; ev real; bk int; bn text; bm int; was_in boolean := public.town_inside(r);  -- 睡覺／醒著／夜間醒著的小時數（o = 上線中，f = 離線）
+  sho real := 0; shf real := 0; aho real := 0; ahf real := 0; nho real := 0; nhf real := 0; sqo real := 0; sqf real := 0; ps real := 0; qe timestamptz := nullif(r.items->>'qs','')::timestamptz; ev real; bk int; bn text; bm int; was_in boolean := public.town_inside(r); jld boolean := public.town_jailed(r);  -- 睡覺／醒著／夜間醒著的小時數（o = 上線中，f = 離線）
   t timestamptz; step real; hr int; d record; nightoff boolean := false; off boolean; fa boolean; hyg0 real := r.hygiene; hm real; bedg real; v real; dl real; exo real := 0; exf real := 0;
 begin
   if h <= 0 then return r; end if;
@@ -360,7 +365,7 @@ begin
     off := t > r.seen_at + interval '30 minutes';
     if r.sleeping and qe is not null and t < qe then if off then sqf := sqf + step; else sqo := sqo + step; end if;  -- 快速睡覺（睡到 qe 為止）
     elsif r.sleeping and qe is null then if off then shf := shf + step; else sho := sho + step; end if;
-    elsif not r.sleeping and (t > r.seen_at + interval '60 minutes' or (hr < 7 and off)) then shf := shf + step; nightoff := true;  -- 待機超過 60 分鐘、或半夜離線：回家睡了
+    elsif not r.sleeping and not jld and (t > r.seen_at + interval '60 minutes' or (hr < 7 and off)) then shf := shf + step; nightoff := true;  -- 待機超過 60 分鐘、或半夜離線：回家睡了
     else
       if off then ahf := ahf + step; else aho := aho + step; if r.place = 'street' and not r.sleeping then ps := ps + step; end if; end if;
       if hr >= 22 or hr < 6 then if off then nhf := nhf + step; else nho := nho + step; end if; end if;
@@ -387,7 +392,7 @@ begin
     r.items := r.items - 'qs'; qe := null;
   end if;
   -- 待機超過 60 分鐘（或半夜離線 30 分鐘）的人回家睡了：人在自己屋裡；夜間（22～8 點）或精力不到 90 就繼續睡，否則在家醒著
-  if nightoff or (not r.sleeping and now() > r.seen_at + interval '30 minutes' and (hr < 7 or now() > r.seen_at + interval '60 minutes')) then
+  if not jld and (nightoff or (not r.sleeping and now() > r.seen_at + interval '30 minutes' and (hr < 7 or now() > r.seen_at + interval '60 minutes'))) then
     select * into d from public.town_door(r.slot);
     r.place := 'home:' || r.id; r.x := d.dx; r.y := d.dy; r.items := r.items - 'dr';
     r.sleeping := hr < 8 or hr >= 22 or r.energy < 90;
@@ -404,6 +409,11 @@ begin
       r.money := greatest(0, r.money - 1500);
     end if;
     r.sleeping := false; r.items := r.items - 'faint' - 'hosp';
+  end if;
+  -- 刑滿：清掉 items.jl（人還在監獄門口，自己走出去）
+  if (r.items->>'jl') is not null and not jld then
+    r.items := r.items - 'jl';
+    insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, r.id, 'jail', r.name || ' 刑期滿了，出獄了');
   end if;
   -- 清潔歸零：發臭，同地點醒著的人心情 −2（只在剛歸零那一次）
   if hyg0 > 0 and r.hygiene <= 0 then
@@ -1010,12 +1020,13 @@ begin
   r := public.town_stock_settle(r);
   r := public.town_tk_tick(r);
   if r.sleeping and act not in ('wake') then raise exception '你在睡覺，先起床'; end if;
+  if act <> 'wake' and public.town_jailed(r) and not public.town_is_off(r.town_id, 'jail') then raise exception '你被關在監獄裡，還有 % 分鐘', ceil(extract(epoch from ((r.items->>'jl')::timestamptz - now())) / 60)::int; end if;
   if public.town_closed(case when act = 'obj' then item when act = 'job' then public.town_pjob_key(item) else act end) is not null then raise exception '%', public.town_closed(case when act = 'obj' then item when act = 'job' then public.town_pjob_key(item) else act end); end if;
   if public.town_is_off(r.town_id, public.town_feature(case when act = 'move' then dest when act = 'job' then public.town_pjob_key(item) else act end)) then raise exception '這個小鎮沒有開這個設施'; end if;
   if act = 'move' then
-    if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter','rafi','stock','carshop')
+    if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter','rafi','stock','carshop','jail')
        or (dest ~ '^home:\d+$' and exists (select 1 from public.town_residents where id = substr(dest,6)::bigint and town_id = r.town_id))) then raise exception '去不了那裡'; end if;
-    if px is null or py is null or px < 0 or px > 57 or py < 0 or py > 40 then raise exception '位置不對'; end if;
+    if px is null or py is null or px < 0 or px > 64 or py < 0 or py > 40 then raise exception '位置不對'; end if;
     -- 走過別人留下的便便會踩到（路線離便便不到 0.6 格）
     select p.id::int into n from public.town_poops p where p.town_id = r.town_id and p.maker is distinct from rid and p.at > now() - interval '2 hours' and public.town_seg_d(p.x, p.y, r.x, r.y, px, py) < .6 order by p.at limit 1;
     if n is not null then
@@ -1047,7 +1058,7 @@ begin
       else r.money := r.money + 2000; tn := r.name || ' 買刮刮樂中了 €2000！🎉'; end if;
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', tn); tn := null;
     end if;
-    if dest in ('plaza','restaurant','market','park','cafe','cinema','gym','arena','slaughter','rafi','stock','carshop') then
+    if dest in ('plaza','restaurant','market','park','cafe','cinema','gym','arena','slaughter','rafi','stock','carshop','jail') then
       select string_agg(name, '、') into others from public.town_residents where town_id = r.town_id and place = dest and id <> rid and not sleeping;
       if others is not null and not exists (select 1 from public.town_events e where e.actor = rid and e.kind = 'meet' and e.at > now() - interval '2 hours') then
         insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'meet', r.name || ' 在' || public.town_place_name(dest) || '遇到了 ' || others);

@@ -1,6 +1,6 @@
 // 小豬鎮自動測試：node town/test.js
 // 檢查：2～4 排房子時每個門都走得到、門不在牆裡、門口位置和資料庫的 town_door 一致、需求扣減算法
-const COLS_=57;const M=require("./town.js"),fails=[];const check=(ok,msg)=>{if(!ok)fails.push(msg)};let routes=0;
+const COLS_=64;const M=require("./town.js"),fails=[];const check=(ok,msg)=>{if(!ok)fails.push(msg)};let routes=0;
 for(let rows=2;rows<=4;rows++){M.setRows(rows);
  const doors=[...[...Array(rows*3).keys()].map(s=>["房子"+s,M.door(s)]),...Object.entries(M.PLACES).map(([k,p])=>[k,p.door])];
  for(const [n,d] of doors)check(!M.blocked(...d)&&d[1]<M.mapRows(),`${rows} 排：${n} 的門在牆裡或地圖外`);
@@ -84,5 +84,18 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
 {const sql=require("fs").readFileSync(__dirname+"/../supabase/town_fac.sql","utf8");check(M.TASKS.length==8,"TASKS 要 8 個");
  for(const [k,d] of Object.entries(M.FAC)){const kk=k=="photo2"?"photo":k;check(sql.includes("'"+kk+"'"),"town_fac 沒有 "+kk);if(d[1]>0)check(new RegExp("when '"+kk+"' then "+d[1]+"\\b").test(sql),"town_fac 價格和 FAC 不一致："+kk+" "+d[1]);if(!d[3].every(p=>M.PLACES[p]))check(false,"FAC 地點不存在 "+k)}
  const fn=sql.match(/town_fac_done[\s\S]*?\$\$;/)[0];check((fn.match(/when \d then/g)||[]).length==M.TASKS.length,"任務數量和 SQL 不一致")}
+// 監獄與砍人：座標、價格、冷卻要和 supabase/town_jail.sql 一致
+{const sql=require("fs").readFileSync(__dirname+"/../supabase/town_jail.sql","utf8"),J=M.JAIL,P=M.PLACES.jail;
+ check(P&&P.door[0]==61&&P.door[1]==5&&P.block==1,"監獄門要在 (61,5)，和 town_jail.sql 入獄座標一致");
+ check(sql.includes("r.x := 61; r.y := 5"),"town_jail.sql 入獄座標要是 61,5");
+ check(sql.includes("r.money + "+J.labor[0])&&sql.includes("r.energy - "+J.labor[1])&&sql.includes("interval '"+J.labor[3]+" minutes'"),"勞動數字和 JAIL 不一致");
+ check(sql.includes("greatest(300, mins * "+J.bailPerMin+")")&&J.bailMin==300,"保釋金公式和 JAIL 不一致");
+ check(sql.includes("t.energy - "+J.hurt[0])&&sql.includes("t.fun - "+J.hurt[1])&&sql.includes("r.energy - "+J.self[0])&&sql.includes("r.fun - "+J.self[1]),"砍人傷害和 JAIL 不一致");
+ check(sql.includes("then .8 else .45")&&J.catchP==45&&J.catchFallP==80,"被抓機率和 JAIL 不一致");
+ check(M.COLS==64,"COLS 要和 town.sql 的 px 上限（64）一致");check(require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8").includes("px > "+M.COLS+" or"),"town.sql 的 px 上限要等於 COLS");check(M.bailCost(60*6e4)==600&&M.bailCost(10*6e4)==300,"保釋金 1 小時 €600、最低 €300");
+ check(J.labor[0]<M.JOBS_MIN_WAGE||J.labor[0]<190,"牢裡勞動不能比最低的打工薪水高");
+ const town=require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8");
+ check(town.includes("town_jailed")&&town.includes("when p = 'jail' then '監獄'")&&town.includes("'carshop','jail')"),"town.sql 要有 town_jailed 與 jail 地點");
+ const near=Object.entries(M.PLACES).filter(([k,p])=>k!="jail"&&p.block).filter(([k,p])=>{const [x,y,w,h]=P.r,[a,b,c,d]=p.r;return !(a>=x+w+2||a+c<=x-2||b>=y+h+2||b+d<=y-2)});check(near.length==0,"監獄離其他建築至少要 2 格："+near.map(x=>x[0]))}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
