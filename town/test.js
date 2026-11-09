@@ -120,5 +120,9 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
   for(const c of need[k])check(rm.items.some(o=>o[0]==c),`${k} 要有 ${c}`);
   const sp=M.roomSpots(rm);check(sp.length>=8,`${k} 站位不夠（${sp.length}）`);check(new Set(sp.map(p=>p.join(","))).size==sp.length&&sp.every(p=>!rm.items.some(o=>M.ITEM[o[0]][3]&&o[1]==p[0]&&o[2]==p[1])),`${k} 站位和擋住的物件重疊`)}
  check(M.fin({place:"cafe",items:{fi:"cafe"}})&&!M.fin({place:"park",items:{fi:"cafe"}})&&!M.fin({place:"cafe",items:{}})&&!M.fin({place:"park",items:{fi:"park"}}),"fin 判斷不對（舊角色缺值要算在外面）")}
+// 手機狀態條：條（.need i）不能被壓扁（曾因圖示行高 24.75px、固定高度而被擠成 2px，看起來像能力條不見）
+{const html=require("fs").readFileSync(__dirname+"/index.html","utf8");
+ check(/body\.ingame \.need i\{flex:none;height:6px;min-height:6px/.test(html),"狀態條 body.ingame .need i 要 flex:none 並固定 6px（不可被壓扁）");
+ check(/body\.ingame \.need span\{flex:none;height:16px;line-height:16px\}/.test(html),"狀態條圖示格要固定 16px 高（行高過大會擠掉條）");}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
