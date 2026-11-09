@@ -71,6 +71,12 @@
 - 事件 kind：`slash`／`jail`／`bail`／`visitjail`／`jaillabor`。`node town/test.js` 會比對座標、勞動、保釋金、傷害與抓人機率和 SQL 是否一致。
 - `town_jail.sql` 要在 `town.sql` 之後套用（`town.sql` 含 `town_jailed`、入獄檢查、jail 地點、`px > 64`，改了 `town_tick`／`town_act`，套用前先確認）。
 
+## 走進設施裡面（咖啡廳、餐廳、健身房；SQL 待套用：`supabase/town_fi.sql`，要在 `town.sql`、`town_social.sql` 之後；實測 `supabase/town_fi_test.sql`，最後 rollback，結果在錯誤訊息 REPORT）
+- 獨立 RPC `town_fi(rid,pin,op,place)`（op = enter／exit），不改 `town_act`。資料 `items.fi` = 地點代號（`cafe`／`restaurant`／`gym`），**只有 `fi` 等於現在的 `place` 才算在裡面**（SQL `town_fin`、前端 `fin(r)`），走到別處 place 一變就自動失效（離線超過一小時回家睡也一樣），舊角色缺值 = 在外面；和自家進屋的 `items.dr` 互不相干。設施互動（`town_fac`）不要求一定在室內，沒進去也能照常用。
+- 流程：走到設施門口（`arrived`）自動呼叫 enter（失敗就留在門口，面板第一顆是「進去」）；面板在裡面時標題加「（店裡）」並多一顆「出門」；`walkTo` 一開始會先 exit（`leaveRoomLocal`）；在裡面的人地圖上不畫（`draw` 的 `fin` 過濾）、設施兩扇窗戶亮燈。
+- 畫面：面板標題下方的 `<canvas id="room">`（12×4 格、每格 24px，`drawRoom`）。場景定義在 `town.js` 的 `ROOMS`（地板、牆色、物件 `[格x,格y,圖示,對應面板按鈕的文字,名稱]`）；點場景物件 = 按面板上文字比對到的那顆按鈕，沒有文字的是裝飾；同在裡面的人（`fin` 且醒著）畫在場景裡，名字在頭上。`node town/test.js` 檢查：地點存在、物件在格內不重疊、每個物件對得到按鈕、SQL 白名單和 `ROOMS` 一致、`fin` 判斷。
+- **新增可進入的設施**：`ROOMS` 加一列、`town_fi.sql` 白名單（`pl not in (...)`，測試會比對）加地點、用 `tools/town-mock.js`（已有 `town_fi` 假回應）看畫面。目前只有三間，其餘設施之後陸續開放。
+
 ## 加一個新設施的清單（全都要改）
 1. `town.js`：`PLACES`（座標 r、door、block:1）、`HOURS`、`FEATS`（讓鎮長能開關）、面板按鈕、`buildMap` 的 `bld(...)` 與 `sign(...)`、`ACT_FX`。
 2. `town.sql`：`town_place_name`、`town_closed`（已取消營業時間，保留函式）、`town_feature`（對應開關）、`town_act` 的 move 白名單與位置上限（`px >`）、動作本身（冷卻存在 `items.cd`）、`town_features` 的白名單。

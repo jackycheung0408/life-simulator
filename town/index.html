@@ -42,7 +42,7 @@ label{display:block;margin:10px 0}
 #stage{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);touch-action:none}
 #cv{display:block;width:100%;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .tools{position:absolute;right:8px;top:8px;display:flex;gap:6px}.tools button{background:rgba(0,0,0,.55);color:#fff;border:none;font-size:16.5px;padding:6px 10px}
-#here{font-weight:700;font-size:16.5px}#note{font-size:16.5px;margin:2px 0 8px}
+#room{display:block;margin:0 auto 8px;width:100%;max-width:288px;image-rendering:pixelated;border:3px solid var(--ink);cursor:pointer}#room.hide{display:none}#here{font-weight:700;font-size:16.5px}#note{font-size:16.5px;margin:2px 0 8px}
 #acts{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}@media (max-width:520px){#acts{grid-template-columns:1fr 1fr}}
 #acts .act{display:flex;align-items:center;gap:10px;text-align:left;padding:10px 12px;border-radius:12px;min-height:56px}
 #acts .ai{font-size:22px;line-height:1;flex:none;width:30px;text-align:center}#acts .at{display:flex;flex-direction:column;min-width:0}#acts .at b{font-size:16.5px}
@@ -117,7 +117,7 @@ body.menu-open .drawer{transform:none}
  body.ingame #strip{top:calc(env(safe-area-inset-top) + 64px);bottom:auto;left:6px;right:110px;flex-wrap:nowrap;overflow-x:auto;pointer-events:auto;scrollbar-width:none}body.ingame #strip::-webkit-scrollbar{display:none}body.ingame #strip button{flex:none}
  body.ingame .mob-only{display:inline-flex}
  body.ingame #panel{position:fixed;left:0;right:0;bottom:0;margin:0;z-index:25;max-height:36vh;overflow:auto;border-radius:18px 18px 0 0;padding:6px 12px calc(env(safe-area-inset-bottom) + 10px);box-shadow:0 -8px 24px rgba(0,0,0,.4)}
- body.ingame #panel.max{max-height:78vh}body.ingame #panel.min{max-height:none}body.ingame #panel.min #acts,body.ingame #panel.min #note{display:none}
+ body.ingame #panel.max{max-height:78vh}body.ingame #panel.min{max-height:none}body.ingame #panel.min #acts,body.ingame #panel.min #note,body.ingame #panel.min #room{display:none}
  body.ingame #social{display:none}body.ingame.social #social{display:block;position:fixed;inset:0;z-index:35;margin:0;border-radius:0;overflow:auto;padding:calc(env(safe-area-inset-top) + 10px) 12px 20px}
  body.ingame #socialClose{margin-bottom:8px}
  body.ingame #tips,body.ingame #away{position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top) + 110px);z-index:32;max-height:60vh;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.4)}
@@ -211,13 +211,13 @@ body.ingame #needs{grid-template-columns:repeat(6,minmax(0,1fr))}body.ingame .ne
   <div id="tips" class="card hide tips"></div><div id="away" class="card hide"></div>
   <div id="needs"></div>
   <div id="stage"><canvas id="cv"></canvas><div class="tools"><button id="home">📍 我</button><button id="zoom">🗺️ 看全鎮</button><button id="feedBtn" class="mob-only">📰 動態<i id="feedBadge2" class="badge hide"></i></button></div><div id="strip"></div></div>
-  <div class="card" id="panel"><button id="grip" aria-label="收合"></button><div id="fb" class="hide"></div><div id="here"></div><div id="note" class="mut"></div><div id="acts"></div></div>
+  <div class="card" id="panel"><button id="grip" aria-label="收合"></button><div id="fb" class="hide"></div><div id="here"></div><canvas id="room" class="hide" width="288" height="96"></canvas><div id="note" class="mut"></div><div id="acts"></div></div>
   <div class="card" id="social"><button id="socialClose" class="mob-only">✕ 回地圖</button><div class="tabs" role="tablist"><button data-tab="feed" class="on">動態<i id="feedBadge" class="badge hide"></i></button><button data-tab="rank">本週排行</button><button data-tab="ppl">人際</button></div>
    <div id="tab-feed"><div class="chips"><button data-ff="all" class="on">全部</button><button data-ff="me">跟我有關</button><button data-ff="good">好事</button><button data-ff="bad">壞事</button><button id="report" class="chip-r">🖼️ 日報圖</button></div><div id="feed"></div></div><div id="tab-rank" class="hide"></div><div id="tab-ppl" class="hide"></div></div>
  </section>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide"><div class="card" id="mbody"></div></div>
-<script src="icons.js?v=12"></script><script src="town.js?v=80"></script>
+<script src="icons.js?v=12"></script><script src="town.js?v=81"></script>
 </body>
 </html>

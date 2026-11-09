@@ -61,7 +61,7 @@ function blocked(x,y){if(x<0||y<0||x>=COLS||y>=mapRows())return true;if(inRect(x
 // ── 交通工具（價格、速度、油錢要和 town.sql 的 vbuy／move 一致）：[名稱, 價格, 速度倍率, 每格油錢, 圖示] ──
 const VEH={bike:["腳踏車",3000,1.5,0,"🚲"],moto:["機車",30000,2.5,.4,"🏍️"],car:["汽車",120000,3,1,"🚗"]};
 const vehOwn=r=>{const v=(r&&r.items&&r.items.veh)||{};return (v.own||[]).filter(k=>VEH[k])};
-const vehOf=r=>{const v=r&&r.items&&r.items.veh;return v&&v.k&&VEH[v.k]&&!inside(r)?v.k:null};
+const vehOf=r=>{const v=r&&r.items&&r.items.veh;return v&&v.k&&VEH[v.k]&&!inside(r)&&!fin(r)?v.k:null};
 // 道路：人行道在路邊、斑馬線橫跨馬路；行人走馬路要繞去斑馬線（路上一格成本 3，斑馬線 1），騎車開車反過來路上最快
 const CWX=[4,11,15,18,22,29,38,45,53],CWY=[3,19];
 const isCross=(x,y)=>isRoad(x,y)&&((roadRowsAt(y)&&CWX.includes(x))||((x==16||x==17)&&!roadRowsAt(y)&&CWY.includes(y)));
@@ -156,6 +156,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+ {id:"u18-inside",date:"11/09",title:"可以走進設施裡面了",items:["咖啡廳、餐廳、健身房：走到門口會自動走進去，裡面有像素小場景","點場景裡的咖啡機、特餐櫃檯、啞鈴等，就是做那一項互動","同在裡面的人看得到彼此；在裡面的人不會站在街上，窗戶會亮燈","按「出門」或走去別處就會離開；其他設施之後陸續開放"]},
  {id:"u17-landing",date:"11/09",title:"首頁更好上手",items:["住過的小鎮：第一顆粉紅按鈕直接「回到小鎮」，一鍵進入","介紹縮短，第一眼就知道是和朋友住同一個小鎮","邀請碼、小鎮代碼打錯，或網路斷掉，會告訴你下一步怎麼做","載入太久會提示網路比較慢，進不去時有「再試一次」","新玩家第一次進來，不會先跳更新通知，新手提示等選完個性再出現"]},
  {id:"u17-buttons",date:"11/09",title:"互動按鈕全部放在面板第一層",items:["設施的特餐、點歌、簽到、釣魚、丟飛盤等，不用再點「更多互動」，直接一顆一顆列出來","在家的快速休息、快速睡覺、睡覺也直接按；整蠱分成「惡作劇」「丟雞蛋」兩顆","不能按的按鈕不再藏起來，會灰掉並寫原因（冷卻剩幾分、要有人在場、集點不夠）","按鈕依用途分組：吃喝、玩樂、社交、工作與任務","同地點有幾個人在，就各有一顆邀請按鈕"]},
  {id:"u16-mobile",date:"11/09",title:"手機畫面更好按",items:["上方工具列的按鈕變大，單手比較好點","狀態列的錢和禮物、零食數量不再蓋到心情格","每日任務等選項按鈕，標題和說明分成上下兩行","選單裡的項目排得更緊，一次看到更多","頁籤和關閉鈕加大，不容易按錯"]},
@@ -189,7 +190,12 @@ function updModal(all){const seen=all?null:upsSeen();let list=all?UPDATES:seen?U
  $("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>${all?"更新紀錄":"小鎮更新了"}</h2><div class="list" style="max-height:60vh;overflow:auto">${updHtml(list)}</div><div class="row"><button id="updok" class="pri">好</button></div>`;
  $("updok").onclick=()=>{$("modal").classList.add("hide");upsMark()};if(!all)upsMark();pxify($("mbody"));return true}
 function updCheck(){if(!me||!$("modal").classList.contains("hide"))return;updModal(false)}
-if(typeof module!=="undefined")module.exports={JAIL,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft};
+const ROOMS={
+ cafe:{floor:["#d9b48a","#cfa67a"],wall:"#7a4a24",obj:[[1,0,"cup",/特調咖啡/,"咖啡機"],[3,0,"ticket",/集點卡/,"集點卡"],[5,0,"lamp"],[8,0,"case",/^打工|^應徵/,"打工"],[10,0,"guitar",/點歌/,"點唱機"],[6,0,"plate",/請客/,"吧台"],[3,2,"bench",/坐下|起身/,"座位"],[8,2,"bench",/坐下|起身/,"座位"],[11,3,"plant"]]},
+ restaurant:{floor:["#f1e0c6","#e6d0ae"],wall:"#c0392b",obj:[[1,0,"bowl",/今日特餐/,"特餐櫃檯"],[3,0,"box",/打包/,"打包櫃檯"],[5,0,"plate",/高級套餐/,"高級套餐"],[8,0,"case",/^打工|^應徵/,"打工"],[10,0,"lamp"],[3,2,"bench",/坐下|起身/,"座位"],[7,2,"bench",/坐下|起身/,"座位"],[10,2,"bench",/坐下|起身/,"座位"],[11,3,"plant"]]},
+ gym:{floor:["#9aa5b8","#8f9aae"],wall:"#2e4057",obj:[[1,0,"dumbbell"],[3,1,"swords",/對練/,"對練場"],[6,0,"note",/每日簽到/,"簽到板"],[8,0,"case",/^打工|^應徵/,"打工"],[10,0,"drops",/溫泉/,"溫泉"],[1,2,"dumbbell"],[10,3,"dumbbell"]]}};
+const fin=r=>!!r&&!!r.items&&!!ROOMS[r.place]&&r.items.fi===r.place;
+if(typeof module!=="undefined")module.exports={JAIL,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,fin};
 if(typeof document!=="undefined")addEventListener("DOMContentLoaded",init);
 
 function init(){
@@ -400,9 +406,9 @@ async function act(a,extra={}){if(busy)return;busy=true;$("acts").classList.add(
  catch(e){toast(e.message);feedback(false,e.message)}busy=false;$("acts").classList.remove("busy");renderPanel()}
 function sumChanges(b0,b1,ic){const o=[];for(const f of ["money",...NEEDS]){const d=Math.round(b1[f]-b0[f]);if(Math.abs(d)>=1)o.push(f=="money"?`${d>0?"+":"−"}€${Math.abs(d)}`:`${ic[f]}${d>0?"+":""}${d}`)}return o.join(" ")||"完成"}
 let pendingThen=null;
-function walkTo(dest,d){if(jailed(R[me])){pendingThen=null;toast(`你被關在監獄裡，還有 ${fmtLeft(jlLeft(R[me]))}`);return}const w=walkers[me],p=bfs([Math.round(w.x),Math.round(w.y)],d,vehOf(R[me])),th=pendingThen;pendingThen=null;if(!p){toast("走不到那裡");return}
+function walkTo(dest,d){if(jailed(R[me])){pendingThen=null;toast(`你被關在監獄裡，還有 ${fmtLeft(jlLeft(R[me]))}`);return}leaveRoomLocal();const w=walkers[me],p=bfs([Math.round(w.x),Math.round(w.y)],d,vehOf(R[me])),th=pendingThen;pendingThen=null;if(!p){toast("走不到那裡");return}
  w.path=p.slice(1);w.dest=dest;w.then=th;w.goal=d;camFree=false;if(!w.path.length)arrived(w);renderPanel()}
-function arrived(w){const d=w.dest,th=w.then;w.dest=null;w.then=null;act("move",{px:w.goal[0],py:w.goal[1],dest:d}).then(()=>{if(th)th()})}
+function arrived(w){const d=w.dest,th=w.then;w.dest=null;w.then=null;act("move",{px:w.goal[0],py:w.goal[1],dest:d}).then(async()=>{if(ROOMS[d]&&R[me]&&!jailed(R[me]))await enterRoom(d,true);if(th)th()})}
 const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀請朋友搬進來吧`);return}if(o.id==me&&inside(R[me])&&!(walkers[me]&&walkers[me].path.length)){interiorModal(me);return}walkTo("home:"+o.id,o.id==me?door(s):visitSpot(s))};
 
 // ── 下方面板：依所在地點顯示可以做的事 ──
@@ -463,6 +469,8 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
   else for(const k of vehOwn(r))list.push(btn(`${VEH[k][4]} ${k=="car"?"開":"騎"}${VEH[k][0]}`,`${rpLeft(r,k)>0?`修理中，${fmtLeft(rpLeft(r,k))}後取車 · `:""}速度 ×${vspd(r,k).toFixed(1)} · 車況 ${Math.round(100-vwear(r,k))}% · ${VEH[k][3]?`油錢 €${VEH[k][3]}／格`:"不用油錢"}${k!="bike"&&!hasLic(r,k)?" · 沒有駕照":""}${k!="bike"&&!insLeft(r,k,"c")?" · 沒保險":""}`,()=>act("mount",{item:k}),"move"))}
  if(!sel&&debtOf(r)>0)list.push(btn(`🧾 事故欠款 €${debtOf(r)}`,`錢夠就一次還清，不夠先還手上的。欠 €5000 以上不能開機車汽車${lkLeft(r)>0?` · 休養中 ${fmtLeft(lkLeft(r))}`:""}`,()=>act("paydebt",{item:"all"}),"move"));
  if(!sel&&(tkList(r).length||susLeft(r)>0))list.push(btn(`🎫 罰單 · 欠 €${tkDebt(r)}`,susLeft(r)>0?`違規記滿，車輛暫停到 ${new Date(Date.parse(r.items.sus)).toLocaleString("zh-TW",{hour12:false,month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}`:`${tkList(r).length} 張 · 欠 €3000 以上不能上車`,()=>ticketModal(),"move"));
+ // 走進設施裡面：還在門口就給「進去」，在裡面給「出門」
+ if(ROOMS[p]&&!r.sleeping&&!sel&&!(walkers[me]&&walkers[me].path.length)){if(fin(r)){title+="（店裡）";list.push(btn("出門","回到門口 · 走去別處也會自動離開",()=>exitRoom(),"move"))}else list.unshift(btn("進去 🚪",`走進${placeName(p)}，看看裡面有誰`,()=>enterRoom(p),"place"))}
  // 店家休息中：只留說明，按鈕拿掉
  const cm=closedMsg(p);if(cm&&!sel){title+="（休息中）";note=cm;for(let i=list.length-1;i>=0;i--)if(!list[i].g||list[i].g=="place")list.splice(i,1)}
  for(let i=list.length-1;i>=0;i--)if(/烤地瓜/.test(list[i].label)&&closedMsg("stall"))list.splice(i,1);
@@ -476,7 +484,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
    const m=b.label.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u)||b.label.match(/^(.*?)\s*(\p{Extended_Pictographic}\uFE0F?)$/u),txt=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[1]:m[2]):b.label,ic=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[2]:m[1]):(ACT_ICON[b.label]||(b.g=="move"?"🚶":"•"));
    const cost=+((b.sub||"").match(/€(\d+)(?!\d)/)||[])[1]||0,dis=b.dis||"",poor=dis||(cost&&/€\d+/.test(b.sub)&&!/\+€/.test(b.sub)&&r.money<cost),bad=/扁|砍|雞蛋|臭屁|惡作劇|叫醒/.test(b.label);
    return `<button data-i="${i}" class="act${b.g=="tip"?" cta":""}${bad?" bad":""}${poor?" poor":""}${b.g=="move"?" ghost":""}"><span class="ai">${ic}</span><span class="at"><b>${esc(txt)}</b>${b.sub||poor?`<small>${poor?(dis?esc(dis):`錢不夠（要 €${cost}）`):b.sub}</small>`:""}</span></button>`}).join("")).join("");
- panelFns=list;if(html!=lastPanel){lastPanel=html;patchList($("acts"),html)}}
+ panelFns=list;if(html!=lastPanel){lastPanel=html;patchList($("acts"),html)}drawRoom()}
 $("acts").addEventListener("click",ev=>{const b=ev.target.closest("button[data-i]");if(!b||busy)return;const f=panelFns[b.dataset.i];if(f){if(f.dis){toast(f.dis);return}if(f.g=="tip")track("click",f.label);press(b,f.fn)}});
 let lastNeeds="";
 function renderNeeds(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now());
@@ -973,9 +981,11 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
  {const cx=(25.5+4*(1+Math.sin(t/7000)))*T,cy=(18.6+.8*Math.sin(t/3100))*T;g.fillStyle="#555";g.fillRect(cx-8,cy-4,16,8);g.fillRect(cx+6,cy-10,8,8);g.fillRect(cx+6,cy-12,2,3);g.fillRect(cx+12,cy-12,2,3);g.fillRect(cx-12,cy-8+Math.sin(t/300)*2,4,8);g.fillStyle="#ffd23f";g.fillRect(cx+8,cy-8,2,2);g.fillRect(cx+11,cy-8,2,2)}
  for(const q of POOPS){const im=cimgP("💩");if(im.complete)g.drawImage(im,q.x*T+2,q.y*T+2,T-4,T-4)}
  // 人：依 y 排序，前面的蓋住後面的；在家睡覺的人在屋裡看不到，改在屋頂畫 💤；晚上有人在家的窗戶亮燈
- const list=Object.values(R).map(r=>({id:r.id,w:walkers[r.id],r:tickLocal(r,now())})).filter(o=>!(inside(o.r)&&!o.w.path.length)).sort((a,b)=>a.w.y-b.w.y);
+ const list=Object.values(R).map(r=>({id:r.id,w:walkers[r.id],r:tickLocal(r,now())})).filter(o=>!(inside(o.r)&&!o.w.path.length)&&!(fin(o.r)&&!o.w.path.length)).sort((a,b)=>a.w.y-b.w.y);
  const nowMs=Date.now();for(const o of list){const bb=bubbles[o.id]||(bubbles[o.id]={next:nowMs+2e3+Math.random()*15e3});if(nowMs>bb.next){bb.text=togetherAt(o.r.place)&&!o.r.sleeping&&Math.random()<.5?rp(TOGETHER_LINES):Math.random()<.6?moodLine(o.id,o.r):null;bb.until=nowMs+4500;bb.next=nowMs+18e3+Math.random()*25e3}
   person((o.w.x+.5)*T,(o.w.y+.5)*T,o.r.look,tk,o.w.moving,nameTag(o.r),o.id==me,{veh:vehOf(o.r),fx:o.w.fx,sleeping:o.r.sleeping&&!o.w.path.length,stink:o.r.hygiene<25,dirty:o.r.hygiene<25,hungry:o.r.hunger<20,bruised:o.r.bruised,bubble:o.r.sleeping?null:o.r.bladder<20?"快憋不住 🚽":bb.text&&nowMs<bb.until?bb.text:null})}
+ // 有人在設施裡面：兩扇窗戶亮燈
+ for(const k in ROOMS){if(!isOn(k))continue;if(!Object.values(R).some(o=>fin(o)&&o.place==k&&!(walkers[o.id]&&walkers[o.id].path.length)))continue;const [x,y,w]=PLACES[k].r;g.fillStyle="rgba(255,215,106,.5)";g.fillRect(x*T+14,y*T+34,26,24);g.fillRect((x+w)*T-40,y*T+34,26,24)}
  for(const r of Object.values(R)){if(!inside(r))continue;const [hx,hy]=homeXY(r.slot);if(night){g.fillStyle="rgba(255,215,106,.35)";g.fillRect(hx*T+16,hy*T+T+22,24,22);g.fillRect(hx*T+5*T-40,hy*T+T+22,24,22)}
   // 在屋裡睡覺的人，或離線超過 10 分鐘待在家的人（回家休息了）：屋頂一直飄 Z
   if(r.sleeping||(r.id!=me&&Date.parse(r.seen_at)<=now()-6e5)){g.textAlign="center";g.lineWidth=3;g.strokeStyle="#2a3a6a";for(let j=0;j<3;j++){const ph=((tk/60)+j*14)%42,al=1-ph/42;g.globalAlpha=Math.max(0,al);g.font="bold "+(12+j*3)+"px sans-serif";const zx=hx*T+4.1*T+ph*.5+j*3,zy=hy*T+T+6-ph;g.strokeText("Z",zx,zy);g.fillStyle="#fff";g.fillText("Z",zx,zy)}g.globalAlpha=1}}
@@ -1176,6 +1186,23 @@ function taskModal(){const r=R[me];if(!r)return;const a=faOf(r),ids=taskIds(),tk
  const rows=ids.map((t,i)=>{const done=taskDone(r,t),got=tk.includes(t);return[`${got?"已領":done?"可領獎":"未完成"}　${TASKS[t]}`,got?"獎勵 €50 已領":done?"點這裡領 €50":"完成後回來領 €50",async()=>{if(got||!done){toast(got?"已經領過了":"還沒完成");return}await doFac("claim",null,String(i))}]});
  const fq=Object.entries(it.fq||{}).filter(x=>x[1]>=5).map(x=>`${placeName(x[0])} ${tierOf(x[1])}`);
  choiceModal("每日任務板",`每天重新出三個，各 €50，三個都領完再 +€100。今天互動 ${a.n||0} 次 · 咖啡集點卡 ${it.cs||0}/8${it.gy?` · 健身房連續簽到 ${it.gy.d==dayKey()?it.gy.s:(it.gy.d==dayKey(-1)?it.gy.s:0)} 天`:""}${fq.length?` · 常客：${fq.join("、")}`:""}`,rows)}
+// ── 走進設施裡面（咖啡廳、餐廳、健身房；RPC town_fi，資料 items.fi = 地點代號，只有 fi 等於現在的 place 才算在裡面）──
+// 場景 12×4 格、每格 24px；物件 [格x,格y,圖示,對應面板按鈕的文字,名稱]；點物件 = 按面板上對應的那顆按鈕（沒有文字 = 裝飾）
+const ROOMIMG={};
+function roomImg(n){if(!ROOMIMG[n]){const i=new Image();i.onload=()=>{try{drawRoom()}catch(e){}};i.src=window.PIXICON_NAME(n);ROOMIMG[n]=i}return ROOMIMG[n]}
+async function enterRoom(pl,quiet){try{await rpc("town_fi",{rid:me,pin,op:"enter",pl});await refresh()}catch(e){if(!quiet)toast(e.message)}renderPanel()}
+async function exitRoom(){leaveRoomLocal();try{await rpc("town_fi",{rid:me,pin,op:"exit"});await refresh()}catch(e){toast(e.message)}renderPanel()}
+function leaveRoomLocal(){const r=R[me];if(!fin(r))return false;r.items={...r.items};delete r.items.fi;rpc("town_fi",{rid:me,pin,op:"exit"}).catch(()=>{});return true}
+function drawRoom(){const cv=$("room");if(!cv)return;const r=R[me],rm=r&&ROOMS[r.place];
+ const show=!!rm&&fin(r)&&!r.sleeping&&!(walkers[me]&&walkers[me].path.length);cv.classList.toggle("hide",!show);if(!show)return;
+ const c=cv.getContext("2d"),C=24;c.imageSmoothingEnabled=false;c.clearRect(0,0,288,96);
+ c.fillStyle=rm.wall;c.fillRect(0,0,288,C);for(let y=1;y<4;y++)for(let x=0;x<12;x++){c.fillStyle=rm.floor[(x+y)%2];c.fillRect(x*C,y*C,C,C)}
+ c.fillStyle="rgba(0,0,0,.25)";c.fillRect(0,C-3,288,3);
+ for(const o of rm.obj){const im=roomImg(o[2]);if(im.complete&&im.naturalWidth)c.drawImage(im,o[0]*C,o[1]*C,C,C)}
+ const here=Object.values(R).filter(o=>o.place==r.place&&fin(o)&&!o.sleeping&&!jailed(o)&&!(walkers[o.id]&&walkers[o.id].path.length)).sort((a,b)=>(b.id==me)-(a.id==me)),slots=[5.5,7.5,3.5,9.5,1.5,6.5,4.5,8.5];
+ here.slice(0,8).forEach((o,i)=>{const x=slots[i]*C,y=3*C+2;drawChar(c,x,y,1.05,o.look,{},0);c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.strokeText(o.name.slice(0,4),x,y-30);c.fillStyle=o.id==me?"#fee761":"#fff";c.fillText(o.name.slice(0,4),x,y-30)})}
+{const cv=typeof document!=="undefined"&&document.getElementById("room");if(cv)cv.addEventListener("click",ev=>{const r=R[me],rm=r&&ROOMS[r.place];if(!rm||!fin(r))return;const b=cv.getBoundingClientRect(),cx=Math.floor((ev.clientX-b.left)/b.width*12),cy=Math.floor((ev.clientY-b.top)/b.height*4),o=rm.obj.find(o=>o[0]==cx&&o[1]==cy);if(!o||!o[3])return;
+ const i=panelFns.findIndex(f=>o[3].test(f.label)),el=i<0?null:$("acts").querySelector(`button[data-i="${i}"]`);if(el)el.click();else toast(`${o[4]}現在不能用`)})}
 const togetherAt=p=>PEV[p]&&Object.values(R).filter(o=>o.place==p&&!o.sleeping).length>=2;
 const TOGETHER_LINES=["一起真開心","嘿嘿，有伴真好","這裡好熱鬧","要不要一起做點什麼？"];
 // 邀請一起做：按鈕在設施面板；收到邀請時彈窗，1 分鐘內可接受
@@ -1196,3 +1223,4 @@ const slow=setTimeout(()=>{const x=document.querySelector("#lg .ld small");if(x)
  if(a&&R[a.rid]){try{const res=await rpc("town_login",{rid:a.rid,pin:a.pin});me=a.rid;pin=a.pin;lastSeen=res.last_seen;await enter()}catch(e){townLogin()}}else townLogin();
  setInterval(()=>{if(document.visibilityState=="visible"&&S)refresh().catch(()=>{})},15000);setInterval(pePoll,20000)})();
 }
+

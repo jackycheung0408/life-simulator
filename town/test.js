@@ -97,5 +97,11 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  const town=require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8");
  check(town.includes("town_jailed")&&town.includes("when p = 'jail' then '監獄'")&&town.includes("'carshop','jail')"),"town.sql 要有 town_jailed 與 jail 地點");
  const near=Object.entries(M.PLACES).filter(([k,p])=>k!="jail"&&p.block).filter(([k,p])=>{const [x,y,w,h]=P.r,[a,b,c,d]=p.r;return !(a>=x+w+2||a+c<=x-2||b>=y+h+2||b+d<=y-2)});check(near.length==0,"監獄離其他建築至少要 2 格："+near.map(x=>x[0]))}
+// 走進設施裡面：ROOMS 的地點要存在、物件在 12×4 格內、點物件要對得到面板按鈕；SQL 的 town_fi 白名單要和 ROOMS 一致；fin 只有 items.fi 等於現在的 place 才算
+{const sql=require("fs").readFileSync(__dirname+"/../supabase/town_fi.sql","utf8"),labels=[...Object.values(M.FAC).map(d=>d[0]),"坐下逗留 🪑","起身 🪑","打工：咖啡師 💼","打工：服務生 💼","打工：健身教練 💼"];
+ check(sql.includes("pl not in ("+Object.keys(M.ROOMS).map(k=>"'"+k+"'").join(",")+")"),"town_fi.sql 的地點白名單要和 ROOMS 一致");
+ for(const [k,rm] of Object.entries(M.ROOMS)){check(M.PLACES[k],`ROOMS ${k} 不是地點`);const seen=new Set();
+  for(const o of rm.obj){check(o[0]>=0&&o[0]<12&&o[1]>=0&&o[1]<4,`${k} 物件 ${o[2]} 超出 12×4 格`);check(!seen.has(o[0]+","+o[1]),`${k} 物件重疊 ${o[0]},${o[1]}`);seen.add(o[0]+","+o[1]);if(o[3])check(labels.some(l=>o[3].test(l)),`${k} 的 ${o[4]} 對不到任何按鈕`)}}
+ check(M.fin({place:"cafe",items:{fi:"cafe"}})&&!M.fin({place:"park",items:{fi:"cafe"}})&&!M.fin({place:"cafe",items:{}})&&!M.fin({place:"park",items:{fi:"park"}}),"fin 判斷不對（舊角色缺值要算在外面）")}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
