@@ -99,11 +99,13 @@ $("go").onclick=async()=>{if(!$("starBox").classList.contains("hide")&&cfg.star=
  else if(cfg.card!==null&&drawn[cfg.card]){const d=drawn[cfg.card];p.pot=d.pot;p.talent=Math.max(30,d.pot-12);p.card=d.r;p.flair=d.flair}p.id=Date.now()+"";starsInit(p,cfg.stars);
  if(sx&&p.stars)p.stars=p.stars.filter(s=>s.real!=sx[0]);P=p;await reveal(p);say(`${p.name}出生在${p.c}。`,1);playHit("start");start(p)};
 // 舊存檔載入時套用新的平衡（只做一次）：能力差距收斂、年薪重算
-const SAVE_VER=2;
+const SAVE_VER=3;
 function migrate(p){if((p.ver||1)>=SAVE_VER)return;const fixed=[];
  if(p.pos!="GK"&&p.s){const v=ATTR.map(k=>p.a[k]),mean=v.reduce((a,b)=>a+b,0)/v.length,before=Math.max(...v)-Math.min(...v);
   if(before>30){ATTR.forEach(k=>{const x=p.a[k];if(x<mean-12)p.a[k]=x+(mean-12-x)*.8});capAttrs(p);const after=Math.max(...ATTR.map(k=>p.a[k]))-Math.min(...ATTR.map(k=>p.a[k]));fixed.push(`沒練到的能力補回一些（六項差距 ${Math.round(before)} → ${Math.round(after)}）`)}}
  if(p.clubObj&&p.wage&&!p.loanTo){const w=wageOf(p.clubObj,p);if(p.wage>w*1.3){fixed.push(`年薪依新行情調整（${eur(p.wage)} → ${eur(w)}）`);p.wage=w}}
+ if((p.ver||1)<3&&p.pos!="GK"&&p.s&&!p.realStar){const w=DPW[dpOf(p)],rel=ATTR.filter(k=>Object.keys(faceMap(p,k)).reduce((t,x)=>t+(w[x]||0),0)>=8),top=Math.max(...rel.map(k=>p.a[k])),fl=Math.min(top-16,p.pot-4),b=top-Math.min(...rel.map(k=>p.a[k]));
+  let n=0;rel.forEach(k=>{const x=p.a[k];if(x<fl){p.a[k]=x+(fl-x)*.8;n++}});if(n)fixed.push(`天賦能力平均化：偏科的 ${n} 項能力補回一些（差距 ${Math.round(b)} → ${Math.round(Math.max(...rel.map(k=>p.a[k]))-Math.min(...rel.map(k=>p.a[k])))}）`)}
  p.ver=SAVE_VER;if(fixed.length)setTimeout(()=>{say("📋 遊戲更新：舊存檔已套用新的平衡。"+fixed.join("；")+"。",1)},50)}
 function loadSlot(s){if(s.plan)plan=s.plan;const p=s.P;try{starsTopUp(p)}catch(e){}p.h=Math.round(hAt(p,p.age)*10)/10; // 舊存檔可能有錯誤的身高，載入時重新計算
  if(!p.s){p.s={};SUBS.forEach(k=>p.s[k]=30)}attachA(p);if(p.club)p.clubObj=CLUBS.find(c=>c.name==p.club);migrate(p);$("log").innerHTML=p.log.slice(-60).reverse().map(([a,t,h])=>`<p class="${h?"hi":""}"><span class="y">${a}歲</span>${t}</p>`).join("");start(p)}
