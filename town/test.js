@@ -5,10 +5,25 @@ for(let rows=2;rows<=4;rows++){M.setRows(rows);
  const doors=[...[...Array(rows*3).keys()].map(s=>["房子"+s,M.door(s)]),...Object.entries(M.PLACES).map(([k,p])=>[k,p.door])];
  for(const [n,d] of doors)check(!M.blocked(...d)&&d[1]<M.mapRows(),`${rows} 排：${n} 的門在牆裡或地圖外`);
  for(let s=0;s<rows*3;s++){const v=M.visitSpot(s);check(!M.blocked(...v),`${rows} 排：房子 ${s} 門口旁邊站不了人`);const [hx,hy]=M.homeXY(s),p=M.placeAt(hx+1,hy+1);check(p&&p.slot==s,`${rows} 排：點房子 ${s} 沒對到`)}
- for(const [a,da] of doors)for(const [b,db] of doors)if(a!=b){routes++;check(M.bfs(da,db),`${rows} 排：${a} 走不到 ${b}`)}}
+ for(const [a,da] of doors)for(const [b,db] of doors)if(a!=b){routes++;check(M.bfs(da,db),`${rows} 排：${a} 走不到 ${b}`);check(M.route(da,db,null),`${rows} 排：行人自由走 ${a} 走不到 ${b}`)}}
 // 和 supabase/town.sql 的 town_door 一樣：x = [2,9,20][s%3]+2；y = 第 0 排 5、第 1 排 21、之後每排 +7（28、35）
 for(let s=0;s<12;s++){const k=Math.floor(s/3),d=M.door(s),y=(k==0?1:k==1?17:24+7*(k-2))+4;check(d[0]==[2,9,20][s%3]+2&&d[1]==y,`房子 ${s} 門口和資料庫不一致`)}
 check(M.door(7)[0]==11&&M.door(7)[1]==28,"房子 7 的門應該在 (11,28)，和資料庫測試結果一致");
+// 自由走動：行人任意兩個空格可達、路線不穿建築／房子／噴水池、第一點是起點最後一點是終點，而且不會比規則路線（人行道＋斑馬線）長
+{let seed=7;const rnd=n=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed%n};
+ for(let rows=2;rows<=4;rows++){M.setRows(rows);const H=M.mapRows(),open=[];for(let y=0;y<H;y++)for(let x=0;x<M.COLS;x++)if(!M.blocked(x,y))open.push([x,y]);
+  let cut=0,longer=0;
+  for(let i=0;i<300;i++){const a=open[rnd(open.length)],b=open[rnd(open.length)],p=M.route(a,b,null);
+   if(!p){check(false,`${rows} 排：自由走 (${a}) 到 (${b}) 走不到`);continue}
+   check(p[0][0]==a[0]&&p[0][1]==a[1]&&p[p.length-1][0]==b[0]&&p[p.length-1][1]==b[1],`${rows} 排：自由走路線起終點不對`);
+   let len=0;for(let j=1;j<p.length;j++){const [x0,y0]=p[j-1],[x1,y1]=p[j],L=Math.hypot(x1-x0,y1-y0);len+=L;for(let t=0;t<=L*10;t++){const f=L?t/(L*10):0;if(M.blocked(Math.round(x0+(x1-x0)*f),Math.round(y0+(y1-y0)*f))){cut++;break}}}
+   const old=M.bfs(a,b,null);if(old&&len>old.length-1+1e-6)longer++}
+  check(cut==0,`${rows} 排：自由走路線穿過建築 ${cut} 條`);check(longer==0,`${rows} 排：自由走路線比規則路線長 ${longer} 條`)}
+ M.setRows(3);
+ // 草地直走：廣場門口到公園門口，轉折點不超過 4 個（不是一格一格的階梯）
+ const pl=M.route(M.PLACES.plaza.door,M.PLACES.park.door,null);check(pl&&pl.length<=5,"廣場到公園應該是幾條直線，不是階梯："+(pl&&pl.length));
+ // 騎車開車仍走馬路（成本：路上 1、路外 2）
+ const vp=M.route(M.PLACES.plaza.door,M.PLACES.park.door,"car");check(vp&&vp.every((c,i)=>i==0||Math.abs(c[0]-vp[i-1][0])+Math.abs(c[1]-vp[i-1][1])==1),"交通工具仍用格子路徑")}
 // 自動更新：version.json 要和 index.html 裡 town.js 的 ?v 一致（改版請跑 node tools/town-bump.mjs）
 {const fs=require("fs"),html=fs.readFileSync(__dirname+"/index.html","utf8"),m=html.match(/town\.js\?v=(\d+)/),vj=JSON.parse(fs.readFileSync(__dirname+"/version.json","utf8"));
  check(m&&vj.v==+m[1],"town/version.json 的 v（"+vj.v+"）要等於 index.html 的 town.js?v（"+(m&&m[1])+"）。跑 node tools/town-bump.mjs");

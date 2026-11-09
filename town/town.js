@@ -99,6 +99,20 @@ function bfs(from,to,veh){const key=(x,y)=>y*COLS+x,dist=new Map([[key(...from),
   if(x==to[0]&&y==to[1]){const path=[];let k=key(x,y);while(k!=null){path.unshift([k%COLS,Math.floor(k/COLS)]);k=prev.get(k)}return path}
   for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(blocked(nx,ny))continue;const k=key(nx,ny),nd=d+stepCost(nx,ny,veh);if(!dist.has(k)||nd<dist.get(k)){dist.set(k,nd);prev.set(k,key(x,y));(B[nd]||(B[nd]=[])).push([nx,ny])}}}}
  return null}
+// 自由走動（行人）：8 方向 A*（不切建築的角）→ 拉直成幾個轉折點，可以直線穿過草地、公園、馬路；騎車開車仍用上面的 bfs（路上快、路外慢）
+function los(a,b){const dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy);if(!L)return true;const n=Math.ceil(L/.2),ox=-dy/L*.34,oy=dx/L*.34;
+ for(let i=0;i<=n;i++){const x=a[0]+dx*i/n,y=a[1]+dy*i/n;if(blocked(Math.round(x),Math.round(y))||blocked(Math.round(x+ox),Math.round(y+oy))||blocked(Math.round(x-ox),Math.round(y-oy)))return false}return true}
+function freePath(from,to){if(blocked(to[0],to[1]))return null;const key=(x,y)=>y*COLS+x,g=new Map([[key(...from),0]]),prev=new Map([[key(...from),null]]),H=[],hz=(x,y)=>{const dx=Math.abs(x-to[0]),dy=Math.abs(y-to[1]);return Math.max(dx,dy)+.414*Math.min(dx,dy)};
+ const push=(f,x,y)=>{H.push([f,x,y]);let i=H.length-1;while(i>0){const q=(i-1)>>1;if(H[q][0]<=H[i][0])break;[H[q],H[i]]=[H[i],H[q]];i=q}};
+ const pop=()=>{const t=H[0],l=H.pop();if(H.length){H[0]=l;let i=0;for(;;){let a=2*i+1,b=a+1,m=i;if(a<H.length&&H[a][0]<H[m][0])m=a;if(b<H.length&&H[b][0]<H[m][0])m=b;if(m==i)break;[H[m],H[i]]=[H[i],H[m]];i=m}}return t};
+ push(hz(...from),...from);const done=new Set();
+ while(H.length){const [,x,y]=pop(),k=key(x,y);if(done.has(k))continue;done.add(k);
+  if(x==to[0]&&y==to[1]){const nodes=[];let c=k;while(c!=null){nodes.unshift([c%COLS,Math.floor(c/COLS)]);c=prev.get(c)}
+   const out=[nodes[0]];let i=0;while(i<nodes.length-1){let j=nodes.length-1;while(j>i+1&&!los(nodes[i],nodes[j]))j--;out.push(nodes[j]);i=j}return out}
+  for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const nx=x+dx,ny=y+dy;if(blocked(nx,ny))continue;if(dx&&dy&&(blocked(x+dx,y)||blocked(x,y+dy)))continue;
+   const nk=key(nx,ny),ng=g.get(k)+(dx&&dy?1.414:1);if(!g.has(nk)||ng<g.get(nk)){g.set(nk,ng);prev.set(nk,k);push(ng+hz(nx,ny),nx,ny)}}}
+ return null}
+const route=(from,to,veh)=>veh?bfs(from,to,veh):freePath(from,to);
 // 點到的格子是哪裡：{slot} 房子、{dest} 公共地點或路上
 function placeAt(x,y){const pp=POOPS.find(q=>q.x==x&&q.y==y);if(pp){const c=[[x,y+1],[x+1,y],[x-1,y],[x,y-1]].find(d=>!blocked(...d));if(c)return {dest:"street",door:c}}for(const k in OBJS){const o=OBJS[k];if(o.x!=null&&x==o.x&&y==o.y)return {dest:"street",door:[x,y+(y==5?1:0)],obj:k}}let s=slotAt(x,y);if(s<0)for(let i=0;i<NR*3;i++){const d=door(i);if(d[0]==x&&d[1]==y)s=i}if(s>=0)return {slot:s};
  for(const k in PLACES)if(isOn(k)&&inRect(x,y,PLACES[k].r))return {dest:k,door:PLACES[k].door};
@@ -160,6 +174,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u24-freewalk",date:"11/09",title:"可以隨便走了",items:["走路不再硬繞人行道和斑馬線，可以直接穿過草地、公園和馬路","會繞開房子和建築，路線自動變短","騎腳踏車、機車、汽車還是走馬路最快"]},
   {id:"u23-route",date:"11/09",title:"走路會先畫出路線",items:["點地圖、設施或朋友開始走，會用小方塊畫出要走的路","終點有閃動的黃框，走過的路會慢慢消失","走不到的地方會說路被擋住了"]},
   {id:"u22-autoupdate",date:"11/09",title:"小鎮有新版會自己通知",items:["從主畫面打開也不用手動重新整理了","有新版時上面會出現「小鎮有新版本」，按「更新」就換成新的","你在走路或開視窗時不會被打斷，等你有空再顯示"]},
   {id:"u21-hud2",date:"11/09",title:"手機畫面再整理",items:["錢格不再貼邊，下面的禮物、零食數量看得到","站在自己家門口，標題不再寫成「在他家」","上面的角色頁籤右邊淡出，提示可以左右滑"]},
@@ -213,7 +228,7 @@ function roomSpots(rm){const W=rw(rm),H=rh(rm),blocked=new Set(rm.items.filter(o
 const fin=r=>!!r&&!!r.items&&!!ROOMS[r.place]&&r.items.fi===r.place;
 // 現在在哪個室內：設施裡面（fin）或自己家屋裡（inside）；都不是就 null
 const roomOf=r=>!r?null:fin(r)?ROOMS[r.place]:(r.place=="home:"+r.id&&inside(r))?homeRoom(r):null;
-if(typeof module!=="undefined")module.exports={JAIL,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
+if(typeof module!=="undefined")module.exports={JAIL,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
 if(typeof document!=="undefined")addEventListener("DOMContentLoaded",init);
 
 function init(){
@@ -295,7 +310,7 @@ async function refresh(){const st=await rpc("town_state",{tid:TID});apply(st);if
 const seenLuck=new Set();
 function apply(st){S=st;POOPS=st.poops||[];CUR=(st.town&&st.town.cur)||"NT$";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>(e.kind=="luck"||e.kind=="rent"||e.kind=="ticket"||e.kind=="crash")&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
  st.residents.forEach(r=>{R[r.id]=r;const w=walkers[r.id];
-  if(!w)walkers[r.id]={x:r.x,y:r.y,path:[],tx:r.x,ty:r.y};else if(r.id!=me&&(Math.abs(w.tx-r.x)>.01||Math.abs(w.ty-r.y)>.01)){const p=bfs([Math.round(w.x),Math.round(w.y)],[Math.round(r.x),Math.round(r.y)],vehOf(r));w.path=p?p.slice(1):[[r.x,r.y]]}
+  if(!w)walkers[r.id]={x:r.x,y:r.y,path:[],tx:r.x,ty:r.y};else if(r.id!=me&&(Math.abs(w.tx-r.x)>.01||Math.abs(w.ty-r.y)>.01)){const p=route([Math.round(w.x),Math.round(w.y)],[Math.round(r.x),Math.round(r.y)],vehOf(r));w.path=p?p.slice(1):[[r.x,r.y]]}
   walkers[r.id].tx=r.x;walkers[r.id].ty=r.y});
  if(me&&R[me]){const lv=lvOf(alN(R[me]));if(lastLv!==null&&lv>lastLv)setTimeout(()=>lvUpModal(lv),600);lastLv=lv}
  setOff(st.town.off);const key=st.town.rows+"|"+(st.town.off||[]).join()+"|"+st.residents.map(r=>r.id+":"+r.slot+":"+r.name+":"+JSON.stringify([(r.items||{}).roof,(r.items||{}).wall,(r.items||{}).d,(r.items||{}).hl])).join(",");if(key!=mapKey){mapKey=key;maps={}}
@@ -425,7 +440,7 @@ async function act(a,extra={}){if(busy)return;busy=true;$("acts").classList.add(
  catch(e){toast(e.message);feedback(false,e.message)}busy=false;$("acts").classList.remove("busy");renderPanel()}
 function sumChanges(b0,b1,ic){const o=[];for(const f of ["money",...NEEDS]){const d=Math.round(b1[f]-b0[f]);if(Math.abs(d)>=1)o.push(f=="money"?`${d>0?"+":"−"}€${Math.abs(d)}`:`${ic[f]}${d>0?"+":""}${d}`)}return o.join(" ")||"完成"}
 let pendingThen=null;
-function walkTo(dest,d){if(jailed(R[me])){pendingThen=null;toast(`你被關在監獄裡，還有 ${fmtLeft(jlLeft(R[me]))}`);return}leaveRoomLocal();const w=walkers[me],p=bfs([Math.round(w.x),Math.round(w.y)],d,vehOf(R[me])),th=pendingThen;pendingThen=null;if(!p){toast("走不到那裡，路被擋住了");return}
+function walkTo(dest,d){if(jailed(R[me])){pendingThen=null;toast(`你被關在監獄裡，還有 ${fmtLeft(jlLeft(R[me]))}`);return}leaveRoomLocal();const w=walkers[me],p=route([Math.round(w.x),Math.round(w.y)],d,vehOf(R[me])),th=pendingThen;pendingThen=null;if(!p){toast("走不到那裡，路被擋住了");return}
  w.path=p.slice(1);w.dest=dest;w.then=th;w.goal=d;camFree=false;if(!w.path.length)arrived(w);renderPanel()}
 function arrived(w){const d=w.dest,th=w.then;w.dest=null;w.then=null;act("move",{px:w.goal[0],py:w.goal[1],dest:d}).then(async()=>{if(ROOMS[d]&&R[me]&&!jailed(R[me]))await enterRoom(d,true);if(th)th()})}
 const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀請朋友搬進來吧`);return}if(o.id==me&&inside(R[me])&&!(walkers[me]&&walkers[me].path.length)){interiorModal(me);return}walkTo("home:"+o.id,o.id==me?door(s):visitSpot(s))};
