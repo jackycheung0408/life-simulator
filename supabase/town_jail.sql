@@ -301,7 +301,7 @@ begin
     m := case when hit then ef[3] else ef[8] end; b := case when hit then ef[4] else ef[9] end;
     dl := case when hit then ef[10] else ef[11] end; bad := ef[12];
     r.fun := r.fun + f; r.energy := r.energy + e; r.money := r.money + m;
-    select x.id, x.name into xid, xname from public.town_residents x where x.town_id = r.town_id and x.place = 'jail' and x.id <> rid and public.town_jailed(x) order by random() limit 1;
+    select jm.id, jm.name into xid, xname from public.town_residents jm where jm.town_id = r.town_id and jm.place = 'jail' and jm.id <> rid and public.town_jailed(jm) order by random() limit 1;  -- 別名不能叫 x（和位置欄 x 撞名，會被當成 real）
     if xid is not null and b <> 0 then perform public.town_bond(r.town_id, rid, xid, b); end if;
     if dl <> 0 then
       jl := (r.items->>'jl')::timestamptz + make_interval(mins => dl);

@@ -64,7 +64,7 @@ begin
   j := public.town_jail(ra,'1234','labor'); select * into r from public.town_residents where id = ra;
   rep := rep||'  勞動 2 次後 jp.n='||(r.items->'jp'->>'n')||' (2)'||E'\n';
   begin perform public.town_jail(ra,'1234','parole'); rep := rep||'  未服滿一半 parole NOT BLOCKED'||E'\n'; exception when others then rep := rep||'  未服滿一半：'||sqlerrm||E'\n'; end;
-  update public.town_residents set items = jsonb_set(items, '{jp,t}', to_jsonb((now() - interval '90 minutes')::text)) where id = ra;
+  update public.town_residents set items = jsonb_set(items, '{jp,t}', to_jsonb((now() - interval '130 minutes')::text)) where id = ra;
   update public.town_residents set items = jsonb_set(items, '{jp,bad}', '1'::jsonb) where id = ra;
   begin perform public.town_jail(ra,'1234','parole'); rep := rep||'  惹過事 parole NOT BLOCKED'||E'\n'; exception when others then rep := rep||'  惹過事：'||sqlerrm||E'\n'; end;
   update public.town_residents set items = jsonb_set(items, '{jp,bad}', '0'::jsonb) where id = ra;
