@@ -18,7 +18,7 @@ begin
   perform public.town_fac(ra,'1234','feast'); select * into r from public.town_residents where id = ra; rep := rep||'feast exact money '||r.money||' (期望 0，不為負)'||E'\n';
   -- 薪水不抽基金
   select fund into f0 from public.town_towns where id = tid;
-  update public.town_residents set place = 'company', money = 1000, energy = 80, hunger = 80, items = items - 'cd' where id = ra;
+  update public.town_residents set place = 'office', money = 1000, energy = 80, hunger = 80, items = items - 'cd' where id = ra;
   begin perform public.town_act(ra,'1234','work'); exception when others then rep := rep||'work err: '||sqlerrm||E'\n'; end;
   select * into r from public.town_residents where id = ra; select fund into f1 from public.town_towns where id = tid;
   rep := rep||'work money '||r.money||' (應 >1000) fund '||f0||' -> '||f1||' (期望不變)'||E'\n';
