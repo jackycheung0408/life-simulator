@@ -63,6 +63,6 @@ begin
   rep := rep||'商店小道具 = '||(select string_agg(id||':'||price, ',' order by id) from public.town_shop where id in ('frame','painting','desklamp','toy','books'))||' (期望 books:500,desklamp:600,frame:300,painting:900,toy:400)'||E'\n';
   update public.town_residents set place = 'market', money = 5000 where id = rb;
   perform public.town_act(rb,'1234','buy', item => 'f:frame');
-  select * into r from public.town_residents where id = rb; rep := rep||'乙買相框後 錢 = '||r.money||' f = '||(r.items->'f')::text||' (期望 4700、有 frame)'||E'\n';
+  select * into r from public.town_residents where id = rb; rep := rep||'乙買相框後 錢 = '||r.money||' f = '||(r.items->'f')::text||' (期望 4300：5000 − 當日第一次動作的小屋房租 400 − 相框 300，有 frame)'||E'\n';
   raise exception E'REPORT\n%', rep;
 end $$;
