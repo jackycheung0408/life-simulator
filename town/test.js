@@ -1,6 +1,6 @@
 // 小豬鎮自動測試：node town/test.js
 // 檢查：2～4 排房子時每個門都走得到、門不在牆裡、門口位置和資料庫的 town_door 一致、需求扣減算法
-const COLS_=52;const M=require("./town.js"),fails=[];const check=(ok,msg)=>{if(!ok)fails.push(msg)};let routes=0;
+const COLS_=57;const M=require("./town.js"),fails=[];const check=(ok,msg)=>{if(!ok)fails.push(msg)};let routes=0;
 for(let rows=2;rows<=4;rows++){M.setRows(rows);
  const doors=[...[...Array(rows*3).keys()].map(s=>["房子"+s,M.door(s)]),...Object.entries(M.PLACES).map(([k,p])=>[k,p.door])];
  for(const [n,d] of doors)check(!M.blocked(...d)&&d[1]<M.mapRows(),`${rows} 排：${n} 的門在牆裡或地圖外`);
@@ -58,10 +58,10 @@ for(let rows=2;rows<=4;rows++){M.setRows(rows);for(const [k,o] of Object.entries
 // 其他工作：薪水階梯、拉菲辦公室座標（要和 town.sql 一致）
 check(M.pjWage("cafe",0)==200&&M.pjWage("cafe",15)==230&&M.pjWage("cafe",40)==260&&M.pjWage("gym",0)==230&&M.pjWage("shop",15)==224&&M.pjWage("rest",40)==273&&M.pjWage("rafi",0)==320&&M.pjWage("rafi",15)==450&&M.pjWage("rafi",40)==650,"其他工作薪水表不對");
 check(M.pjName("rafi",15)=="企劃"&&M.pjName("cafe",40)=="咖啡師（資深）","其他工作職稱不對");
-check(M.PLACES.rafi&&M.PLACES.rafi.door[0]==46&&M.PLACES.rafi.door[1]==21,"拉菲辦公室門口不對");
-check(M.PLACES.stock&&M.PLACES.stock.door[0]==42&&M.PLACES.stock.door[1]==5&&!M.blocked(42,5),"證券交易所門口不對");
+check(M.PLACES.rafi&&M.PLACES.rafi.door[0]==49&&M.PLACES.rafi.door[1]==21,"拉菲辦公室門口不對");
+check(M.PLACES.stock&&M.PLACES.stock.door[0]==45&&M.PLACES.stock.door[1]==5&&!M.blocked(45,5),"證券交易所門口不對");
 // 交通：車行門口、價格與速度（和 town.sql 的 vbuy／move 一致）、斑馬線與人行道
-check(M.PLACES.carshop&&M.PLACES.carshop.door[0]==43&&M.PLACES.carshop.door[1]==14&&!M.blocked(43,14),"車行門口不對");
+check(M.PLACES.carshop&&M.PLACES.carshop.door[0]==46&&M.PLACES.carshop.door[1]==14&&!M.blocked(46,14),"車行門口不對");
 check(M.VEH.bike[1]==3000&&M.VEH.moto[1]==30000&&M.VEH.car[1]==120000&&M.VEH.bike[2]==1.5&&M.VEH.moto[2]==2.5&&M.VEH.car[2]==3&&M.VEH.bike[3]==0&&M.VEH.moto[3]==.4&&M.VEH.car[3]==1,"交通工具價格／速度／油錢表不對");
 check(M.vehOf({id:1,place:"street",items:{veh:{own:["car"],k:"car"}}})=="car"&&M.vehOf({id:1,place:"home:1",items:{veh:{own:["car"],k:"car"}}})==null&&M.vehOf({id:1,place:"street",items:{}})==null,"vehOf 判斷");
 M.setRows(2);{const w=M.bfs([4,5],[5,14]);check(w&&w.filter(([x,y])=>M.isRoad(x,y)&&!M.isCross(x,y)).length==0,"行人過馬路應該走斑馬線："+JSON.stringify(w));

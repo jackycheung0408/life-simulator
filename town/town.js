@@ -5,7 +5,7 @@ const rpc=(fn,body={})=>fetch(SB+fn,{method:"POST",keepalive:true,headers:{apike
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 // ── 地圖：寬 34 格。市中心固定；住宅一排 3 間（5×4 格，門在正下方），住滿就往下多開一條街，最多 4 排 ──
-const T=32,COLS=52,MAXROWS=4;let NR=2,OFF=new Set(),POOPS=[];
+const T=32,COLS=57,MAXROWS=4;let NR=2,OFF=new Set(),POOPS=[];
 // 鎮長可以關掉的設施
 const FEATS=[["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、比大小、輪盤、21 點、下戰帖"],["rafi","拉菲的辦公室","白領打工，薪水較高"],["stock","證券交易所","買賣 8 檔小豬鎮股票"],["carshop","車行","買腳踏車、機車、汽車"]];
 const setOff=a=>{OFF=new Set(a||[])};const isOn=k=>!OFF.has(k);
@@ -19,16 +19,16 @@ const visitSpot=s=>{const d=door(s);return [d[0]+1,d[1]]};// 去朋友家站在�
 const PLACES={
  restaurant:{r:[2,9,6,5],door:[5,14],name:"餐廳",block:1},
  market:{r:[24,9,8,5],door:[28,14],name:"超市",block:1},
- office:{r:[26,0,7,6],door:[29,6],name:"公司",block:1},
- park:{r:[25,17,9,5],door:[29,19],name:"公園"},
- cafe:{r:[35,0,6,5],door:[37,5],name:"咖啡廳",block:1},
- cinema:{r:[35,9,8,5],door:[39,14],name:"電影院",block:1},
- gym:{r:[35,17,6,4],door:[37,21],name:"健身房",block:1},
- rafi:{r:[43,17,7,4],door:[46,21],name:"拉菲的辦公室",block:1},
- stock:{r:[41,0,4,5],door:[42,5],name:"證券交易所",block:1},
- carshop:{r:[43,10,2,4],door:[43,14],name:"車行",block:1},
- arena:{r:[45,0,7,6],door:[48,6],name:"格鬥場",block:1},
- slaughter:{r:[45,9,7,5],door:[48,14],name:"屠宰場",block:1},
+ office:{r:[27,0,7,6],door:[30,6],name:"公司",block:1},
+ park:{r:[27,17,9,5],door:[31,19],name:"公園"},
+ cafe:{r:[36,0,6,5],door:[38,5],name:"咖啡廳",block:1},
+ cinema:{r:[36,9,8,5],door:[40,14],name:"電影院",block:1},
+ gym:{r:[38,17,6,4],door:[40,21],name:"健身房",block:1},
+ rafi:{r:[46,17,7,4],door:[49,21],name:"拉菲的辦公室",block:1},
+ stock:{r:[44,0,4,5],door:[45,5],name:"證券交易所",block:1},
+ carshop:{r:[46,10,2,4],door:[46,14],name:"車行",block:1},
+ arena:{r:[50,0,7,6],door:[53,6],name:"格鬥場",block:1},
+ slaughter:{r:[50,9,7,5],door:[53,14],name:"屠宰場",block:1},
  plaza:{r:[12,8,10,7],door:[14,11],name:"廣場"}};
 // 其他工作（和 town.sql 的 town_pjob_* 一致）：[名稱, 地點, 底薪, [精力,飽足,心情,清潔]]；熟練 15 次 ×1.15、40 次 ×1.3；拉菲底薪 320／450／650，要先升到「員工」
 const PJ={cafe:["咖啡師","cafe",200,[-19,-6,-6,-3],"cafe"],rest:["服務生","restaurant",210,[-22,-3,-8,-8],"restaurant"],gym:["健身教練","gym",230,[-32,-12,-4,-15],"gym"],shop:["店員","market",195,[-16,-6,-10,-2],"market"],rafi:["行政專員","rafi",320,[-25,-8,-18,-4],"rafi"]};
@@ -57,7 +57,7 @@ const VEH={bike:["腳踏車",3000,1.5,0,"🚲"],moto:["機車",30000,2.5,.4,"�
 const vehOwn=r=>{const v=(r&&r.items&&r.items.veh)||{};return (v.own||[]).filter(k=>VEH[k])};
 const vehOf=r=>{const v=r&&r.items&&r.items.veh;return v&&v.k&&VEH[v.k]&&!inside(r)?v.k:null};
 // 道路：人行道在路邊、斑馬線橫跨馬路；行人走馬路要繞去斑馬線（路上一格成本 3，斑馬線 1），騎車開車反過來路上最快
-const CWX=[4,11,15,18,22,29,37,42,46],CWY=[3,19];
+const CWX=[4,11,15,18,22,29,38,45,53],CWY=[3,19];
 const isCross=(x,y)=>isRoad(x,y)&&((roadRowsAt(y)&&CWX.includes(x))||((x==16||x==17)&&!roadRowsAt(y)&&CWY.includes(y)));
 const isSide=(x,y)=>!isRoad(x,y)&&!blocked(x,y)&&!inRect(x,y,PLACES.plaza.r)&&!inRect(x,y,PLACES.park.r)&&[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>isRoad(x+dx,y+dy));
 // ── 交通規則（要和 supabase/town.sql 的 town_light／town_traffic／town_ticket 一致）──
@@ -150,6 +150,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+ {id:"u14-layout",date:"11/09",title:"地圖重新排版",items:["每間設施之間拉開至少 2 格空地，不再貼在一起","地圖加寬了一點，東邊多了空間","路邊物件、斑馬線位置都跟著調整","在設施裡的人會自動移到新的門口"]},
  {id:"u13-facility",date:"11/09",title:"各設施新互動、每日任務板",items:["餐廳、咖啡廳、電影院、健身房、公園、廣場的面板多了「更多互動」","特餐、集點卡、請客、點歌、每日換片、對練、簽到、丟飛盤、釣魚、野餐、合照","可以坐下逗留，坐越久恢復越多","同一地點來 5 次變常客有折扣，15 次更多","選單「每日任務」每天三個小任務，完成領獎金"]},
  {id:"u12-levels",date:"11/09",title:"活躍天數等級",items:["每天上線有動作就算活躍一天，累積升級","共 5 級：新居民到小鎮元老","等級越高：打工冷卻越短、背包越大、房租折扣越多","Lv2 起每天第一次上線有登入小禮","斷了不會掉級，只是連續天數重算","到「我的人生」看進度"]},
  {id:"u11-workcd",date:"11/09",title:"打工改成固定薪水＋冷卻",items:["打工薪水不再遞減，每次都拿全額","所有打工共用冷卻，預設 10 分鐘","精力是上限：打工會吃掉精力","房租水電調整：小屋 400、公寓 800、獨棟 1800、豪宅 4000"]},
@@ -830,7 +831,7 @@ function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas")
  for(let j=0;j<ROWS;j++)if(!(j>=8&&j<=14)&&!roadRowsAt(j))for(let k=2;k<T;k+=16)m.fillRect(17*T-1,j*T+k,3,10);
  m.fillStyle="#f2f2f2";for(let j=0;j<ROWS;j++)for(let i=0;i<COLS;i++)if(isCross(i,j)){const X=i*T,Y=j*T;if(roadRowsAt(j))for(let k=3;k<T;k+=8)m.fillRect(X+k,Y,5,T);else for(let k=3;k<T;k+=8)m.fillRect(X,Y+k,T,5)}
  const [px,py,pw,ph]=PLACES.plaza.r;for(let j=py;j<py+ph;j++)for(let i=px;i<px+pw;i++){m.fillStyle=(i+j)%2?"#cbbf9f":"#d9cfb4";m.fillRect(i*T,j*T,T,T)}
- m.fillStyle="#5aa84f";const [qx,qy,qw,qh]=PLACES.park.r;m.fillRect(qx*T,qy*T,qw*T,qh*T);m.fillStyle="#d9cfb4";m.fillRect(qx*T,19*T+10,qw*T,12);m.fillStyle="#8b5a2b";m.fillRect(30*T,18*T+4,44,10);m.fillRect(30*T+4,18*T+14,4,8);m.fillRect(30*T+36,18*T+14,4,8);
+ m.fillStyle="#5aa84f";const [qx,qy,qw,qh]=PLACES.park.r;m.fillRect(qx*T,qy*T,qw*T,qh*T);m.fillStyle="#d9cfb4";m.fillRect(qx*T,19*T+10,qw*T,12);m.fillStyle="#8b5a2b";m.fillRect(32*T,18*T+4,44,10);m.fillRect(32*T+4,18*T+14,4,8);m.fillRect(32*T+36,18*T+14,4,8);
  for(let s=0;s<NR*3;s++){const [hx,hy]=homeXY(s),X=hx*T,Y=hy*T,W=5*T,o=bySlot(s);m.fillStyle="rgba(0,0,0,.18)";m.fillRect(X+8,Y+T+10,W,3*T);const it=(o&&o.items)||{};m.fillStyle=o?(it.wall||"#f4ead6"):"#e2ddd2";m.fillRect(X,Y+T,W,3*T-6);
   m.fillStyle=o?(it.roof||ROOFS[s]):"#9a9a9a";m.fillRect(X-8,Y,W+16,T+14);m.fillStyle="rgba(0,0,0,.15)";for(let k=0;k<W+16;k+=12)m.fillRect(X-8+k,Y,6,T+14);m.fillStyle="rgba(255,255,255,.25)";m.fillRect(X-8,Y,W+16,4);
   win(X+20,Y+T+26,!!o);win(X+W-36,Y+T+26,!!o);m.fillStyle="#7a4a24";m.fillRect(X+W/2-11,Y+3*T+4,22,T-10);m.fillStyle="#e0b050";m.fillRect(X+W/2+5,Y+3*T+18,3,3);m.fillStyle="#cbbf9f";m.fillRect(X+W/2-10,Y+4*T,20,T);
@@ -853,7 +854,7 @@ function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas")
  bld("carshop","#e8eef5","#c0392b",(X,Y,W,H)=>{m.fillStyle="#1b1b2f";m.fillRect(X+6,Y+24,W-12,44);m.fillStyle=night?"#ffe9a8":"#cfeefc";m.fillRect(X+8,Y+26,W-16,40);m.fillStyle="#c0392b";m.fillRect(X+14,Y+48,W-28,12);m.fillRect(X+20,Y+42,W-40,8);m.fillStyle="#222";m.fillRect(X+16,Y+58,8,8);m.fillRect(X+W-24,Y+58,8,8);m.fillStyle="#555";m.fillRect(X+W/2-10,Y+H-30,20,30);m.fillStyle="#f1c40f";m.fillRect(X+4,Y+22,W-8,3)});
  bld("gym","#c9d1dc","#34495e",(X,Y,W,H)=>{win(X+16,Y+40);win(X+W-32,Y+40);m.fillStyle="#222";m.fillRect(X+W/2-22,Y+34,44,6);m.fillRect(X+W/2-28,Y+28,8,18);m.fillRect(X+W/2+20,Y+28,8,18);m.fillStyle="#555";m.fillRect(X+W/2-12,Y+H-36,24,36)});
  const trees=[];for(let j=0;j<ROWS;j++)for(let i=0;i<COLS;i++)if(!blocked(i,j)&&!isRoad(i,j)&&!isSide(i,j)&&!inRect(i,j,PLACES.plaza.r)&&!inRect(i,j,PLACES.park.r)&&!Object.values(OBJS).some(q=>q.x==i&&q.y==j)&&grassV[j][i]<.1&&![...Array(NR*3).keys()].some(s=>{const d=door(s),[hx,hy]=homeXY(s);return (Math.abs(d[0]-i)<=1&&Math.abs(d[1]-j)<=1)||(j==hy+4&&i>=hx&&i<hx+5)}))trees.push([i,j]);
- [[26,18],[28,18],[31,18],[33,18],[27,20],[32,20]].forEach(t=>trees.push(t));
+ [[28,18],[30,18],[33,18],[35,18],[29,20],[34,20]].forEach(t=>trees.push(t));
  trees.forEach(([i,j])=>{const x=i*T+16,y=j*T+18;m.fillStyle="rgba(0,0,0,.2)";m.beginPath();m.ellipse(x+4,y+12,14,5,0,0,7);m.fill();m.fillStyle="#6b4423";m.fillRect(x-3,y,6,12);m.fillStyle=night?"#2f6b3a":"#3f9a4c";m.beginPath();m.arc(x,y-4,14,0,7);m.fill();m.fillStyle=night?"#3d7f48":"#5cbf63";m.beginPath();m.arc(x-4,y-9,7,0,7);m.fill()});
  for(let k=0;k<NR;k++){const y=k==0?6:k==1?15:22+7*(k-2);sign(STREETS[k],8*T,y*T+T,"rgba(60,60,60,.8)")}
  {const R0=(x,y,w,h,c)=>{m.fillStyle=c;m.fillRect(x,y,w,h)},o=OBJS;
@@ -869,8 +870,8 @@ function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas")
   S("pwc",()=>{R0(X+4,Y-10,24,36,"#7f8c8d");R0(X+8,Y-4,16,10,"#fff");R0(X+12,Y+10,8,16,"#34495e")});
   S("dummy",()=>{R0(X+14,Y-10,4,40,"#6b4423");R0(X+4,Y-2,24,5,"#8b5a2b");R0(X+8,Y-22,16,14,"#e0c28a");R0(X+8,Y-22,16,3,"#c9a96a");R0(X+11,Y-17,3,3,"#222");R0(X+18,Y-17,3,3,"#222");R0(X+8,Y-6,16,16,"#d9a441");R0(X+12,Y-2,8,8,"#c0392b");R0(X+14,Y+0,4,4,"#fff")});
   S("lottery",()=>{R0(X+2,Y+8,28,16,"#c0392b");R0(X,Y-6,32,10,"#f1c40f");R0(X+8,Y+10,16,8,"#fff")});
-  X=29*T;Y=21*T;R0(X,Y-24,4,30,"#6b4423");R0(X+28,Y-24,4,30,"#6b4423");R0(X,Y-26,32,4,"#6b4423");R0(X+10,Y-22,2,18,"#888");R0(X+20,Y-22,2,18,"#888");R0(X+8,Y-4,16,4,"#d8901a")}
- sign("公司",29.5*T,10);sign("餐廳",5*T,9*T+10);sign("超市",28*T,9*T+10);sign("公園",29.5*T,17*T+12);sign("小豬廣場",17*T,8*T+14);if(isOn("cafe"))sign("咖啡廳",38*T,10);if(isOn("cinema"))sign("電影院",39*T,9*T+10);if(isOn("gym"))sign("健身房",38*T,17*T+10);if(isOn("rafi"))sign("拉菲",46.5*T,17*T+10);if(isOn("stock"))sign("證交所",43*T,10);if(isOn("carshop"))sign("車行",44*T,9*T+14);if(isOn("arena"))sign("格鬥場",48.5*T,10);if(isOn("slaughter"))sign("屠宰場",48.5*T,9*T+10);
+  X=31*T;Y=21*T;R0(X,Y-24,4,30,"#6b4423");R0(X+28,Y-24,4,30,"#6b4423");R0(X,Y-26,32,4,"#6b4423");R0(X+10,Y-22,2,18,"#888");R0(X+20,Y-22,2,18,"#888");R0(X+8,Y-4,16,4,"#d8901a")}
+ sign("公司",30.5*T,10);sign("餐廳",5*T,9*T+10);sign("超市",28*T,9*T+10);sign("公園",31.5*T,17*T+12);sign("小豬廣場",17*T,8*T+14);if(isOn("cafe"))sign("咖啡廳",39*T,10);if(isOn("cinema"))sign("電影院",40*T,9*T+10);if(isOn("gym"))sign("健身房",41*T,17*T+10);if(isOn("rafi"))sign("拉菲",49.5*T,17*T+10);if(isOn("stock"))sign("證交所",46*T,10);if(isOn("carshop"))sign("車行",47*T,9*T+14);if(isOn("arena"))sign("格鬥場",53.5*T,10);if(isOn("slaughter"))sign("屠宰場",53.5*T,9*T+10);
  if(night){m.fillStyle="rgba(18,28,78,.45)";m.fillRect(0,0,c.width,c.height)}
  return c}
 // 畫一個角色：(x,y) 是身體中心，u 是一格像素的大小

@@ -996,7 +996,7 @@ begin
   if act = 'move' then
     if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter','rafi','stock','carshop')
        or (dest ~ '^home:\d+$' and exists (select 1 from public.town_residents where id = substr(dest,6)::bigint and town_id = r.town_id))) then raise exception '去不了那裡'; end if;
-    if px is null or py is null or px < 0 or px > 52 or py < 0 or py > 40 then raise exception '位置不對'; end if;
+    if px is null or py is null or px < 0 or px > 57 or py < 0 or py > 40 then raise exception '位置不對'; end if;
     -- 走過別人留下的便便會踩到（路線離便便不到 0.6 格）
     select p.id::int into n from public.town_poops p where p.town_id = r.town_id and p.maker is distinct from rid and p.at > now() - interval '2 hours' and public.town_seg_d(p.x, p.y, r.x, r.y, px, py) < .6 order by p.at limit 1;
     if n is not null then
@@ -1559,6 +1559,20 @@ do $mig$ begin
         '{titles}', coalesce(r.items->'titles','[]'::jsonb) || '["元老居民"]'::jsonb)
       where not (r.items ? 'works');
     insert into public.town_migrations(id) values ('career1');
+  end if;
+end $mig$;
+
+
+-- 地圖重排（2026-11）：設施之間拉開至少 2 格，地圖加寬到 57 欄。一次性：站在設施裡的人移到新的門口；站在新建築位置上的人移到廣場
+do $mig$ begin
+  if not exists (select 1 from public.town_migrations where id = 'layout2') then
+    update public.town_residents r set x = d.x, y = d.y
+      from (values ('office',30,6),('park',31,19),('cafe',38,5),('cinema',40,14),('gym',40,21),('rafi',49,21),('stock',45,5),('carshop',46,14),('arena',53,6),('slaughter',53,14)) as d(p,x,y)
+      where r.place = d.p;
+    update public.town_residents r set place = 'plaza', x = 14, y = 11
+      from (values (27,0,7,6),(27,17,9,5),(36,0,6,5),(36,9,8,5),(38,17,6,4),(46,17,7,4),(44,0,4,5),(46,10,2,4),(50,0,7,6),(50,9,7,5)) as b(bx,by,bw,bh)
+      where r.place = 'street' and r.x >= b.bx and r.x < b.bx + b.bw and r.y >= b.by and r.y < b.by + b.bh;
+    insert into public.town_migrations(id) values ('layout2');
   end if;
 end $mig$;
 
