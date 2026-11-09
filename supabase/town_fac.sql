@@ -6,6 +6,7 @@
 --   items.fa = {d, n 今天互動次數, pl [去過的地點], who [互動過的人], k {今天做過的事}, tk [已領任務], all 全勤獎已領}
 --   items.sit = {pl, at}            坐下逗留開始時間
 --   items.cd['f_'||act] / ['f_'||act||對方id]  冷卻
+-- 奢侈品（可重複買，只給心情，不打折、不算常客；5% 進鎮基金；鎮長可用 lux 開關關掉）：feast 高級套餐 3000（餐廳，12 小時）、spa 溫泉 2000（健身房，10 小時）、trip 旅行 8000（廣場，24 小時）
 -- 價格與數值前端 town.js 的 FAC 表要一致。賭的只有釣魚：餌 30，期望 25.5（略負）。
 
 create or replace function public.town_fac_done(r public.town_residents, fa jsonb, tid int) returns boolean language sql stable as $$
@@ -29,7 +30,7 @@ declare r public.town_residents; t public.town_residents;
   doy int := extract(doy from now() at time zone 'Asia/Taipei')::int;
   pl text; base int := 0; price int := 0; disc int := 0; fqn int := 0; cdm int := 0; ckey text; pair boolean := false; need_t boolean := false;
   f int := 0; e int := 0; h int := 0; m int := 0; b int := 0; msg text := ''; evk text := null; evm text := null; fk text := null;
-  fa jsonb; n int; s int; others int; xid bigint; xname text; pa numeric := random(); mins int; st int; ids int[]; tid int; i int; cl jsonb; fx jsonb;
+  fa jsonb; lux boolean := false; n int; s int; others int; xid bigint; xname text; pa numeric := random(); mins int; st int; ids int[]; tid int; i int; cl jsonb; fx jsonb;
   films text[] := array['感人劇情片','爆笑喜劇','熱血動作片','緊張驚悚片'];
   specs text[] := array['滷肉飯套餐','牛肉麵套餐','豬排飯套餐','咖哩飯套餐','雞腿便當套餐'];
 begin
@@ -82,12 +83,14 @@ begin
 
   -- 一般互動：地點、冷卻、價格
   if not (
-    (act in ('special','takeout') and pl = 'restaurant') or (act in ('latte','redeem','treat','song') and pl = 'cafe') or
-    (act in ('film','popcorn') and pl = 'cinema') or (act in ('spar','checkin') and pl = 'gym') or
-    (act in ('fish','picnic') and pl = 'park') or (act in ('frisbee','photo') and pl in ('park','plaza'))) then
+    (act in ('special','takeout','feast') and pl = 'restaurant') or (act in ('latte','redeem','treat','song') and pl = 'cafe') or
+    (act in ('film','popcorn') and pl = 'cinema') or (act in ('spar','checkin','spa') and pl = 'gym') or
+    (act in ('fish','picnic') and pl = 'park') or (act in ('frisbee','photo') and pl in ('park','plaza')) or (act = 'trip' and pl = 'plaza')) then
     raise exception '這裡不能做這件事';
   end if;
   if public.town_is_off(r.town_id, public.town_feature(pl)) then raise exception '這個小鎮沒有開這個設施'; end if;
+  lux := act in ('feast','trip','spa');
+  if lux and public.town_is_off(r.town_id, 'lux') then raise exception '這個小鎮沒有開奢侈品'; end if;
   need_t := act in ('treat','spar','frisbee'); pair := need_t or (act = 'photo' and target is not null);
   if need_t and target is null then raise exception '要選一位在場的鄰居'; end if;
   if pair then
@@ -98,16 +101,19 @@ begin
   end if;
   ckey := 'f_' || act || case when pair then target::text else '' end;
   cdm := case act when 'special' then 20 when 'takeout' then 10 when 'latte' then 15 when 'redeem' then 15 when 'treat' then 30 when 'song' then 20
-    when 'film' then 60 when 'popcorn' then 15 when 'spar' then 20 when 'frisbee' then 15 when 'fish' then 10 when 'picnic' then 30 when 'photo' then 30 else 0 end;
+    when 'film' then 60 when 'popcorn' then 15 when 'spar' then 20 when 'frisbee' then 15 when 'fish' then 10 when 'picnic' then 30 when 'photo' then 30
+    when 'feast' then 720 when 'trip' then 1440 when 'spa' then 600 else 0 end;
   if cdm > 0 and (r.items->'cd'->>ckey)::timestamptz > now() - cdm * interval '1 minute' then
     raise exception '還要等 % 分鐘', ceil(extract(epoch from ((r.items->'cd'->>ckey)::timestamptz + cdm * interval '1 minute' - now())) / 60)::int; end if;
   base := case act when 'special' then 200 when 'takeout' then 120 when 'latte' then 110 when 'treat' then 200 when 'song' then 50
-    when 'film' then 280 when 'popcorn' then 80 when 'fish' then 30 when 'picnic' then 150 else 0 end;
+    when 'film' then 280 when 'popcorn' then 80 when 'fish' then 30 when 'picnic' then 150
+    when 'feast' then 3000 when 'trip' then 8000 when 'spa' then 2000 else 0 end;
   fqn := coalesce((r.items->'fq'->>pl)::int, 0);
-  disc := case when fqn >= 15 then 15 when fqn >= 5 then 10 else 0 end;
+  disc := case when lux then 0 when fqn >= 15 then 15 when fqn >= 5 then 10 else 0 end;
   price := (base * (100 - disc) + 50) / 100;
   if price > r.money then raise exception '錢不夠，要 €%', price; end if;
   r.money := r.money - price; m := -price;
+  if lux then perform public.town_fund_add(r.town_id, 'lux', price * 5 / 100); end if;
   fk := act;
 
   if act = 'special' then h := 40; f := 12; msg := '吃了今日特餐「' || specs[doy % 5 + 1] || '」';
@@ -153,6 +159,11 @@ begin
     h := 25; f := 12; msg := '在草地上野餐';
     select id, name into xid, xname from public.town_residents where town_id = r.town_id and place = pl and id <> rid and not sleeping order by random() limit 1;
     if xid is not null then b := 1; end if;
+  elsif act = 'feast' then h := 40; f := 30; msg := '在高級餐廳吃了一頓套餐';
+    evk := 'luck'; evm := r.name || ' 在餐廳吃了一頓高級套餐';
+  elsif act = 'spa' then e := 30; f := 25; r.hygiene := least(100, r.hygiene + 40); msg := '泡了溫泉做了 SPA';
+  elsif act = 'trip' then e := -10; h := -10; f := 60; msg := '出門小旅行，玩得很開心';
+    evk := 'luck'; evm := r.name || ' 出去旅行了一趟';
   elsif act = 'photo' then
     f := 5; msg := '拍了一張照片';
     if pair then f := 6; b := 1; t.fun := t.fun + 6; msg := '和 ' || t.name || ' 合拍了一張照片'; end if;
@@ -176,7 +187,7 @@ begin
   if not (fa->'pl' @> to_jsonb(pl)) then fa := jsonb_set(fa, '{pl}', (fa->'pl') || to_jsonb(pl)); end if;
   fa := jsonb_set(fa, ('{k,' || fk || '}')::text[], 'true'::jsonb);
   r.items := jsonb_set(r.items, '{fa}', fa);
-  r.items := jsonb_set(r.items, '{fq}', coalesce(r.items->'fq','{}'::jsonb) || jsonb_build_object(pl, fqn + 1));
+  if not lux then r.items := jsonb_set(r.items, '{fq}', coalesce(r.items->'fq','{}'::jsonb) || jsonb_build_object(pl, fqn + 1)); end if;
   if cdm > 0 then r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object(ckey, now())); end if;
   perform public.town_save_r(r);
   return json_build_object('m', m, 'f', f, 'e', e, 'h', h, 'b', b, 'msg', msg, 'disc', disc, 'fq', fqn + 1, 'who', case when pair then t.name else xname end);

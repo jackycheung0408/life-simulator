@@ -117,6 +117,15 @@ $$;
 alter table public.town_towns add column if not exists off text[] not null default '{}';
 -- 鎮長選的貨幣符號（只影響畫面顯示，金額不變）
 alter table public.town_towns add column if not exists currency text not null default 'NT$';
+-- 鎮基金：房租、財產稅、奢侈品的 5% 進基金（財產稅全額）；fund_log = {rent,tax,lux 累計}
+alter table public.town_towns add column if not exists fund bigint not null default 0;
+alter table public.town_towns add column if not exists fund_log jsonb not null default '{}'::jsonb;
+create or replace function public.town_fund_add(tid text, kind text, amt int) returns void language sql as $$
+  update public.town_towns set fund = fund + greatest(0, amt),
+    fund_log = jsonb_set(fund_log, array[kind], to_jsonb(coalesce((fund_log->>kind)::bigint,0) + greatest(0, amt)))
+  where id = tid and amt > 0
+$$;
+revoke all on function public.town_fund_add(text,text,int) from public, anon, authenticated;
 create or replace function public.town_feature(what text) returns text language sql immutable as $$
   select case when what in ('cafe','coffee') then 'cafe' when what in ('cinema','movie') then 'cinema' when what in ('gym','workout') then 'gym'
     when what in ('arena','spar') then 'arena' when what in ('slaughter','sneak') then 'slaughter' when what = 'rafi' then 'rafi' when what in ('stock','trade') then 'stock' when what in ('carshop','vbuy','license') then 'carshop' else null end
@@ -132,7 +141,7 @@ begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if not r.mayor then raise exception '只有鎮長可以做這件事'; end if;
-  if exists (select 1 from unnest(coalesce(off,'{}')) f where f not in ('cafe','cinema','gym','arena','slaughter','arcade','rafi','stock','carshop')) then raise exception '沒有這個設施'; end if;
+  if exists (select 1 from unnest(coalesce(off,'{}')) f where f not in ('cafe','cinema','gym','arena','slaughter','arcade','rafi','stock','carshop','lux')) then raise exception '沒有這個設施'; end if;
   update public.town_towns set off = coalesce(town_features.off,'{}') where id = r.town_id;
   -- 關掉的地方有人在，請他們回到路上
   update public.town_residents set place = 'street' where town_id = r.town_id and place = any(coalesce(town_features.off,'{}'));
@@ -633,6 +642,8 @@ begin
     return json_build_object('ok',true,'stats',(select coalesce(json_agg(x),'[]') from (
       select c.key, count(*) filter (where c.kind = 'show') shows, count(*) filter (where c.kind = 'click') clicks
       from public.town_cta c where c.town_id = r.town_id and c.at > now() - interval '7 days' group by c.key order by shows desc, clicks desc limit 12) x));
+  elsif act = 'fund' then
+    return json_build_object('ok',true,'fund',(select fund from public.town_towns where id = r.town_id),'log',(select fund_log from public.town_towns where id = r.town_id));
   elsif act = 'newinvite' then inv := public.town_code(6); update public.town_towns set invite = inv where id = r.town_id;
   elsif act = 'kick' then
     select * into t from public.town_residents where id = target and town_id = r.town_id;
@@ -765,11 +776,19 @@ begin
 end $$;
 revoke all on function public.town_stock_settle(public.town_residents) from public, anon, authenticated;
 create or replace function public.town_rent(r public.town_residents) returns public.town_residents language plpgsql as $$
-declare day text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); a int; p int;
+declare day text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); a int; p int; tx int := 0;
 begin
   if coalesce(r.items->>'rent','') = day then return r; end if;
   a := public.town_rent_amt(coalesce((r.items->>'hl')::int,1)); a := a - a * public.town_rent_pct(r) / 100; p := least(a, greatest(0, r.money));
   r.money := r.money - p; r.items := jsonb_set(r.items, '{rent}', to_jsonb(day));
+  perform public.town_fund_add(r.town_id, 'rent', p * 5 / 100);
+  -- 財產稅：現金超過 100000 的部分每天 0.5%（前端 taxOf 要一致）
+  tx := greatest(0, floor((r.money - 100000) * 0.005)::int);
+  if tx > 0 then
+    r.money := r.money - tx; r.items := jsonb_set(r.items, '{tx}', jsonb_build_object('d', day, 'a', tx));
+    perform public.town_fund_add(r.town_id, 'tax', tx);
+    insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, r.id, r.id, 'rent', r.name || ' 繳了財產稅 €' || tx || '（存款超過 100000 的部分 0.5%）');
+  end if;
   insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, r.id, r.id, 'rent', r.name || ' 繳了今天的房租水電 €' || p || case when p < a then '（錢不夠，只扣到 0）' else '' end);
   return r;
 end $$;
