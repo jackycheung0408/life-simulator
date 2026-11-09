@@ -44,8 +44,14 @@
 - 第一次進遊戲：全新角色不彈「小鎮更新了」（直接標記已看）；新手提示 `tipsWhenFree` 等沒有彈窗才出現，順序 = 個性 → 願望 → 提示。
 - 看手機畫面時，本機常有其他 session 佔著 8765 等 port，開 `python3 -m http.server` 前先用 `curl` 確認回的是自己的版本（`?v=`）。
 
+## 互動按鈕一律第一層（不藏子選單）
+- 面板（`renderPanel`）裡能做的事每一件都是一顆按鈕，**不要再用「更多互動」「整蠱他」「休息／睡覺」這類收納式按鈕**；只有真的要選對象或確認（和誰？、要不要動手砍人、買東西）才開 `choiceModal`，modal 裡不再多一層「更多」。
+- 設施的 `FAC` 動作由 `facBtns(r)` 直接列在面板（原本的 `facModal` 已刪）；家裡快速休息／快速睡覺／睡覺、朋友家的惡作劇／丟雞蛋都是獨立按鈕；同地點有幾個人在，就各有一顆「邀請 X 一起…」。
+- **不能按的按鈕照樣顯示、灰掉並寫原因**：按鈕物件加 `dis:"原因"`（`dbtn(label,sub,fn,left)` 會把冷卻剩餘時間轉成「剛做過，N 分鐘後再來」；`cdLeft(r,key,mins)` 讀 `items.cd`）；點灰掉的按鈕只會跳 toast 說原因。新增互動要同步冷卻分鐘數（`FACCD` 要和 `town_fac.sql` 的 `cdm` 一致）。
+- 分組標題（`GROUP`／`GORD` 排序）：建議下一步、照顧自己、在這裡、吃喝、玩樂、社交、工作與任務、房子、在他家、面對面、線上、移動。新增互動指定 `g`（`FACG` 對照）；打工類標籤開頭是「打工」「應徵」會自動歸「工作與任務」。同一面板按鈕多時靠面板捲動，不要藏起來。
+
 ## 各設施更多互動、每日任務板、常客、坐下逗留（SQL 已套用 2026-11-09，實測通過：`supabase/town_fac.sql`，要在 `town.sql`、`town_social.sql` 之後；實測 `supabase/town_fac_test.sql`，最後 rollback，結果在錯誤訊息 REPORT）
-- **不改 `town_act`**：單一 RPC `town_fac(rid,pin,act,item,target)`，前端 `town.js` 的 `FAC` 表（價格、說明、地點）與 SQL 要一致，`node town/test.js` 會比對價格與任務數量。面板「更多互動」→ `facModal`；選單「每日任務」→ `taskModal`。
+- **不改 `town_act`**：單一 RPC `town_fac(rid,pin,act,item,target)`，前端 `town.js` 的 `FAC` 表（價格、說明、地點）與 SQL 要一致，`node town/test.js` 會比對價格與任務數量。設施面板直接列出（`facBtns`，見「互動按鈕一律第一層」）；選單「每日任務」→ `taskModal`。
 - 動作：餐廳 `special` 特餐 €200（飽足 +40、心情 +12、每天依日期換菜名）、`takeout` 打包 €120（零食 +1）；咖啡廳 `latte` €110（精力 +45、集點 +1）、`redeem` 滿 8 點免費、`treat` 請客 €200（對方心情 +10、好感 +3）、`song` 點歌 €50（在場的人心情 +3）；電影院 `film` €280（每天換片 4 種輪替）、`popcorn` €80；健身房 `spar` 對練（雙方精力 −12、好感 +2）、`checkin` 簽到（連續 3 天 +€60、7 天 +€200）；公園 `fish` 釣魚（餌 €30、期望 25.5，略負）、`picnic` €150；公園／廣場 `frisbee` 丟飛盤、`photo` 自拍／合照。
 - 資料（缺值 = 預設，舊角色免遷移）：`items.fq` 各地點互動次數（≥5 −10%、≥15 −15%，只折該地點的花費）、`items.cs` 集點卡、`items.gy` 簽到、`items.fa` 今天的互動統計與已領任務、`items.sit` 坐下開始時間、冷卻在 `items.cd['f_'||act||對方id]`。
 - 雙人互動好感走 `town_bond`（吃每日上限）、一起加成走 `town_tg`（每人每天 8 次，與設施小事件共用）。
