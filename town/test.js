@@ -174,5 +174,17 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(/p&&p\.startsWith\("home:"\)&&p!=="home:"\+me\?"friend"/.test(require("fs").readFileSync(__dirname+"/town.js","utf8")),"自己家門口不能算「在他家」（dg 要排除 home:"+"me）");
  check(/body\.ingame \.need u\.cu\{display:none\}/.test(html),"手機錢格要隱藏貨幣符號（寬度只有約 50px）");
  check(/body\.ingame \.need span\{flex:none;height:16px;line-height:16px\}/.test(html),"狀態條圖示格要固定 16px 高（行高過大會擠掉條）");}
+// roomOf 是頂層函式，拿不到 init() 裡的 R：不可直接用 R（曾因此在街上也丟 "R is not defined"），要靠呼叫的人傳居民表
+{const A={id:1,place:"street",items:{}},H={id:2,place:"home:2",sleeping:true,items:{hl:1}},W={id:3,place:"home:2",items:{}};
+ let ok1=true,ok2=true,ok3=true;try{ok1=M.roomOf(A,{1:A,2:H})===null}catch(e){ok1=false}
+ try{const rm=M.roomOf(W,{2:H,3:W});ok2=!!rm&&rm.visit===true&&rm.hid===2}catch(e){ok2=false}
+ try{ok3=M.roomOf(W,{2:{...H,items:{hl:1,dr:1}},3:W})===null}catch(e){ok3=false}
+ check(ok1,"roomOf：人在街上不可丟錯、要回 null");check(ok2,"roomOf：站在朋友家門口、他人在屋裡 → 要回訪客室內（visit、hid）");check(ok3,"roomOf：朋友站在門口（dr=1）不算在屋裡，不給室內");}
+// 朋友睡著：叫醒、看室內（曾因叫不醒也寫進 1 小時冷卻而叫不到人、看室內畫面不畫屋主）
+{const fs=require("fs"),tjs=fs.readFileSync(__dirname+"/town.js","utf8"),tsql=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8");
+ check(tsql.includes("'wakefail', r.name || ' 搖了 '")&&tsql.includes("e.kind = 'wakefail' and e.at > now() - interval '3 minutes'"),"town.sql：叫不醒要寫 wakefail 事件、只擋 3 分鐘（不可吃 wakeup 的 1 小時冷卻）");
+ check(!/target,act, r\.name \|\| ' 搖了 '/.test(tsql),"town.sql：叫不醒不可再用 wakeup 事件（會鎖 1 小時）");
+ check(tjs.includes("function drawOwner(")&&tjs.includes("drawHomeEdit(cv,rm,sel,id)")&&tjs.includes("rm.visit"),"朋友家室內要畫出屋主（睡著躺床上），訪客在朋友家也看得到室內畫面");
+ check(tjs.includes('btn("叫醒他",`越累睡越沉')&&tjs.includes("wakefail:[\"alarm\",\"t\"]"),"叫醒他按鈕要寫成功機率，wakefail 要有動畫與圖示");}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

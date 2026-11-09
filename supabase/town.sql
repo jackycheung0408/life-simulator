@@ -1415,6 +1415,8 @@ begin
     select * into t from public.town_residents where id = target and town_id = r.town_id for update;
     if not found then raise exception '找不到這位鄰居'; end if;
     if exists (select 1 from public.town_events e where e.actor = rid and e.target = t.id and e.kind = act and e.at > now() - case act when 'thank' then interval '2 hours' when 'makeup' then interval '2 hours' when 'greet' then interval '1 hour' when 'note' then interval '1 hour' when 'call' then interval '1 hour' when 'wakeup' then interval '1 hour' when 'fight' then case when r.place = 'arena' then interval '5 minutes' else interval '10 minutes' end when 'egg' then interval '30 minutes' when 'prank' then interval '30 minutes' when 'cowork' then interval '1 hour' when 'feast' then interval '1 hour' else interval '30 minutes' end) then raise exception '剛剛才做過，等一下再來'; end if;
+    -- 叫不醒的那次不算「叫醒」，只擋 3 分鐘（成功叫醒才是 1 小時）
+    if act = 'wakeup' and exists (select 1 from public.town_events e where e.actor = rid and e.target = t.id and e.kind = 'wakefail' and e.at > now() - interval '3 minutes') then raise exception '他睡得很沉，等 3 分鐘再試試'; end if;
     t := public.town_tick(t); tn := t.name; bond := public.town_bond_get(rid, t.id);
     -- 面對面：在同一個地方（不算路上），或在路上距離 2 格以內
     near := (r.place = t.place and r.place <> 'street') or (abs(r.x - t.x) + abs(r.y - t.y) <= 2.5);
@@ -1520,7 +1522,7 @@ begin
         elsif act = 'wakeup' then if not t.sleeping then raise exception '% 醒著', tn; end if;
           -- 越累睡越沉：精力低的人比較叫不醒（25%～70%），叫不醒就繼續睡
           if random() < least(.7, .25 + (100 - t.energy) / 200) then
-            insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 搖了 ' || tn || ' 半天，' || tn || ' 翻個身繼續睡');
+            insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,'wakefail', r.name || ' 搖了 ' || tn || ' 半天，' || tn || ' 翻個身繼續睡');
           else
             t.sleeping := false; t.fun := t.fun - 5; perform public.town_bond(r.town_id, rid, t.id, -1);
             insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 把 ' || tn || ' 叫醒了');
