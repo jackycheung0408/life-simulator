@@ -150,6 +150,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+ {id:"u13-facility",date:"11/09",title:"各設施新互動、每日任務板",items:["餐廳、咖啡廳、電影院、健身房、公園、廣場的面板多了「更多互動」","特餐、集點卡、請客、點歌、每日換片、對練、簽到、丟飛盤、釣魚、野餐、合照","可以坐下逗留，坐越久恢復越多","同一地點來 5 次變常客有折扣，15 次更多","選單「每日任務」每天三個小任務，完成領獎金"]},
  {id:"u12-levels",date:"11/09",title:"活躍天數等級",items:["每天上線有動作就算活躍一天，累積升級","共 5 級：新居民到小鎮元老","等級越高：打工冷卻越短、背包越大、房租折扣越多","Lv2 起每天第一次上線有登入小禮","斷了不會掉級，只是連續天數重算","到「我的人生」看進度"]},
  {id:"u11-workcd",date:"11/09",title:"打工改成固定薪水＋冷卻",items:["打工薪水不再遞減，每次都拿全額","所有打工共用冷卻，預設 10 分鐘","精力是上限：打工會吃掉精力","房租水電調整：小屋 400、公寓 800、獨棟 1800、豪宅 4000"]},
  {id:"u10-social",date:"11/08",title:"設施小事件與邀請一起做",items:["在設施裡待著，偶爾跳出小事件，選一個做法","同地點有人，選事件會有「一起」加成","設施面板可以邀請朋友一起做，對方接受兩人都加成","每人每天加成有上限，不能互刷"]},
@@ -157,6 +158,15 @@ const UPDATES=[
  {id:"u08-open",date:"11/05",title:"設施全天營業",items:["所有設施不再有營業時間，隨時可以去","不用再看時間才出門","鎮長仍可關閉設施","超市、餐廳、電影院等半夜也能去"]},
  {id:"u07-bond",date:"11/05",title:"好感與隨機相遇",items:["好感加減數字重新調整，每對朋友每天有上限","同地點做事時，可能隨機遇到事件","和好、扁人、冷卻時間都整理過","按建議的下一步會自動走過去並執行"]}
 ];
+// 設施互動表（和 supabase/town_fac.sql 一致，test.js 會比對）
+const FAC={special:["今日特餐",200,"飽足 +40 · 心情 +12 · 20 分鐘一次",["restaurant"],0],takeout:["打包帶走",120,"一份零食放進背包 · 10 分鐘一次",["restaurant"],0],
+ latte:["特調咖啡",110,"精力 +45 · 心情 +4 · 集點卡 +1 · 15 分鐘一次",["cafe"],0],redeem:["集點卡換一杯",0,"集滿 8 點免費換一杯 · 精力 +45 · 心情 +6",["cafe"],0],
+ treat:["請客",200,"請在場的人喝咖啡：對方心情 +10、你 +4、好感 +3 · 同一人 30 分鐘一次",["cafe"],1],song:["點歌",50,"你心情 +6，在場的人心情 +3 · 20 分鐘一次",["cafe"],0],
+ film:["看今日片",280,"",["cinema"],0],popcorn:["爆米花",80,"飽足 +12 · 心情 +4 · 15 分鐘一次",["cinema"],0],
+ spar:["對練",0,"雙方精力 −12、心情 +6、好感 +2 · 雙方精力要 ≥25 · 同一人 20 分鐘一次",["gym"],1],checkin:["每日簽到",0,"心情 +3 · 連續 3 天 +€60、7 天 +€200",["gym"],0],
+ frisbee:["丟飛盤",0,"雙方精力 −4、心情 +8、好感 +1 · 同一人 15 分鐘一次",["park","plaza"],1],fish:["釣魚",30,"餌 €30：15% 賣 €100、35% 賣 €30、其餘空手 · 心情 +4 · 10 分鐘一次",["park"],0],
+ picnic:["野餐",150,"飽足 +25 · 心情 +12 · 在場的人好感 +1 · 30 分鐘一次",["park"],0],photo:["自拍",0,"心情 +5 · 30 分鐘一次",["park","plaza"],0],photo2:["合照",0,"雙方心情 +6、好感 +1 · 同一人 30 分鐘一次",["park","plaza"],1]};
+const TASKS=["今天打工 3 次","做 3 次設施互動","去 3 個不同地點互動","和 2 位鄰居一起互動","健身房簽到","釣到一條魚","點歌或請客一次","吃今日特餐或野餐"];
 const UPS_KEY=()=>"town_ups_"+me;
 function upsSeen(){try{return JSON.parse(localStorage.getItem(UPS_KEY())||"null")}catch(e){return null}}
 function upsMark(){try{localStorage.setItem(UPS_KEY(),JSON.stringify(UPDATES.map(u=>u.id)))}catch(e){}}
@@ -166,7 +176,7 @@ function updModal(all){const seen=all?null:upsSeen();let list=all?UPDATES:seen?U
  $("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>${all?"更新紀錄":"小鎮更新了"}</h2><div class="list" style="max-height:60vh;overflow:auto">${updHtml(list)}</div><div class="row"><button id="updok" class="pri">好</button></div>`;
  $("updok").onclick=()=>{$("modal").classList.add("hide");upsMark()};if(!all)upsMark();pxify($("mbody"));return true}
 function updCheck(){if(!me||!$("modal").classList.contains("hide"))return;updModal(false)}
-if(typeof module!=="undefined")module.exports={UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft};
+if(typeof module!=="undefined")module.exports={FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft};
 if(typeof document!=="undefined")addEventListener("DOMContentLoaded",init);
 
 function init(){
@@ -412,6 +422,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  else if(p=="slaughter"){title="屠宰場";list.push(btn("溜進去偷飼料 🔪","買通守衛 €400 · 精力 −10 · 約四成賺 €500～900 · 可能被屠夫追、被抓去賠 €1200 · 1 小時一次",()=>act("sneak")));note="健身越多，越跑得掉"}
  else if(p=="market"){title="超市";list.push(btn("買禮物 🎁","€300 · 送朋友心情 +20",()=>act("buy",{item:"gift"})),btn("買零食 🍪","€60 · 隨時吃，飽足 +20",()=>act("buy",{item:"snack"})),btn("🛍️ 造型與擺飾","新衣服、家門口擺飾",()=>shopModal()),btn("逛逛","心情 +6",()=>act("browse")),pjBtn("shop",r));note=pjNote("shop",r)}
  else{title="路上";note="站在路邊久了容易遇到壞事（野狗、鳥大便、小偷、機車），找個地方待著吧。點地圖上的房子或地點，就會走過去"}
+ if(!sel&&!r.sleeping&&FACP.includes(p)&&!(walkers[me]&&walkers[me].path.length))list.push(btn("更多互動",facHint(r),()=>facModal()));
  if(!sel&&!r.sleeping&&!(walkers[me]&&walkers[me].path.length))list.push(...inviteBtns(r));
 // 公共場所遇到人：可以擊掌；一起吃飯、玩、加班時在場的人心情都會變好
  if(!r.sleeping&&["plaza","restaurant","market","park","office"].includes(p)&&!(walkers[me]&&walkers[me].path.length)){const here=Object.values(R).filter(o=>o.id!=me&&o.place==p&&!o.sleeping);
@@ -474,7 +485,7 @@ function renderPeople(){const list=Object.values(R).filter(o=>o.id!=me).map(o=>(
 const JOBS=[["實習生",0,190],["員工",10,260],["組長",30,350],["經理",70,520],["主管",150,800]];
 const jobLv=n=>JOBS.reduce((a,j,i)=>n>=j[1]?i:a,0);
 const career=r=>{const n=(r.items&&r.items.works)||0,lv=jobLv(n),nx=JOBS[lv+1];return{n,lv,name:JOBS[lv][0],wage:JOBS[lv][2],next:nx?nx[0]:null,left:nx?nx[1]-n:0}};
-const dayKey=()=>new Date(now()+8*36e5).toISOString().slice(0,10);
+const dayKey=(o=0)=>new Date(now()+8*36e5+o*864e5).toISOString().slice(0,10);
 const workToday=r=>{const d=r.items&&r.items.dc;return d&&d.d==dayKey()?(d.work||0):0};
 const workPct=n=>100;// 薪水不再遞減，改用 10 分鐘冷卻 wkLeft（所有打工共用）
 // 活躍天數等級（資料 items.al = {n,d,s}；數值要和 town.sql 的 town_lv_of／wk_min／bag_max／rent_pct／al_touch 一致）
@@ -1025,7 +1036,7 @@ $("menuBtn").onclick=()=>{const r=R[me];if(r){$("bagN").textContent=bagCount(r)?
 $("menuBack").onclick=closeMenu;$("menuClose").onclick=closeMenu;
 document.querySelectorAll("[data-go-tab]").forEach(b=>b.onclick=()=>{const t=b.dataset.goTab;document.querySelector(`[data-tab=${t}]`).click();if(isMob())document.body.classList.add("social");else $("social").scrollIntoView({behavior:"smooth"})});
 $("feedBtn").onclick=()=>{document.body.classList.add("social");markSeen()};$("socialClose").onclick=()=>document.body.classList.remove("social");$("menu").addEventListener("click",e=>{if(e.target.closest("button"))closeMenu()});
-$("life").onclick=lifeModal;$("updBtn").onclick=()=>{closeMenu();updModal(true)};$("bagBtn").onclick=()=>{closeMenu();bagModal()};
+$("life").onclick=lifeModal;$("taskBtn").onclick=()=>{closeMenu();taskModal()};$("updBtn").onclick=()=>{closeMenu();updModal(true)};$("bagBtn").onclick=()=>{closeMenu();bagModal()};
 $("relook").onclick=()=>{let look=normLook(R[me].look);$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>換造型</h2><div id="lk2"></div><div class="row"><button id="mc">取消</button><button class="pri" id="ms">儲存</button></div>`;
  lookPicker($("lk2"),look,l=>look=l,R[me].items||{});$("mc").onclick=()=>$("modal").classList.add("hide");$("ms").onclick=async()=>{try{await rpc("town_login",{rid:me,pin,new_look:look});mapKey="";await refresh();$("modal").classList.add("hide");toast("換好了")}catch(e){toast(e.message)}}};
 $("report").onclick=report;
@@ -1099,6 +1110,38 @@ function pevModal(ev){const d=PEV[ev.pl]&&PEV[ev.pl][ev.k];if(!d)return;
 async function pePoll(){if(!me||!pin||peBusy||document.visibilityState!="visible"||modalOpen())return;const r=R[me];if(!r||r.sleeping||!PEV[r.place]||(walkers[me]&&walkers[me].path.length))return;
  peBusy=true;try{const j=await rpc("town_pevent",{rid:me,pin,op:"poll"}),ev=j&&j.ev;if(ev&&PEV[ev.pl]&&peSeen!=ev.at&&!modalOpen()){peSeen=ev.at;pevModal(ev)}}catch(e){}peBusy=false}
 // 同地點「正在一起」：同一個設施有 2 人以上醒著
+// ── 各設施更多互動、每日任務板、常客、坐下逗留（town_fac；價格與數值要和 supabase/town_fac.sql 一致）──
+const FACP=["restaurant","cafe","cinema","gym","park","plaza"];
+const SPECS=["滷肉飯套餐","牛肉麵套餐","豬排飯套餐","咖哩飯套餐","雞腿便當套餐"],FILMS=[["感人劇情片",18,-2],["爆笑喜劇",22,0],["熱血動作片",16,0],["緊張驚悚片",20,-4]];
+const doyTP=()=>{const d=new Date(now()+8*36e5);return Math.floor((Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())-Date.UTC(d.getUTCFullYear(),0,0))/864e5)};
+// act:[名稱, 價格, 說明, 可用地點, 要不要選人（1 必選 2 可選）]
+const faOf=r=>{const a=r.items&&r.items.fa;return a&&a.d==dayKey()?a:{n:0,pl:[],who:[],k:{},tk:[]}};
+const taskIds=()=>{const st=(me%8+doyTP())%8;return[st,(st+3)%8,(st+5)%8]};
+const taskDone=(r,i)=>{const a=faOf(r),k=a.k||{};return[workToday(r)>=3,(a.n||0)>=3,(a.pl||[]).length>=3,(a.who||[]).length>=2,!!k.checkin,!!k.fish,!!(k.song||k.treat),!!(k.special||k.picnic)][i]};
+const fqOf=(r,p)=>((r.items||{}).fq||{})[p]||0,discOf=n=>n>=15?15:n>=5?10:0,facPrice=(r,p,b)=>Math.floor((b*(100-discOf(fqOf(r,p)))+50)/100);
+const tierOf=n=>n>=15?"熟客（−15%）":n>=5?"常客（−10%）":"";
+const claimable=r=>taskIds().filter((t,i)=>taskDone(r,t)&&!(faOf(r).tk||[]).includes(t)).length;
+function facHint(r){const c=claimable(r);return c?`有 ${c} 個任務可以領獎`:"特餐、點歌、簽到、釣魚、每日任務…"}
+async function doFac(act,target,item){try{const j=await rpc("town_fac",{rid:me,pin,act,item:item||null,target:target||null});await refresh();spawnFx(j.m<0?"coins":"sparkle",me);const t=`${j.msg||""} · ${fxText(j)}`;toast(t);feedback(true,t)}catch(e){toast(e.message);feedback(false,e.message)}renderPanel()}
+function facModal(){const r=R[me];if(!r)return;const p=r.place,rows=[];
+ const here=Object.values(R).filter(o=>o.id!=me&&o.place==p&&!o.sleeping),doy=doyTP();
+ for(const k of Object.keys(FAC)){const d=FAC[k];if(!d[3].includes(p))continue;let name=d[0],sub=d[2],price=d[1];
+  if(k=="special"){name+="：「"+SPECS[doy%5]+"」"}
+  if(k=="film"){const f=FILMS[doy%4];name="看今日片：「"+f[0]+"」";sub=`心情 +${f[1]}${f[2]?` · 精力 ${f[2]}`:""} · 每天換片 · 1 小時一次`}
+  if(k=="redeem"){const c=(r.items||{}).cs||0;sub=`集點卡 ${c}/8 · `+sub}
+  const pr=price?facPrice(r,p,price):0;
+  const real=k=="photo2"?"photo":k;
+  rows.push([name,(pr?`€${pr}${pr<price?"（常客價）":""} · `:"")+sub,async()=>{if(d[4]&&!here.length){toast("要有人在場才能做這件事");return}
+    if(d[4]==1&&here.length>1)return choiceModal("和誰？","選一位在場的鄰居",here.map(o=>[o.name,"",()=>doFac(real,o.id)]));
+    await doFac(real,d[4]?here[0].id:null)}])}
+ if(["restaurant","cafe","park","plaza"].includes(p)){const sit=(r.items||{}).sit,sitting=sit&&sit.pl==p;
+  rows.push(sitting?["起身",`已經坐了 ${Math.max(0,Math.floor((now()-Date.parse(sit.at))/6e4))} 分鐘 · 坐越久恢復越多，上限 20 分鐘`,()=>doFac("up")]:["坐下逗留","坐著休息：每分鐘精力 +0.5、心情 +0.4，滿 20 分鐘，有人在場多 +2 心情",()=>doFac("sit")])}
+ rows.push(["每日任務板","今天的三個小任務"+(claimable(r)?`，${claimable(r)} 個可領獎`:""),()=>taskModal()]);
+ const n=fqOf(r,p);choiceModal(placeName(p),`你來過 ${n} 次${tierOf(n)?"，是這裡的"+tierOf(n):"（5 次變常客有折扣）"}`,rows)}
+function taskModal(){const r=R[me];if(!r)return;const a=faOf(r),ids=taskIds(),tk=a.tk||[],it=r.items||{};
+ const rows=ids.map((t,i)=>{const done=taskDone(r,t),got=tk.includes(t);return[`${got?"已領":done?"可領獎":"未完成"}　${TASKS[t]}`,got?"獎勵 €50 已領":done?"點這裡領 €50":"完成後回來領 €50",async()=>{if(got||!done){toast(got?"已經領過了":"還沒完成");return}await doFac("claim",null,String(i))}]});
+ const fq=Object.entries(it.fq||{}).filter(x=>x[1]>=5).map(x=>`${placeName(x[0])} ${tierOf(x[1])}`);
+ choiceModal("每日任務板",`每天重新出三個，各 €50，三個都領完再 +€100。今天互動 ${a.n||0} 次 · 咖啡集點卡 ${it.cs||0}/8${it.gy?` · 健身房連續簽到 ${it.gy.d==dayKey()?it.gy.s:(it.gy.d==dayKey(-1)?it.gy.s:0)} 天`:""}${fq.length?` · 常客：${fq.join("、")}`:""}`,rows)}
 const togetherAt=p=>PEV[p]&&Object.values(R).filter(o=>o.place==p&&!o.sleeping).length>=2;
 const TOGETHER_LINES=["一起真開心","嘿嘿，有伴真好","這裡好熱鬧","要不要一起做點什麼？"];
 // 邀請一起做：按鈕在設施面板；收到邀請時彈窗，1 分鐘內可接受

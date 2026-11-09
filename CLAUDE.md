@@ -38,6 +38,14 @@
 - **每次改版（玩家看得到的改動）都要在 `town/town.js` 的 `UPDATES` 最前面加一則**：`{id, date, title, items:[3～6 條短句]}`，id 不可重複，繁體中文。`node town/test.js` 會檢查。
 - 玩家上線時彈「小鎮更新了」：已看過的 id 存在瀏覽器 localStorage（`town_ups_<角色id>`），沒有紀錄的舊玩家只彈最新一則，之後最多一次彈 3 則；選單「更新紀錄」可看全部。不需要 SQL。
 
+## 各設施更多互動、每日任務板、常客、坐下逗留（SQL 待套用：`supabase/town_fac.sql`，要在 `town.sql`、`town_social.sql` 之後；實測 `supabase/town_fac_test.sql`，最後 rollback，結果在錯誤訊息 REPORT）
+- **不改 `town_act`**：單一 RPC `town_fac(rid,pin,act,item,target)`，前端 `town.js` 的 `FAC` 表（價格、說明、地點）與 SQL 要一致，`node town/test.js` 會比對價格與任務數量。面板「更多互動」→ `facModal`；選單「每日任務」→ `taskModal`。
+- 動作：餐廳 `special` 特餐 €200（飽足 +40、心情 +12、每天依日期換菜名）、`takeout` 打包 €120（零食 +1）；咖啡廳 `latte` €110（精力 +45、集點 +1）、`redeem` 滿 8 點免費、`treat` 請客 €200（對方心情 +10、好感 +3）、`song` 點歌 €50（在場的人心情 +3）；電影院 `film` €280（每天換片 4 種輪替）、`popcorn` €80；健身房 `spar` 對練（雙方精力 −12、好感 +2）、`checkin` 簽到（連續 3 天 +€60、7 天 +€200）；公園 `fish` 釣魚（餌 €30、期望 25.5，略負）、`picnic` €150；公園／廣場 `frisbee` 丟飛盤、`photo` 自拍／合照。
+- 資料（缺值 = 預設，舊角色免遷移）：`items.fq` 各地點互動次數（≥5 −10%、≥15 −15%，只折該地點的花費）、`items.cs` 集點卡、`items.gy` 簽到、`items.fa` 今天的互動統計與已領任務、`items.sit` 坐下開始時間、冷卻在 `items.cd['f_'||act||對方id]`。
+- 雙人互動好感走 `town_bond`（吃每日上限）、一起加成走 `town_tg`（每人每天 8 次，與設施小事件共用）。
+- **每日任務**：每人每天三個（從 8 個任務挑，`(角色id%8 + 台灣日序) % 8` 起算，間隔 3、5），各 €50，三個全領再 +€100。新增任務要同步 SQL `town_fac_done` 與前端 `TASKS／taskDone`。
+- **坐下逗留**（餐廳、咖啡廳、公園、廣場）：`sit` 開始、`up` 結算，每分鐘精力 +0.5、心情 +0.4，上限 20 分鐘，不到 3 分鐘或換了地點沒有獎勵，有人在場心情多 +2。
+
 ## 加一個新設施的清單（全都要改）
 1. `town.js`：`PLACES`（座標 r、door、block:1）、`HOURS`、`FEATS`（讓鎮長能開關）、面板按鈕、`buildMap` 的 `bld(...)` 與 `sign(...)`、`ACT_FX`。
 2. `town.sql`：`town_place_name`、`town_closed`（已取消營業時間，保留函式）、`town_feature`（對應開關）、`town_act` 的 move 白名單與位置上限（`px >`）、動作本身（冷卻存在 `items.cd`）、`town_features` 的白名單。
