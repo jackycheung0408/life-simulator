@@ -29,9 +29,9 @@ begin
     rep := rep||'Lv'||i||' wk '||public.town_wk_min(r)||' bag '||public.town_bag_max(r)||' rent% '||public.town_rent_pct(r)||E'\n';
   end loop;
   -- Lv5 打工冷卻 8 分：9 分鐘前打過可再打、5 分鐘前不行
-  update public.town_residents set place='office',energy=100,hunger=90,fun=90,hygiene=90,sleeping=false,money=0,items=jsonb_set(jsonb_set(items,'{works}','10'),'{cd,wk}',to_jsonb(now()-interval '5 minutes')) where id=rid;
+  update public.town_residents set place='office',energy=100,hunger=90,fun=90,hygiene=90,sleeping=false,money=0,items=jsonb_set(items,'{works}','10') || jsonb_build_object('cd',jsonb_build_object('wk',now()-interval '5 minutes')) where id=rid;
   begin perform public.town_act(rid,'1234','work'); rep := rep||'Lv5 5min NOT BLOCKED'||E'\n'; exception when others then rep := rep||'Lv5 5min: '||sqlerrm||E'\n'; end;
-  update public.town_residents set items=jsonb_set(items,'{cd,wk}',to_jsonb(now()-interval '9 minutes')) where id=rid;
+  update public.town_residents set items=items || jsonb_build_object('cd',jsonb_build_object('wk',now()-interval '9 minutes')) where id=rid;
   perform public.town_act(rid,'1234','work'); select * into r from public.town_residents where id=rid;
   rep := rep||'Lv5 9min OK money '||r.money||E'\n';
   -- Lv1 背包上限 20、Lv5 到 30
