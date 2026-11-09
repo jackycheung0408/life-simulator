@@ -100,7 +100,7 @@ function posXP(p){if(!p.posXP){p.posXP={};p.posXP[p.dp&&DP2POS[p.dp]==p.pos?p.dp
 function famPen(p,d){if(d=="GK"||!p.s)return 0;return Math.round(Math.max(0,6-2*(posXP(p)[d]||0)))}
 function rateAt(p,d){const w=DPW[d];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return Math.round(t/sw)-famPen(p,d)}
 function dpOf(p){return p.dp&&DP2POS[p.dp]==p.pos?p.dp:({FW:"ST",MF:"CM",DF:"CB",GK:"GK"}[p.pos])}
-function setDp(p,dp){p.dp=dp;p.pos=DP2POS[dp]}
+function setDp(p,dp){if(p.realStar&&p.pos&&DP2POS[dp]!=p.pos)return;p.dp=dp;p.pos=DP2POS[dp]}
 function faceMap(p,k){return p.pos=="GK"&&k=="防守"?GKFACE:FACE[k]}
 // p.a 是卡面六大數值的「窗口」：讀取時由細項計算；加減時平均分攤到組成它的細項
 function attachA(p){p.a=new Proxy({},{get:(_,k)=>{const m=faceMap(p,k);return m?Object.entries(m).reduce((t,[x,w])=>t+p.s[x]*w,0):undefined},

@@ -220,8 +220,8 @@ async function youthYear(minutes){
  const p=P;for(let h=0;h<2;h++){if(!toEnd&&(h==0||p.age>=15))await phaseEvent(YOUTH_EVENTS);grow(p,minutes,.5);injuryCheck(.5);render();renderPlan()}
 }
 async function national(rating){
- const p=P,need=Math.max(55,p.cs-4);
- if(!p.intlRetired&&ovr(p)>=need&&rating>=6.3&&p.role!="預備隊"&&p.age>=18){const g=p.pos=="FW"?Math.round(R()*4*Math.max(0,(ovr(p)-60)/30)):p.pos=="MF"?Math.round(R()*1.5):0;const caps=4+Math.round(R()*6);
+ const p=P,need=Math.max(55,p.cs-(p.realStar?8:4));
+ if(!p.intlRetired&&ovr(p)>=need&&rating>=6.3&&p.role!="預備隊"&&p.age>=18){const g=p.pos=="FW"?Math.round(R()*4*Math.max(0,(ovr(p)-60)/30)):p.pos=="MF"?Math.round(R()*1.5):0;const caps=p.realStar&&ovr(p)>=need+2?9+Math.round(R()*4):4+Math.round(R()*6);
   if(!p.caps)say(`第一次入選${p.c}國家隊！`,1);(p.stars||[]).filter(s=>s.active&&s.c==p.c&&s.o>=72&&!s.nat).forEach(s=>{s.nat=1;say(`在國家隊和 ${s.n} 成為隊友。`,1)});p.caps+=caps;p.intlGoals+=g;const E={y:p.y0+p.age,age:p.age,caps,g,t:p.c,ev:[]};if(!p.caps)E.ev.push("首次入選");(p.intl=p.intl||[]).push(E);p._natE=E;p.fame+=caps*.5;
   const y=p.y0+p.age;
   if(y%4==2){const strength=p.cs+(ovr(p)-p.cs)*.15;let stage=strength>=86?pick(["八強","四強","亞軍","冠軍","十六強"]):strength>=80?pick(["小組賽","十六強","八強","四強"]):strength>=72?pick(["小組賽","小組賽","十六強"]):"沒有晉級會內賽";

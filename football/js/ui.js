@@ -240,7 +240,7 @@ MGR.push(
  ["私人特訓","自費加強一項能力",p=>p.age>=15&&p.money>=.01,async p=>{const cost=Math.max(.01,Math.min(.5,p.wage*.06));await ask(`請私人教練一對一特訓（花費約 ${eur(cost)}）`,ATTR.map(k=>[`加強${k}`,()=>{p.money-=cost;p.a[k]+=1.5+R()*1.5;p.focus=p.focus||{};p.focus[k]=(p.focus[k]||0)+.8;capAttrs(p);say(`請私人教練加強${k}，${k}進步到 ${Math.round(p.a[k])}。`,1)},`目前 ${Math.round(p.a[k])}`]).concat([["算了",()=>{}]]))}],
  ["改踢位置","向教練要求換位置",p=>p.club&&p.age>=16&&p.pos!="GK",async p=>{const cur=rateAt(p,dpOf(p)),now=posName(p);
    // 列出每個精確位置：綜合評分變化、最看重的三項細項
-   const opts=POS9.filter(([d,n])=>n!=now).map(([d,n,side])=>{const r=rateAt(p,d),diff=r-cur,top=Object.entries(DPW[d]).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]).join("、");
+   const opts=POS9.filter(([d,n])=>n!=now&&(!p.realStar||DP2POS[d]==p.pos)).map(([d,n,side])=>{const r=rateAt(p,d),diff=r-cur,top=Object.entries(DPW[d]).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]).join("、");
     return [`改踢${n}　${cur} → ${r}（${diff>=0?"+":""}${diff}）${famPen(p,d)?`　不熟悉 -${famPen(p,d)}`:"　已熟悉"}`,()=>{if(R()<.4+(rel(p,"coach")-50)/100+(diff>0?.15:0)){setDp(p,d);p.side=side||null;say(`教練同意讓你改踢${n}，綜合評分 ${cur} → ${r}。${famPen(p,d)?`還在適應新位置，多踢幾季評分會再回升。`:""}`,1)}else{rel(p,"coach",-3);say("教練拒絕了，要你先在原位置證明自己。")}},`看重：${top} · 熟悉度 ${Math.round((posXP(p)[d]||0)/5*100)}%`]}).sort((a,b)=>{const n=x=>+x[0].match(/（([+-]?\d+)）/)[1];return n(b)-n(a)});
    await ask(`想改踢哪個位置？（目前 ${now}，綜合 ${cur}，教練關係 ${rel(p,"coach")}）`,opts.concat([["不換",()=>{}]]),"依評分變化排序（已扣掉不熟悉的折扣）；在場上意向常站那個區域，就會慢慢熟悉")}],
  ["找教練談話","爭取上場、請教戰術",p=>!!p.club,async p=>{await ask(`找總教練談話（目前關係 ${rel(p,"coach")}，戰術「${p.coachStyle||"—"}」）`,[["爭取更多上場時間",()=>{if(R()<.35+(rel(p,"coach")-50)/120+(ovr(p)-p.clubObj.str)/40){rel(p,"coach",8);say("教練答應給你更多機會。",1)}else{rel(p,"coach",-5);say("教練覺得你還不夠格。")}},"看教練關係與實力"],["請教戰術要求",()=>{rel(p,"coach",4);const k=TAC[p.coachStyle]||["傳球"];k.forEach(x=>{p.a[x]+=.8});say(`照教練的戰術要求加練${k.join("、")}。`)},"配合戰術，能力小幅↑"],["只是打聲招呼",()=>{rel(p,"coach",2)},""]])}],
@@ -281,7 +281,7 @@ async function posEvents(p,role){if(toEnd||p.pos=="GK"||role=="預備隊"||!p.cl
  const near=(NEAR_DP[cur]||[]).filter(d=>d!="GK");if(!near.length)return;
  if(R()<.15){const d=pick(near),si=SQ_SLOTS.findIndex(s=>s[0]==d),who=q.xi[si].n,pen=famPen(p,d);
   await ask(`${who}受傷了，教練要你這幾場代踢${DPN[d]}`,[["沒問題，球隊需要我",()=>{const xp=posXP(p);xp[d]=Math.min(5,(xp[d]||0)+.6);rel(p,"coach",5);if(pen>3&&R()<.5){p.morale-=2;say(`臨時代踢${DPN[d]}，踢得很吃力，但教練記住了你的付出。`)}else{p.fame+=1;say(`臨時代踢${DPN[d]}，表現不錯，多了一個能踢的位置。`,1)}},`${DPN[d]}熟悉度 ${Math.round((posXP(p)[d]||0)/5*100)}% · 教練關係↑ · 多學一個位置`],["跟教練說你不熟這個位置",()=>{rel(p,"coach",-3)},"教練關係↓"]],`你在${DPN[d]}的評分是 ${rateAt(p,d)}（原位置 ${ovr(p)}）`);return}
- if(p.age>=18&&R()<.06){const cand=near.filter(d=>rateAt(p,d)>=ovr(p)-4);if(!cand.length)return;const d=pick(cand),r=rateAt(p,d);
+ if(!p.realStar&&p.age>=18&&R()<.06){const cand=near.filter(d=>rateAt(p,d)>=ovr(p)-4);if(!cand.length)return;const d=pick(cand),r=rateAt(p,d);
   await ask(`教練決定把你改踢${DPN[d]}`,[["接受安排",()=>{setDp(p,d);p.side=d=="W"||d=="FB"?pick(["L","R"]):null;if(d!=p.favDp)p.morale-=3;say(`被教練改踢${DPN[d]}（評分 ${ovr(p)}）。`,1)},d==p.favDp?"剛好是你喜歡的位置":`不是你喜歡的位置，心情↓`],
    ["私下找教練抗議",()=>{if(R()<.35+(rel(p,"coach")-50)/100){say("教練被你說服，讓你留在原位置。")}else{rel(p,"coach",-6);p.morale-=3;say("教練不高興：「不聽安排就去坐板凳。」",1)}},"可能被冷凍"],
    ["叫經紀人找下家",()=>{p.contract=Math.min(p.contract,0);rel(p,"coach",-4);say("不願改位置，經紀人開始幫你找新球隊。",1)},"這季結束就離隊"]],`你在${DPN[d]}的評分是 ${r}（原位置 ${ovr(p)}）；教練覺得球隊這裡更需要你`)}}

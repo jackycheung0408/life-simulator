@@ -66,7 +66,7 @@ $("draw").onclick=drawCard;$("redraw").onclick=()=>{if(!redraws)return;redraws--
 // 國旗與位置小圖示
 const ISO={"巴西": "BR", "阿根廷": "AR", "法國": "FR", "西班牙": "ES", "德國": "DE", "義大利": "IT", "葡萄牙": "PT", "荷蘭": "NL", "比利時": "BE", "克羅埃西亞": "HR", "烏拉圭": "UY", "哥倫比亞": "CO", "墨西哥": "MX", "美國": "US", "奈及利亞": "NG", "塞內加爾": "SN", "摩洛哥": "MA", "迦納": "GH", "日本": "JP", "韓國": "KR", "埃及": "EG", "沙烏地阿拉伯": "SA", "中國": "CN", "瑞士": "CH", "丹麥": "DK", "奧地利": "AT", "塞爾維亞": "RS", "土耳其": "TR", "瑞典": "SE", "波蘭": "PL", "烏克蘭": "UA", "挪威": "NO", "捷克": "CZ", "匈牙利": "HU", "希臘": "GR", "愛爾蘭": "IE", "厄瓜多": "EC", "智利": "CL", "秘魯": "PE", "巴拉圭": "PY", "委內瑞拉": "VE", "哥斯大黎加": "CR", "加拿大": "CA", "象牙海岸": "CI", "喀麥隆": "CM", "南非": "ZA", "阿爾及利亞": "DZ", "突尼西亞": "TN", "伊朗": "IR", "卡達": "QA", "澳洲": "AU", "紐西蘭": "NZ", "越南": "VN", "泰國": "TH", "印尼": "ID", "馬來西亞": "MY", "印度": "IN", "菲律賓": "PH", "香港": "HK", "台灣": "TW"};
 const flag=ct=>({英格蘭:"🏴\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}",蘇格蘭:"🏴\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}",威爾斯:"🏴\u{E0067}\u{E0062}\u{E0077}\u{E006C}\u{E0073}\u{E007F}"})[ct]||(ISO[ct]?[...ISO[ct]].map(c=>String.fromCodePoint(127397+c.charCodeAt(0))).join(""):"🏳️");
-const POS_ICON={FW:"⚽",MF:"🎯",DF:"🛡️",GK:"🧤"};
+const POS_ICON=new Proxy({},{get:(_,k)=>`<span class="pb pb-${k}">${k}</span>`});
 // 搜尋不分大小寫、不分重音：Mbappe 也找得到 Mbappé
 const fold=t=>t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/ø/g,"o").replace(/ł/g,"l").replace(/đ/g,"d").replace(/ı/g,"i").replace(/ß/g,"ss");
 // ── 搜尋＋分類按鈕＋卡片：球星和國家都很多，用這個代替長長的下拉選單 ──
