@@ -69,7 +69,7 @@ begin
   begin perform public.town_jail(ra,'1234','parole'); rep := rep||'  惹過事 parole NOT BLOCKED'||E'\n'; exception when others then rep := rep||'  惹過事：'||sqlerrm||E'\n'; end;
   update public.town_residents set items = jsonb_set(items, '{jp,bad}', '0'::jsonb) where id = ra;
   j := public.town_jail(ra,'1234','parole'); select * into r from public.town_residents where id = ra;
-  rep := rep||'  假釋成功 '||j::text||' jl '||coalesce(r.items->>'jl','已清除')||' jp '||coalesce(r.items->>'jp','已清除')||' pl 剩 '||round(extract(epoch from ((r.items->>'pl')::timestamptz - now())) / 3600)||' 小時 (24) pr n '||(r.items->'pr'->>'n')||' (1)'||E'\n';
+  rep := rep||'  假釋成功 '||j::text||' jl '||coalesce(r.items->>'jl','已清除')||' jp '||coalesce(r.items->>'jp','已清除')||' pl 剩 '||round(extract(epoch from ((r.items->>'pl')::timestamptz - now())) / 3600)||' 小時 (24) pr n '||(r.items->'pr'->>'n')||' (0，這裡設定前清掉了前科；重點是有記錄)'||E'\n';
   -- 假釋中再被抓：刑期加倍（2～6 小時，倒地至少 2 小時再加倍）；pl 清掉、jp.bad = 1
   n1 := 0;
   loop
@@ -124,16 +124,18 @@ begin
   update public.town_residents set place='street', x=10, y=10, sleeping=false, energy=80, seen_at=now() - interval '3 hours', updated_at=now() - interval '10 minutes', items = (items - 'cd' - 'jl' - 'jp') || jsonb_build_object('wt', (now() + interval '2 hours')::text) where id = ra;
   perform public.town_state(tid); select * into r from public.town_residents where id = ra;
   rep := rep||'  通緝但離線超過 30 分鐘：place '||r.place||' (不會被抓回牢，可能被送回家)'||E'\n';
-  update public.town_residents set place='street', x=10, y=10, sleeping=false, energy=80, seen_at=now(), updated_at=now(), items = (items - 'cd' - 'jl' - 'jp') || jsonb_build_object('wt', (now() - interval '1 minute')::text) where id = ra;
+  update public.town_residents set place='street', x=10, y=10, sleeping=false, energy=80, seen_at=now(), updated_at=now() - interval '1 minute', items = (items - 'cd' - 'jl' - 'jp') || jsonb_build_object('wt', (now() - interval '1 minute')::text) where id = ra;
   perform public.town_state(tid); select * into r from public.town_residents where id = ra;
   rep := rep||'  通緝過期：wt '||coalesce(r.items->>'wt','已清除')||' (已清除)'||E'\n';
 
-  -- ⑦ 前科薪水 −8%：同樣狀態下，有前科比沒前科少約 8%
-  update public.town_residents set place='office', x=30, y=6, energy=90, hunger=90, fun=90, bladder=90, hygiene=90, sleeping=false, money=1000, seen_at=now(), updated_at=now(), items = (items - 'cd' - 'jl' - 'jp' - 'pr' - 'wt' - 'dc') where id = ra;
-  m0 := 1000; perform public.town_act(ra,'1234','work'); select * into r from public.town_residents where id = ra; n1 := r.money - m0;
-  update public.town_residents set place='office', energy=90, hunger=90, fun=90, bladder=90, hygiene=90, money=1000, seen_at=now(), updated_at=now(), items = (items - 'cd' - 'dc') || jsonb_build_object('pr', jsonb_build_object('u', (now() + interval '2 hours')::text, 'n', 1)) where id = ra;
+  -- ⑦ 前科薪水 −8%：同樣狀態下，有前科比沒前科少約 8%（先打一次工把今天的房租扣掉，免得干擾；items.sad 清掉，免得心情低落 −30%）
+  update public.town_residents set place='office', x=30, y=6, energy=90, hunger=90, fun=90, bladder=90, hygiene=90, sleeping=false, money=100000, seen_at=now(), updated_at=now() - interval '1 minute', items = (items - 'cd' - 'jl' - 'jp' - 'pr' - 'wt' - 'dc' - 'sad') where id = ra;
+  perform public.town_act(ra,'1234','work');
+  update public.town_residents set energy=90, hunger=90, fun=90, money=1000, items = (items - 'cd' - 'dc' - 'sad' - 'pr') where id = ra;
+  perform public.town_act(ra,'1234','work'); select * into r from public.town_residents where id = ra; n1 := r.money - 1000;
+  update public.town_residents set energy=90, hunger=90, fun=90, money=1000, items = (items - 'cd' - 'dc' - 'sad') || jsonb_build_object('pr', jsonb_build_object('u', (now() + interval '2 hours')::text, 'n', 1)) where id = ra;
   perform public.town_act(ra,'1234','work'); select * into r from public.town_residents where id = ra; n2 := r.money - 1000;
-  rep := rep||'⑦ 打工一次：沒前科 +'||n1||'、有前科 +'||n2||'（期望 比例 0.92：'||round(n1 * 0.92)||'）'||E'\n';
+  rep := rep||'⑦ 打工一次：沒前科 +'||n1||'、有前科 +'||n2||'（期望 有前科 = 沒前科 × 0.92 = '||round(n1 * 0.92)||'）'||E'\n';
 
   -- ⑧ 獄友事件：poll／pick、每個選項的效果、減刑到出獄、惹事標記、每天上限、不在牢裡不能選
   update public.town_residents set place='street', items = items - 'je' where id = ra;
