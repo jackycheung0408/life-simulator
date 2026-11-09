@@ -373,11 +373,11 @@ begin
     t := t + make_interval(secs => step*3600);
   end loop;
   sho := sho + sqo; shf := shf + sqf;
-  bedg := 80 + 10*public.town_fu(r,'bed'); hm := case when public.town_has(r,'clean') then .7 else 1 end;
+  bedg := case when public.town_fu(r,'bed')=1 then 90 else 64 end; hm := case when public.town_has(r,'clean') then .7 else 1 end;
   -- 睡覺也會餓、會想上廁所、會出汗；睡覺精力回升不受離線影響。離線那段 ×0.4 且停在 15
   r.hunger := r.hunger - 5*sho - 8*aho;  r.hunger := greatest(r.hunger - .4*(5*shf + 8*ahf), least(r.hunger, 15));
   r.bladder := r.bladder - 7*sho - 10*aho; r.bladder := greatest(r.bladder - .4*(7*shf + 10*ahf), least(r.bladder, 15));
-  r.hygiene := r.hygiene - (2.4*sho + 5*aho)*hm; r.hygiene := greatest(r.hygiene - .4*(2.4*shf + 5*ahf)*hm, least(r.hygiene, 15));
+  r.hygiene := r.hygiene - ((2.4 + case when public.town_fu(r,'bed')=1 then 0 else 1 end)*sho + 5*aho)*hm; r.hygiene := greatest(r.hygiene - .4*((2.4 + case when public.town_fu(r,'bed')=1 then 0 else 1 end)*shf + 5*ahf)*hm, least(r.hygiene, 15));
   v := r.energy + bedg*sho + 1.5*bedg*sqo - 5*aho + case when public.town_has(r,'nightowl') then 1.0*nho else 0 end;
   dl := bedg*shf + 1.5*bedg*sqf - .4*5*ahf + case when public.town_has(r,'nightowl') then .4*1.0*nhf else 0 end;
   r.energy := greatest(v + dl, least(v, 15));
@@ -388,7 +388,7 @@ begin
   -- 半夜沒上線的人回家睡了：人在家裡；現在還是半夜就繼續睡，天亮（8 點後）就在家醒來
   -- 快速睡覺時間到：自動醒來
   if qe is not null and now() >= qe then
-    if r.sleeping and not fa then r.sleeping := false; end if;
+    if r.sleeping and not fa then r.sleeping := false; if public.town_fu(r,'bed')=0 then r.fun := greatest(r.fun - 3, 0); end if; end if;  -- 睡地上醒來心情 −3
     r.items := r.items - 'qs'; qe := null;
   end if;
   -- 待機超過 60 分鐘（或半夜離線 30 分鐘）的人回家睡了：人在自己屋裡；夜間（22～8 點）或精力不到 90 就繼續睡，否則在家醒著
@@ -1087,14 +1087,14 @@ begin
     r.items := jsonb_set(r.items, '{dr}', '1'::jsonb);
   elsif act in ('eat','toilet','shower','tv','sleep','nap','qsleep') then
     if not public.town_inside(r) then raise exception '要先進屋才能做這個'; end if;
-    if act = 'eat' then n := 60 - 30*public.town_fu(r,'fridge'); if r.money < n then raise exception '錢不夠買食材，去公司打工吧'; end if; r.hunger := r.hunger + (40 + 8*public.town_fu(r,'fridge'))*fm; r.energy := r.energy + 15; r.money := r.money - n;
-    elsif act = 'toilet' then r.bladder := 100;
+    if act = 'eat' then n := 60 - 30*public.town_fu(r,'fridge'); if r.money < n then raise exception '錢不夠買食材，去公司打工吧'; end if; r.hunger := r.hunger + (case when public.town_fu(r,'fridge')=1 then 48 else 32 end)*fm; r.energy := r.energy + 15; r.money := r.money - n; if public.town_fu(r,'fridge')=0 then r.fun := r.fun - 3; end if;  -- 沒冰箱：冷食
+    elsif act = 'toilet' then r.bladder := 100; if public.town_fu(r,'toilet')=0 then r.hygiene := r.hygiene - 10; r.fun := r.fun - 3; end if;  -- 沒馬桶：找個角落
     elsif act = 'shower' then
       if (r.items->'cd'->>'shower') is not null and (r.items->'cd'->>'shower')::timestamptz > now() - interval '10 minutes' then raise exception '剛洗完澡，等一下再洗'; end if;
-      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('shower', now())); r.hygiene := 100; r.energy := r.energy + 10; r.fun := r.fun + 3;
+      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('shower', now())); if public.town_fu(r,'shower')=1 then r.hygiene := 100; r.energy := r.energy + 10; else r.hygiene := r.hygiene + (100 - r.hygiene)*.7; end if; r.fun := r.fun + 3;  -- 沒淋浴間：水桶，清潔回 70%、精力不加
     elsif act = 'tv' then
       if (r.items->'cd'->>'tv') is not null and (r.items->'cd'->>'tv')::timestamptz > now() - make_interval(mins => 15 - 5*public.town_fu(r,'tvcab')) then raise exception '剛看完電視，休息一下眼睛'; end if;
-      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('tv', now())); r.fun := r.fun + 15 + 7*public.town_fu(r,'sofa'); r.energy := r.energy - 3;
+      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('tv', now())); if public.town_fu(r,'tvcab')=1 then r.fun := r.fun + 15 + 7*public.town_fu(r,'sofa'); r.energy := r.energy - 3; else r.fun := r.fun + 6; end if;  -- 沒電視櫃：發呆看窗外
     elsif act = 'sleep' then r.sleeping := true; r.items := r.items - 'qs';
     elsif act = 'qsleep' then
       -- 快速睡覺：睡 15 分鐘自動醒，睡眠速率 ×2.5（一般每小時 80、好床 90；這裡每小時 200／好床 225，15 分鐘約 +50／+56）；30 分鐘冷卻
@@ -1103,9 +1103,10 @@ begin
       r.items := jsonb_set(r.items, '{qs}', to_jsonb((now() + interval '15 minutes')::text)); r.sleeping := true;
     elsif act = 'nap' then
       if (r.items->'cd'->>'nap') is not null and (r.items->'cd'->>'nap')::timestamptz > now() - interval '15 minutes' then raise exception '剛休息過，等一下再休息'; end if;
-      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('nap', now())); r.energy := r.energy + 70 + 30*public.town_fu(r,'massage'); end if;
+      r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('nap', now())); r.energy := r.energy + case when public.town_fu(r,'massage')=1 then 100 when public.town_fu(r,'sofa')=1 then 70 else 50 end; end if;  -- 沒沙發／按摩椅：坐地上
   elsif act = 'wake' then
     if (r.items->>'faint') is not null then raise exception '餓到昏倒了，還醒不過來'; end if;
+    if r.sleeping and r.place like 'home:%' and public.town_fu(r,'bed')=0 then r.fun := greatest(r.fun - 3, 0); end if;  -- 睡地上醒來心情 −3
     r.sleeping := false; r.items := r.items - 'qs';
   elsif act = 'sweep' then
     delete from public.town_poops p where p.id = nullif(item,'')::bigint and p.town_id = r.town_id and abs(p.x - r.x) + abs(p.y - r.y) <= 2 and p.at > now() - interval '2 hours' returning p.id into n;
@@ -1514,8 +1515,8 @@ begin
         insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 在 ' || tn || ' 家門口留言：「' || note || '」');
       else
         if not public.town_inside(t) then raise exception '% %。可以留言或放禮物', tn, case when t.place = 'home:' || target then '還在家門口，沒進屋' else '不在家，在' || public.town_place_name(t.place) end; end if;
-        m := case when bond >= 30 then 1.3 else 1 end;
         if act in ('feed','wash','wakeup','visit') and coalesce(r.items->>'fv','') <> target::text then raise exception '要先按「進去」走進 % 家才能面對面（在門口只能留言、放禮物、丟雞蛋、惡作劇）', tn; end if;
+        m := case when bond >= 30 then 1.3 else 1 end;
         if act = 'feed' then if r.money < 60 then raise exception '錢不夠買食材'; end if; t.hunger := t.hunger + 35*m; r.money := r.money - 60; r.fun := r.fun + 5; perform public.town_bond(r.town_id, rid, t.id, 3);
           insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 煮了一餐給 ' || tn || ' 吃');
         elsif act = 'wash' then t.hygiene := t.hygiene + 45*m; perform public.town_bond(r.town_id, rid, t.id, 3);

@@ -57,7 +57,9 @@ insert into public.town_shop(id, kind, slot, name, price, unlock) values
   ('painting', 'furn', null, '掛畫', 900, null),
   ('desklamp', 'furn', null, '檯燈', 600, null),
   ('toy', 'furn', null, '玩具', 400, null),
-  ('books', 'furn', null, '書堆', 500, null)
+  ('books', 'furn', null, '書堆', 500, null),
+  ('toilet', 'furn', null, '馬桶', 2000, null),
+  ('shower', 'furn', null, '淋浴間', 3000, null)
 on conflict (id) do update set kind = excluded.kind, name = excluded.name, price = excluded.price;
 
 -- 一次性遷移：舊的 9 格 fu 換成座標 fp

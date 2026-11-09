@@ -139,10 +139,10 @@ function placeAt(x,y){const pp=POOPS.find(q=>q.x==x&&q.y==y);if(pp){const c=[[x,
 const NEEDS=["hunger","energy","bladder","hygiene","fun"];
 const NEED_INFO={hunger:["🍚","飽足"],energy:["⚡","精力"],bladder:["🚽","膀胱"],hygiene:["🛁","清潔"],fun:["🎉","心情"]};
 // 個性特質（items.tr）與心情（由需求算，規則要和 town.sql 的 town_mood／town_pay 一致）
-const FURN=[["bed","好床",3500,"睡覺精力每小時 +90"],["fridge","冰箱",4500,"在家吃飯 €30、飽足 +48"],["massage","按摩椅",6000,"快速休息精力 +100"],["shelf","書櫃",2500,"之後技能用，先佔位"],["sofa","沙發",4000,"看電視心情 +22"],["tvcab","電視櫃",3000,"看電視 10 分鐘一次"],["rug","地毯",1000,"裝飾"],["plant","盆栽",500,"裝飾"],["frame","相框",300,"掛在牆上，裝飾"],["painting","掛畫",900,"掛在牆上，裝飾"],["desklamp","檯燈",600,"裝飾"],["toy","玩具",400,"裝飾"],["books","書堆",500,"裝飾"]];
+const FURN=[["bed","好床",3500,"睡覺精力每小時 +90（沒有就睡地上 +64）"],["fridge","冰箱",4500,"在家吃飯 €30、飽足 +48（沒有是冷食 +32）"],["massage","按摩椅",6000,"快速休息精力 +100（沙發 +70、沒有 +50）"],["shelf","書櫃",2500,"之後技能用，先佔位"],["sofa","沙發",4000,"看電視心情 +22、快速休息 +70"],["tvcab","電視櫃",3000,"才能看電視（心情 +15、10 分鐘一次）；沒有只能發呆 +6"],["rug","地毯",1000,"裝飾"],["plant","盆栽",500,"裝飾"],["frame","相框",300,"掛在牆上，裝飾"],["painting","掛畫",900,"掛在牆上，裝飾"],["desklamp","檯燈",600,"裝飾"],["toy","玩具",400,"裝飾"],["books","書堆",500,"裝飾"],["toilet","馬桶",2000,"上廁所（沒有只能找角落，清潔 −10）"],["shower","淋浴間",3000,"洗澡清潔回滿、精力 +10（沒有是水桶 70%）"]];
 const HOUSES=[["小屋",0,6],["公寓",20000,10],["獨棟",150000,15],["豪宅",400000,20]];// 名稱、升級價、可擺家具與道具件數（和 town_home.sql 的 town_home_cap 一致）
 const HOME_DIM=[[6,3],[8,3],[9,4],[10,4]],WALLF=["frame","painting"],FLAT=["rug","toy","books"];// 房間寬×地板列數（另有第 0 列牆）；掛牆的道具；躺在地上、不擋人站的
-const HACT={bed:[/^睡覺/,"好床"],fridge:[/^吃飯/,"冰箱"],sofa:[/^看電視/,"沙發"],tvcab:[/^看電視/,"電視櫃"],massage:[/^快速休息/,"按摩椅"]};
+const HACT={bed:[/^睡覺/,"好床"],fridge:[/^吃飯/,"冰箱"],sofa:[/^看電視/,"沙發"],tvcab:[/^看電視/,"電視櫃"],massage:[/^快速休息/,"按摩椅"],toilet:[/^上廁所/,"馬桶"],shower:[/^洗澡/,"淋浴間"]};
 // 擺放座標 items.fp = [[代號,x,y]]；沒有 fp 的舊角色用舊的 9 格 fu 換算（和 town_fp_legacy 一致）
 const fpOf=it=>Array.isArray(it.fp)?it.fp:(it.fu||[]).map((k,i)=>[k,1+(i%3)*2,1+Math.floor(i/3)]).filter(o=>o[0]);
 const hasF=(r,k)=>!!(r.items&&Array.isArray(r.items.fu)&&r.items.fu.includes(k));
@@ -160,12 +160,12 @@ function tickLocal(r,now){const h=Math.min(72,Math.max(0,(now-Date.parse(r.updat
  // 快速睡覺（items.qs 到期自動醒，睡眠速率 ×2.5）；待機超過 60 分鐘算回家睡覺
  const sa=r.seen_at?Date.parse(r.seen_at)+18e5:Infinity,s60=r.seen_at&&!(r.items&&r.items.jl&&Date.parse(r.items.jl)>now)?Date.parse(r.seen_at)+36e5:Infinity,t0=now-h*36e5,fl=(v,d)=>Math.max(v-d,Math.min(v,15));
  const oh=(a,b)=>{const on=Math.max(0,Math.min(b,sa)-a);return[on/36e5,(b-a-on)/36e5]};
- const bed=80+(hasF(r,"bed")?10:0),qe=r.items&&r.items.qs?Date.parse(r.items.qs):0;
+ const bed=hasF(r,"bed")?90:64,hb=hasF(r,"bed")?0:1,qe=r.items&&r.items.qs?Date.parse(r.items.qs):0;
  let aw0=t0,aw1=t0,ss0=t0,ss1=t0,mult=1;
  if(o.sleeping){if(qe&&qe>t0){const e=Math.min(qe,now);ss1=e;aw0=e;aw1=now;mult=2.5}else if(qe){aw1=now}else ss1=now;if(qe&&now>=qe)o.sleeping=false}
  else{const m=Math.min(now,Math.max(t0,s60));aw1=m;ss0=m;ss1=now}
  const [son,sof]=oh(ss0,ss1);
- const doS=()=>{if(ss1>ss0){o.energy+=bed*mult*(son+sof);const d=(k,rate)=>{o[k]=fl(o[k]-rate*son,.4*rate*sof)};d("hunger",5);d("bladder",7);d("hygiene",2.4*hm);d("fun",1.6)}};
+ const doS=()=>{if(ss1>ss0){o.energy+=bed*mult*(son+sof);const d=(k,rate)=>{o[k]=fl(o[k]-rate*son,.4*rate*sof)};d("hunger",5);d("bladder",7);d("hygiene",(2.4+hb)*hm);d("fun",1.6)}};
  const doA=()=>{if(aw1>aw0){const [hon,hof]=oh(aw0,aw1),dec=(k,rate)=>{o[k]=fl(o[k]-rate*hon,.4*rate*hof)};dec("hunger",8);dec("bladder",10);dec("hygiene",5*hm);
   let e=o.energy-5*hon;if(hasT(r,"nightowl")){for(let t=aw0;t<aw1;){const st=Math.min(.25,(aw1-t)/36e5),hr=(Math.floor(t/36e5)+8)%24;if(hr>=22||hr<6)e+=st*(t<sa?1:.4);t+=st*36e5}}o.energy=fl(e,.4*5*hof);
   const ex=(o.hunger<20||o.bladder<20||o.hygiene<20)?3*hon:0,exf=(o.hunger<20||o.bladder<20||o.hygiene<20)?.4*3*hof:0,v=o.fun-4*hon-ex;o.fun=fl(v,.4*4*hof+exf)}};
@@ -192,7 +192,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
- {id:"u21-visit",date:"11/09",title:"可以走進朋友家了",items:["站在朋友家門口時，屋裡看不到你，進去後才會出現你的身影","門口可以留言、放禮物、丟雞蛋、惡作劇；按「進去」才能煮飯、洗澡、叫醒、串門子","進去後的畫面會顯示你和他一起在屋裡，按「出門」回到門口","朋友不在屋裡，或和你關係太差，會進不去"]},
+ {id:"u27-furnfx",date:"11/09",title:"家裡沒家具，生活變陽春",items:["沒有好床睡地上：精力每小時 +64、醒來心情 −3","沒有冰箱吃冷食、沒馬桶找角落、沒淋浴間用水桶、沒電視櫃只能發呆","互動照樣能做，按鈕副標會寫現在是陽春版","超市新增馬桶 €2000、淋浴間 €3000，擺進房間才有效","已有的家具效果不變，沒有人被扣錢"]},
  {id:"u20-wake",date:"11/09",title:"叫醒、看室內修好了",items:["朋友在家睡覺時，看室內會看到他躺在床上","你站在朋友家門口，面板下面也看得到他家室內","叫醒他的按鈕會寫這次大約幾成叫得醒，越累睡越沉","叫不醒不再鎖一小時，隔 3 分鐘就能再試"]},
   {id:"u26-jail2",date:"11/09",title:"牢裡更多事",items:["監獄可以走進去了：有鐵窗、上下鋪、工作台、放風場，做事會有動畫","牢裡可以放風、勞動減刑；做滿 2 次勞動、不惹事、服滿一半刑期，可以申請假釋","牢裡會碰到獄友的事（聊天、被欺負、交換東西、幫忙），選項有賺有賠","可以冒險越獄，成功率不高，成功會被通緝 3 小時","關過的人有 24 小時前科：薪水少 8%、巡警更常抓你。角色一樣不會死"]},
   {id:"u25-prices",date:"11/09",title:"物價調整",items:["房租：獨棟每天 1500、豪宅每天 3000（變便宜）","家具全面降價，例如好床 3500、冰箱 4500","汽車降到 90000","已經買過的不退款，沒有人少錢"]},
@@ -482,7 +482,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  if(walkers[me]&&walkers[me].path.length){title="走路中…";note="到了就可以做事"}
  else if(r.sleeping){title=`在${placeName(p)}睡覺 💤`;list.push(btn("起床","",()=>act("wake")))}
  else if(p=="home:"+me&&!inside(r)){title="家門口";note="走進屋裡才能吃飯、洗澡、睡覺、擺家具";list.push(btn("進屋",`回到家裡 · ${HOUSES[((r.items||{}).hl||1)-1][0]}`,()=>act("enter")))}
- else if(p=="home:"+me){title="你家（屋裡）";list.push(btn("吃飯",`飽足 +${hasF(r,"fridge")?48:40} · 精力 +15 · €${hasF(r,"fridge")?30:60}`,()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),dbtn("洗澡","清潔回滿 · 精力 +10 · 10 分鐘一次",()=>act("shower"),cdLeft(r,"shower",10)),dbtn("看電視",`心情 +${hasF(r,"sofa")?22:15} · ${hasF(r,"tvcab")?10:15} 分鐘一次`,()=>act("tv"),cdLeft(r,"tv",hasF(r,"tvcab")?10:15)),dbtn("快速休息",`精力 +${hasF(r,"massage")?100:70} · 15 分鐘一次`,()=>act("nap"),cdLeft(r,"nap",15)),dbtn("快速睡覺",`睡 15 分鐘自動醒 · 精力約 +${hasF(r,"bed")?56:50} · 30 分鐘一次`,()=>act("qsleep"),cdLeft(r,"qsleep",30)),btn("睡覺",`精力每小時 +${hasF(r,"bed")?90:80} · 睡多久回多少`,()=>act("sleep")),btn("佈置","搬家具、擺小道具、升級房子",()=>interiorModal(me),"home"),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal(),"home"),btn("出門","回到家門口",()=>act("exit"),"home"))}
+ else if(p=="home:"+me){title="你家（屋裡）";list.push(btn("吃飯",hasF(r,"fridge")?"飽足 +48 · 精力 +15 · €30":"沒有冰箱：冷食，飽足 +32、心情 −3 · €60",()=>act("eat")),btn("上廁所",hasF(r,"toilet")?"膀胱回滿":"沒有馬桶：找個角落，清潔 −10、心情 −3",()=>act("toilet")),dbtn("洗澡",hasF(r,"shower")?"清潔回滿 · 精力 +10 · 10 分鐘一次":"沒有淋浴間：水桶，清潔只回 70% · 10 分鐘一次",()=>act("shower"),cdLeft(r,"shower",10)),dbtn("看電視",hasF(r,"tvcab")?`心情 +${hasF(r,"sofa")?22:15} · 10 分鐘一次`:"沒有電視櫃：發呆看窗外，心情 +6 · 15 分鐘一次",()=>act("tv"),cdLeft(r,"tv",hasF(r,"tvcab")?10:15)),dbtn("快速休息",`${hasF(r,"massage")?"精力 +100":hasF(r,"sofa")?"精力 +70":"沒有沙發：坐地上，精力 +50"} · 15 分鐘一次`,()=>act("nap"),cdLeft(r,"nap",15)),dbtn("快速睡覺",`${hasF(r,"bed")?"":"沒有好床：睡地上 · "}睡 15 分鐘自動醒 · 精力約 +${hasF(r,"bed")?56:40} · 30 分鐘一次`,()=>act("qsleep"),cdLeft(r,"qsleep",30)),btn("睡覺",hasF(r,"bed")?"精力每小時 +90 · 睡多久回多少":"沒有好床：睡地上，精力每小時 +64、醒來心情 −3",()=>act("sleep")),btn("佈置","搬家具、擺小道具、升級房子",()=>interiorModal(me),"home"),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal(),"home"),btn("出門","回到家門口",()=>act("exit"),"home"))}
  else if(p&&p.startsWith("home:")&&R[p.slice(5)]){const id=+p.slice(5),t=tickLocal(R[id],now());title=`${t.name} 家`;const peek=btn("看室內",`${HOUSES[((R[id].items||{}).hl||1)-1][0]} · 看他怎麼布置`,()=>interiorModal(id));
   const gifts=(r.items||{}).gift||0,giftB=gifts?btn("送禮物",`他心情 +20 · 背包 🎁${gifts}`,()=>act("gift",{target:id})):btn("送禮物","先去超市買",()=>toast("背包沒有禮物，去超市買一份"));
   if(!inside(t)){note=`${t.name} ${t.place==p?"在家門口，還沒進屋":"不在家，在"+placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,peek,btn("丟雞蛋 🥚","好感 −1 · 30 分鐘一次",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
@@ -803,7 +803,7 @@ function shopModal(){const it=R[me].items||{},w=new Set(it.w||[]),d=new Set(it.d
  $("mc").onclick=()=>$("modal").classList.add("hide");$("bagGo").onclick=()=>bagModal();
  $("mbody").querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{b.disabled=true;const [k,id]=b.dataset.b.split(":"),had=((R[me].items||{})[k]||[]).includes(id);await act("buy",{item:b.dataset.b});if(k=="w"&&!had&&((R[me].items||{}).w||[]).includes(id))await wearOn(id);shopModal()})}
 // 背包：把 snack、gift、rg、w、f、d 整理成分類（讀取層，不搬資料）
-const FIC={bed:"🛏️",sofa:"🛋️",fridge:"🧊",plant:"🪴",shelf:"📚",massage:"💺",rug:"🟥",tvcab:"📺",frame:"🖼️",painting:"🎨",desklamp:"💡",toy:"🎲",books:"📚"},DIC={flowers:"🌷",mailbox:"✉️",lamp:"💡",bench:"🪑",tree:"🌳",pigstatue:"🏛️"};
+const FIC={bed:"🛏️",sofa:"🛋️",fridge:"🧊",plant:"🪴",shelf:"📚",massage:"💺",rug:"🟥",tvcab:"📺",frame:"🖼️",painting:"🎨",desklamp:"💡",toy:"🎲",books:"📚",toilet:"🚽",shower:"🚿"},DIC={flowers:"🌷",mailbox:"✉️",lamp:"💡",bench:"🪑",tree:"🌳",pigstatue:"🏛️"};
 const BAG_TABS=[["food","食物"],["gift","禮物"],["wear","服飾"],["furn","家具"],["deco","擺飾"]];
 const bagCount=r=>{const it=r.items||{};return (it.snack||0)+(it.gift||0)+(it.rg||[]).length+(it.w||[]).length+(it.f||[]).length+(it.d||[]).length};
 // 考駕照：三題選擇題（答案順序要和 town.sql 的 license 一致：機車 1、2、0；汽車 2、0、1）
@@ -856,6 +856,8 @@ function paintModal(){const it=R[me].items||{};$("modal").classList.remove("hide
 function furnDraw(m,id,x,y,s){const u=s/12,R=(a,b,w,h,c)=>{m.fillStyle=c;m.fillRect(x+a*u,y+b*u,w*u,h*u)};
  if(id=="bed"){R(1,4,10,6,"#8b5a2b");R(1,3,10,3,"#fff");R(1,5,10,5,"#e0779b");R(1,3,3,3,"#f4f1de")}
  if(id=="fridge"){R(3,1,6,10,"#dfe6ea");R(3,5,6,1,"#8a9aa5");R(7,2,1,2,"#8a9aa5");R(7,7,1,2,"#8a9aa5")}
+ if(id=="toilet"){R(4,1,4,4,"#e8eef2");R(3,5,6,4,"#f4f8fa");R(4,9,4,2,"#cfd8dc");R(4,4,4,1,"#9fb0b8")}
+ if(id=="shower"){R(2,0,8,1,"#8a9aa5");R(5,1,2,2,"#6b7a85");R(3,3,1,1,"#7ec8f0");R(6,4,1,1,"#7ec8f0");R(8,3,1,1,"#7ec8f0");R(5,6,1,1,"#7ec8f0");R(2,8,8,3,"#bfe3f2")}
  if(id=="massage"){R(2,3,8,7,"#5a3a2a");R(3,1,6,5,"#7a4a34");R(2,9,8,2,"#3a2212")}
  if(id=="shelf"){R(2,1,8,10,"#8b5a2b");[2,5,8].forEach(a=>{R(3,a,6,2,"#c0392b");R(5,a,2,2,"#3b7dd8");R(7,a,2,2,"#2e9e5b")});R(2,10,8,1,"#5a3a1a")}
  if(id=="sofa"){R(1,4,10,4,"#3b7dd8");R(1,7,10,3,"#2f64b0");R(0,5,2,5,"#2f64b0");R(10,5,2,5,"#2f64b0")}
@@ -1306,11 +1308,11 @@ function taskModal(){const r=R[me];if(!r)return;const a=faOf(r),ids=taskIds(),tk
 // 人站在沒有被擋住的地板格（第 1 列起），依距離場景中央由近到遠一人一格，不會重疊；點物件 = 按面板上文字比對到的那顆按鈕。
 const ROOMIMG={};
 function roomImg(n){if(!ROOMIMG[n]){const i=new Image();i.onload=()=>{try{drawRoom()}catch(e){}};i.src=window.PIXICON_NAME(n);ROOMIMG[n]=i}return ROOMIMG[n]}
+async function enterFriend(id){try{await rpc("town_visit",{rid:me,pin,op:"enter",target:id});await refresh()}catch(e){toast(e.message)}renderPanel()}
+async function exitFriend(){const r=R[me];if(vin(r)){r.items={...r.items};delete r.items.fv}try{await rpc("town_visit",{rid:me,pin,op:"exit"});await refresh()}catch(e){toast(e.message)}renderPanel()}
 async function enterRoom(pl,quiet){try{await rpc("town_fi",{rid:me,pin,op:"enter",pl});await refresh()}catch(e){if(!quiet)toast(e.message)}renderPanel()}
 async function exitRoom(){leaveRoomLocal();try{await rpc("town_fi",{rid:me,pin,op:"exit"});await refresh()}catch(e){toast(e.message)}renderPanel()}
 function leaveRoomLocal(){const r=R[me];if(vin(r)){r.items={...r.items};delete r.items.fv}if(!fin(r))return false;r.items={...r.items};delete r.items.fi;rpc("town_fi",{rid:me,pin,op:"exit"}).catch(()=>{});return true}
-async function enterFriend(id){try{await rpc("town_visit",{rid:me,pin,op:"enter",target:id});await refresh()}catch(e){toast(e.message)}renderPanel()}
-async function exitFriend(){const r=R[me];if(vin(r)){r.items={...r.items};delete r.items.fv}try{await rpc("town_visit",{rid:me,pin,op:"exit"});await refresh()}catch(e){toast(e.message)}renderPanel()}
 // 室內互動動畫：角色走到對應物件旁（約 0.4 秒）→ 播動畫（約 0.9 秒）→ 走回來（約 0.3 秒），共 1.7 秒；只畫在 12×5 的小畫布，手機不卡
 const ROOM_ACT={latte:"coffee",coffee:"coffee",special:"kitchen",dine:"bar",takeout:"pack",song:"jukebox",treat:"bar",redeem:"cake",spar:"bag",checkin:"locker",workout:"treadmill",spa:"spa",feast:"menu",labor:"work",yard:"yard",visit:"glass",escape:"vent",parole:"gate",bail:"bailDesk"};
 let roomAnim=null;

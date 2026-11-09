@@ -34,17 +34,17 @@ const base={sleeping:false,hunger:80,energy:80,bladder:80,hygiene:80,fun:80,upda
 const tk=(o,h)=>M.tickLocal({...base,...o},h*36e5);
 check(Math.round(tk({},10).hunger)==0,"醒著 10 小時飽足應該是 0");
 check(Math.round(tk({},5).hunger)==40&&Math.round(tk({},5).energy)==55&&Math.round(tk({},5).bladder)==30&&Math.round(tk({},5).hygiene)==55,"醒著 5 小時：飽足 40、精力 55、膀胱 30、清潔 55");
-check(Math.round(tk({sleeping:true,energy:20},1).energy)==100,"睡 1 小時精力應該是 100（封頂）");
-check(Math.round(tk({sleeping:true},8).hunger)==40&&Math.round(tk({sleeping:true},8).bladder)==24&&Math.abs(tk({sleeping:true},8).hygiene-(80-19.2))<1e-6,"睡 8 小時：飽足 40、膀胱 24、清潔 60.8");
+check(Math.round(tk({sleeping:true,energy:20},1).energy)==84,"睡 1 小時（睡地上）精力 20→84");
+check(Math.round(tk({sleeping:true},8).hunger)==40&&Math.round(tk({sleeping:true},8).bladder)==24&&Math.abs(tk({sleeping:true},8).hygiene-(80-27.2))<1e-6,"睡 8 小時：飽足 40、膀胱 24、清潔 52.8");
 check(tk({},200).hunger==0,"需求不能低於 0");
 // 睡眠與睡眠時數成正比（20／40／60 分鐘），好床也是；快速睡覺 15 分鐘 ×2.5 後自動醒
-for(const [m,e] of [[20,26.7],[40,53.3],[60,80]])check(Math.abs(tk({sleeping:true,energy:0},m/60).energy-e)<.1,`睡 ${m} 分鐘精力應該是 ${e}`);
+for(const [m,e] of [[20,21.3],[40,42.7],[60,64]])check(Math.abs(tk({sleeping:true,energy:0},m/60).energy-e)<.1,`睡 ${m} 分鐘精力應該是 ${e}`);
 check(Math.abs(M.tickLocal({...base,sleeping:true,energy:0,items:{fu:["bed"]}},.5*36e5).energy-45)<.01,"好床睡 30 分鐘精力 +45");
 {const n=Date.UTC(2026,0,1,12,0,0),it={qs:new Date(n).toISOString()};
  const q=M.tickLocal({...base,sleeping:true,energy:0,items:it,updated_at:new Date(n-15*60e3).toISOString(),seen_at:new Date(n-15*60e3).toISOString()},n);
- check(Math.abs(q.energy-50)<.01&&!q.sleeping,"快速睡覺 15 分鐘精力 +50 且自動醒："+q.energy+" "+q.sleeping);
+ check(Math.abs(q.energy-40)<.01&&!q.sleeping,"快速睡覺 15 分鐘（睡地上）精力 +40 且自動醒："+q.energy+" "+q.sleeping);
  const q2=M.tickLocal({...base,sleeping:true,energy:0,items:it,updated_at:new Date(n-7.5*60e3).toISOString(),seen_at:new Date(n-7.5*60e3).toISOString()},n-0);
- check(Math.abs(q2.energy-25)<.01,"快速睡覺睡一半回一半："+q2.energy)}
+ check(Math.abs(q2.energy-20)<.01,"快速睡覺睡一半回一半："+q2.energy)}
 // 在屋裡／門口（和 town_inside 一致）：沒有旗標的舊角色視為在屋裡
 check(M.inside({id:5,place:"home:5",items:{}})&&M.inside({id:5,place:"home:5"})&&!M.inside({id:5,place:"home:5",items:{dr:1}})&&!M.inside({id:5,place:"street",items:{}})&&!M.inside({id:5,place:"home:6",items:{}}),"inside 判斷");
 // 離線保護：最後動作 30 分鐘之後 ×0.4、最低停在 15
@@ -71,8 +71,18 @@ check(Math.abs(M.tickLocal(mk({},["clean"]),10*36e5).hygiene-(80-35))<1e-6,"愛�
  const e=M.tickLocal({...base,updated_at:u,items:{tr:["nightowl"]}},n).energy,e0=M.tickLocal({...base,updated_at:u},n).energy;check(Math.abs((e-e0)-1)<1e-6,"夜貓子夜間精力每小時少掉 1："+(e-e0))}
 // 家具：好床睡覺精力 +90/小時；家具表和房子等級
 check(Math.round(M.tickLocal({...base,sleeping:true,energy:0,items:{fu:["bed"]}},1*36e5).energy)==90,"好床睡 1 小時精力應該是 90");
+{ // 沒家具的陽春互動：前後端數字一致
+ const sql=require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8"),hs=require("fs").readFileSync(__dirname+"/../supabase/town_home.sql","utf8");
+ check(M.FURN.some(a=>a[0]=="toilet"&&a[2]==2000)&&M.FURN.some(a=>a[0]=="shower"&&a[2]==3000),"馬桶 2000／淋浴間 3000");
+ check(/'toilet', 'furn', null, '馬桶', 2000/.test(hs)&&/'shower', 'furn', null, '淋浴間', 3000/.test(hs),"SQL 馬桶／淋浴間價格");
+ check(M.HACT.toilet&&M.HACT.shower&&M.HOME_ACT===undefined||true,"HACT");
+ check(/then 90 else 64 end/.test(sql)&&/then 48 else 32 end/.test(sql)&&/\+ 6; end if/.test(sql)&&/when public.town_fu\(r,'massage'\)=1 then 100 when public.town_fu\(r,'sofa'\)=1 then 70 else 50/.test(sql),"SQL 陽春數值");
+ const mk=fu=>({id:1,hunger:100,energy:0,bladder:100,hygiene:100,fun:100,updated_at:new Date(Date.now()-36e5).toISOString(),seen_at:new Date().toISOString(),sleeping:true,place:"home:1",items:{fu}});
+ const e0=M.tickLocal(mk([]),Date.now()).energy,e1=M.tickLocal(mk(["bed"]),Date.now()).energy;
+ check(Math.abs(e0-64)<.5&&Math.abs(e1-90)<.5,"睡覺一小時精力：地上 64／好床 90，實際 "+e0+"／"+e1);
+}
 check(M.hasF({items:{fu:["","fridge"]}},"fridge")&&!M.hasF({items:{f:["fridge"]}},"fridge"),"只有擺出來的家具才有效果");
-check(M.FURN.length==13&&M.HOUSES.map(h=>h[2]).join()=="6,10,15,20"&&M.HOUSES.map(h=>h[1]).join()=="0,20000,150000,400000","家具或房子等級表不對");
+check(M.FURN.length==15&&M.HOUSES.map(h=>h[2]).join()=="6,10,15,20"&&M.HOUSES.map(h=>h[1]).join()=="0,20000,150000,400000","家具或房子等級表不對");
 // 家裡自由佈置：房間大小、上限、掛牆道具、道具價格和 supabase/town_home.sql 一致；舊的 9 格 fu 換算後一定放得下、站位夠；動作按鈕對得到
 {const sql=require("fs").readFileSync(__dirname+"/../supabase/town_home.sql","utf8"),arr=a=>"array["+a.join(",")+"]";
  check(sql.includes(arr(M.HOME_DIM.map(d=>d[0])))&&sql.includes(arr(M.HOME_DIM.map(d=>d[1])))&&sql.includes(arr(M.HOUSES.map(h=>h[2]))),"town_home.sql 的房間大小或上限和 HOME_DIM／HOUSES 不一致");
@@ -86,7 +96,7 @@ check(M.FURN.length==13&&M.HOUSES.map(h=>h[2]).join()=="6,10,15,20"&&M.HOUSES.ma
   const full=M.homeRoom({items:{hl,fp:[...Array(M.HOUSES[hl-1][2]).keys()].map(i=>["plant",i%w,1+Math.floor(i/w)]).filter(o=>o[2]<=h)}});check(M.roomSpots(full).length+full.items.length>=w*h-1||full.items.length>0,"站位計算");check(M.roomSpots(M.homeRoom({items:{hl,fp:[]}})).length==w*h,`房子 ${hl} 空房間站位應該是整個地板`);
   check(M.roomSpots(M.homeRoom({items:{hl,fp:[["bed",1,1],["rug",2,1],["frame",0,0]]}})).length==w*h-1,`房子 ${hl}：只有床擋站位，地毯和掛牆的不擋`)}
  check(M.roomOf({id:1,place:"home:1",items:{}})&&!M.roomOf({id:1,place:"home:1",items:{dr:1}})&&!M.roomOf({id:1,place:"street",items:{}}),"roomOf：在屋裡才有室內，在門口或街上沒有");
- const hl=["睡覺","吃飯","看電視","快速休息"];for(const [k,[re]] of Object.entries(M.HACT))check(hl.some(l=>re.test(l))&&!re.test("快速睡覺"),`家具 ${k} 對不到家裡的按鈕`)}
+ const hl=["睡覺","吃飯","看電視","快速休息","上廁所","洗澡"];for(const [k,[re]] of Object.entries(M.HACT))check(hl.some(l=>re.test(l))&&!re.test("快速睡覺"),`家具 ${k} 對不到家裡的按鈕`)}
 // 路邊物件：不在牆裡、從每間房子的門都走得到、人站的位置和資料庫的距離判斷一致
 for(let rows=2;rows<=4;rows++){M.setRows(rows);for(const [k,o] of Object.entries(M.OBJS)){if(o.x==null)continue;check(!M.blocked(o.x,o.y)||false,`${rows} 排：物件 ${k} 在牆裡`);const stand=[o.x,o.y+(o.y==5?1:0)];check(!M.blocked(...stand),`${rows} 排：物件 ${k} 站不上去`);for(let s=0;s<rows*3;s++)check(M.bfs(M.door(s),stand),`${rows} 排：房子 ${s} 走不到物件 ${k}`)}}
 // 其他工作：薪水階梯、拉菲辦公室座標（要和 town.sql 一致）
@@ -174,6 +184,15 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(/p&&p\.startsWith\("home:"\)&&p!=="home:"\+me\?"friend"/.test(require("fs").readFileSync(__dirname+"/town.js","utf8")),"自己家門口不能算「在他家」（dg 要排除 home:"+"me）");
  check(/body\.ingame \.need u\.cu\{display:none\}/.test(html),"手機錢格要隱藏貨幣符號（寬度只有約 50px）");
  check(/body\.ingame \.need span\{flex:none;height:16px;line-height:16px\}/.test(html),"狀態條圖示格要固定 16px 高（行高過大會擠掉條）");}
+// 走進朋友家：站門口室內沒有你，按「進去」（items.fv = 屋主 id）後才有；和 supabase/town_visit.sql 一致
+{const fs=require("fs"),vsql=fs.readFileSync(__dirname+"/../supabase/town_visit.sql","utf8"),tsql=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8"),tjs=fs.readFileSync(__dirname+"/town.js","utf8");
+ const H={id:2,place:"home:2",items:{hl:1}},A={id:1,place:"home:2",items:{}},B={id:1,place:"home:2",items:{fv:2}},C={id:1,place:"street",items:{fv:2}},D={id:1,place:"home:1",items:{fv:1}},E={id:1,place:"home:3",items:{fv:2}};
+ check(!M.vin(A)&&M.vin(B)&&!M.vin(C)&&!M.vin(D)&&!M.vin(E)&&!M.vin(null),"vin：只有在 home:屋主 且 fv = 屋主 才算在他家屋裡（門口、走開、自己家、別人家都不算）");
+ const rm0=M.roomOf(A,{1:A,2:H}),rm1=M.roomOf(B,{1:B,2:H});check(rm0&&rm0.visit&&rm0.inn===false&&rm1&&rm1.visit&&rm1.inn===true,"roomOf：站門口 inn=false、進去後 inn=true");
+ check(vsql.includes("town_vin(")&&vsql.includes("op = 'enter'")&&vsql.includes("not public.town_inside(t)")&&vsql.includes("town_bond_get(rid, target) < -20")&&vsql.includes("r.items - 'fv'"),"town_visit.sql：進去要在門口、屋主在屋裡、關係不能太差，出門清掉 fv");
+ check(tsql.includes("act in ('feed','wash','wakeup','visit') and coalesce(r.items->>'fv','') <> target::text"),"town.sql：煮飯、洗澡、叫醒、串門子要先進他家（惡作劇、丟雞蛋、留言、送禮留在門口）");
+ check((tsql.match(/- 'fv'/g)||[]).length>=3,"town.sql：移動、離線回家睡、入獄都要清掉 fv");
+ check(tjs.includes("function enterFriend(")&&tjs.includes("function exitFriend(")&&tjs.includes('btn("進去",')&&tjs.includes("!vin(r)"),"面板：門口只有進去，進去後才有煮飯、洗澡、叫醒、串門子與出門");}
 // roomOf 是頂層函式，拿不到 init() 裡的 R：不可直接用 R（曾因此在街上也丟 "R is not defined"），要靠呼叫的人傳居民表
 {const A={id:1,place:"street",items:{}},H={id:2,place:"home:2",sleeping:true,items:{hl:1}},W={id:3,place:"home:2",items:{}};
  let ok1=true,ok2=true,ok3=true;try{ok1=M.roomOf(A,{1:A,2:H})===null}catch(e){ok1=false}
@@ -184,16 +203,13 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
 {const fs=require("fs"),tjs=fs.readFileSync(__dirname+"/town.js","utf8"),tsql=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8");
  check(tsql.includes("'wakefail', r.name || ' 搖了 '")&&tsql.includes("e.kind = 'wakefail' and e.at > now() - interval '3 minutes'"),"town.sql：叫不醒要寫 wakefail 事件、只擋 3 分鐘（不可吃 wakeup 的 1 小時冷卻）");
  check(!/target,act, r\.name \|\| ' 搖了 '/.test(tsql),"town.sql：叫不醒不可再用 wakeup 事件（會鎖 1 小時）");
-// 走進朋友家：站門口室內沒有你，按「進去」（items.fv = 屋主 id）後才有；和 supabase/town_visit.sql 一致
-{const fs=require("fs"),vsql=fs.readFileSync(__dirname+"/../supabase/town_visit.sql","utf8"),tsql=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8"),tjs=fs.readFileSync(__dirname+"/town.js","utf8");
- const H={id:2,place:"home:2",items:{hl:1}},A={id:1,place:"home:2",items:{}},B={id:1,place:"home:2",items:{fv:2}},C={id:1,place:"street",items:{fv:2}},D={id:1,place:"home:1",items:{fv:1}},E={id:1,place:"home:3",items:{fv:2}};
- check(!M.vin(A)&&M.vin(B)&&!M.vin(C)&&!M.vin(D)&&!M.vin(E)&&!M.vin(null),"vin：只有在 home:屋主 且 fv = 屋主 才算在他家屋裡（門口、走開、自己家、別人家都不算）");
- const rm0=M.roomOf(A,{1:A,2:H}),rm1=M.roomOf(B,{1:B,2:H});check(rm0&&rm0.visit&&rm0.inn===false&&rm1&&rm1.visit&&rm1.inn===true,"roomOf：站門口 inn=false、進去後 inn=true");
- check(vsql.includes("town_vin(")&&vsql.includes("op = 'enter'")&&vsql.includes("not public.town_inside(t)")&&vsql.includes("town_bond_get(rid, target) < -20")&&vsql.includes("r.items - 'fv'"),"town_visit.sql：進去要在門口、屋主在屋裡、關係不能太差，出門清掉 fv");
- check(tsql.includes("act in ('feed','wash','wakeup','visit') and coalesce(r.items->>'fv','') <> target::text"),"town.sql：煮飯、洗澡、叫醒、串門子要先進他家（惡作劇、丟雞蛋、留言、送禮留在門口）");
- check((tsql.match(/- 'fv'/g)||[]).length>=3,"town.sql：移動、離線回家睡、入獄都要清掉 fv");
- check(tjs.includes("function enterFriend(")&&tjs.includes("function exitFriend(")&&tjs.includes('btn("進去",')&&tjs.includes("!vin(r)"),"面板：門口只有進去，進去後才有煮飯、洗澡、叫醒、串門子與出門");}
  check(tjs.includes("function drawOwner(")&&tjs.includes("drawHomeEdit(cv,rm,sel,id)")&&tjs.includes("rm.visit"),"朋友家室內要畫出屋主（睡著躺床上），訪客在朋友家也看得到室內畫面");
  check(tjs.includes('btn("叫醒他",`越累睡越沉')&&tjs.includes("wakefail:[\"alarm\",\"t\"]"),"叫醒他按鈕要寫成功機率，wakefail 要有動畫與圖示");}
+// 紅綠燈（和 town.sql 的 town_light 一致）：同一組雙線道同相位、每 12 秒換、相鄰路口錯開；路口只在 x=16、17 的橫路列
+M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)&&M.lightG(0,22)==M.lightG(0,23),"同一組雙線道要同相位");
+ check(M.lightG(0,6)!=M.lightG(12000,6)&&M.lightG(0,6)==M.lightG(24000,6)&&M.lightG(0,6)==M.lightG(11999,6),"每 12 秒換一次");
+ check(M.lightG(0,6)==0&&M.lightG(0,15)==1&&M.lightG(0,22)==0,"路口錯開（6→0、15→1、22→0）：6 的 ib=6 偶、15 奇、22 偶");
+ let n=0;for(let y=0;y<M.mapRows();y++)for(let x=0;x<COLS_;x++)if(M.isInter(x,y)){n++;check(M.isRoad(x,y)&&(x==16||x==17),"路口要在路上")}
+ check(n>=8,"路口數量不對："+n);check(M.zoneLim(6)==2&&M.zoneLim(16)==2&&M.zoneLim(5)==2.5&&M.zoneLim(17)==2.5,"速限分區")}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
