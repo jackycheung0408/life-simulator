@@ -156,7 +156,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
- {id:"u18-inside",date:"11/09",title:"可以走進設施裡面了",items:["咖啡廳、餐廳、健身房：走到門口會自動走進去，裡面有像素小場景","點場景裡的咖啡機、特餐櫃檯、啞鈴等，就是做那一項互動","同在裡面的人看得到彼此；在裡面的人不會站在街上，窗戶會亮燈","按「出門」或走去別處就會離開；其他設施之後陸續開放"]},
+ {id:"u18-inside",date:"11/09",title:"可以走進設施裡面了",items:["咖啡廳、餐廳、健身房：走到門口會自動走進去，裡面有吧台、咖啡機、跑步機等像素佈置","點咖啡機、廚房窗口、沙包、鏡子旁的櫃子等物件，就是做那一項互動，角色會走過去並播動畫","同在裡面的人各站一格不重疊；在裡面的人不會站在街上，窗戶會亮燈","電影院、公園、廣場的互動也有動畫了；按「出門」或走去別處就會離開"]},
  {id:"u17-landing",date:"11/09",title:"首頁更好上手",items:["住過的小鎮：第一顆粉紅按鈕直接「回到小鎮」，一鍵進入","介紹縮短，第一眼就知道是和朋友住同一個小鎮","邀請碼、小鎮代碼打錯，或網路斷掉，會告訴你下一步怎麼做","載入太久會提示網路比較慢，進不去時有「再試一次」","新玩家第一次進來，不會先跳更新通知，新手提示等選完個性再出現"]},
  {id:"u17-buttons",date:"11/09",title:"互動按鈕全部放在面板第一層",items:["設施的特餐、點歌、簽到、釣魚、丟飛盤等，不用再點「更多互動」，直接一顆一顆列出來","在家的快速休息、快速睡覺、睡覺也直接按；整蠱分成「惡作劇」「丟雞蛋」兩顆","不能按的按鈕不再藏起來，會灰掉並寫原因（冷卻剩幾分、要有人在場、集點不夠）","按鈕依用途分組：吃喝、玩樂、社交、工作與任務","同地點有幾個人在，就各有一顆邀請按鈕"]},
  {id:"u16-mobile",date:"11/09",title:"手機畫面更好按",items:["上方工具列的按鈕變大，單手比較好點","狀態列的錢和禮物、零食數量不再蓋到心情格","每日任務等選項按鈕，標題和說明分成上下兩行","選單裡的項目排得更緊，一次看到更多","頁籤和關閉鈕加大，不容易按錯"]},
@@ -190,12 +190,17 @@ function updModal(all){const seen=all?null:upsSeen();let list=all?UPDATES:seen?U
  $("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>${all?"更新紀錄":"小鎮更新了"}</h2><div class="list" style="max-height:60vh;overflow:auto">${updHtml(list)}</div><div class="row"><button id="updok" class="pri">好</button></div>`;
  $("updok").onclick=()=>{$("modal").classList.add("hide");upsMark()};if(!all)upsMark();pxify($("mbody"));return true}
 function updCheck(){if(!me||!$("modal").classList.contains("hide"))return;updModal(false)}
+const RW=12,RH=5,RC=24;
+const ITEM={coffee:["cup","咖啡機",/特調咖啡/,1],cake:["cookie","蛋糕櫃",/集點卡/,1],lamp:["lamp","立燈",null,1],jukebox:["guitar","點歌機",/點歌/,1],job:["case","員工通道",/^打工|^應徵/,0],bar:["plate","吧台",/請客|吃一頓/,1],table:["bench","桌椅",/坐下|起身/,1],plant:["plant","盆栽",null,1],
+ kitchen:["meat","廚房窗口",/今日特餐/,1],menu:["picture","菜單板",/高級套餐/,0],pack:["box","打包櫃檯",/打包/,1],mirror:["picture","鏡子",null,0],locker:["lock","置物櫃",/每日簽到/,0],spa:["drops","溫泉池",/溫泉/,0],treadmill:["walk","跑步機",/^健身/,1],rack:["dumbbell","啞鈴架",/^健身/,1],bag:["fist","拳擊沙包",/對練/,1]};
 const ROOMS={
- cafe:{floor:["#d9b48a","#cfa67a"],wall:"#7a4a24",obj:[[1,0,"cup",/特調咖啡/,"咖啡機"],[3,0,"ticket",/集點卡/,"集點卡"],[5,0,"lamp"],[8,0,"case",/^打工|^應徵/,"打工"],[10,0,"guitar",/點歌/,"點唱機"],[6,0,"plate",/請客/,"吧台"],[3,2,"bench",/坐下|起身/,"座位"],[8,2,"bench",/坐下|起身/,"座位"],[11,3,"plant"]]},
- restaurant:{floor:["#f1e0c6","#e6d0ae"],wall:"#c0392b",obj:[[1,0,"bowl",/今日特餐/,"特餐櫃檯"],[3,0,"box",/打包/,"打包櫃檯"],[5,0,"plate",/高級套餐/,"高級套餐"],[8,0,"case",/^打工|^應徵/,"打工"],[10,0,"lamp"],[3,2,"bench",/坐下|起身/,"座位"],[7,2,"bench",/坐下|起身/,"座位"],[10,2,"bench",/坐下|起身/,"座位"],[11,3,"plant"]]},
- gym:{floor:["#9aa5b8","#8f9aae"],wall:"#2e4057",obj:[[1,0,"dumbbell"],[3,1,"swords",/對練/,"對練場"],[6,0,"note",/每日簽到/,"簽到板"],[8,0,"case",/^打工|^應徵/,"打工"],[10,0,"drops",/溫泉/,"溫泉"],[1,2,"dumbbell"],[10,3,"dumbbell"]]}};
+ cafe:{floor:["#d9b48a","#cfa67a"],wall:"#7a4a24",items:[["coffee",1,0],["cake",3,0],["lamp",5,0],["jukebox",8,0],["job",10,0],["bar",2,1],["table",4,3],["table",8,3],["plant",0,4],["plant",11,4]]},
+ restaurant:{floor:["#f1e0c6","#e6d0ae"],wall:"#c0392b",items:[["kitchen",1,0],["menu",3,0],["lamp",5,0],["lamp",8,0],["job",10,0],["bar",2,1],["pack",4,1],["table",3,3],["table",7,3],["table",10,3],["plant",0,4],["plant",11,4]]},
+ gym:{floor:["#9aa5b8","#8f9aae"],wall:"#2e4057",items:[["mirror",1,0],["mirror",3,0],["locker",6,0],["job",8,0],["spa",10,0],["treadmill",1,2],["treadmill",3,2],["rack",10,2],["bag",6,3],["rack",10,4],["plant",0,4]]}};
+// 站位：沒被擋住的地板格，離場景中央近的先排
+function roomSpots(rm){const blocked=new Set(rm.items.filter(o=>ITEM[o[0]][3]).map(o=>o[1]+","+o[2])),out=[];for(let y=1;y<RH;y++)for(let x=0;x<RW;x++)if(!blocked.has(x+","+y))out.push([x,y]);return out.sort((a,b)=>(Math.abs(a[0]-5.5)+Math.abs(a[1]-3)*2+((a[0]+a[1])%2?3:0)+(a[1]==1?4:0))-(Math.abs(b[0]-5.5)+Math.abs(b[1]-3)*2+((b[0]+b[1])%2?3:0)))}
 const fin=r=>!!r&&!!r.items&&!!ROOMS[r.place]&&r.items.fi===r.place;
-if(typeof module!=="undefined")module.exports={JAIL,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,fin};
+if(typeof module!=="undefined")module.exports={JAIL,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
 if(typeof document!=="undefined")addEventListener("DOMContentLoaded",init);
 
 function init(){
@@ -374,6 +379,7 @@ async function mayorPanel(){let inv="",cta=[],fund=null;try{fund=await rpc("town
 const floaters=[],fxs=[],FXIMG={};
 // 動作對應的動畫：自己的動作在 act() 播；別人（或自己）的社交事件在收到新動態時播
 const ACT_FX={stock:"coins",vbuy:"coins",coffee:"can",movie:"sparkle",workout:"fist",spar:"fight",sneak:"scooter",nap:"zzz",eat:"eat",dine:"eat",snack:"eat",toilet:"toilet",shower:"bubbles",tv:"tv",sleep:"zzz",work:"coins",job:"coins",play:"hearts",browse:"sparkle",buy:"bag",paint:"paint",wake:"sun"};
+const FAC_FX={special:"eat",takeout:"bag",latte:"steam",redeem:"sparkle",treat:"hearts",song:"notes",film:"tv",popcorn:"eat",spar:"fight",checkin:"check",frisbee:"disc",fish:"fishing",picnic:"eat",photo:"flash",photo2:"flash",feast:"eat",spa:"bubbles",trip:"sparkle",sit:"zzz",up:"sparkle"}; // 設施互動的地圖動畫（沒有列的用金錢／閃光）
 const OBJ_FX={dummy:"fight",bench:"zzz",cooler:"bubbles",pwc:"toilet",mailbox:"sparkle",news:"sparkle",claw:"hearts",lottery:"coins",busker:"hearts",pond:"hearts",vend:"can",trash:"sparkle",stall:"eat",well:"coin",swing:"hearts",cat:"hearts"};
 const EV_FX={level:["sparkle","a"],feed:["eat","t"],wash:["bubbles","t"],visit:["hearts","both"],gift:["gift","fly"],note:["msg","fly"],call:["phone","both"],delivery:["scooter","fly"],thank:["hearts","fly"],greet:["clap","mid"],fight:["fight","mid"],egg:["egg","fly"],prank:["fart","t"],makeup:["hearts","mid"],cowork:["coins","both"],promo:["sparkle","a"],wish:["sparkle","a"],feast:["eat","both"],wakeup:["alarm","t"],luck:["sparkle","a"],tier:["hearts","both"],look:["sparkle","a"],meet:["clap","a"],together:["hearts","a"],crash:["crash","a"],joint:["hearts","both"],slash:["fight","mid"],jail:["crash","a"],bail:["coins","a"],visitjail:["hearts","both"],jaillabor:["coins","a"]};
 const spawnFx=(type,a,b)=>{if(!walkers[a])return;fxs.push({type,a,b:b&&walkers[b]?b:null,born:performance.now(),dur:type=="crash"?2000:type=="fight"?1800:type=="scooter"?2200:1500})};
@@ -399,7 +405,7 @@ function feedback(ok,msg){clearWorking();const b=pressed!=null&&$("acts").queryS
  if(b){b.classList.remove("ok","err");void b.offsetWidth;b.classList.add(ok?"ok":"err");setTimeout(()=>b.classList.remove("ok","err"),700)}
  const f=$("fb");if(f&&msg){f.textContent=(ok?"✓ ":"✗ ")+msg;f.className=ok?"good":"bad";pxify(f);clearTimeout(fbTimer);fbTimer=setTimeout(()=>{f.className="hide"},3200)}}
 async function act(a,extra={}){if(busy)return;busy=true;$("acts").classList.add("busy");const b0=tickLocal(R[me],now());try{const st=await rpc("town_act",{rid:me,pin,act:a,...extra});apply(st);
-  if(ACT_FX[a])spawnFx(ACT_FX[a],me);if(a=="buy"){spawnFx("bag",me);toast("已放進背包")}if(a=="obj"&&OBJ_FX[extra.item])spawnFx(OBJ_FX[extra.item],me);
+  if(ACT_FX[a])spawnFx(ACT_FX[a],me);playRoomFx(a);if(a=="buy"){spawnFx("bag",me);toast("已放進背包")}if(a=="obj"&&OBJ_FX[extra.item])spawnFx(OBJ_FX[extra.item],me);
   const b1=tickLocal(R[me],now()),ic={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"€"};let k=0;
   for(const f of ["money",...NEEDS]){const d=Math.round(b1[f]-b0[f]);if(Math.abs(d)>=1&&a!="move")floaters.push({t:f=="money"?`${d>0?"+":"−"}${CUR}${Math.abs(d)}`:`${ic[f]} ${d>0?"+":""}${d}`,good:d>0,born:performance.now()+k++*180})}
   if(a!="move")feedback(true,sumChanges(b0,b1,ic))}
@@ -1017,6 +1023,12 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
     case "crash":{g.fillStyle="rgba(240,240,240,.9)";for(let j=0;j<6;j++){const a2=j*1.05+nowp/90;g.fillRect(ax+Math.cos(a2)*(10+k*40),ay-20+Math.sin(a2)*(8+k*28),6,6)}icon("💥",ax,ay-34-e*6,30);icon("🔧",ax+14,ay-48,18);break}
     case "egg":{if(k<.75){const kk=k/.75,x=ax+(bx-ax)*kk,y=ay+(by-ay)*kk-50-Math.sin(kk*Math.PI)*60;icon("🥚",x,y,22)}else{g.fillStyle="#fff";g.beginPath();g.ellipse(bx,by-40,16,8,0,0,7);g.fill();g.fillStyle="#ffcc33";g.beginPath();g.arc(bx,by-40,6,0,7);g.fill()}break}
     case "fart":{for(let j=0;j<5;j++){g.fillStyle=`rgba(140,200,90,${.6-j*.1})`;g.beginPath();g.arc(ax+Math.sin(j+k*3)*20,ay-k*40-j*6,10+k*14,0,7);g.fill()}icon("💨",ax+16,ay-30,22);break}
+    case "steam":icon("☕",ax,ay-46,22);for(let j=0;j<4;j++){g.fillStyle=`rgba(255,255,255,${.7-.15*j})`;g.fillRect(ax-8+j*5+Math.sin(k*9+j)*3,ay-58-((k*70+j*11)%26),4,4)}break;
+    case "notes":for(let j=0;j<3;j++)icon("🎵",ax+(j-1)*16+Math.sin(k*7+j)*6,ay-44-((k*60+j*14)%36),16);break;
+    case "check":{const u2=(.4+e*.6)*5;g.fillStyle="#63c74d";[[0,2],[1,3],[2,4],[3,3],[4,2],[5,1],[6,0]].forEach(p=>g.fillRect(ax-15+p[0]*u2,ay-58+p[1]*u2,u2,u2));break}
+    case "disc":{const x=f.b?ax+(bx-ax)*k:ax+Math.sin(k*6)*30,y=(f.b?ay+(by-ay)*k:ay)-46-(f.b?Math.sin(k*Math.PI)*30:Math.abs(Math.sin(k*6))*20);g.fillStyle="#fee761";g.beginPath();g.ellipse(x,y,9,3,0,0,7);g.fill();g.fillStyle="#e8b02c";g.fillRect(x-4,y-1,8,2);break}
+    case "fishing":{g.strokeStyle="#bfe6ff";g.lineWidth=2;g.beginPath();g.ellipse(ax+22,ay+4,6+k*14,2+k*4,0,0,7);g.stroke();if(k>.5)icon("🐟",ax+22,ay-14-Math.sin((k-.5)*2*Math.PI)*24,20);break}
+    case "flash":g.fillStyle=`rgba(255,255,255,${k<.3?(.3-k)/.3*.7:0})`;g.fillRect(ax-30,ay-62,60,72);icon("✨",ax+20,ay-50,18);break;
     case "alarm":icon("⏰",ax+Math.sin(nowp/30)*4,ay-55,26);break}
    g.restore()}}
  // 飄字：剛做完的動作讓數值變多少
@@ -1154,7 +1166,7 @@ const taskDone=(r,i)=>{const a=faOf(r),k=a.k||{};return[workToday(r)>=3,(a.n||0)
 const fqOf=(r,p)=>((r.items||{}).fq||{})[p]||0,discOf=n=>n>=15?15:n>=5?10:0,facPrice=(r,p,b)=>Math.floor((b*(100-discOf(fqOf(r,p)))+50)/100);
 const tierOf=n=>n>=15?"熟客（−15%）":n>=5?"常客（−10%）":"";
 const claimable=r=>taskIds().filter((t,i)=>taskDone(r,t)&&!(faOf(r).tk||[]).includes(t)).length;
-async function doFac(act,target,item){try{const j=await rpc("town_fac",{rid:me,pin,act,item:item||null,target:target||null});await refresh();spawnFx(j.m<0?"coins":"sparkle",me);const t=`${j.msg||""} · ${fxText(j)}`;toast(t);feedback(true,t)}catch(e){toast(e.message);feedback(false,e.message)}renderPanel()}
+async function doFac(act,target,item){try{const j=await rpc("town_fac",{rid:me,pin,act,item:item||null,target:target||null});await refresh();spawnFx(FAC_FX[act]||(j.m<0?"coins":"sparkle"),me,target&&walkers[target]?target:null);playRoomFx(act);const t=`${j.msg||""} · ${fxText(j)}`;toast(t);feedback(true,t)}catch(e){toast(e.message);feedback(false,e.message)}renderPanel()}
 async function doJail(a,target){try{const j=await rpc("town_jail",{rid:me,pin,act:a,item:null,target:target||null});await refresh();spawnFx(j.caught?"crash":j.m<0?"coins":a=="slash"?"fight":"sparkle",me);const t=j.msg||"";toast(t);feedback(true,t)}catch(e){toast(e.message);feedback(false,e.message)}renderPanel()}
 function slashModal(t){choiceModal(`真的要砍 ${t.name} 嗎？`,`你們有仇，只有這種人才能動手。他精力 −${JAIL.hurt[0]}、心情 −${JAIL.hurt[1]}，精力歸零會倒地送醫院，醫藥費由你付；你精力 −${JAIL.self[0]}。被巡警抓到（約 ${JAIL.catchP}%，倒地 ${JAIL.catchFallP}%）要關 1～3 小時，好感也會大跌。角色不會死`,[["確定動手","30 分鐘一次",()=>doJail("slash",t.id)],["算了","",()=>{}]])}
 const FACCD={special:20,takeout:10,latte:15,redeem:15,treat:30,song:20,film:60,popcorn:15,spar:20,frisbee:15,fish:10,picnic:30,photo:30,photo2:30,feast:720,trip:1440,spa:600};
@@ -1187,22 +1199,40 @@ function taskModal(){const r=R[me];if(!r)return;const a=faOf(r),ids=taskIds(),tk
  const fq=Object.entries(it.fq||{}).filter(x=>x[1]>=5).map(x=>`${placeName(x[0])} ${tierOf(x[1])}`);
  choiceModal("每日任務板",`每天重新出三個，各 €50，三個都領完再 +€100。今天互動 ${a.n||0} 次 · 咖啡集點卡 ${it.cs||0}/8${it.gy?` · 健身房連續簽到 ${it.gy.d==dayKey()?it.gy.s:(it.gy.d==dayKey(-1)?it.gy.s:0)} 天`:""}${fq.length?` · 常客：${fq.join("、")}`:""}`,rows)}
 // ── 走進設施裡面（咖啡廳、餐廳、健身房；RPC town_fi，資料 items.fi = 地點代號，只有 fi 等於現在的 place 才算在裡面）──
-// 場景 12×4 格、每格 24px；物件 [格x,格y,圖示,對應面板按鈕的文字,名稱]；點物件 = 按面板上對應的那顆按鈕（沒有文字 = 裝飾）
+// 室內格子系統（之後家裡擺家具可共用）：場景 = 12×5 格、每格 24px，第 0 列是牆；物件 = [代號, 格x, 格y]，代號查 ITEM = [圖示, 名稱, 對應面板按鈕的文字（沒有 = 裝飾）, 是否擋住站位]；
+// 人站在沒有被擋住的地板格（第 1 列起），依距離場景中央由近到遠一人一格，不會重疊；點物件 = 按面板上文字比對到的那顆按鈕。
 const ROOMIMG={};
 function roomImg(n){if(!ROOMIMG[n]){const i=new Image();i.onload=()=>{try{drawRoom()}catch(e){}};i.src=window.PIXICON_NAME(n);ROOMIMG[n]=i}return ROOMIMG[n]}
 async function enterRoom(pl,quiet){try{await rpc("town_fi",{rid:me,pin,op:"enter",pl});await refresh()}catch(e){if(!quiet)toast(e.message)}renderPanel()}
 async function exitRoom(){leaveRoomLocal();try{await rpc("town_fi",{rid:me,pin,op:"exit"});await refresh()}catch(e){toast(e.message)}renderPanel()}
 function leaveRoomLocal(){const r=R[me];if(!fin(r))return false;r.items={...r.items};delete r.items.fi;rpc("town_fi",{rid:me,pin,op:"exit"}).catch(()=>{});return true}
+// 室內互動動畫：角色走到對應物件旁（約 0.4 秒）→ 播動畫（約 0.9 秒）→ 走回來（約 0.3 秒），共 1.7 秒；只畫在 12×5 的小畫布，手機不卡
+const ROOM_ACT={latte:"coffee",coffee:"coffee",special:"kitchen",dine:"bar",takeout:"pack",song:"jukebox",treat:"bar",redeem:"cake",spar:"bag",checkin:"locker",workout:"treadmill",spa:"spa",feast:"menu"};
+let roomAnim=null;
+function playRoomFx(a){const r=R[me],rm=r&&ROOMS[r.place],code=ROOM_ACT[a];if(!rm||!fin(r)||!code)return;const it=rm.items.find(o=>o[0]==code);if(!it)return;roomAnim={code,it,born:performance.now(),dur:1700,age:0};loopRoom()}
+function loopRoom(){if(!roomAnim)return;roomAnim.age=(performance.now()-roomAnim.born)/roomAnim.dur;drawRoom();if(roomAnim.age<1)requestAnimationFrame(loopRoom);else{roomAnim=null;drawRoom()}}
+function roomFxDraw(c){const A=roomAnim,C=RC,k=Math.max(0,Math.min(1,(A.age-.25)/.57)),ox=(A.it[1]+.5)*C,oy=(A.it[2]+.5)*C,px=ox,py=Math.min(RH-1,A.it[2]+1)*C+2;if(A.age<.25||A.age>.82)return;
+ const P=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(Math.round(x),Math.round(y),w,h)},im=(n,x,y,z)=>{const i=roomImg(n);if(i.complete&&i.naturalWidth)c.drawImage(i,Math.round(x-z/2),Math.round(y-z/2),z,z)};
+ switch(A.code){
+  case "coffee":for(let j=0;j<4;j++)P(ox-8+j*5+Math.sin(k*9+j)*2,oy-8-((k*60+j*9)%18),3,3,`rgba(255,255,255,${.85-j*.12})`);break;
+  case "jukebox":for(let j=0;j<3;j++){const x=ox+(j-1)*9+Math.sin(k*8+j)*3,y=oy-6-((k*50+j*12)%26);P(x,y,4,3,"#fee761");P(x+3,y-7,1,8,"#fee761")}break;
+  case "kitchen":case "bar":case "pack":case "menu":im("plate",px,py-32-Math.abs(Math.sin(k*9))*4,14);for(let j=0;j<3;j++)P(px-8+j*7,py-22+((k*50+j*8)%12),2,2,"#f5e6b8");break;
+  case "cake":for(let j=0;j<5;j++){const a2=j*1.25+k*5;P(ox+Math.cos(a2)*10,oy+Math.sin(a2)*8,3,3,"#fee761")}break;
+  case "bag":im("fist",ox+Math.sin(k*22)*7,oy,18);if(Math.sin(k*22)>.8)for(let j=0;j<3;j++)P(ox-10+j*10,oy-10,2,2,"#fff");break;
+  case "treadmill":for(let j=0;j<5;j++)P(px-12+((j*6+k*90)%30),py+2,4,2,"#1b1b2f");break;
+  case "rack":im("dumbbell",px,py-34-Math.abs(Math.sin(k*10))*9,18);break;
+  case "locker":{const u2=(.4+Math.sin(Math.min(1,k*2)*1.57)*.6)*3.6;[[0,2],[1,3],[2,4],[3,3],[4,2],[5,1],[6,0]].forEach(p=>P(ox-12+p[0]*u2,oy-16+p[1]*u2,u2,u2,"#63c74d"));break}
+  case "spa":c.strokeStyle="#bfe6ff";c.lineWidth=1;for(let j=0;j<5;j++){c.beginPath();c.arc(ox+Math.sin(j*2.1+k*6)*8,oy-4-((k*40+j*9)%20),2+j%2,0,7);c.stroke()}break}}
 function drawRoom(){const cv=$("room");if(!cv)return;const r=R[me],rm=r&&ROOMS[r.place];
  const show=!!rm&&fin(r)&&!r.sleeping&&!(walkers[me]&&walkers[me].path.length);cv.classList.toggle("hide",!show);if(!show)return;
- const c=cv.getContext("2d"),C=24;c.imageSmoothingEnabled=false;c.clearRect(0,0,288,96);
- c.fillStyle=rm.wall;c.fillRect(0,0,288,C);for(let y=1;y<4;y++)for(let x=0;x<12;x++){c.fillStyle=rm.floor[(x+y)%2];c.fillRect(x*C,y*C,C,C)}
- c.fillStyle="rgba(0,0,0,.25)";c.fillRect(0,C-3,288,3);
- for(const o of rm.obj){const im=roomImg(o[2]);if(im.complete&&im.naturalWidth)c.drawImage(im,o[0]*C,o[1]*C,C,C)}
- const here=Object.values(R).filter(o=>o.place==r.place&&fin(o)&&!o.sleeping&&!jailed(o)&&!(walkers[o.id]&&walkers[o.id].path.length)).sort((a,b)=>(b.id==me)-(a.id==me)),slots=[5.5,7.5,3.5,9.5,1.5,6.5,4.5,8.5];
- here.slice(0,8).forEach((o,i)=>{const x=slots[i]*C,y=3*C+2;drawChar(c,x,y,1.05,o.look,{},0);c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.strokeText(o.name.slice(0,4),x,y-30);c.fillStyle=o.id==me?"#fee761":"#fff";c.fillText(o.name.slice(0,4),x,y-30)})}
-{const cv=typeof document!=="undefined"&&document.getElementById("room");if(cv)cv.addEventListener("click",ev=>{const r=R[me],rm=r&&ROOMS[r.place];if(!rm||!fin(r))return;const b=cv.getBoundingClientRect(),cx=Math.floor((ev.clientX-b.left)/b.width*12),cy=Math.floor((ev.clientY-b.top)/b.height*4),o=rm.obj.find(o=>o[0]==cx&&o[1]==cy);if(!o||!o[3])return;
- const i=panelFns.findIndex(f=>o[3].test(f.label)),el=i<0?null:$("acts").querySelector(`button[data-i="${i}"]`);if(el)el.click();else toast(`${o[4]}現在不能用`)})}
+ const c=cv.getContext("2d"),C=RC;c.imageSmoothingEnabled=false;c.clearRect(0,0,RW*C,RH*C);
+ c.fillStyle=rm.wall;c.fillRect(0,0,RW*C,C);for(let y=1;y<RH;y++)for(let x=0;x<RW;x++){c.fillStyle=rm.floor[(x+y)%2];c.fillRect(x*C,y*C,C,C)}
+ c.fillStyle="rgba(0,0,0,.25)";c.fillRect(0,C-3,RW*C,3);
+ for(const o of rm.items){const im=roomImg(ITEM[o[0]][0]);if(im.complete&&im.naturalWidth)c.drawImage(im,o[1]*C,o[2]*C,C,C)}
+ const here=Object.values(R).filter(o=>o.place==r.place&&fin(o)&&!o.sleeping&&!jailed(o)&&!(walkers[o.id]&&walkers[o.id].path.length)).sort((a,b)=>(b.id==me)-(a.id==me)),spots=roomSpots(rm);
+ here.slice(0,spots.length).forEach((o,i)=>{let x=(spots[i][0]+.5)*C,y=spots[i][1]*C+2,mv=false;if(o.id==me&&roomAnim&&roomAnim.age<1){const A=roomAnim,tx=(A.it[1]+.5)*C,ty=Math.min(RH-1,A.it[2]+1)*C+2,kk=A.age<.25?A.age/.25:A.age>.82?(1-A.age)/.18:1;mv=kk<1;x+=(tx-x)*kk;y+=(ty-y)*kk;if(A.code=="treadmill"&&kk==1)y-=Math.abs(Math.sin(A.age*40))*2}drawChar(c,x,y,1.05,o.look,{moving:mv},Math.floor(performance.now()/90));c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.strokeText(o.name.slice(0,4),x,Math.max(11,y-30));c.fillStyle=o.id==me?"#fee761":"#fff";c.fillText(o.name.slice(0,4),x,Math.max(11,y-30))});if(roomAnim&&roomAnim.age<1)roomFxDraw(c)}
+{const cv=typeof document!=="undefined"&&document.getElementById("room");if(cv)cv.addEventListener("click",ev=>{const r=R[me],rm=r&&ROOMS[r.place];if(!rm||!fin(r))return;const b=cv.getBoundingClientRect(),cx=Math.floor((ev.clientX-b.left)/b.width*RW),cy=Math.floor((ev.clientY-b.top)/b.height*RH),o=rm.items.find(o=>o[1]==cx&&o[2]==cy);if(!o)return;const d=ITEM[o[0]];if(!d[2]){toast(d[1]);return}
+ const i=panelFns.findIndex(f=>d[2].test(f.label)),el=i<0?null:$("acts").querySelector(`button[data-i="${i}"]`);if(el)el.click();else toast(`${d[1]}現在不能用`)})}
 const togetherAt=p=>PEV[p]&&Object.values(R).filter(o=>o.place==p&&!o.sleeping).length>=2;
 const TOGETHER_LINES=["一起真開心","嘿嘿，有伴真好","這裡好熱鬧","要不要一起做點什麼？"];
 // 邀請一起做：按鈕在設施面板；收到邀請時彈窗，1 分鐘內可接受
