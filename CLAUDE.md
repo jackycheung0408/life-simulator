@@ -34,6 +34,10 @@
 - 推播：`supabase/functions/town-push`（Verify JWT 要保持關閉）＋ `supabase/town_push.sql`。function 內的消耗速率、離線保護要和 `town_tick` 同步；改了要重新部署：`supabase functions deploy town-push --project-ref gerqdagicybtyilihvvm --no-verify-jwt`（需要 CLI 登入；自動模式會擋，要使用者自己跑）。
 - 登入：免密碼，每台裝置一把金鑰（只存雜湊在 `town_devices`），新裝置用邀請碼。
 
+## 更新通知（每次改版必做）
+- **每次改版（玩家看得到的改動）都要在 `town/town.js` 的 `UPDATES` 最前面加一則**：`{id, date, title, items:[3～6 條短句]}`，id 不可重複，繁體中文。`node town/test.js` 會檢查。
+- 玩家上線時彈「小鎮更新了」：已看過的 id 存在瀏覽器 localStorage（`town_ups_<角色id>`），沒有紀錄的舊玩家只彈最新一則，之後最多一次彈 3 則；選單「更新紀錄」可看全部。不需要 SQL。
+
 ## 加一個新設施的清單（全都要改）
 1. `town.js`：`PLACES`（座標 r、door、block:1）、`HOURS`、`FEATS`（讓鎮長能開關）、面板按鈕、`buildMap` 的 `bld(...)` 與 `sign(...)`、`ACT_FX`。
 2. `town.sql`：`town_place_name`、`town_closed`（已取消營業時間，保留函式）、`town_feature`（對應開關）、`town_act` 的 move 白名單與位置上限（`px >`）、動作本身（冷卻存在 `items.cd`）、`town_features` 的白名單。

@@ -147,7 +147,26 @@ const PEV={
  carshop:[["業務請你試乘","要不要出去繞一圈","試乘","七成開心心情 +10；否則 −6、精力 −4","看看就好","心情 +2"],["業務推銷","遞來一疊型錄","聽完簡報","精力 −3 · 心情 +3 · 好感 +1","婉拒","心情 −1"],["洗車特惠","今天只要 €100","洗一台","€100 · 心情 +8","不洗","沒事"]],
  slaughter:[["守衛在打瞌睡","大門半開著","偷偷靠近看","五成好奇心情 +10；失敗 −10、精力 −6","離開","沒事"],["屠夫給試吃","一根剛做好的香腸","吃一口","七成好吃心情 +8；否則 −8","婉拒","沒事"],["門口有隻野貓","瘦瘦的看著你","餵一點","€30 · 心情 +8","趕走","心情 −2"]]};
 const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶",cinema:"看電影",gym:"互相打氣練一組",park:"散步",plaza:"看街頭表演",office:"趕進度",arena:"看比賽",stock:"研究股票",rafi:"一起摸魚",carshop:"看車",slaughter:"探險"};
-if(typeof module!=="undefined")module.exports={PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft};
+
+// 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
+const UPDATES=[
+ {id:"u12-levels",date:"11/09",title:"活躍天數等級",items:["每天上線有動作就算活躍一天，累積升級","共 5 級：新居民到小鎮元老","等級越高：打工冷卻越短、背包越大、房租折扣越多","Lv2 起每天第一次上線有登入小禮","斷了不會掉級，只是連續天數重算","到「我的人生」看進度"]},
+ {id:"u11-workcd",date:"11/09",title:"打工改成固定薪水＋冷卻",items:["打工薪水不再遞減，每次都拿全額","所有打工共用冷卻，預設 10 分鐘","精力是上限：打工會吃掉精力","房租水電調整：小屋 400、公寓 800、獨棟 1800、豪宅 4000"]},
+ {id:"u10-social",date:"11/08",title:"設施小事件與邀請一起做",items:["在設施裡待著，偶爾跳出小事件，選一個做法","同地點有人，選事件會有「一起」加成","設施面板可以邀請朋友一起做，對方接受兩人都加成","每人每天加成有上限，不能互刷"]},
+ {id:"u09-traffic",date:"11/07",title:"交通：車、駕照、罰單、事故",items:["車行可買腳踏車、機車、汽車","機車汽車要考駕照，無照被抓會罰款","紅綠燈、速限、斑馬線都有，可選守規矩或衝","可能發生事故，有強制險與任意險","車會磨損，可修理或賣掉"]},
+ {id:"u08-open",date:"11/05",title:"設施全天營業",items:["所有設施不再有營業時間，隨時可以去","鎮長仍可關閉設施"]},
+ {id:"u07-bond",date:"11/05",title:"好感與隨機相遇",items:["好感加減數字重新調整，每對朋友每天有上限","同地點做事時，可能隨機遇到事件","和好、扁人、冷卻時間都整理過","按建議的下一步會自動走過去並執行"]}
+];
+const UPS_KEY=()=>"town_ups_"+me;
+function upsSeen(){try{return JSON.parse(localStorage.getItem(UPS_KEY())||"null")}catch(e){return null}}
+function upsMark(){try{localStorage.setItem(UPS_KEY(),JSON.stringify(UPDATES.map(u=>u.id)))}catch(e){}}
+function updHtml(list){return list.map(u=>`<h3>${esc(u.title)} <small class="mut">${esc(u.date)}</small></h3><ul style="margin:4px 0 8px 16px;padding:0">${u.items.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>`).join("")}
+function updModal(all){const seen=all?null:upsSeen();let list=all?UPDATES:seen?UPDATES.filter(u=>!seen.includes(u.id)):UPDATES.slice(0,1);
+ if(!list.length)return false;if(list.length>3&&!all)list=list.slice(0,3);
+ $("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>${all?"更新紀錄":"小鎮更新了"}</h2><div class="list" style="max-height:60vh;overflow:auto">${updHtml(list)}</div><div class="row"><button id="updok" class="pri">好</button></div>`;
+ $("updok").onclick=()=>{$("modal").classList.add("hide");upsMark()};if(!all)upsMark();pxify($("mbody"));return true}
+function updCheck(){if(!me||!$("modal").classList.contains("hide"))return;updModal(false)}
+if(typeof module!=="undefined")module.exports={UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft};
 if(typeof document!=="undefined")addEventListener("DOMContentLoaded",init);
 
 function init(){
@@ -287,7 +306,7 @@ function lookPicker(el,look,cb,items){look=normLook(look);const owned=new Set(((
   miniPerson(el.querySelector("canvas"),look);
   el.querySelectorAll(".sw[data-k]").forEach(b=>b.onclick=()=>{look={...look,[b.dataset.k]:b.dataset.v};cb(look);draw()});
   el.querySelectorAll(".sw[data-t]").forEach(b=>b.onclick=()=>{look={...look,[b.dataset.t]:!look[b.dataset.t]};cb(look);draw()})};cb(look);draw()}
-async function enter(){document.body.classList.add("ingame");$("menuBtn").classList.remove("hide");await refresh();setTimeout(()=>{const r=R[me];if(r&&$("modal").classList.contains("hide")){if(!r.items||r.items.tr===undefined)traitModal();else if(!r.items.wish)wishModal()}},1500);showTips();refreshBell().catch(()=>{});autoPush().catch(()=>{});$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
+async function enter(){document.body.classList.add("ingame");$("menuBtn").classList.remove("hide");await refresh();setTimeout(()=>{const r=R[me];if(r&&$("modal").classList.contains("hide")){if(!r.items||r.items.tr===undefined)traitModal();else if(!r.items.wish)wishModal()}},1500);setTimeout(()=>{try{updCheck()}catch(e){}},2600);showTips();refreshBell().catch(()=>{});autoPush().catch(()=>{});$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
  const w=walkers[me];cam.x=w.x*T;cam.y=w.y*T;resize();$("mayor").classList.toggle("hide",!R[me].mayor);
  const ent=mine().find(x=>x.tid==TID);if(ent&&ent.invite){shareModal(ent.invite,true);delete ent.invite;saveMine(ent);return}
  const mineEv=(S.events||[]).filter(e=>e.target==me&&(!lastSeen||e.at>lastSeen));
@@ -1006,7 +1025,7 @@ $("menuBtn").onclick=()=>{const r=R[me];if(r){$("bagN").textContent=bagCount(r)?
 $("menuBack").onclick=closeMenu;$("menuClose").onclick=closeMenu;
 document.querySelectorAll("[data-go-tab]").forEach(b=>b.onclick=()=>{const t=b.dataset.goTab;document.querySelector(`[data-tab=${t}]`).click();if(isMob())document.body.classList.add("social");else $("social").scrollIntoView({behavior:"smooth"})});
 $("feedBtn").onclick=()=>{document.body.classList.add("social");markSeen()};$("socialClose").onclick=()=>document.body.classList.remove("social");$("menu").addEventListener("click",e=>{if(e.target.closest("button"))closeMenu()});
-$("life").onclick=lifeModal;$("bagBtn").onclick=()=>{closeMenu();bagModal()};
+$("life").onclick=lifeModal;$("updBtn").onclick=()=>{closeMenu();updModal(true)};$("bagBtn").onclick=()=>{closeMenu();bagModal()};
 $("relook").onclick=()=>{let look=normLook(R[me].look);$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>換造型</h2><div id="lk2"></div><div class="row"><button id="mc">取消</button><button class="pri" id="ms">儲存</button></div>`;
  lookPicker($("lk2"),look,l=>look=l,R[me].items||{});$("mc").onclick=()=>$("modal").classList.add("hide");$("ms").onclick=async()=>{try{await rpc("town_login",{rid:me,pin,new_look:look});mapKey="";await refresh();$("modal").classList.add("hide");toast("換好了")}catch(e){toast(e.message)}}};
 $("report").onclick=report;

@@ -80,5 +80,6 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  // 每個賭的選項期望值要略負（和 SQL 同一份表）
  const tbl=JSON.parse(sql.match(/'(\{\s*"restaurant".*?\})'::jsonb/s)[1]);
  for(const [p,evs] of Object.entries(tbl))evs.forEach((e,i)=>e.forEach((o,j)=>{const ev=(o[4]*o[2]+(100-o[4])*o[7])/100;check(ev<=0,`${p} 事件 ${i} 選項 ${j} 金錢期望值 ${ev} 要 ≤ 0`);check(o.length==9,`${p}${i}${j} 長度`)}))}
+{const U=M.UPDATES,ids=new Set();check(U&&U.length>0,"UPDATES 要有內容");U.forEach(u=>{check(!ids.has(u.id),"UPDATES id 重複 "+u.id);ids.add(u.id);check(u.items.length>=3&&u.items.length<=6,"UPDATES "+u.id+" 要 3～6 條")})}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
