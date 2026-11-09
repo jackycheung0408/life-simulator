@@ -174,7 +174,7 @@ begin
 
   fa := jsonb_set(fa, '{n}', to_jsonb(coalesce((fa->>'n')::int,0) + 1));
   if not (fa->'pl' @> to_jsonb(pl)) then fa := jsonb_set(fa, '{pl}', (fa->'pl') || to_jsonb(pl)); end if;
-  fa := jsonb_set(fa, '{k,' || fk || '}', 'true'::jsonb);
+  fa := jsonb_set(fa, ('{k,' || fk || '}')::text[], 'true'::jsonb);
   r.items := jsonb_set(r.items, '{fa}', fa);
   r.items := jsonb_set(r.items, '{fq}', coalesce(r.items->'fq','{}'::jsonb) || jsonb_build_object(pl, fqn + 1));
   if cdm > 0 then r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object(ckey, now())); end if;
