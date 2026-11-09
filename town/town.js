@@ -59,7 +59,7 @@ const slotAt=(x,y)=>{for(let s=0;s<NR*3;s++){const [hx,hy]=homeXY(s);if(inRect(x
 function blocked(x,y){if(x<0||y<0||x>=COLS||y>=mapRows())return true;if(inRect(x,y,FOUNTAIN))return true;if(slotAt(x,y)>=0)return true;
  for(const k in PLACES)if(PLACES[k].block&&isOn(k)&&inRect(x,y,PLACES[k].r))return true;return false}
 // ── 交通工具（價格、速度、油錢要和 town.sql 的 vbuy／move 一致）：[名稱, 價格, 速度倍率, 每格油錢, 圖示] ──
-const VEH={bike:["腳踏車",3000,1.5,0,"🚲"],moto:["機車",30000,2.5,.4,"🏍️"],car:["汽車",120000,3,1,"🚗"]};
+const VEH={bike:["腳踏車",3000,1.5,0,"🚲"],moto:["機車",30000,2.5,.4,"🏍️"],car:["汽車",90000,3,1,"🚗"]};
 const vehOwn=r=>{const v=(r&&r.items&&r.items.veh)||{};return (v.own||[]).filter(k=>VEH[k])};
 const vehOf=r=>{const v=r&&r.items&&r.items.veh;return v&&v.k&&VEH[v.k]&&!inside(r)&&!fin(r)?v.k:null};
 // 道路：人行道在路邊、斑馬線橫跨馬路；行人走馬路要繞去斑馬線（路上一格成本 3，斑馬線 1），騎車開車反過來路上最快
@@ -123,7 +123,7 @@ function placeAt(x,y){const pp=POOPS.find(q=>q.x==x&&q.y==y);if(pp){const c=[[x,
 const NEEDS=["hunger","energy","bladder","hygiene","fun"];
 const NEED_INFO={hunger:["🍚","飽足"],energy:["⚡","精力"],bladder:["🚽","膀胱"],hygiene:["🛁","清潔"],fun:["🎉","心情"]};
 // 個性特質（items.tr）與心情（由需求算，規則要和 town.sql 的 town_mood／town_pay 一致）
-const FURN=[["bed","好床",5000,"睡覺精力每小時 +90"],["fridge","冰箱",8000,"在家吃飯 €30、飽足 +48"],["massage","按摩椅",9000,"快速休息精力 +100"],["shelf","書櫃",4000,"之後技能用，先佔位"],["sofa","沙發",6000,"看電視心情 +22"],["tvcab","電視櫃",5000,"看電視 10 分鐘一次"],["rug","地毯",1500,"裝飾"],["plant","盆栽",800,"裝飾"],["frame","相框",300,"掛在牆上，裝飾"],["painting","掛畫",900,"掛在牆上，裝飾"],["desklamp","檯燈",600,"裝飾"],["toy","玩具",400,"裝飾"],["books","書堆",500,"裝飾"]];
+const FURN=[["bed","好床",3500,"睡覺精力每小時 +90"],["fridge","冰箱",4500,"在家吃飯 €30、飽足 +48"],["massage","按摩椅",6000,"快速休息精力 +100"],["shelf","書櫃",2500,"之後技能用，先佔位"],["sofa","沙發",4000,"看電視心情 +22"],["tvcab","電視櫃",3000,"看電視 10 分鐘一次"],["rug","地毯",1000,"裝飾"],["plant","盆栽",500,"裝飾"],["frame","相框",300,"掛在牆上，裝飾"],["painting","掛畫",900,"掛在牆上，裝飾"],["desklamp","檯燈",600,"裝飾"],["toy","玩具",400,"裝飾"],["books","書堆",500,"裝飾"]];
 const HOUSES=[["小屋",0,6],["公寓",20000,10],["獨棟",150000,15],["豪宅",400000,20]];// 名稱、升級價、可擺家具與道具件數（和 town_home.sql 的 town_home_cap 一致）
 const HOME_DIM=[[6,3],[8,3],[9,4],[10,4]],WALLF=["frame","painting"],FLAT=["rug","toy","books"];// 房間寬×地板列數（另有第 0 列牆）；掛牆的道具；躺在地上、不擋人站的
 const HACT={bed:[/^睡覺/,"好床"],fridge:[/^吃飯/,"冰箱"],sofa:[/^看電視/,"沙發"],tvcab:[/^看電視/,"電視櫃"],massage:[/^快速休息/,"按摩椅"]};
@@ -174,6 +174,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u25-prices",date:"11/09",title:"物價調整",items:["房租：獨棟每天 1500、豪宅每天 3000（變便宜）","家具全面降價，例如好床 3500、冰箱 4500","汽車降到 90000","已經買過的不退款，沒有人少錢"]},
   {id:"u24-freewalk",date:"11/09",title:"可以隨便走了",items:["走路不再硬繞人行道和斑馬線，可以直接穿過草地、公園和馬路","會繞開房子和建築，路線自動變短","騎腳踏車、機車、汽車還是走馬路最快"]},
   {id:"u23-route",date:"11/09",title:"走路會先畫出路線",items:["點地圖、設施或朋友開始走，會用小方塊畫出要走的路","終點有閃動的黃框，走過的路會慢慢消失","走不到的地方會說路被擋住了"]},
   {id:"u22-autoupdate",date:"11/09",title:"小鎮有新版會自己通知",items:["從主畫面打開也不用手動重新整理了","有新版時上面會出現「小鎮有新版本」，按「更新」就換成新的","你在走路或開視窗時不會被打斷，等你有空再顯示"]},
@@ -558,7 +559,7 @@ const alN=r=>((r.items&&r.items.al)||{}).n||0;
 const lvOf=n=>{let l=0;AL.forEach((a,i)=>{if(n>=a[0])l=i});return l};// 0..4
 const alOf=r=>AL[lvOf(alN(r))];
 const wkLeft=r=>Math.max(0,Date.parse((r.items.cd||{}).wk||0)+alOf(r)[2]*6e4-now());
-const taxOf=m=>Math.max(0,Math.floor((m-1e5)*0.005));const RENT=[400,800,1800,4000];const rentOf=r=>{const b=RENT[Math.min(3,Math.max(0,((r.items&&r.items.hl)||1)-1))];return b-Math.floor(b*alOf(r)[4]/100)};
+const taxOf=m=>Math.max(0,Math.floor((m-1e5)*0.005));const RENT=[400,800,1500,3000];const rentOf=r=>{const b=RENT[Math.min(3,Math.max(0,((r.items&&r.items.hl)||1)-1))];return b-Math.floor(b*alOf(r)[4]/100)};
 // 其他工作（和 town.sql 的 town_pjob_* 一致）：[名稱, 地點, 底薪, [精力,飽足,心情,清潔], SQL 的 act 營業鍵]；熟練 15 次 ×1.15、40 次 ×1.3；拉菲底薪 320／450／650，要先升到「員工」
 const pjN=(r,k)=>((r.items&&r.items.jw)||{})[k]||0;
 const pjPay=(k,r)=>Math.floor(payOf(pjWage(k,pjN(r,k)),r)*workPct(workToday(r))/100);

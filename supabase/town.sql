@@ -67,7 +67,7 @@ insert into public.town_shop(id,kind,slot,name,price,unlock) values
  ('suit','wear','top','西裝',4500,null),('jersey','wear','top','球衣',1800,null),('dress','wear','top','洋裝',2400,null),('couple','wear','top','情侶 T',0,'couple'),
  ('crown','wear','acc','皇冠',12000,null),('pigears','wear','acc','小豬耳朵',800,null),('headphones','wear','acc','耳機',3000,null),('scarf','wear','acc','圍巾',900,null),('bandage','wear','acc','繃帶頭',0,'bandage'),
  ('flowers','deco',null,'花圃',600,null),('mailbox','deco',null,'信箱',500,null),('lamp','deco',null,'路燈',1500,null),('bench','deco',null,'長椅',2000,null),('tree','deco',null,'小樹',1200,null),('pigstatue','deco',null,'小豬雕像',8000,null),
- ('bed','furn',null,'好床',5000,null),('fridge','furn',null,'冰箱',8000,null),('massage','furn',null,'按摩椅',9000,null),('shelf','furn',null,'書櫃',4000,null),('sofa','furn',null,'沙發',6000,null),('tvcab','furn',null,'電視櫃',5000,null),('rug','furn',null,'地毯',1500,null),('plant','furn',null,'盆栽',800,null)
+ ('bed','furn',null,'好床',3500,null),('fridge','furn',null,'冰箱',4500,null),('massage','furn',null,'按摩椅',6000,null),('shelf','furn',null,'書櫃',2500,null),('sofa','furn',null,'沙發',4000,null),('tvcab','furn',null,'電視櫃',3000,null),('rug','furn',null,'地毯',1000,null),('plant','furn',null,'盆栽',500,null)
 on conflict (id) do update set kind=excluded.kind, slot=excluded.slot, name=excluded.name, price=excluded.price, unlock=excluded.unlock;
 alter table public.town_shop enable row level security;
 revoke all on public.town_shop from anon, authenticated;
@@ -769,7 +769,7 @@ end $$;
 revoke all on function public.town_wk_check(public.town_residents), public.town_wk_set(public.town_residents) from public, anon, authenticated;
 -- 每日生活費（房租＋水電）：每個台灣日第一次上線扣一次，最多扣到 0，離線的日子不補扣
 create or replace function public.town_rent_amt(lv int) returns int language sql immutable as $$
-  select (array[400,800,1800,4000])[least(4, greatest(1, lv))]
+  select (array[400,800,1500,3000])[least(4, greatest(1, lv))]
 $$;
 -- 舊版股市留下的待入帳款（items.st.pend）；新版賣股馬上拿錢，這個函式只是保險
 create or replace function public.town_stock_settle(r public.town_residents) returns public.town_residents language plpgsql as $$
@@ -909,7 +909,7 @@ revoke all on function public.town_road_row(int), public.town_is_road(int,int), 
 -- items.veh.w = {車種:耗損 0~100}；veh.lk = 全部車輛暫停到（小車禍）；veh.rp = {車種:送修到}（嚴重事故）
 -- items.ins = {moto:{c:強制險到期, f:任意險到期}, car:{...}}；items.ac = {n:事故次數}；items.db = {a:欠款}；items.hosp = 1 住院中（醒來不再收固定 €1500）
 create or replace function public.town_vprice(k text) returns int language sql immutable as $$
-  select case k when 'bike' then 3000 when 'moto' then 30000 when 'car' then 120000 else 0 end
+  select case k when 'bike' then 3000 when 'moto' then 30000 when 'car' then 90000 else 0 end
 $$;
 create or replace function public.town_wear(r public.town_residents, k text) returns numeric language sql immutable as $$
   select coalesce((r.items->'veh'->'w'->>k)::numeric, 0)
@@ -1232,7 +1232,7 @@ begin
     r := public.town_furn(r, item);
   elsif act = 'vbuy' then
     if r.place <> 'carshop' then raise exception '要在車行才能買'; end if;
-    n := case item when 'bike' then 3000 when 'moto' then 30000 when 'car' then 120000 else null end;
+    n := case item when 'bike' then 3000 when 'moto' then 30000 when 'car' then 90000 else null end;
     if n is null then raise exception '車行沒有賣這個'; end if;
     if coalesce(r.items->'veh'->'own','[]'::jsonb) ? item then raise exception '你已經有了'; end if;
     if r.money < n then raise exception '錢不夠，去公司打工吧'; end if;
