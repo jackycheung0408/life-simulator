@@ -71,7 +71,7 @@
 - 事件 kind：`slash`／`jail`／`bail`／`visitjail`／`jaillabor`。`node town/test.js` 會比對座標、勞動、保釋金、傷害與抓人機率和 SQL 是否一致。
 - `town_jail.sql` 要在 `town.sql` 之後套用（`town.sql` 含 `town_jailed`、入獄檢查、jail 地點、`px > 64`，改了 `town_tick`／`town_act`，套用前先確認）。
 
-## 走進設施裡面（咖啡廳、餐廳、健身房；SQL 待套用：`supabase/town_fi.sql`，要在 `town.sql`、`town_social.sql` 之後；實測 `supabase/town_fi_test.sql`，最後 rollback，結果在錯誤訊息 REPORT）
+## 走進設施裡面（咖啡廳、餐廳、健身房；SQL 已套用 2026-11-09，實測通過：`supabase/town_fi.sql`，要在 `town.sql`、`town_social.sql` 之後；實測 `supabase/town_fi_test.sql`，最後 rollback，結果在錯誤訊息 REPORT）
 - 獨立 RPC `town_fi(rid,pin,op,place)`（op = enter／exit），不改 `town_act`。資料 `items.fi` = 地點代號（`cafe`／`restaurant`／`gym`），**只有 `fi` 等於現在的 `place` 才算在裡面**（SQL `town_fin`、前端 `fin(r)`），走到別處 place 一變就自動失效（離線超過一小時回家睡也一樣），舊角色缺值 = 在外面；和自家進屋的 `items.dr` 互不相干。設施互動（`town_fac`）不要求一定在室內，沒進去也能照常用。
 - 流程：走到設施門口（`arrived`）自動呼叫 enter（失敗就留在門口，面板第一顆是「進去」）；面板在裡面時標題加「（店裡）」並多一顆「出門」；`walkTo` 一開始會先 exit（`leaveRoomLocal`）；在裡面的人地圖上不畫（`draw` 的 `fin` 過濾）、設施兩扇窗戶亮燈。
 - 畫面：面板標題下方的 `<canvas id="room">`（12×5 格、每格 24px，第 0 列是牆，`drawRoom`）。**室內格子系統**（之後家裡擺家具可共用）：物件 = `[代號,格x,格y]`，代號查 `ITEM`（`[像素圖示, 名稱, 對應面板按鈕的文字（null = 裝飾）, 是否擋住站位]`）；場景 `ROOMS[地點] = {floor, wall, items:[[代號,x,y]…]}`。點物件 = 按面板上文字比對到的那顆按鈕；同在裡面的人（`fin` 且醒著）由 `roomSpots` 依離中央遠近排在沒被擋住的地板格，一人一格不重疊，名字在頭上。

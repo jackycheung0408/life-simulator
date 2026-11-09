@@ -11,7 +11,7 @@ begin
   begin perform public.town_fi(ra,'1234','enter','market'); rep := rep||'enter market NOT BLOCKED'||E'\n'; exception when others then rep := rep||'enter market: '||sqlerrm||E'\n'; end;
   begin perform public.town_fi(ra,'1234','enter',null); rep := rep||'enter null NOT BLOCKED'||E'\n'; exception when others then rep := rep||'enter null: '||sqlerrm||E'\n'; end;
   begin perform public.town_fi(ra,'1234','dance','cafe'); rep := rep||'bad op NOT BLOCKED'||E'\n'; exception when others then rep := rep||'bad op: '||sqlerrm||E'\n'; end;
-  begin perform public.town_fi(ra,'9999','enter','cafe'); rep := rep||'bad pin NOT BLOCKED'||E'\n'; exception when others then rep := rep||'bad pin: '||sqlerrm||E'\n'; end;
+  j := public.town_fi(ra,'9999','enter','cafe'); select * into r from public.town_residents where id = ra; rep := rep||'bad pin: '||j::text||' fin='||public.town_fin(r)||' (期望 error 且 fin 不變，沒有例外是因為和 town_fac 一樣回 error JSON)'||E'\n';
   -- 走到別處：place 一變就自動失效
   update public.town_residents set place = 'park' where id = ra; select * into r from public.town_residents where id = ra;
   rep := rep||'走到公園 fin='||public.town_fin(r)||' (期望 false，items.fi 還在 '||coalesce(r.items->>'fi','-')||')'||E'\n';
