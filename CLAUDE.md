@@ -149,7 +149,7 @@
 - 前端：車行面板「保險、維修、賣車」開 `garageModal`；上車按鈕顯示車況與保險；有欠款時面板有「事故欠款」鈕；事故動畫 `EV_FX.crash`，動態新 kind = `crash`；圖示 `wrench／shield`。順手修掉走路動畫 `vm` 用 const 又重新賦值的錯。
 - 實測：`supabase/town_traffic3_test.sql`（接在 `town.sql` 之後貼上，最後回滾，結果在錯誤訊息 REPORT）。
 
-## 活躍天數等級（SQL 待套用）
+## 活躍天數等級（SQL 已套用 2026-11-09，實測通過）
 - 資料 `items.al = {n:累計活躍天, d:最後活躍台灣日, s:連續天數, lv}`（**注意 `items.ac` 是事故次數，不要混用**）。缺值 = 0，舊角色不回填、從 0 開始；`town_al_touch` 在 `town_state`（每日一次）與 `town_act` 開頭呼叫，當天第一次動作算活躍一天。斷了只是連續天數歸 1，累計與等級不掉。
 - 5 級（門檻天／打工冷卻／背包上限／房租折扣／每日登入禮）：Lv1 新居民 0／10／20／0%／0；Lv2 熟面孔 3／10／24／5%／€30；Lv3 老鄰居 10／9／26／8%／€60；Lv4 鎮上名人 30／8／28／12%／€100；Lv5 小鎮元老 60／8／30／15%／€150。升級送稱號（接在 `items.titles` 後）、寫 `level` 動態；登入禮寫 `luck` 動態。
 - SQL：`town_lv_of／town_lv／town_wk_min／town_bag_max／town_rent_pct`，`town_wk_check`、`town_rent`、背包上限（買零食禮物、regift、拆禮物）都讀等級。收到的禮物 `rg` 上限仍是 20。前端 `AL` 表、`alOf／wkLeft／rentOf／alHtml／lvUpModal` 要同步。實測 `supabase/town_level_test.sql`（接在 `town.sql` 之後，最後回滾）。
