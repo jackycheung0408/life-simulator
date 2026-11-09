@@ -52,7 +52,21 @@ check(Math.abs(M.tickLocal(mk({},["clean"]),10*36e5).hygiene-(80-35))<1e-6,"愛�
 // 家具：好床睡覺精力 +90/小時；家具表和房子等級
 check(Math.round(M.tickLocal({...base,sleeping:true,energy:0,items:{fu:["bed"]}},1*36e5).energy)==90,"好床睡 1 小時精力應該是 90");
 check(M.hasF({items:{fu:["","fridge"]}},"fridge")&&!M.hasF({items:{f:["fridge"]}},"fridge"),"只有擺出來的家具才有效果");
-check(M.FURN.length==8&&M.HOUSES.map(h=>h[2]).join()=="4,6,8,9"&&M.HOUSES.map(h=>h[1]).join()=="0,20000,150000,400000","家具或房子等級表不對");
+check(M.FURN.length==13&&M.HOUSES.map(h=>h[2]).join()=="6,10,15,20"&&M.HOUSES.map(h=>h[1]).join()=="0,20000,150000,400000","家具或房子等級表不對");
+// 家裡自由佈置：房間大小、上限、掛牆道具、道具價格和 supabase/town_home.sql 一致；舊的 9 格 fu 換算後一定放得下、站位夠；動作按鈕對得到
+{const sql=require("fs").readFileSync(__dirname+"/../supabase/town_home.sql","utf8"),arr=a=>"array["+a.join(",")+"]";
+ check(sql.includes(arr(M.HOME_DIM.map(d=>d[0])))&&sql.includes(arr(M.HOME_DIM.map(d=>d[1])))&&sql.includes(arr(M.HOUSES.map(h=>h[2]))),"town_home.sql 的房間大小或上限和 HOME_DIM／HOUSES 不一致");
+ check(sql.includes("k in ("+M.WALLF.map(k=>"'"+k+"'").join(", ")+")"),"town_home.sql 掛牆道具和 WALLF 不一致");
+ for(const [id,n,pr] of M.FURN.slice(8))check(sql.includes(`('${id}', 'furn', null, '${n}', ${pr}, null)`),`town_home.sql 的 ${n} 價格和 FURN 不一致`);
+ const leg=M.fpOf({fu:["bed","","fridge","sofa","tvcab","","rug","plant","massage"]});
+ check(JSON.stringify(leg)==JSON.stringify([["bed",1,1],["fridge",5,1],["sofa",1,2],["tvcab",3,2],["rug",1,3],["plant",3,3],["massage",5,3]]),"舊 fu 換算座標不對："+JSON.stringify(leg));
+ check(M.fpOf({fp:[["bed",2,2]],fu:["sofa"]})[0][0]=="bed"&&M.fpOf({}).length==0,"fp 優先於舊 fu，缺值是空");
+ for(let hl=1;hl<=4;hl++){const [w,h]=M.HOME_DIM[hl-1],rm=M.homeRoom({items:{hl,fu:["bed","fridge","sofa","tvcab","massage","plant","rug","shelf",""]}});
+  check(rm.w==w&&rm.h==h+1,`房子 ${hl} 的房間大小不對`);for(const o of rm.items)check(o[1]>=0&&o[1]<w&&o[2]>=1&&o[2]<=h,`房子 ${hl} 舊家具 ${o[0]} 換算後超出房間`);
+  const full=M.homeRoom({items:{hl,fp:[...Array(M.HOUSES[hl-1][2]).keys()].map(i=>["plant",i%w,1+Math.floor(i/w)]).filter(o=>o[2]<=h)}});check(M.roomSpots(full).length+full.items.length>=w*h-1||full.items.length>0,"站位計算");check(M.roomSpots(M.homeRoom({items:{hl,fp:[]}})).length==w*h,`房子 ${hl} 空房間站位應該是整個地板`);
+  check(M.roomSpots(M.homeRoom({items:{hl,fp:[["bed",1,1],["rug",2,1],["frame",0,0]]}})).length==w*h-1,`房子 ${hl}：只有床擋站位，地毯和掛牆的不擋`)}
+ check(M.roomOf({id:1,place:"home:1",items:{}})&&!M.roomOf({id:1,place:"home:1",items:{dr:1}})&&!M.roomOf({id:1,place:"street",items:{}}),"roomOf：在屋裡才有室內，在門口或街上沒有");
+ const hl=["睡覺","吃飯","看電視","快速休息"];for(const [k,[re]] of Object.entries(M.HACT))check(hl.some(l=>re.test(l))&&!re.test("快速睡覺"),`家具 ${k} 對不到家裡的按鈕`)}
 // 路邊物件：不在牆裡、從每間房子的門都走得到、人站的位置和資料庫的距離判斷一致
 for(let rows=2;rows<=4;rows++){M.setRows(rows);for(const [k,o] of Object.entries(M.OBJS)){if(o.x==null)continue;check(!M.blocked(o.x,o.y)||false,`${rows} 排：物件 ${k} 在牆裡`);const stand=[o.x,o.y+(o.y==5?1:0)];check(!M.blocked(...stand),`${rows} 排：物件 ${k} 站不上去`);for(let s=0;s<rows*3;s++)check(M.bfs(M.door(s),stand),`${rows} 排：房子 ${s} 走不到物件 ${k}`)}}
 // 其他工作：薪水階梯、拉菲辦公室座標（要和 town.sql 一致）

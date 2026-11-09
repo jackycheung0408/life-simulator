@@ -1227,19 +1227,9 @@ begin
     r.money := r.money - n; r.fun := r.fun + 5;
     r.items := jsonb_set(r.items, array[left(item,1)], coalesce(r.items->(left(item,1)),'[]'::jsonb) || to_jsonb(substr(item,3)));
   elsif act = 'furn' then
-    -- 室內家具：set:格:代號 放進 3x3 的某一格，clr:格 收回；擺放數量看房子等級（4/6/8/9）
+    -- 室內家具自由擺放（座標、小道具見 town_home.sql）：put:代號:x:y 擺或移動，clr:代號 收回；town_furn 在 town_home.sql
     if not public.town_inside(r) then raise exception '要先進屋'; end if;
-    jl := coalesce((r.items->>'hl')::int,1); jf := coalesce(r.items->'fu','[]'::jsonb);
-    while jsonb_array_length(jf) < 9 loop jf := jf || '""'::jsonb; end loop;
-    if item ~ '^clr:[0-8]$' then jf := jsonb_set(jf, array[substr(item,5)], '""'::jsonb);
-    elsif item ~ '^set:[0-8]:[a-z]+$' then
-      if not (coalesce(r.items->'f','[]'::jsonb) ? split_part(item,':',3)) then raise exception '你還沒有這個家具'; end if;
-      if jf ? split_part(item,':',3) then raise exception '這個家具已經放在家裡了'; end if;
-      if jf->>(split_part(item,':',2)::int) <> '' then raise exception '那一格已經有家具了'; end if;
-      if (select count(*) from jsonb_array_elements_text(jf) e where e <> '') >= (array[4,6,8,9])[jl] then raise exception '房子太小放不下了，升級房子吧'; end if;
-      jf := jsonb_set(jf, array[split_part(item,':',2)], to_jsonb(split_part(item,':',3)));
-    else raise exception '家具指令不對'; end if;
-    r.items := jsonb_set(r.items, '{fu}', jf);
+    r := public.town_furn(r, item);
   elsif act = 'vbuy' then
     if r.place <> 'carshop' then raise exception '要在車行才能買'; end if;
     n := case item when 'bike' then 3000 when 'moto' then 30000 when 'car' then 120000 else null end;

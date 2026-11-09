@@ -109,8 +109,12 @@ function placeAt(x,y){const pp=POOPS.find(q=>q.x==x&&q.y==y);if(pp){const c=[[x,
 const NEEDS=["hunger","energy","bladder","hygiene","fun"];
 const NEED_INFO={hunger:["🍚","飽足"],energy:["⚡","精力"],bladder:["🚽","膀胱"],hygiene:["🛁","清潔"],fun:["🎉","心情"]};
 // 個性特質（items.tr）與心情（由需求算，規則要和 town.sql 的 town_mood／town_pay 一致）
-const FURN=[["bed","好床",5000,"睡覺精力每小時 +90"],["fridge","冰箱",8000,"在家吃飯 €30、飽足 +48"],["massage","按摩椅",9000,"快速休息精力 +100"],["shelf","書櫃",4000,"之後技能用，先佔位"],["sofa","沙發",6000,"看電視心情 +22"],["tvcab","電視櫃",5000,"看電視 10 分鐘一次"],["rug","地毯",1500,"裝飾"],["plant","盆栽",800,"裝飾"]];
-const HOUSES=[["小屋",0,4],["公寓",20000,6],["獨棟",150000,8],["豪宅",400000,9]];// 名稱、升級價、家具格數
+const FURN=[["bed","好床",5000,"睡覺精力每小時 +90"],["fridge","冰箱",8000,"在家吃飯 €30、飽足 +48"],["massage","按摩椅",9000,"快速休息精力 +100"],["shelf","書櫃",4000,"之後技能用，先佔位"],["sofa","沙發",6000,"看電視心情 +22"],["tvcab","電視櫃",5000,"看電視 10 分鐘一次"],["rug","地毯",1500,"裝飾"],["plant","盆栽",800,"裝飾"],["frame","相框",300,"掛在牆上，裝飾"],["painting","掛畫",900,"掛在牆上，裝飾"],["desklamp","檯燈",600,"裝飾"],["toy","玩具",400,"裝飾"],["books","書堆",500,"裝飾"]];
+const HOUSES=[["小屋",0,6],["公寓",20000,10],["獨棟",150000,15],["豪宅",400000,20]];// 名稱、升級價、可擺家具與道具件數（和 town_home.sql 的 town_home_cap 一致）
+const HOME_DIM=[[6,3],[8,3],[9,4],[10,4]],WALLF=["frame","painting"],FLAT=["rug","toy","books"];// 房間寬×地板列數（另有第 0 列牆）；掛牆的道具；躺在地上、不擋人站的
+const HACT={bed:[/^睡覺/,"好床"],fridge:[/^吃飯/,"冰箱"],sofa:[/^看電視/,"沙發"],tvcab:[/^看電視/,"電視櫃"],massage:[/^快速休息/,"按摩椅"]};
+// 擺放座標 items.fp = [[代號,x,y]]；沒有 fp 的舊角色用舊的 9 格 fu 換算（和 town_fp_legacy 一致）
+const fpOf=it=>Array.isArray(it.fp)?it.fp:(it.fu||[]).map((k,i)=>[k,1+(i%3)*2,1+Math.floor(i/3)]).filter(o=>o[0]);
 const hasF=(r,k)=>!!(r.items&&Array.isArray(r.items.fu)&&r.items.fu.includes(k));
 // 在屋裡：人在自己家，且沒有「站在門口」旗標 items.dr（舊角色沒有旗標＝在屋裡），和 SQL town_inside 一致
 function inside(r){return !!r&&r.place=="home:"+r.id&&!(r.items&&String(r.items.dr)=="1")}
@@ -156,6 +160,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+ {id:"u19-home",date:"11/09",title:"家裡可以自由佈置了",items:["家具想放哪就放哪：點家具選取，再點空格移動，也能收回背包","房間會隨房子升級變大，小屋 6×3、豪宅 10×4，可以擺更多東西","超市新增相框、掛畫（掛牆上）、檯燈、玩具、書堆","在家時畫面直接看得到你的佈置，朋友來看室內也看得到","睡覺躺到床上、看電視坐沙發、開冰箱吃東西、按摩椅會震，角色都會走過去"]},
  {id:"u18-inside",date:"11/09",title:"可以走進設施裡面了",items:["咖啡廳、餐廳、健身房：走到門口會自動走進去，裡面有吧台、咖啡機、跑步機等像素佈置","點咖啡機、廚房窗口、沙包、鏡子旁的櫃子等物件，就是做那一項互動，角色會走過去並播動畫","同在裡面的人各站一格不重疊；在裡面的人不會站在街上，窗戶會亮燈","電影院、公園、廣場的互動也有動畫了；按「出門」或走去別處就會離開"]},
  {id:"u17-landing",date:"11/09",title:"首頁更好上手",items:["住過的小鎮：第一顆粉紅按鈕直接「回到小鎮」，一鍵進入","介紹縮短，第一眼就知道是和朋友住同一個小鎮","邀請碼、小鎮代碼打錯，或網路斷掉，會告訴你下一步怎麼做","載入太久會提示網路比較慢，進不去時有「再試一次」","新玩家第一次進來，不會先跳更新通知，新手提示等選完個性再出現"]},
  {id:"u17-buttons",date:"11/09",title:"互動按鈕全部放在面板第一層",items:["設施的特餐、點歌、簽到、釣魚、丟飛盤等，不用再點「更多互動」，直接一顆一顆列出來","在家的快速休息、快速睡覺、睡覺也直接按；整蠱分成「惡作劇」「丟雞蛋」兩顆","不能按的按鈕不再藏起來，會灰掉並寫原因（冷卻剩幾分、要有人在場、集點不夠）","按鈕依用途分組：吃喝、玩樂、社交、工作與任務","同地點有幾個人在，就各有一顆邀請按鈕"]},
@@ -198,9 +203,13 @@ const ROOMS={
  restaurant:{floor:["#f1e0c6","#e6d0ae"],wall:"#c0392b",items:[["kitchen",1,0],["menu",3,0],["lamp",5,0],["lamp",8,0],["job",10,0],["bar",2,1],["pack",4,1],["table",3,3],["table",7,3],["table",10,3],["plant",0,4],["plant",11,4]]},
  gym:{floor:["#9aa5b8","#8f9aae"],wall:"#2e4057",items:[["mirror",1,0],["mirror",3,0],["locker",6,0],["job",8,0],["spa",10,0],["treadmill",1,2],["treadmill",3,2],["rack",10,2],["bag",6,3],["rack",10,4],["plant",0,4]]}};
 // 站位：沒被擋住的地板格，離場景中央近的先排
-function roomSpots(rm){const blocked=new Set(rm.items.filter(o=>ITEM[o[0]][3]).map(o=>o[1]+","+o[2])),out=[];for(let y=1;y<RH;y++)for(let x=0;x<RW;x++)if(!blocked.has(x+","+y))out.push([x,y]);return out.sort((a,b)=>(Math.abs(a[0]-5.5)+Math.abs(a[1]-3)*2+((a[0]+a[1])%2?3:0)+(a[1]==1?4:0))-(Math.abs(b[0]-5.5)+Math.abs(b[1]-3)*2+((b[0]+b[1])%2?3:0)))}
+const rw=rm=>rm.w||RW,rh=rm=>rm.h||RH,blk=(rm,o)=>rm.home?!(WALLF.includes(o[0])||FLAT.includes(o[0])):ITEM[o[0]][3];
+function homeRoom(r){const it=r.items||{},hl=Math.max(1,Math.min(4,it.hl||1)),d=HOME_DIM[hl-1];return {home:true,w:d[0],h:d[1]+1,items:fpOf(it),wall:it.wall||"#f4ead6",floor:["#e6d8b8","#d9c9a8"]}}
+function roomSpots(rm){const W=rw(rm),H=rh(rm),blocked=new Set(rm.items.filter(o=>blk(rm,o)).map(o=>o[1]+","+o[2])),out=[],cx=(W-1)/2,cy=(H+1)/2,sc=a=>Math.abs(a[0]-cx)+Math.abs(a[1]-cy)*2+((a[0]+a[1])%2?3:0)+(a[1]==1?4:0);for(let y=1;y<H;y++)for(let x=0;x<W;x++)if(!blocked.has(x+","+y))out.push([x,y]);return out.sort((a,b)=>sc(a)-sc(b))}
 const fin=r=>!!r&&!!r.items&&!!ROOMS[r.place]&&r.items.fi===r.place;
-if(typeof module!=="undefined")module.exports={JAIL,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
+// 現在在哪個室內：設施裡面（fin）或自己家屋裡（inside）；都不是就 null
+const roomOf=r=>!r?null:fin(r)?ROOMS[r.place]:(r.place=="home:"+r.id&&inside(r))?homeRoom(r):null;
+if(typeof module!=="undefined")module.exports={JAIL,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
 if(typeof document!=="undefined")addEventListener("DOMContentLoaded",init);
 
 function init(){
@@ -428,7 +437,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  if(walkers[me]&&walkers[me].path.length){title="走路中…";note="到了就可以做事"}
  else if(r.sleeping){title=`在${placeName(p)}睡覺 💤`;list.push(btn("起床","",()=>act("wake")))}
  else if(p=="home:"+me&&!inside(r)){title="家門口";note="走進屋裡才能吃飯、洗澡、睡覺、擺家具";list.push(btn("進屋",`回到家裡 · ${HOUSES[((r.items||{}).hl||1)-1][0]}`,()=>act("enter")))}
- else if(p=="home:"+me){title="你家（屋裡）";list.push(btn("吃飯",`飽足 +${hasF(r,"fridge")?48:40} · 精力 +15 · €${hasF(r,"fridge")?30:60}`,()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),dbtn("洗澡","清潔回滿 · 精力 +10 · 10 分鐘一次",()=>act("shower"),cdLeft(r,"shower",10)),dbtn("看電視",`心情 +${hasF(r,"sofa")?22:15} · ${hasF(r,"tvcab")?10:15} 分鐘一次`,()=>act("tv"),cdLeft(r,"tv",hasF(r,"tvcab")?10:15)),dbtn("快速休息",`精力 +${hasF(r,"massage")?100:70} · 15 分鐘一次`,()=>act("nap"),cdLeft(r,"nap",15)),dbtn("快速睡覺",`睡 15 分鐘自動醒 · 精力約 +${hasF(r,"bed")?56:50} · 30 分鐘一次`,()=>act("qsleep"),cdLeft(r,"qsleep",30)),btn("睡覺",`精力每小時 +${hasF(r,"bed")?90:80} · 睡多久回多少`,()=>act("sleep")),btn("室內","擺家具、升級房子",()=>interiorModal(me),"home"),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal(),"home"),btn("出門","回到家門口",()=>act("exit"),"home"))}
+ else if(p=="home:"+me){title="你家（屋裡）";list.push(btn("吃飯",`飽足 +${hasF(r,"fridge")?48:40} · 精力 +15 · €${hasF(r,"fridge")?30:60}`,()=>act("eat")),btn("上廁所","膀胱回滿",()=>act("toilet")),dbtn("洗澡","清潔回滿 · 精力 +10 · 10 分鐘一次",()=>act("shower"),cdLeft(r,"shower",10)),dbtn("看電視",`心情 +${hasF(r,"sofa")?22:15} · ${hasF(r,"tvcab")?10:15} 分鐘一次`,()=>act("tv"),cdLeft(r,"tv",hasF(r,"tvcab")?10:15)),dbtn("快速休息",`精力 +${hasF(r,"massage")?100:70} · 15 分鐘一次`,()=>act("nap"),cdLeft(r,"nap",15)),dbtn("快速睡覺",`睡 15 分鐘自動醒 · 精力約 +${hasF(r,"bed")?56:50} · 30 分鐘一次`,()=>act("qsleep"),cdLeft(r,"qsleep",30)),btn("睡覺",`精力每小時 +${hasF(r,"bed")?90:80} · 睡多久回多少`,()=>act("sleep")),btn("佈置","搬家具、擺小道具、升級房子",()=>interiorModal(me),"home"),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal(),"home"),btn("出門","回到家門口",()=>act("exit"),"home"))}
  else if(p&&p.startsWith("home:")&&R[p.slice(5)]){const id=+p.slice(5),t=tickLocal(R[id],now());title=`${t.name} 家`;const peek=btn("看室內",`${HOUSES[((R[id].items||{}).hl||1)-1][0]} · 看他怎麼布置`,()=>interiorModal(id));
   const gifts=(r.items||{}).gift||0,giftB=gifts?btn("送禮物",`他心情 +20 · 背包 🎁${gifts}`,()=>act("gift",{target:id})):btn("送禮物","先去超市買",()=>toast("背包沒有禮物，去超市買一份"));
   if(!inside(t)){note=`${t.name} ${t.place==p?"在家門口，還沒進屋":"不在家，在"+placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,peek,btn("丟雞蛋 🥚","好感 −1 · 30 分鐘一次",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
@@ -739,7 +748,7 @@ function shopModal(){const it=R[me].items||{},w=new Set(it.w||[]),d=new Set(it.d
  $("mc").onclick=()=>$("modal").classList.add("hide");$("bagGo").onclick=()=>bagModal();
  $("mbody").querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{b.disabled=true;const [k,id]=b.dataset.b.split(":"),had=((R[me].items||{})[k]||[]).includes(id);await act("buy",{item:b.dataset.b});if(k=="w"&&!had&&((R[me].items||{}).w||[]).includes(id))await wearOn(id);shopModal()})}
 // 背包：把 snack、gift、rg、w、f、d 整理成分類（讀取層，不搬資料）
-const FIC={bed:"🛏️",sofa:"🛋️",fridge:"🧊",plant:"🪴",shelf:"📚",massage:"💺",rug:"🟥",tvcab:"📺"},DIC={flowers:"🌷",mailbox:"✉️",lamp:"💡",bench:"🪑",tree:"🌳",pigstatue:"🏛️"};
+const FIC={bed:"🛏️",sofa:"🛋️",fridge:"🧊",plant:"🪴",shelf:"📚",massage:"💺",rug:"🟥",tvcab:"📺",frame:"🖼️",painting:"🎨",desklamp:"💡",toy:"🎲",books:"📚"},DIC={flowers:"🌷",mailbox:"✉️",lamp:"💡",bench:"🪑",tree:"🌳",pigstatue:"🏛️"};
 const BAG_TABS=[["food","食物"],["gift","禮物"],["wear","服飾"],["furn","家具"],["deco","擺飾"]];
 const bagCount=r=>{const it=r.items||{};return (it.snack||0)+(it.gift||0)+(it.rg||[]).length+(it.w||[]).length+(it.f||[]).length+(it.d||[]).length};
 // 考駕照：三題選擇題（答案順序要和 town.sql 的 license 一致：機車 1、2、0；汽車 2、0、1）
@@ -797,24 +806,39 @@ function furnDraw(m,id,x,y,s){const u=s/12,R=(a,b,w,h,c)=>{m.fillStyle=c;m.fillR
  if(id=="sofa"){R(1,4,10,4,"#3b7dd8");R(1,7,10,3,"#2f64b0");R(0,5,2,5,"#2f64b0");R(10,5,2,5,"#2f64b0")}
  if(id=="tvcab"){R(2,6,8,4,"#8b5a2b");R(3,1,6,5,"#222");R(4,2,4,3,"#6fc6ff")}
  if(id=="rug"){R(1,3,10,7,"#c0392b");R(2,4,8,5,"#f1c40f");R(3,5,6,3,"#c0392b")}
- if(id=="plant"){R(4,7,4,4,"#b5651d");R(3,3,6,5,"#2e9e5b");R(5,1,2,4,"#4caf50")}}
-// 室內畫面：3×3 格，自己的家可以擺家具、升級；朋友的家只能看
-function interiorModal(id,sel){const o=R[id],mine=id==me,it=o.items||{},hl=it.hl||1,fu=[...Array(9)].map((_,i)=>(it.fu||[])[i]||""),used=fu.filter(Boolean).length,cap=HOUSES[hl-1][2];
- $("modal").classList.remove("hide");const owned=(it.f||[]).filter(k=>!fu.includes(k)),nx=HOUSES[hl];
- const cell=i=>`<button class="sw${sel===i?" on":""}" data-c="${i}" style="width:30%;aspect-ratio:1;padding:0;background:${(i%3+Math.floor(i/3))%2?"#d9c9a8":"#e6d8b8"}"><canvas width="72" height="72" data-f="${fu[i]}" style="width:100%;height:100%"></canvas></button>`;
- $("mbody").innerHTML=`<h2>${esc(o.name)} 的家</h2><p class="mut">${HOUSES[hl-1][0]} · 家具 ${used}/${cap} 格${mine?` · 你有 €${o.money}`:""}</p>
-  <div class="houses" style="gap:4px">${[...Array(9).keys()].map(cell).join("")}</div>
-  ${mine?(sel!=null?(fu[sel]?`<div class="row"><button data-x="${sel}">收回${(FURN.find(a=>a[0]==fu[sel])||[0,fu[sel]])[1]}</button></div>`:`<h3>放進這一格</h3>${owned.length?owned.map(k=>{const a=FURN.find(x=>x[0]==k)||[k,k];return `<div class="mrow"><span><b>${a[1]}</b> <small class="mut">${a[3]||""}</small></span><button data-s="${k}">放</button></div>`}).join(""):'<p class="mut">背包沒有家具，去超市買</p>'}`):'<p class="mut">點一格來擺放或收回家具</p>')
-  +(nx?`<div class="row"><button data-up="1">升級成${nx[0]} €${nx[1]}（家具 ${nx[2]} 格）</button></div>`:'<p class="mut">已經是最高級的豪宅</p>'):""}
-  <div class="row"><button id="mc">關閉</button></div>`;
+ if(id=="plant"){R(4,7,4,4,"#b5651d");R(3,3,6,5,"#2e9e5b");R(5,1,2,4,"#4caf50")}
+ if(id=="frame"){R(3,3,6,6,"#8b5a2b");R(4,4,4,4,"#bfe6ff");R(5,5,2,2,"#2e9e5b")}
+ if(id=="painting"){R(1,2,10,7,"#5a3a1a");R(2,3,8,5,"#6fc6ff");R(2,6,8,2,"#2e9e5b");R(7,4,2,2,"#fee761")}
+ if(id=="desklamp"){R(4,10,4,1,"#555");R(5,5,2,5,"#888");R(3,2,6,4,"#fee761")}
+ if(id=="toy"){R(3,6,6,4,"#e74c3c");R(3,4,6,2,"#3b7dd8");R(5,2,2,2,"#f1c40f")}
+ if(id=="books"){R(2,7,8,3,"#c0392b");R(3,5,7,2,"#3b7dd8");R(2,4,5,1,"#f1c40f")}}
+// 室內畫面：自由擺放（座標 items.fp，房間大小依房子等級，見 HOME_DIM）；自己的家可以擺、移動、收回、升級；朋友的家只能看
+function drawHomeEdit(cv,rm,sel){const C=RC,W=rw(rm),H=rh(rm),c=cv.getContext("2d");c.imageSmoothingEnabled=false;c.clearRect(0,0,W*C,H*C);
+ c.fillStyle=rm.wall;c.fillRect(0,0,W*C,C);for(let y=1;y<H;y++)for(let x=0;x<W;x++){c.fillStyle=rm.floor[(x+y)%2];c.fillRect(x*C,y*C,C,C)}
+ c.fillStyle="rgba(0,0,0,.25)";c.fillRect(0,C-3,W*C,3);
+ if(sel){const wall=WALLF.includes(sel);c.fillStyle="rgba(255,255,255,.75)";for(let y=wall?0:1;y<(wall?1:H);y++)for(let x=0;x<W;x++)if(!rm.items.some(o=>o[1]==x&&o[2]==y))c.fillRect(x*C+C/2-2,y*C+C/2-2,4,4)}
+ for(const o of rm.items)furnDraw(c,o[0],o[1]*C,o[2]*C,C);
+ const so=sel&&rm.items.find(o=>o[0]==sel);if(so){c.strokeStyle="#fee761";c.lineWidth=2;c.strokeRect(so[1]*C+1,so[2]*C+1,C-2,C-2)}}
+function interiorModal(id,sel){const o=R[id],mine=id==me,it=o.items||{},hl=Math.max(1,Math.min(4,it.hl||1)),rm=homeRoom({id,items:it}),W=rw(rm),H=rh(rm),fp=rm.items,placed=new Set(fp.map(a=>a[0])),cap=HOUSES[hl-1][2],nx=HOUSES[hl],owned=(it.f||[]).filter(k=>!placed.has(k));
+ const nm=k=>(FURN.find(a=>a[0]==k)||[0,k])[1];sel=sel||null;
+ $("modal").classList.remove("hide");
+ const ctl=mine?(sel?`<div class="mrow"><span><b>${nm(sel)}</b> <small class="mut">${placed.has(sel)?"點空格移到那裡":(WALLF.includes(sel)?"點上面那排牆放上去":"點地板放下去")}</small></span>${placed.has(sel)?`<button data-x="${sel}">收回</button>`:""}</div>`:'<p class="mut">點家具選取，再點空格移動；背包的家具點下面的名字，再點空格放下。</p>'):"";
+ const bag=mine?(owned.length?`<h3>背包的家具</h3><div class="row" style="justify-content:flex-start">${owned.map(k=>`<button data-s="${k}" class="${sel==k?"pri":""}" style="min-height:44px">${nm(k)}</button>`).join("")}</div>`:'<p class="mut">背包沒有要擺的家具，去超市買</p>'):"";
+ $("mbody").innerHTML=`<h2>${esc(o.name)} 的家</h2><p class="mut">${HOUSES[hl-1][0]} · 擺了 ${fp.length}/${cap} 件${mine?` · 你有 €${o.money}`:""}</p><canvas id="hm" class="hm" width="${W*RC}" height="${H*RC}"></canvas>${ctl}${bag}
+  ${mine?(nx?`<div class="row"><button data-up="1">升級成${nx[0]} €${nx[1]}（房間更大、可擺 ${nx[2]} 件）</button></div>`:'<p class="mut">已經是最高級的豪宅</p>'):""}
+  <div class="row"><button id="mc" class="pri">${mine?"完成":"關閉"}</button></div>`;
  $("mc").onclick=()=>$("modal").classList.add("hide");
- $("mbody").querySelectorAll("canvas[data-f]").forEach(c=>{const m=c.getContext("2d");m.imageSmoothingEnabled=false;if(c.dataset.f)furnDraw(m,c.dataset.f,0,0,72)});
+ const cv=$("hm");drawHomeEdit(cv,rm,sel);
  if(!mine)return;
- $("mbody").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>interiorModal(id,+b.dataset.c));
- const go=async(a,ex)=>{await act(a,ex);interiorModal(id,sel)};
- $("mbody").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>go("furn",{item:`set:${sel}:${b.dataset.s}`}));
- $("mbody").querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>go("furn",{item:`clr:${sel}`}));
- $("mbody").querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>go("upgrade"))}
+ cv.onclick=async ev=>{const b=cv.getBoundingClientRect(),cx=Math.floor((ev.clientX-b.left)/b.width*W),cy=Math.floor((ev.clientY-b.top)/b.height*H),at=fp.find(a=>a[1]==cx&&a[2]==cy);
+  if(at){interiorModal(id,at[0]==sel?null:at[0]);return}
+  if(!sel)return;
+  if(WALLF.includes(sel)!=(cy==0)){toast(WALLF.includes(sel)?"這個要掛在牆上":"這個要放在地上");return}
+  await act("furn",{item:`put:${sel}:${cx}:${cy}`});
+  const ok=fpOf((R[me].items||{})).some(a=>a[0]==sel&&a[1]==cx&&a[2]==cy);interiorModal(id,ok?null:sel)};
+ $("mbody").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>interiorModal(id,sel==b.dataset.s?null:b.dataset.s));
+ $("mbody").querySelectorAll("[data-x]").forEach(b=>b.onclick=async()=>{await act("furn",{item:`clr:${b.dataset.x}`});interiorModal(id,null)});
+ $("mbody").querySelectorAll("[data-up]").forEach(b=>b.onclick=async()=>{await act("upgrade");interiorModal(id,sel)})}
 // ── 證券交易所（大富翁式：8 檔虛構股票、全天開、沒手續費；規則與 town_stock.sql 一致）──
 const stockItems=r=>{const s=(r.items||{}).st||{};return {h:s.h||{}}};
 let QUOTES=null;
@@ -1209,9 +1233,14 @@ function leaveRoomLocal(){const r=R[me];if(!fin(r))return false;r.items={...r.it
 // 室內互動動畫：角色走到對應物件旁（約 0.4 秒）→ 播動畫（約 0.9 秒）→ 走回來（約 0.3 秒），共 1.7 秒；只畫在 12×5 的小畫布，手機不卡
 const ROOM_ACT={latte:"coffee",coffee:"coffee",special:"kitchen",dine:"bar",takeout:"pack",song:"jukebox",treat:"bar",redeem:"cake",spar:"bag",checkin:"locker",workout:"treadmill",spa:"spa",feast:"menu"};
 let roomAnim=null;
-function playRoomFx(a){const r=R[me],rm=r&&ROOMS[r.place],code=ROOM_ACT[a];if(!rm||!fin(r)||!code)return;const it=rm.items.find(o=>o[0]==code);if(!it)return;roomAnim={code,it,born:performance.now(),dur:1700,age:0};loopRoom()}
+const HOME_ACT={eat:"fridge",tv:"tvcab",nap:"massage",qsleep:"bed",sleep:"bed"};// 家裡：互動 → 家具（沒有那件家具就在房間中央演）
+function playRoomFx(a){const r=R[me],rm=roomOf(r);if(!rm)return;let code=rm.home?HOME_ACT[a]:ROOM_ACT[a],tv=null;if(!code)return;
+ if(rm.home&&a=="tv"){tv=rm.items.find(o=>o[0]=="tvcab")||null;if(rm.items.some(o=>o[0]=="sofa"))code="sofa"}
+ let it=rm.items.find(o=>o[0]==code);if(!it){if(!rm.home)return;it=[code,Math.floor(rw(rm)/2),2]}
+ roomAnim={code,it,tv,home:!!rm.home,w:rw(rm),h:rh(rm),born:performance.now(),dur:1700,age:0};loopRoom()}
 function loopRoom(){if(!roomAnim)return;roomAnim.age=(performance.now()-roomAnim.born)/roomAnim.dur;drawRoom();if(roomAnim.age<1)requestAnimationFrame(loopRoom);else{roomAnim=null;drawRoom()}}
-function roomFxDraw(c){const A=roomAnim,C=RC,k=Math.max(0,Math.min(1,(A.age-.25)/.57)),ox=(A.it[1]+.5)*C,oy=(A.it[2]+.5)*C,px=ox,py=Math.min(RH-1,A.it[2]+1)*C+2;if(A.age<.25||A.age>.82)return;
+const SITS=["sofa","massage","bed"];
+function roomFxDraw(c){const A=roomAnim,C=RC,k=Math.max(0,Math.min(1,(A.age-.25)/.57)),ox=(A.it[1]+.5)*C,oy=(A.it[2]+.5)*C,px=ox,py=Math.min(A.h-1,A.it[2]+1)*C+2;if(A.age<.25||(A.age>.82&&A.code!="bed"))return;
  const P=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(Math.round(x),Math.round(y),w,h)},im=(n,x,y,z)=>{const i=roomImg(n);if(i.complete&&i.naturalWidth)c.drawImage(i,Math.round(x-z/2),Math.round(y-z/2),z,z)};
  switch(A.code){
   case "coffee":for(let j=0;j<4;j++)P(ox-8+j*5+Math.sin(k*9+j)*2,oy-8-((k*60+j*9)%18),3,3,`rgba(255,255,255,${.85-j*.12})`);break;
@@ -1222,16 +1251,27 @@ function roomFxDraw(c){const A=roomAnim,C=RC,k=Math.max(0,Math.min(1,(A.age-.25)
   case "treadmill":for(let j=0;j<5;j++)P(px-12+((j*6+k*90)%30),py+2,4,2,"#1b1b2f");break;
   case "rack":im("dumbbell",px,py-34-Math.abs(Math.sin(k*10))*9,18);break;
   case "locker":{const u2=(.4+Math.sin(Math.min(1,k*2)*1.57)*.6)*3.6;[[0,2],[1,3],[2,4],[3,3],[4,2],[5,1],[6,0]].forEach(p=>P(ox-12+p[0]*u2,oy-16+p[1]*u2,u2,u2,"#63c74d"));break}
-  case "spa":c.strokeStyle="#bfe6ff";c.lineWidth=1;for(let j=0;j<5;j++){c.beginPath();c.arc(ox+Math.sin(j*2.1+k*6)*8,oy-4-((k*40+j*9)%20),2+j%2,0,7);c.stroke()}break}}
-function drawRoom(){const cv=$("room");if(!cv)return;const r=R[me],rm=r&&ROOMS[r.place];
- const show=!!rm&&fin(r)&&!r.sleeping&&!(walkers[me]&&walkers[me].path.length);cv.classList.toggle("hide",!show);if(!show)return;
- const c=cv.getContext("2d"),C=RC;c.imageSmoothingEnabled=false;c.clearRect(0,0,RW*C,RH*C);
- c.fillStyle=rm.wall;c.fillRect(0,0,RW*C,C);for(let y=1;y<RH;y++)for(let x=0;x<RW;x++){c.fillStyle=rm.floor[(x+y)%2];c.fillRect(x*C,y*C,C,C)}
- c.fillStyle="rgba(0,0,0,.25)";c.fillRect(0,C-3,RW*C,3);
- for(const o of rm.items){const im=roomImg(ITEM[o[0]][0]);if(im.complete&&im.naturalWidth)c.drawImage(im,o[1]*C,o[2]*C,C,C)}
- const here=Object.values(R).filter(o=>o.place==r.place&&fin(o)&&!o.sleeping&&!jailed(o)&&!(walkers[o.id]&&walkers[o.id].path.length)).sort((a,b)=>(b.id==me)-(a.id==me)),spots=roomSpots(rm);
- here.slice(0,spots.length).forEach((o,i)=>{let x=(spots[i][0]+.5)*C,y=spots[i][1]*C+2,mv=false;if(o.id==me&&roomAnim&&roomAnim.age<1){const A=roomAnim,tx=(A.it[1]+.5)*C,ty=Math.min(RH-1,A.it[2]+1)*C+2,kk=A.age<.25?A.age/.25:A.age>.82?(1-A.age)/.18:1;mv=kk<1;x+=(tx-x)*kk;y+=(ty-y)*kk;if(A.code=="treadmill"&&kk==1)y-=Math.abs(Math.sin(A.age*40))*2}drawChar(c,x,y,1.05,o.look,{moving:mv},Math.floor(performance.now()/90));c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.strokeText(o.name.slice(0,4),x,Math.max(11,y-30));c.fillStyle=o.id==me?"#fee761":"#fff";c.fillText(o.name.slice(0,4),x,Math.max(11,y-30))});if(roomAnim&&roomAnim.age<1)roomFxDraw(c)}
-{const cv=typeof document!=="undefined"&&document.getElementById("room");if(cv)cv.addEventListener("click",ev=>{const r=R[me],rm=r&&ROOMS[r.place];if(!rm||!fin(r))return;const b=cv.getBoundingClientRect(),cx=Math.floor((ev.clientX-b.left)/b.width*RW),cy=Math.floor((ev.clientY-b.top)/b.height*RH),o=rm.items.find(o=>o[1]==cx&&o[2]==cy);if(!o)return;const d=ITEM[o[0]];if(!d[2]){toast(d[1]);return}
+  case "spa":c.strokeStyle="#bfe6ff";c.lineWidth=1;for(let j=0;j<5;j++){c.beginPath();c.arc(ox+Math.sin(j*2.1+k*6)*8,oy-4-((k*40+j*9)%20),2+j%2,0,7);c.stroke()}break;
+  // 家裡：冰箱開門吃東西、看電視螢幕閃、按摩椅震動、睡覺飄 Z
+  case "fridge":P(ox-6,oy-9,12,17,"rgba(255,244,180,.6)");for(let j=0;j<3;j++)P(px-8+j*7,py-26+((k*50+j*8)%12),3,3,["#e74c3c","#f1c40f","#2ecc71"][j]);break;
+  case "sofa":case "tvcab":{const t=A.tv||A.it,fl=Math.floor(k*14)%2;P(t[1]*C+5,t[2]*C+4,14,8,fl?"#6fc6ff":"#fee761");break}
+  case "massage":for(let j=0;j<3;j++)P(ox-12+j*10,oy+Math.sin(k*30+j*2)*3,2,6,"rgba(255,255,255,.7)");break;
+  case "bed":c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.fillStyle="#fff";c.strokeStyle="#1b1b2f";c.lineWidth=3;for(let j=0;j<2;j++){const zy=oy-12-((k*30+j*14)%22);c.strokeText("Z",ox+4+j*7,zy);c.fillText("Z",ox+4+j*7,zy)}break}}
+function drawRoom(){const cv=$("room");if(!cv)return;const r=R[me],rm=roomOf(r);
+ const show=!!rm&&(rm.home||!r.sleeping)&&!(walkers[me]&&walkers[me].path.length);cv.classList.toggle("hide",!show);if(!show)return;
+ const C=RC,W=rw(rm),H=rh(rm);if(cv.width!=W*C)cv.width=W*C;if(cv.height!=H*C)cv.height=H*C;
+ const c=cv.getContext("2d");c.imageSmoothingEnabled=false;c.clearRect(0,0,W*C,H*C);
+ c.fillStyle=rm.wall;c.fillRect(0,0,W*C,C);for(let y=1;y<H;y++)for(let x=0;x<W;x++){c.fillStyle=rm.floor[(x+y)%2];c.fillRect(x*C,y*C,C,C)}
+ c.fillStyle="rgba(0,0,0,.25)";c.fillRect(0,C-3,W*C,3);
+ for(const o of rm.items){if(rm.home){furnDraw(c,o[0],o[1]*C,o[2]*C,C);continue}const im=roomImg(ITEM[o[0]][0]);if(im.complete&&im.naturalWidth)c.drawImage(im,o[1]*C,o[2]*C,C,C)}
+ const here=rm.home?[r]:Object.values(R).filter(o=>o.place==r.place&&fin(o)&&!o.sleeping&&!jailed(o)&&!(walkers[o.id]&&walkers[o.id].path.length)).sort((a,b)=>(b.id==me)-(a.id==me)),spots=roomSpots(rm);
+ here.slice(0,Math.max(1,spots.length)).forEach((o,i)=>{const sp=spots[i]||[Math.floor(W/2),2];let x=(sp[0]+.5)*C,y=sp[1]*C+2,mv=false;
+  if(rm.home&&o.sleeping&&!(roomAnim&&roomAnim.code=="bed"&&roomAnim.age<.25)){const bd=rm.items.find(q=>q[0]=="bed"),bx=bd?(bd[1]+.5)*C:x,by=bd?bd[2]*C+C-4:y;c.save();c.translate(bx,by-2);c.rotate(-Math.PI/2);drawChar(c,0,0,1.05,o.look,{moving:false},0);c.restore();
+   c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.fillStyle="#fff";c.strokeText("Z z",bx+4,by-C+2);c.fillText("Z z",bx+4,by-C+2);return}
+  if(o.id==me&&roomAnim&&roomAnim.age<1){const A=roomAnim,tx=(A.it[1]+.5)*C,sit=SITS.includes(A.code),ty=sit?A.it[2]*C+C-3:Math.min(A.h-1,A.it[2]+1)*C+2,kk=A.age<.25?A.age/.25:A.age>.82?(1-A.age)/.18:1;mv=kk<1;x+=(tx-x)*kk;y+=(ty-y)*kk;if(A.code=="treadmill"&&kk==1)y-=Math.abs(Math.sin(A.age*40))*2;if(A.code=="massage"&&kk==1)x+=Math.sin(A.age*70)*1.2}
+  drawChar(c,x,y,1.05,o.look,{moving:mv},Math.floor(performance.now()/90));c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.strokeText(o.name.slice(0,4),x,Math.max(11,y-30));c.fillStyle=o.id==me?"#fee761":"#fff";c.fillText(o.name.slice(0,4),x,Math.max(11,y-30))});if(roomAnim&&roomAnim.age<1)roomFxDraw(c)}
+{const cv=typeof document!=="undefined"&&document.getElementById("room");if(cv)cv.addEventListener("click",ev=>{const r=R[me],rm=roomOf(r);if(!rm)return;const b=cv.getBoundingClientRect(),cx=Math.floor((ev.clientX-b.left)/b.width*rw(rm)),cy=Math.floor((ev.clientY-b.top)/b.height*rh(rm)),o=rm.items.find(o=>o[1]==cx&&o[2]==cy);if(!o){if(rm.home&&!r.sleeping)interiorModal(me);return}
+ const d=rm.home?[0,(FURN.find(a=>a[0]==o[0])||[0,o[0]])[1],HACT[o[0]]?HACT[o[0]][0]:null]:ITEM[o[0]];if(!d[2]){if(rm.home)interiorModal(me);else toast(d[1]);return}
  const i=panelFns.findIndex(f=>d[2].test(f.label)),el=i<0?null:$("acts").querySelector(`button[data-i="${i}"]`);if(el)el.click();else toast(`${d[1]}現在不能用`)})}
 const togetherAt=p=>PEV[p]&&Object.values(R).filter(o=>o.place==p&&!o.sleeping).length>=2;
 const TOGETHER_LINES=["一起真開心","嘿嘿，有伴真好","這裡好熱鬧","要不要一起做點什麼？"];
