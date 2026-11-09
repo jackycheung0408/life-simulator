@@ -179,11 +179,20 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  let ok1=true,ok2=true,ok3=true;try{ok1=M.roomOf(A,{1:A,2:H})===null}catch(e){ok1=false}
  try{const rm=M.roomOf(W,{2:H,3:W});ok2=!!rm&&rm.visit===true&&rm.hid===2}catch(e){ok2=false}
  try{ok3=M.roomOf(W,{2:{...H,items:{hl:1,dr:1}},3:W})===null}catch(e){ok3=false}
- check(require("fs").readFileSync(__dirname+"/town.js","utf8").includes("rm.visit?[tickLocal(R[rm.hid],now())]:[r]"),"站在朋友家門口只畫屋主，不可把自己畫進他家裡（你人在門外）");check(ok1,"roomOf：人在街上不可丟錯、要回 null");check(ok2,"roomOf：站在朋友家門口、他人在屋裡 → 要回訪客室內（visit、hid）");check(ok3,"roomOf：朋友站在門口（dr=1）不算在屋裡，不給室內");}
+ check(require("fs").readFileSync(__dirname+"/town.js","utf8").includes("rm.visit?[tickLocal(R[rm.hid],now()),...Object.values(R).filter(o=>o.id!=rm.hid&&vin(o)"),"站在朋友家門口只畫屋主；只有進去的人（vin）才畫進他家裡");check(ok1,"roomOf：人在街上不可丟錯、要回 null");check(ok2,"roomOf：站在朋友家門口、他人在屋裡 → 要回訪客室內（visit、hid）");check(ok3,"roomOf：朋友站在門口（dr=1）不算在屋裡，不給室內");}
 // 朋友睡著：叫醒、看室內（曾因叫不醒也寫進 1 小時冷卻而叫不到人、看室內畫面不畫屋主）
 {const fs=require("fs"),tjs=fs.readFileSync(__dirname+"/town.js","utf8"),tsql=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8");
  check(tsql.includes("'wakefail', r.name || ' 搖了 '")&&tsql.includes("e.kind = 'wakefail' and e.at > now() - interval '3 minutes'"),"town.sql：叫不醒要寫 wakefail 事件、只擋 3 分鐘（不可吃 wakeup 的 1 小時冷卻）");
  check(!/target,act, r\.name \|\| ' 搖了 '/.test(tsql),"town.sql：叫不醒不可再用 wakeup 事件（會鎖 1 小時）");
+// 走進朋友家：站門口室內沒有你，按「進去」（items.fv = 屋主 id）後才有；和 supabase/town_visit.sql 一致
+{const fs=require("fs"),vsql=fs.readFileSync(__dirname+"/../supabase/town_visit.sql","utf8"),tsql=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8"),tjs=fs.readFileSync(__dirname+"/town.js","utf8");
+ const H={id:2,place:"home:2",items:{hl:1}},A={id:1,place:"home:2",items:{}},B={id:1,place:"home:2",items:{fv:2}},C={id:1,place:"street",items:{fv:2}},D={id:1,place:"home:1",items:{fv:1}},E={id:1,place:"home:3",items:{fv:2}};
+ check(!M.vin(A)&&M.vin(B)&&!M.vin(C)&&!M.vin(D)&&!M.vin(E)&&!M.vin(null),"vin：只有在 home:屋主 且 fv = 屋主 才算在他家屋裡（門口、走開、自己家、別人家都不算）");
+ const rm0=M.roomOf(A,{1:A,2:H}),rm1=M.roomOf(B,{1:B,2:H});check(rm0&&rm0.visit&&rm0.inn===false&&rm1&&rm1.visit&&rm1.inn===true,"roomOf：站門口 inn=false、進去後 inn=true");
+ check(vsql.includes("town_vin(")&&vsql.includes("op = 'enter'")&&vsql.includes("not public.town_inside(t)")&&vsql.includes("town_bond_get(rid, target) < -20")&&vsql.includes("r.items - 'fv'"),"town_visit.sql：進去要在門口、屋主在屋裡、關係不能太差，出門清掉 fv");
+ check(tsql.includes("act in ('feed','wash','wakeup','visit') and coalesce(r.items->>'fv','') <> target::text"),"town.sql：煮飯、洗澡、叫醒、串門子要先進他家（惡作劇、丟雞蛋、留言、送禮留在門口）");
+ check((tsql.match(/- 'fv'/g)||[]).length>=3,"town.sql：移動、離線回家睡、入獄都要清掉 fv");
+ check(tjs.includes("function enterFriend(")&&tjs.includes("function exitFriend(")&&tjs.includes('btn("進去",')&&tjs.includes("!vin(r)"),"面板：門口只有進去，進去後才有煮飯、洗澡、叫醒、串門子與出門");}
  check(tjs.includes("function drawOwner(")&&tjs.includes("drawHomeEdit(cv,rm,sel,id)")&&tjs.includes("rm.visit"),"朋友家室內要畫出屋主（睡著躺床上），訪客在朋友家也看得到室內畫面");
  check(tjs.includes('btn("叫醒他",`越累睡越沉')&&tjs.includes("wakefail:[\"alarm\",\"t\"]"),"叫醒他按鈕要寫成功機率，wakefail 要有動畫與圖示");}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);

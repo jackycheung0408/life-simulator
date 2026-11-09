@@ -394,7 +394,7 @@ begin
   -- 待機超過 60 分鐘（或半夜離線 30 分鐘）的人回家睡了：人在自己屋裡；夜間（22～8 點）或精力不到 90 就繼續睡，否則在家醒著
   if not jld and (nightoff or (not r.sleeping and now() > r.seen_at + interval '30 minutes' and (hr < 7 or now() > r.seen_at + interval '60 minutes'))) then
     select * into d from public.town_door(r.slot);
-    r.place := 'home:' || r.id; r.x := d.dx; r.y := d.dy; r.items := r.items - 'dr';
+    r.place := 'home:' || r.id; r.x := d.dx; r.y := d.dy; r.items := r.items - 'dr' - 'fv';
     r.sleeping := hr < 8 or hr >= 22 or r.energy < 90;
   elsif r.sleeping and qe is null and not fa and hr between 8 and 21 and now() > r.seen_at + interval '30 minutes' and r.energy >= 90 then
     r.sleeping := false;  -- 睡飽了自然醒
@@ -420,7 +420,7 @@ begin
     if (r.items->>'wt')::timestamptz <= now() then
       r.items := r.items - 'wt';
     elsif not jld and not r.sleeping and r.place not like 'home:%' and r.place <> 'jail' and now() < r.seen_at + interval '30 minutes' and random() < 1 - exp(-2.1 * least(h, .25)) then
-      r.items := jsonb_set(r.items - 'wt' - 'dr' - 'fi', '{jl}', to_jsonb((now() + interval '90 minutes')::text));
+      r.items := jsonb_set(r.items - 'wt' - 'dr' - 'fi' - 'fv', '{jl}', to_jsonb((now() + interval '90 minutes')::text));
       r.items := jsonb_set(r.items, '{jp}', jsonb_build_object('t', now(), 'e', now() + interval '90 minutes', 'n', 0, 'bad', 1));
       r := public.town_prior_set(r, now() + interval '90 minutes', true);
       if r.items#>>'{veh,k}' is not null then r.items := jsonb_set(r.items, '{veh}', (r.items->'veh') - 'k'); end if;
@@ -1056,7 +1056,7 @@ begin
     end if;
     if vk is not null then r := public.town_traffic(r, vk, px, py, dest); r := public.town_crash(r, vk, px, py); end if;
     r.x := px; r.y := py; r.place := dest;
-    r.items := case when dest = 'home:' || rid then jsonb_set(r.items, '{dr}', '1'::jsonb) else r.items - 'dr' end;  -- 走到自己家門口：站在門外，要按「進屋」
+    r.items := (case when dest = 'home:' || rid then jsonb_set(r.items, '{dr}', '1'::jsonb) else r.items - 'dr' end) - 'fv';  -- 走到自己家門口：站在門外，要按「進屋」；移動一定離開朋友家（fv）
     -- 隨機事件：出門走到外面的地方時偶爾發生（家裡不會）
     if dest !~ '^home:' and random() < .12 then
       pa := random();
@@ -1515,6 +1515,7 @@ begin
       else
         if not public.town_inside(t) then raise exception '% %。可以留言或放禮物', tn, case when t.place = 'home:' || target then '還在家門口，沒進屋' else '不在家，在' || public.town_place_name(t.place) end; end if;
         m := case when bond >= 30 then 1.3 else 1 end;
+        if act in ('feed','wash','wakeup','visit') and coalesce(r.items->>'fv','') <> target::text then raise exception '要先按「進去」走進 % 家才能面對面（在門口只能留言、放禮物、丟雞蛋、惡作劇）', tn; end if;
         if act = 'feed' then if r.money < 60 then raise exception '錢不夠買食材'; end if; t.hunger := t.hunger + 35*m; r.money := r.money - 60; r.fun := r.fun + 5; perform public.town_bond(r.town_id, rid, t.id, 3);
           insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id,rid,target,act, r.name || ' 煮了一餐給 ' || tn || ' 吃');
         elsif act = 'wash' then t.hygiene := t.hygiene + 45*m; perform public.town_bond(r.town_id, rid, t.id, 3);
