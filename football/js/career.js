@@ -6,7 +6,7 @@ function starCurve(p){if(!p.realStar||p.age<13||p.age>28||!p.s)return;const w=DP
 // ── 一季 ──
 async function season(){
  const p=P;p.age++;starCurve(p);
- heightYear(p);await starsYear(p);if(p.age>=13)await resolveSeeds(p);if(p.age>=16&&!p.retired&&(p.turns||0)<2&&R()<.04)await turningPoint(p);if(p.club&&!p.retired)await dualChoice(p);await storyYear(p);if(!p.retired)await worldYear(p);
+ heightYear(p);await starsYear(p);if(p.age>=13)await resolveSeeds(p);if(p.age>=16&&!p.retired&&(p.turns||0)<2&&R()<.04)await turningPoint(p);if(p.club&&!p.retired)await dualChoice(p);await storyYear(p);await sagaYear(p);if(!p.retired)await worldYear(p);
  if(p.age<13){await childhood(p);p.ovrHist[p.age]=ovr(p);if(p.age>=p.touchAge)(p.yhist=p.yhist||[]).push({age:p.age,a:{...p.a},ovr:ovr(p),val:0,wage:0,money:p.money,h:p.h,fat:p.fat||0,club:p.stage});return}
  if(p.age==13&&!p.originDone){p.originDone=1;applyOrigin(p)}
  if(p.age==13){await academy();say("開始有正式的訓練課表了：射門、防守、戰術都能排進每週計劃。");toast("育成計劃解鎖更多訓練項目")}
@@ -594,3 +594,41 @@ async function postCareer(p){
   p.found.filter(x=>!x.told&&p.age-x.y>=6).forEach(x=>{x.told=1;if(x.ok){p.scoutHits=(p.scoutHits||0)+1;p.fame+=4;say(`你當年發掘的 ${x.n} 入選國家隊，媒體稱你是「伯樂」。`,1)}else say(`你推薦的 ${x.n} 沒能踢上職業隊。`)});
   p.money+=.04;p.afterDetail=`球探，發掘了 ${p.scoutHits||0} 位國腳`;if(p.age>=68)p.after="退休的球探"}
 }
+
+// ── 人生主線：依能力、性格、背景、出道年齡、傷病、轉會、國家隊判定（隨人生推進會變，結局時定案）──
+const SAGA={
+ prodigy:["青訓天才","年紀輕輕就闖進一線隊，從小被當成未來之星。"],late:["大器晚成","走得比同齡人慢，真正發光已經是很多年以後。"],injury:["傷病重生","一次又一次倒下，又一次又一次站起來。"],
+ nomad:["浪子漂泊","到處換球隊、換國家，把足球當成環遊世界的方式。"],loyal:["忠誠一線隊","一輩子只屬於一兩支球隊，球迷把他當成家人。"],hero:["國家隊支柱","穿上國家隊球衣的次數，比任何俱樂部都多。"],
+ rebel:["爭議人物","場內場外都有話題，喜歡和討厭他的人一樣多。"],leader:["球場領袖","不是最耀眼的那個，卻是更衣室最信任的人。"],journey:["平凡之路","沒有傳奇，但踢完了自己的一生。"],dreamer:["追夢者","沒能踢上職業，但曾經為了足球拚過。"],
+ hurt:["傷病夢碎","身體先放棄了，夢想還沒有。"],family:["為家庭轉身","家裡需要他，他把球鞋放下，扛起另一份責任。"],almost:["差一步的天才","球探都說他有天分，只是機會始終沒有來。"],street:["街頭浪子","在巷口和球場之間長大，沒有教練的球感最野。"],campus:["校園之星","在學校隊風光過，畢業後路就分岔了。"],quit:["自己放下","沒有人逼他，只是有一天他覺得夠了。"]};
+function sagaOf(p){const ss=p.seasons||[],pk=ss.length?ss.reduce((a,b)=>b.ovr>a.ovr?b:a):null,pa=pk?pk.age:0,cl=(p.clubsPlayed||[]).length,
+  ct=new Set((p.clubsPlayed||[]).map(n=>{const c=CLUBS.find(x=>x.name==n);return c&&c.ct})).size,bg=p.bg,sc={};
+ sc.prodigy=p.debut&&p.debut<=18&&p.peak>=74?3+(p.peak>=80?1:0)+(bg=="足球世家"?.5:0):0;
+ sc.late=p.debut&&p.debut>=21?3:(pa>=27&&p.peak>=66?3:0);
+ sc.injury=(p.injuries||0)>=3?2+((p.injuries||0)-3)*.5:0;
+ sc.nomad=cl>=5&&ct>=2?2+(cl-5)*.3+(bg=="移民家庭"||bg=="街頭長大"?.7:0):0;
+ sc.loyal=cl&&cl<=2&&p.apps>=150?3+(bg=="足球世家"?.5:0):0;
+ sc.hero=p.caps>=30?2.5+p.caps/100:0;
+ sc.rebel=(p.sagaBan||p.banned||(T(p,"拚命")>=2&&(p.pop??50)<45))?3:0;
+ sc.leader=(T(p,"球商")>=2||(p.mind=="冷靜"&&p.age>=28))&&p.debut?2:0;
+ let best=null,bv=0;for(const k in sc)if(sc[k]>bv){bv=sc[k];best=k}
+ if(best)return best;if(p.debut)return"journey";
+ const h=[...String(p.id||p.name)].reduce((a,c)=>a*31+c.charCodeAt(0)|0,7),o=[];
+ if((p.injuries||0)>=1)o.push("hurt","hurt");if(bg=="單親家庭"||bg=="移民家庭")o.push("family","family");if(p.peak>=58)o.push("almost","almost");if(bg=="街頭長大")o.push("street","street");
+ if(p.stage=="學校隊"||p.stage=="少年隊")o.push("campus","campus");if(/放棄/.test(p.footEnd||""))o.push("quit","quit");o.push("dreamer");return o[Math.abs(h)%o.length]}
+// 每個人生用得到的主線小事件：只在目前符合該主線時出現，同一人生不重複、每三年最多一件
+const SAGA_EV={
+ prodigy:[p=>{p.fame+=3;return `${p.age} 歲，家鄉的報紙把你登上頭版，標題是「下一個傳奇」。壓力也跟著來了。`},p=>{p.morale-=4;return `身邊的人都說你是天才，但你自己知道，每天多練的那一小時才是秘密。`},p=>{p.fame+=2;return `其他球隊的球探在看台上看了你整季，經紀人電話打到爆。`}],
+ late:[p=>{p.morale-=3;return `同年紀的朋友早就出名了，你還在想自己到底適不適合踢球。`},p=>{tag(p,"自律");return `${p.age} 歲才慢慢找到自己的節奏，教練說你的身體「現在才準備好」。`},p=>{p.fame+=2;return `有人問你會不會後悔起步晚。你說：「我只是比較慢到站。」`}],
+ injury:[p=>{p.morale-=3;return `復健室成了你的第二個家，物理治療師比隊友更常見到你。`},p=>{p.health+=3;return `醫生說你的膝蓋「不該再踢球」。你把這句話貼在置物櫃裡。`},p=>{p.fame+=2;return `你的復出故事被拍成短片，在球迷之間傳開。`}],
+ nomad:[p=>{p.morale+=2;return `行李箱永遠只裝一半。你說你已經會用六種語言點咖啡。`},p=>{p.morale-=3;return `又一次搬家，新城市沒有認識的人，你在公寓裡一個人吃了晚餐。`},p=>{p.money+=.01;return `你在各國都有一兩個老朋友，每次比賽後都有人約你吃飯。`}],
+ loyal:[p=>{p.pop=clamp((p.pop??50)+6,0,100);return `看台上有人舉著寫你名字的布條，已經掛了好幾年。`},p=>{p.fame+=3;return `俱樂部歷史館為你開了一個展櫃，放著你的舊球鞋。`},p=>{p.morale+=3;return `轉會窗口又有人來問，你笑著說：「我哪裡都不想去。」`}],
+ hero:[p=>{p.fame+=3;return `國家隊的更衣室裡，你的位置已經好幾年沒人敢坐。`},p=>{p.morale+=2;return `唱國歌的時候，你還是會起雞皮疙瘩。`},p=>{p.morale-=2;return `為了國家隊長途飛行，回到俱樂部又累又被念，但你從不拒絕徵召。`}],
+ rebel:[p=>{p.fame+=2;p.pop=clamp((p.pop??50)-5,0,100);return `你在記者會上說的話又上了新聞，有人罵你，也有人為你說話。`},p=>{p.morale-=3;return `和教練的衝突被媒體挖出來，更衣室氣氛很僵。`},p=>{p.fame+=3;return `你不在意別人怎麼想，球迷分成兩派：愛你的和討厭你的。`}],
+ leader:[p=>{p.morale+=3;return `新來的年輕球員第一個找的人是你，你帶他認識球隊、也教他怎麼生活。`},p=>{tag(p,"球商");return `教練把你叫進辦公室，問你對下一場比賽的戰術有什麼看法。`},p=>{p.fame+=2;return `隊長臂章交到你手上時，全隊都鼓掌。`}],
+ journey:[p=>{p.morale+=1;return `比賽結束後沒有媒體圍上來，你騎腳踏車回家，心裡很踏實。`},p=>{p.fame+=1;return `你在社區球場辦了一場公益賽，來了很多老鄰居。`}],
+ hurt:[p=>{p.morale-=1;return `膝蓋一痛，你就想起那場比賽。`}],family:[p=>{p.morale+=1;return `你開始幫家裡的忙，球場去得少了。`}],almost:[p=>{p.morale-=1;return `有球探說過你很有天分。你一直記得那句話。`}],street:[p=>{p.morale+=1;return `巷口的球場燈亮著，你還是第一個到、最後一個走。`}],campus:[p=>{p.morale+=1;return `學弟妹來問你學校隊的故事。`}],quit:[p=>{p.morale+=1;return `你把球放在床底，沒有再拿出來。`}],
+ dreamer:[p=>{p.morale+=1;return `每次路過球場，你還是會停下來看一會兒。`},p=>{p.morale-=1;return `你把舊球鞋收進紙箱，但沒有丟。`}]};
+async function sagaYear(p){if(p.age<16||p.retired||p.footEnd||R()>.22)return;p.sagaDone=p.sagaDone||[];if(p.age-(p.sagaLast||0)<3&&p.sagaLast)return;
+ const k=sagaOf(p),pool=SAGA_EV[k]||[],i=pool.map((_,n)=>n).filter(n=>!p.sagaDone.includes(k+n));if(!i.length)return;const n=pick(i);p.sagaDone.push(k+n);p.sagaLast=p.age;
+ const t=pool[n](p),yr=p.y0+p.age;say("📖 "+t,1);(p.arcs=p.arcs||[]).push({y:yr,from:yr,txt:t})}
