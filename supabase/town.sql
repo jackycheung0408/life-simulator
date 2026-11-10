@@ -1734,6 +1734,8 @@ begin
     win := case k when 3 then bet*4 when 2 then floor(bet*1.4) else 0 end;
     res := json_build_object('pick',to_json(pk),'draw',to_json(dr),'hit',k,'win',win);
   else raise exception '沒有這個遊戲'; end if;
+  -- 結果一律帶這一局實際押注（前端不要用畫面上的押注選單推算輸贏）
+  res := (res::jsonb || jsonb_build_object('bet', bet))::json;
   r.money := r.money + win; r.fun := least(100, r.fun + 3);
   -- 只有淨賺 ≥100 才公告（淨賺 = 拿回的錢 − 押注），平手不公告
   if win - bet >= 1000 then insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', r.name || ' 在街機淨賺了 €' || (win - bet) || ' 🕹️'); end if;

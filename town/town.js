@@ -192,6 +192,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+ {id:"u32-bjbet",date:"11/10",title:"修好 21 點結果顯示錯誤",items:["以前發牌後如果改了押注金額，贏了也可能顯示成「輸了」","現在結果一律照這一局實際押的金額顯示","發牌後到結束前，押注按鈕會暫時鎖住"]},
  {id:"u31-nowake",date:"11/10",title:"睡著的人白天不會自己醒",items:["睡著離線的人，白天也會一直睡，不再精力滿了就自己醒","朋友可以走到他家、按「進去」再按「叫醒他」","自己上線按「起床」就會醒"]},
  {id:"u30-fixme",date:"11/10",title:"修好畫面紅字與更新紀錄",items:["修好走路、看朋友家時畫面右上角跳出紅色錯誤，朋友睡覺時的面板也恢復正常","修好選單的「更新紀錄」打不開的問題","朋友睡著時：屋頂飄 Z，站在他家門口按「進去」就有「叫醒他」"]},
  {id:"u29-zzz",date:"11/09",title:"屋頂的 Z 只代表真的在睡覺",items:["以前離線的人待在家，屋頂也會飄 Z，看起來像睡著但又叫不醒","現在只有真的睡著的人屋頂才飄 Z，才有「叫醒他」","離線很久但醒著的人，面板會寫他離線幾分鐘、在家休息"]},
@@ -731,16 +732,17 @@ function gamesModal(){$("modal").classList.remove("hide");const solo=SOLO.some(g
  if(menu)return;
  $("mbody").querySelectorAll("[data-bet]").forEach(b=>b.onclick=()=>{gameBet=+b.dataset.bet;$("mbody").querySelectorAll("[data-bet]").forEach(x=>x.classList.toggle("on",x==b))});
  const area=$("gArea"),money=()=>$("gMoney").textContent=R[me].money,err=e=>{area.querySelector(".gres")?area.querySelector(".gres").textContent=e.message:toast(e.message)};
- const result=(win,extra="")=>`<p class="gres ${win>gameBet?"good":win==gameBet?"":"bad"}">${win>gameBet?`贏了 €${win-gameBet}！`:win==gameBet?"平手，退回押注":`輸了 €${gameBet}`}${extra}</p>`;
+ const result=(g,extra="")=>{const win=g.win,b=g.bet||gameBet;return `<p class="gres ${win>b?"good":win==b?"":"bad"}">${win>b?`贏了 €${win-b}！`:win==b?"平手，退回押注":`輸了 €${b}`}${extra}</p>`};
+ const lockBet=on=>$("mbody").querySelectorAll("[data-bet]").forEach(x=>x.disabled=on);
  if(gameTab=="rps"){area.innerHTML=`<p>出一個：</p><div class="gbtns">${Object.entries(RPS).map(([k,[ic,n]])=>`<button class="gbig" data-m="${k}">${ic}<span>${n}</span></button>`).join("")}</div><div id="gShow" class="gshow"></div>`;
   area.querySelectorAll("[data-m]").forEach(b=>b.onclick=async()=>{area.querySelectorAll("[data-m]").forEach(x=>x.disabled=true);const show=$("gShow");let i=0;const spin=setInterval(()=>{show.innerHTML=`<div class="vs"><b>${RPS[b.dataset.m][0]}</b> VS <b>${Object.values(RPS)[i++%3][0]}</b></div>`},90);
-   try{const g=await playGame("rps",{choice:b.dataset.m});await new Promise(r=>setTimeout(r,700));clearInterval(spin);show.innerHTML=`<div class="vs"><b>${RPS[g.you][0]}</b> VS <b>${RPS[g.house][0]}</b></div><p class="mut">你出${RPS[g.you][1]}，莊家出${RPS[g.house][1]}</p>`+result(g.win);money()}catch(e){clearInterval(spin);show.innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
+   try{const g=await playGame("rps",{choice:b.dataset.m});await new Promise(r=>setTimeout(r,700));clearInterval(spin);show.innerHTML=`<div class="vs"><b>${RPS[g.you][0]}</b> VS <b>${RPS[g.house][0]}</b></div><p class="mut">你出${RPS[g.you][1]}，莊家出${RPS[g.house][1]}</p>`+result(g);money()}catch(e){clearInterval(spin);show.innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
    area.querySelectorAll("[data-m]").forEach(x=>x.disabled=false)})}
  if(gameTab=="hl"){area.innerHTML=`<p class="mut">翻一張牌，猜下一張更大還是更小（一樣大算輸）。越難猜中賠越多。</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="hlGo">發牌（押 €${gameBet}）</button></div>`;
-  $("hlGo").onclick=async()=>{try{const g=await playGame("hl_start");money();const c=g.card%100,hi=13-c,lo=c-1,pay=k=>k?(0.92*13/k).toFixed(2):"—";
+  $("hlGo").onclick=async()=>{try{const g=await playGame("hl_start");money();lockBet(true);const c=g.card%100,hi=13-c,lo=c-1,pay=k=>k?(0.92*13/k).toFixed(2):"—";
    $("gShow").innerHTML=`<div class="cards">${cardHTML(g.card)}${cardHTML(0,true)}</div>`;
    area.querySelector(".gbtns").innerHTML=`<button class="gbig" data-hl="hi" ${hi?"":"disabled"}>▲ 更大<span>×${pay(hi)}</span></button><button class="gbig" data-hl="lo" ${lo?"":"disabled"}>▼ 更小<span>×${pay(lo)}</span></button>`;
-   area.querySelectorAll("[data-hl]").forEach(b=>b.onclick=async()=>{try{const r2=await playGame("hl_guess",{choice:b.dataset.hl});$("gShow").innerHTML=`<div class="cards">${cardHTML(r2.card)}${cardHTML(r2.next)}</div>`+result(r2.win);money();
+   area.querySelectorAll("[data-hl]").forEach(b=>b.onclick=async()=>{try{const r2=await playGame("hl_guess",{choice:b.dataset.hl});$("gShow").innerHTML=`<div class="cards">${cardHTML(r2.card)}${cardHTML(r2.next)}</div>`+result(r2);money();
     area.querySelector(".gbtns").innerHTML=`<button class="pri" id="hlGo">再來一局（押 €${gameBet}）</button>`;$("hlGo").onclick=()=>gamesModal()}catch(e){toast(e.message)}})}catch(e){toast(e.message)}}}
  if(gameTab=="wheel"){const SEG=["銘謝","銘謝","銘謝","銘謝","銘謝","銘謝","×0.5","×1","×2","×5"],COL=["#3a4a8c","#2b3870","#3a4a8c","#2b3870","#3a4a8c","#2b3870","#2e9e5b","#d8901a","#e0779b","#d4a017"];
   area.innerHTML=`<div class="wheelbox"><canvas id="wh" width="240" height="240"></canvas><div class="wptr">▼</div></div><div class="gbtns"><button class="pri" id="whGo">轉！（押 €${gameBet}）</button></div><div id="gShow"></div>`;
@@ -748,28 +750,28 @@ function gamesModal(){$("modal").classList.remove("hide");const solo=SOLO.some(g
     m.save();m.translate(120,120);m.rotate(a0+Math.PI/10);m.fillStyle="#fff";m.font="bold 13px Cubic11,sans-serif";m.textAlign="right";m.fillText(SEG[i],100,5);m.restore()}m.beginPath();m.arc(120,120,16,0,7);m.fillStyle="#fff";m.fill();m.stroke()};draw(0);
   $("whGo").onclick=async()=>{$("whGo").disabled=true;try{const g=await playGame("wheel");const target=-g.slot*Math.PI/5,start=ang,end=target-Math.PI*2*(5+Math.floor(Math.random()*2)),t0=performance.now();
    await new Promise(res=>{const step=t=>{const k=Math.min(1,(t-t0)/2600),e=1-Math.pow(1-k,3);ang=start+(end-start)*e;draw(ang);if(k<1)requestAnimationFrame(step);else res()};requestAnimationFrame(step)});ang=target;
-   $("gShow").innerHTML=result(g.win,` · 轉到「${SEG[g.slot]}」`);money()}catch(e){toast(e.message)}$("whGo").disabled=false}}
+   $("gShow").innerHTML=result(g,` · 轉到「${SEG[g.slot]}」`);money()}catch(e){toast(e.message)}$("whGo").disabled=false}}
  if(gameTab=="bj"){area.innerHTML=`<p class="mut">比莊家接近 21 點又不爆。莊家補到 17 點。開局 21 點賠 2.5 倍。</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="bjGo">發牌（押 €${gameBet}）</button></div>`;
-  const show=(g)=>{const p=bjTotal(g.p),d=bjTotal(g.d);$("gShow").innerHTML=`<p>莊家 <b>${g.done?d:"?"}</b></p><div class="cards">${g.d.map(c=>cardHTML(c)).join("")}${g.done?"":cardHTML(0,true)}</div><p>你 <b>${p}</b>${g.bust?" 爆了！":g.bj?" 21 點！":""}</p><div class="cards">${g.p.map(c=>cardHTML(c)).join("")}</div>`+(g.done?result(g.win):"");
-   area.querySelector(".gbtns").innerHTML=g.done?`<button class="pri" id="bjGo">再來一局（押 €${gameBet}）</button>`:`<button class="gbig" id="bjHit">要牌</button><button class="gbig" id="bjStand">停牌</button>`;
+  const show=(g)=>{const p=bjTotal(g.p),d=bjTotal(g.d);$("gShow").innerHTML=`<p>莊家 <b>${g.done?d:"?"}</b></p><div class="cards">${g.d.map(c=>cardHTML(c)).join("")}${g.done?"":cardHTML(0,true)}</div><p>你 <b>${p}</b>${g.bust?" 爆了！":g.bj?" 21 點！":""}</p><div class="cards">${g.p.map(c=>cardHTML(c)).join("")}</div>`+(g.done?result(g):"");
+   lockBet(!g.done);area.querySelector(".gbtns").innerHTML=g.done?`<button class="pri" id="bjGo">再來一局（押 €${gameBet}）</button>`:`<button class="gbig" id="bjHit">要牌</button><button class="gbig" id="bjStand">停牌</button>`;
    if(g.done){$("bjGo").onclick=()=>gamesModal();money()}else{$("bjHit").onclick=async()=>{try{show(await playGame("bj_hit"))}catch(e){toast(e.message)}};$("bjStand").onclick=async()=>{try{show(await playGame("bj_stand"))}catch(e){toast(e.message)}}}};
   $("bjGo").onclick=async()=>{try{show(await playGame("bj_start"));money()}catch(e){toast(e.message)}}}
 
  if(gameTab=="dice"){const D=["1","2","3","4","5","6"];area.innerHTML=`<p class="mut">三顆骰。押大（11～17）或小（4～10）賠 1 倍，三顆一樣通吃。押單一點數：出現幾顆就賠幾倍。</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="gbig" data-d="big">大<span>×2</span></button><button class="gbig" data-d="small">小<span>×2</span></button></div><div class="gbtns">${D.map(n=>`<button class="gbig sm" data-d="${n}">${n}</button>`).join("")}</div>`;
   const die=n=>`<span class="pcard die">${n}</span>`;
   area.querySelectorAll("[data-d]").forEach(b=>b.onclick=async()=>{area.querySelectorAll("[data-d]").forEach(x=>x.disabled=true);const show=$("gShow");const spin=setInterval(()=>{show.innerHTML=`<div class="cards">${[0,0,0].map(()=>die(1+Math.floor(Math.random()*6))).join("")}</div>`},80);
-   try{const g=await playGame("dice",{choice:b.dataset.d});await new Promise(r=>setTimeout(r,700));clearInterval(spin);const sum=g.dice.reduce((a,x)=>a+x,0);show.innerHTML=`<div class="cards">${g.dice.map(die).join("")}</div><p class="mut">合計 ${sum}</p>`+result(g.win);money()}catch(e){clearInterval(spin);show.innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
+   try{const g=await playGame("dice",{choice:b.dataset.d});await new Promise(r=>setTimeout(r,700));clearInterval(spin);const sum=g.dice.reduce((a,x)=>a+x,0);show.innerHTML=`<div class="cards">${g.dice.map(die).join("")}</div><p class="mut">合計 ${sum}</p>`+result(g);money()}catch(e){clearInterval(spin);show.innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
    area.querySelectorAll("[data-d]").forEach(x=>x.disabled=false)})}
  if(gameTab=="slots"){const SY=['<b class="s7">7</b>',"🔔","⭐","🍀","🥚","💰"],PAY=[40,20,12,10,8,8];
   area.innerHTML=`<p class="mut">三個一樣：${SY.map((y,i)=>`${y}×${PAY[i]}`).join(" ")}；剛好兩個一樣 ×1.1。</p><div class="reels" id="reels">${[0,1,2].map(()=>`<div class="reel">${SY[0]}</div>`).join("")}</div><div class="gbtns"><button class="pri" id="slGo">拉霸（押 €${gameBet}）</button></div><div id="gShow"></div>`;
   $("slGo").onclick=async()=>{$("slGo").disabled=true;const rs=[...area.querySelectorAll(".reel")];rs.forEach(r=>delete r.dataset.stop);const spin=setInterval(()=>rs.forEach(r=>{if(!r.dataset.stop)r.innerHTML=SY[Math.floor(Math.random()*6)]}),70);
    try{const g=await playGame("slots");for(let i=0;i<3;i++){await new Promise(r=>setTimeout(r,500));if(i==2)clearInterval(spin);rs[i].dataset.stop=1;rs[i].innerHTML=SY[g.reels[i]]}
-    $("gShow").innerHTML=result(g.win);money()}catch(e){clearInterval(spin);toast(e.message)}$("slGo").disabled=false}}
+    $("gShow").innerHTML=result(g);money()}catch(e){clearInterval(spin);toast(e.message)}$("slGo").disabled=false}}
  if(gameTab=="bingo"){let pick=[];area.innerHTML=`<p class="mut">1～10 選 3 個號碼，開 5 個號碼。中 2 個 ×1.4，中 3 個 ×4。</p><div class="bnums">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button data-n="${n}">${n}</button>`).join("")}</div><div class="gbtns"><button class="pri" id="bgGo" disabled>選滿 3 個再開獎（押 €${gameBet}）</button></div><div id="gShow"></div>`;
   const nums=()=>[...area.querySelectorAll("[data-n]")];
   nums().forEach(b=>b.onclick=()=>{const n=+b.dataset.n;if(pick.includes(n))pick=pick.filter(x=>x!=n);else if(pick.length<3)pick.push(n);nums().forEach(x=>x.classList.toggle("on",pick.includes(+x.dataset.n)));$("bgGo").disabled=pick.length!=3;$("bgGo").textContent=pick.length==3?`開獎（押 €${gameBet}）`:`選滿 3 個再開獎（${pick.length}/3）`});
   $("bgGo").onclick=async()=>{$("bgGo").disabled=true;try{const g=await playGame("bingo",{choice:pick.join(",")});nums().forEach(x=>{const n=+x.dataset.n;x.classList.toggle("hit",g.draw.includes(n));x.disabled=true});
-   $("gShow").innerHTML=`<p class="mut">開出 ${g.draw.slice().sort((a,b)=>a-b).join("、")} · 中 ${g.hit} 個</p>`+result(g.win);money();area.querySelector(".gbtns").innerHTML=`<button class="pri" id="bgAgain">再來一局</button>`;$("bgAgain").onclick=()=>gamesModal()}catch(e){toast(e.message);$("bgGo").disabled=false}}}
+   $("gShow").innerHTML=`<p class="mut">開出 ${g.draw.slice().sort((a,b)=>a-b).join("、")} · 中 ${g.hit} 個</p>`+result(g);money();area.querySelector(".gbtns").innerHTML=`<button class="pri" id="bgAgain">再來一局</button>`;$("bgAgain").onclick=()=>gamesModal()}catch(e){toast(e.message);$("bgGo").disabled=false}}}
  // 單機：前端自己玩，結束後只把個人最佳分數送給伺服器（不給錢）
  const sendScore=async(game,score)=>{try{const r=await rpc("town_score",{rid:me,pin,game,score});const it=R[me].items=R[me].items||{};it.sp=it.sp||{};if(score>(it.sp[game]||0))it.sp[game]=score;return r}catch(e){toast(e.message);return null}};
  const soloEnd=async(game,score,note)=>{const r=await sendScore(game,score);$("gShow").innerHTML=`<p class="gres good">得分 <b>${score}</b>${note||""}</p><p class="mut">個人最佳 ${r?r.best:spOf(R[me],game)}${r&&r.gain?" · 心情 +"+r.gain:""}</p><div class="gbtns"><button class="pri" id="sgAgain">再玩一次</button></div>`;$("sgAgain").onclick=()=>gamesModal()};
