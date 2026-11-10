@@ -193,6 +193,11 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(tsql.includes("act in ('feed','wash','wakeup','visit') and coalesce(r.items->>'fv','') <> target::text"),"town.sql：煮飯、洗澡、叫醒、串門子要先進他家（惡作劇、丟雞蛋、留言、送禮留在門口）");
  check((tsql.match(/- 'fv'/g)||[]).length>=3,"town.sql：移動、離線回家睡、入獄都要清掉 fv");
  check(tjs.includes("function enterFriend(")&&tjs.includes("function exitFriend(")&&tjs.includes('btn("進去",')&&tjs.includes("!vin(r)"),"面板：門口只有進去，進去後才有煮飯、洗澡、叫醒、串門子與出門");}
+// 頂層函式（init() 外面）不可使用只在 init() 裡宣告的 me／$／esc／pxify／toast／pin／R／S（曾因 offTxt、updModal 用了 me／$ 而在畫面丟 "me is not defined"、更新紀錄打不開）
+{const src=require("fs").readFileSync(__dirname+"/town.js","utf8").split("\n"),ii=src.findIndex(l=>l.startsWith("function init(){")),top=src.slice(0,ii);
+ const strip=l=>l.replace(/\/\/.*$/,"").replace(/`(?:[^`\\]|\\.)*`/g,"``").replace(/"(?:[^"\\]|\\.)*"/g,'""').replace(/'(?:[^'\\]|\\.)*'/g,"''");
+ const bad=[];top.forEach((l,i)=>{const s=strip(l);for(const n of ["me","$","esc","pxify","toast","pin","R","S"]){const re=new RegExp("(^|[^\\w$.])"+n.replace("$","\\$")+"(?![\\w$:])");if(re.test(s))bad.push(n+"@"+(i+1))}});
+ check(ii>0&&bad.length==0,"頂層函式用了只在 init() 裡的變數："+bad.join(", ")+"（把函式搬進 init()，或把值當參數傳進去）")}
 // roomOf 是頂層函式，拿不到 init() 裡的 R：不可直接用 R（曾因此在街上也丟 "R is not defined"），要靠呼叫的人傳居民表
 {const A={id:1,place:"street",items:{}},H={id:2,place:"home:2",sleeping:true,items:{hl:1}},W={id:3,place:"home:2",items:{}};
  let ok1=true,ok2=true,ok3=true;try{ok1=M.roomOf(A,{1:A,2:H})===null}catch(e){ok1=false}

@@ -94,6 +94,7 @@
 - **獄友事件** `town_jail_ev(rid,pin,op,item)`（poll／pick，和設施小事件同格式）：4 個事件（聊天、被欺負、交換物品、幫忙）× 2 個選項，效果表 `town_jail_ev_eff`（12 欄：心情、精力、錢、好感、成功%、失敗心情／精力／錢／好感、成功刑期分、失敗刑期分、惹事），前端 `JE` 文字順序要一致；每天最多 8 個、約 5～10 分鐘一個；賭的選項金錢期望值 ≤ 0（牌 −10）、減刑到 0 就出獄。
 - **監獄室內**：`ROOMS.jail`（鐵窗、通風口、探監窗口、大門、保釋櫃檯、上下鋪、勞動工作台、放風場）。**入獄中的人自動算在裡面**（`fin` 對 `place=="jail" && jailed(r)` 為 true，面板不顯示「出門」）；探監的人用 `town_fi` 的「進去」。動畫 `ROOM_ACT`：勞動→工作台敲打、放風→曬太陽、探望→窗口冒愛心、越獄→通風口搖晃、假釋→大門透光、保釋→櫃檯數錢。新圖示 `bars／hammer／glass／vent`。
 - **教訓（SQL）**：plpgsql 裡查詢的表別名不要叫 `x`／`y`（和 `town_residents` 的位置欄撞名，`town_jailed(x)` 會被當成 `town_jailed(real)` 而報「function does not exist」）；同一個交易裡 `now()` 不會動，測試要讓 tick 動起來要把 `updated_at` 設成 `now() - interval '1 minute'`（`h <= 0` 會直接 return）。
+- **教訓（頂層函式只看得到頂層）**：`town.js` 的 `function init(){` 以前的程式是頂層，**不可用 `init()` 裡才宣告的 `me`／`$`／`esc`／`pxify`／`toast`／`pin`／`R`／`S`**（會在畫面丟 "me is not defined" 紅字、整個面板畫不出來；曾因 `offTxt`、更新通知的 `updModal` 犯過）。要用就把函式放進 `init()`（`enter()` 前面那一段），或把值當參數傳進去（`roomOf(r,R)`）；`node town/test.js` 有靜態掃描會擋。
 - **教訓**：頂層函式（`init()` 外面的，例如 `jlLeft`）不能用 `init()` 裡的 `now()`（沒有定義，只要有人被關著就會出錯）；用頂層的 `nowFn()`（`init()` 建好 `now` 後指到它）。
 
 ## 走進設施裡面（咖啡廳、餐廳、健身房；SQL 已套用 2026-11-09，實測通過：`supabase/town_fi.sql`，要在 `town.sql`、`town_social.sql` 之後；實測 `supabase/town_fi_test.sql`，最後 rollback，結果在錯誤訊息 REPORT）

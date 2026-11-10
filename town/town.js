@@ -147,7 +147,6 @@ const HACT={bed:[/^睡覺/,"好床"],fridge:[/^吃飯/,"冰箱"],sofa:[/^看電�
 const fpOf=it=>Array.isArray(it.fp)?it.fp:(it.fu||[]).map((k,i)=>[k,1+(i%3)*2,1+Math.floor(i/3)]).filter(o=>o[0]);
 const hasF=(r,k)=>!!(r.items&&Array.isArray(r.items.fu)&&r.items.fu.includes(k));
 // 在屋裡：人在自己家，且沒有「站在門口」旗標 items.dr（舊角色沒有旗標＝在屋裡），和 SQL town_inside 一致
-const offTxt=t=>{const m=Math.floor((nowFn()-Date.parse(t.seen_at))/6e4);return t.id!=me&&m>=10?`（離線 ${m} 分鐘，人醒著在家休息，叫不到睡覺）`:""};// 離線很久但沒睡著的人：屋頂不飄 Z，面板寫清楚
 function inside(r){return !!r&&r.place=="home:"+r.id&&!(r.items&&String(r.items.dr)=="1")}
 // 在朋友家屋裡：人在 home:屋主，且 items.fv = 屋主 id（和 SQL town_vin 一致；缺值 = 在門外）
 function vin(r){return !!r&&!!r.items&&r.items.fv!=null&&String(r.items.fv)!==String(r.id)&&r.place=="home:"+r.items.fv}
@@ -193,6 +192,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+ {id:"u30-fixme",date:"11/10",title:"修好畫面紅字與更新紀錄",items:["修好走路、看朋友家時畫面右上角跳出紅色錯誤，朋友睡覺時的面板也恢復正常","修好選單的「更新紀錄」打不開的問題","朋友睡著時：屋頂飄 Z，站在他家門口按「進去」就有「叫醒他」"]},
  {id:"u29-zzz",date:"11/09",title:"屋頂的 Z 只代表真的在睡覺",items:["以前離線的人待在家，屋頂也會飄 Z，看起來像睡著但又叫不醒","現在只有真的睡著的人屋頂才飄 Z，才有「叫醒他」","離線很久但醒著的人，面板會寫他離線幾分鐘、在家休息"]},
  {id:"u28-visit",date:"11/09",title:"可以走進朋友家了",items:["站在朋友家門口時，屋裡看不到你，進去後才會出現你的身影","門口可以留言、放禮物、丟雞蛋、惡作劇；按「進去」才能煮飯、洗澡、叫醒、串門子","進去後按「出門」回到門口","朋友不在屋裡，或和你關係太差，會進不去"]},
  {id:"u27-furnfx",date:"11/09",title:"家裡沒家具，生活變陽春",items:["沒有好床睡地上：精力每小時 +64、醒來心情 −3","沒有冰箱吃冷食、沒馬桶找角落、沒淋浴間用水桶、沒電視櫃只能發呆","互動照樣能做，按鈕副標會寫現在是陽春版","超市新增馬桶 €2000、淋浴間 €3000，擺進房間才有效","已有的家具效果不變，沒有人被扣錢"]},
@@ -230,15 +230,6 @@ const FAC={special:["今日特餐",200,"飽足 +40 · 心情 +12 · 20 分鐘一
  frisbee:["丟飛盤",0,"雙方精力 −4、心情 +8、好感 +1 · 同一人 15 分鐘一次",["park","plaza"],1],fish:["釣魚",30,"餌 €30：15% 賣 €100、35% 賣 €30、其餘空手 · 心情 +4 · 10 分鐘一次",["park"],0],
  picnic:["野餐",150,"飽足 +25 · 心情 +12 · 在場的人好感 +1 · 30 分鐘一次",["park"],0],feast:["高級套餐",3000,"飽足 +40 · 心情 +30 · 12 小時一次 · 不打折",["restaurant"],0],spa:["溫泉 SPA",2000,"精力 +30 · 心情 +25 · 清潔 +40 · 10 小時一次 · 不打折",["gym"],0],trip:["小旅行",8000,"心情 +60 · 精力 −10 · 飽足 −10 · 24 小時一次 · 不打折",["plaza"],0],photo:["自拍",0,"心情 +5 · 30 分鐘一次",["park","plaza"],0],photo2:["合照",0,"雙方心情 +6、好感 +1 · 同一人 30 分鐘一次",["park","plaza"],1]};
 const TASKS=["今天打工 3 次","做 3 次設施互動","去 3 個不同地點互動","和 2 位鄰居一起互動","健身房簽到","釣到一條魚","點歌或請客一次","吃今日特餐或野餐"];
-const UPS_KEY=()=>"town_ups_"+me;
-function upsSeen(){try{return JSON.parse(localStorage.getItem(UPS_KEY())||"null")}catch(e){return null}}
-function upsMark(){try{localStorage.setItem(UPS_KEY(),JSON.stringify(UPDATES.map(u=>u.id)))}catch(e){}}
-function updHtml(list){return list.map(u=>`<h3>${esc(u.title)} <small class="mut">${esc(u.date)}</small></h3><ul style="margin:4px 0 8px 16px;padding:0">${u.items.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>`).join("")}
-function updModal(all){const seen=all?null:upsSeen();let list=all?UPDATES:seen?UPDATES.filter(u=>!seen.includes(u.id)):UPDATES.slice(0,1);
- if(!list.length)return false;if(list.length>3&&!all)list=list.slice(0,3);
- $("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>${all?"更新紀錄":"小鎮更新了"}</h2><div class="list" style="max-height:60vh;overflow:auto">${updHtml(list)}</div><div class="row"><button id="updok" class="pri">好</button></div>`;
- $("updok").onclick=()=>{$("modal").classList.add("hide");upsMark()};if(!all)upsMark();pxify($("mbody"));return true}
-function updCheck(){if(!me||!$("modal").classList.contains("hide"))return;updModal(false)}
 const RW=12,RH=5,RC=24;
 const ITEM={coffee:["cup","咖啡機",/特調咖啡/,1],cake:["cookie","蛋糕櫃",/集點卡/,1],lamp:["lamp","立燈",null,1],jukebox:["guitar","點歌機",/點歌/,1],job:["case","員工通道",/^打工|^應徵/,0],bar:["plate","吧台",/請客|吃一頓/,1],table:["bench","桌椅",/坐下|起身/,1],plant:["plant","盆栽",null,1],
  kitchen:["meat","廚房窗口",/今日特餐/,1],menu:["picture","菜單板",/高級套餐/,0],pack:["box","打包櫃檯",/打包/,1],mirror:["picture","鏡子",null,0],locker:["lock","置物櫃",/每日簽到/,0],spa:["drops","溫泉池",/溫泉/,0],treadmill:["walk","跑步機",/^健身/,1],rack:["dumbbell","啞鈴架",/^健身/,1],bag:["fist","拳擊沙包",/對練/,1],
@@ -398,6 +389,17 @@ function lookPicker(el,look,cb,items){look=normLook(look);const owned=new Set(((
   miniPerson(el.querySelector("canvas"),look);
   el.querySelectorAll(".sw[data-k]").forEach(b=>b.onclick=()=>{look={...look,[b.dataset.k]:b.dataset.v};cb(look);draw()});
   el.querySelectorAll(".sw[data-t]").forEach(b=>b.onclick=()=>{look={...look,[b.dataset.t]:!look[b.dataset.t]};cb(look);draw()})};cb(look);draw()}
+// 以下依賴 init() 裡的 me／$／esc／pxify，必須放在 init() 裡面（放頂層會丟 "me is not defined"）
+const offTxt=t=>{const m=Math.floor((nowFn()-Date.parse(t.seen_at))/6e4);return t.id!=me&&m>=10?`（離線 ${m} 分鐘，人醒著在家休息，叫不到睡覺）`:""};// 離線很久但沒睡著的人：屋頂不飄 Z，面板寫清楚
+const UPS_KEY=()=>"town_ups_"+me;
+function upsSeen(){try{return JSON.parse(localStorage.getItem(UPS_KEY())||"null")}catch(e){return null}}
+function upsMark(){try{localStorage.setItem(UPS_KEY(),JSON.stringify(UPDATES.map(u=>u.id)))}catch(e){}}
+function updHtml(list){return list.map(u=>`<h3>${esc(u.title)} <small class="mut">${esc(u.date)}</small></h3><ul style="margin:4px 0 8px 16px;padding:0">${u.items.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>`).join("")}
+function updModal(all){const seen=all?null:upsSeen();let list=all?UPDATES:seen?UPDATES.filter(u=>!seen.includes(u.id)):UPDATES.slice(0,1);
+ if(!list.length)return false;if(list.length>3&&!all)list=list.slice(0,3);
+ $("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>${all?"更新紀錄":"小鎮更新了"}</h2><div class="list" style="max-height:60vh;overflow:auto">${updHtml(list)}</div><div class="row"><button id="updok" class="pri">好</button></div>`;
+ $("updok").onclick=()=>{$("modal").classList.add("hide");upsMark()};if(!all)upsMark();pxify($("mbody"));return true}
+function updCheck(){if(!me||!$("modal").classList.contains("hide"))return;updModal(false)}
 async function enter(){document.body.classList.add("ingame");$("menuBtn").classList.remove("hide");await refresh();setTimeout(()=>{const r=R[me];if(r&&$("modal").classList.contains("hide")){if(!r.items||r.items.tr===undefined)traitModal();else if(!r.items.wish)wishModal()}},1500);{const r0=R[me],fresh=!upsSeen()&&r0&&r0.items&&r0.items.tr===undefined;if(fresh)upsMark();else setTimeout(()=>{try{updCheck()}catch(e){}},2600)}tipsWhenFree();refreshBell().catch(()=>{});autoPush().catch(()=>{});$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
  const w=walkers[me];cam.x=w.x*T;cam.y=w.y*T;resize();$("mayor").classList.toggle("hide",!R[me].mayor);
  const ent=mine().find(x=>x.tid==TID);if(ent&&ent.invite){shareModal(ent.invite,true);delete ent.invite;saveMine(ent);return}
