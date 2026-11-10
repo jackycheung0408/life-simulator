@@ -1,6 +1,6 @@
 -- 門外叫醒實測：接在 town.sql、town_wake_out.sql 之後執行，結果在錯誤訊息 REPORT，整段 rollback（測試鎮，不碰真人）
 -- 檢查：1) 40 次叫醒成功率約 30%（精力 0）；2) 成功後乙 dr=1、醒著、精力不補、有 wo；3) 失敗只寫 wakefail、3 分鐘內被擋、4 分鐘後可再試；
---       4) 成功後 1 小時內不能再叫；5) 乙醒著、乙已在門口、甲不在他家門口、甲在他家裡（vin）、乙昏倒，各自被擋；6) 成功後門口兩人可以擊掌
+--       4) 成功後 1 小時內不能再叫；5) 乙已在門口、甲不在他家門口、甲在他家裡（vin）、乙昏倒，各自被擋；6) 成功後門口兩人可以擊掌；7) 乙醒著待在屋裡（離線）：喊他出來（好感決定成功率、10 分鐘一次、不肯出來擋 3 分鐘）
 do $$
 declare cr json; jn json; ra bigint; rb bigint; tid text; rep text := ''; i int; ok_n int := 0; fail_n int := 0; r1 public.town_residents; j json; en0 real;
 begin
@@ -63,7 +63,7 @@ begin
   -- 5) 各種擋
   delete from public.town_events where actor=ra and target=rb and kind in ('wakeup','wakefail');
   update public.town_residents set sleeping=false, items='{}'::jsonb where id=rb;
-  begin perform public.town_wake_out(ra,'1234',rb); rep := rep||'乙醒著：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'乙醒著：'||sqlerrm||E'\n'; end;
+  begin perform public.town_wake_out(ra,'1234',rb); rep := rep||'乙醒著：可以喊他出來（對，新行為；睡著才是叫醒）'||E'\n'; exception when others then rep := rep||'乙醒著：'||sqlerrm||E'\n'; end;
   update public.town_residents set sleeping=true, items=jsonb_build_object('dr',1) where id=rb;
   begin perform public.town_wake_out(ra,'1234',rb); rep := rep||'乙已在門口：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'乙已在門口：'||sqlerrm||E'\n'; end;
   update public.town_residents set sleeping=true, items=jsonb_build_object('faint', (now()+interval '1 hour')::text, 'hosp', 1) where id=rb;
@@ -86,7 +86,7 @@ begin
     j := public.town_wake_out(ra,'1234',rb);
     if (j->>'ok')::boolean then ok_n := ok_n + 1; else fail_n := fail_n + 1; end if;
   end loop;
-  rep := rep||'喊他出來 40 次（好感 0）：肯 '||ok_n||'、不肯 '||fail_n||'（期望約 36／4）'||E'\n';
+  rep := rep||'喊他出來 40 次（好感 0）：肯 '||ok_n||'、不肯 '||fail_n||'（好感 '||public.town_bond_get(ra,rb)||' → 好感 ≥0 九成、−20～0 六成；前面叫醒各扣 1 點，所以約 6 成 24／16）'||E'\n';
   loop
     delete from public.town_events where actor=ra and target=rb and kind in ('callout','calloutfail');
     update public.town_residents set place='home:'||rb, sleeping=false, items='{}'::jsonb, seen_at=now()-interval '2 hours', updated_at=now() where id=rb;
@@ -94,7 +94,7 @@ begin
     exit when (j->>'ok')::boolean;
   end loop;
   select * into r1 from public.town_residents where id = rb;
-  rep := rep||'喊出來後：dr='||coalesce(r1.items->>'dr','無')||' wo.f='||coalesce(r1.items#>>'{wo,f}','無')||' 最後動作 '||round(extract(epoch from (now()-r1.seen_at)))||' 秒前 心情 '||round(r1.fun::numeric)||'（期望 1 甲 約 0 秒前 心情不變 90）'||E'\n';
+  rep := rep||'喊出來後：dr='||coalesce(r1.items->>'dr','無')||' wo.f='||coalesce(r1.items#>>'{wo,f}','無')||' 最後動作 '||round(extract(epoch from (now()-r1.seen_at)))||' 秒前 心情 '||round(r1.fun::numeric)||'（期望 1 甲 約 0 秒前 心情不變，前面叫醒扣過 3 剩 87）'||E'\n';
   begin perform public.town_wake_out(ra,'1234',rb); rep := rep||'已經在門口再喊：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'已經在門口再喊：'||sqlerrm||E'\n'; end;
   update public.town_residents set items='{}'::jsonb where id=rb;
   begin perform public.town_wake_out(ra,'1234',rb); rep := rep||'10 分鐘內再喊：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'10 分鐘內再喊：'||sqlerrm||E'\n'; end;
