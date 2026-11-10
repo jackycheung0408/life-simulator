@@ -94,7 +94,7 @@ create or replace function public.town_place_name(p text) returns text language 
   select case
     when p like 'home:%' then coalesce((select name from public.town_residents where id = substr(p,6)::bigint), '空屋') || ' 家'
     when p = 'plaza' then '廣場' when p = 'restaurant' then '餐廳' when p = 'market' then '超市'
-    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' when p = 'rafi' then '拉菲的辦公室' when p = 'stock' then '證券交易所' when p = 'carshop' then '車行' when p = 'jail' then '監獄' else '路上' end
+    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' when p = 'rafi' then '拉菲的辦公室' when p = 'stock' then '證券交易所' when p = 'carshop' then '車行' when p = 'jail' then '監獄' when p = 'hospital' then '醫院' when p = 'police' then '警察局' when p = 'townhall' then '市政廳' else '路上' end
 $$;
 create or replace function public.town_name_ok(t text) returns boolean language sql immutable as $$
   select char_length(trim(t)) between 1 and 12 and trim(t) !~ '[<>"]' and not public.has_bad_words(t)
@@ -128,7 +128,7 @@ $$;
 revoke all on function public.town_fund_add(text,text,int) from public, anon, authenticated;
 create or replace function public.town_feature(what text) returns text language sql immutable as $$
   select case when what in ('cafe','coffee') then 'cafe' when what in ('cinema','movie') then 'cinema' when what in ('gym','workout') then 'gym'
-    when what in ('arena','spar') then 'arena' when what in ('slaughter','sneak') then 'slaughter' when what = 'rafi' then 'rafi' when what in ('stock','trade') then 'stock' when what in ('carshop','vbuy','license') then 'carshop' when what = 'jail' then 'jail' else null end
+    when what in ('arena','spar') then 'arena' when what in ('slaughter','sneak') then 'slaughter' when what = 'rafi' then 'rafi' when what in ('stock','trade') then 'stock' when what in ('carshop','vbuy','license') then 'carshop' when what = 'jail' then 'jail' when what = 'hospital' then 'hospital' when what = 'police' then 'police' when what = 'townhall' then 'townhall' else null end
 $$;
 create or replace function public.town_is_off(tid text, f text) returns boolean language sql stable as $$
   select coalesce((select f = any(off) from public.town_towns where id = tid), false)
@@ -141,7 +141,7 @@ begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if not r.mayor then raise exception '只有鎮長可以做這件事'; end if;
-  if exists (select 1 from unnest(coalesce(off,'{}')) f where f not in ('cafe','cinema','gym','arena','slaughter','arcade','rafi','stock','carshop','lux','jail')) then raise exception '沒有這個設施'; end if;
+  if exists (select 1 from unnest(coalesce(off,'{}')) f where f not in ('cafe','cinema','gym','arena','slaughter','arcade','rafi','stock','carshop','lux','jail','hospital','police','townhall')) then raise exception '沒有這個設施'; end if;
   update public.town_towns set off = coalesce(town_features.off,'{}') where id = r.town_id;
   -- 關掉的地方有人在，請他們回到路上
   update public.town_residents set place = 'street' where town_id = r.town_id and place = any(coalesce(town_features.off,'{}'));
@@ -341,6 +341,16 @@ create or replace function public.town_inside(r public.town_residents) returns b
   select r.place = 'home:' || r.id and coalesce(r.items->>'dr','') <> '1'
 $$;
 revoke all on function public.town_inside(public.town_residents) from public, anon, authenticated;
+-- 送醫：昏倒、車禍住院、被砍倒地的人被送到醫院門口（人在「醫院室內」躺著：items.fi = 'hospital'）。醫院被鎮長關掉、人在監獄時不搬。要在 town_civic.sql 之後才有醫院的互動（看診、出院、探病）
+create or replace function public.town_admit(r public.town_residents) returns public.town_residents language plpgsql as $$
+begin
+  if r.place = 'jail' or r.place = 'hospital' or public.town_is_off(r.town_id, 'hospital') then return r; end if;
+  r.place := 'hospital'; r.x := 61; r.y := 14;
+  r.items := jsonb_set(r.items - 'dr' - 'fv', '{fi}', '"hospital"'::jsonb);
+  if r.items#>>'{veh,k}' is not null then r.items := jsonb_set(r.items, '{veh}', (r.items->'veh') - 'k'); end if;
+  return r;
+end $$;
+revoke all on function public.town_admit(public.town_residents) from public, anon, authenticated;
 -- 入獄中：items.jl = 出獄時間，還沒到就算被關著（不能移動、不能做 town_act 的任何動作；離線也不會被送回家睡）
 create or replace function public.town_jailed(r public.town_residents) returns boolean language sql stable as $$
   select coalesce((r.items->>'jl') is not null and (r.items->>'jl')::timestamptz > now(), false)
@@ -460,7 +470,8 @@ begin
   -- 飽足歸零（醒著）：餓到昏倒，原地睡著 1 小時
   if r.hunger <= 0 and not r.sleeping then
     r.sleeping := true; r.hunger := 10; r.items := jsonb_set(r.items, '{faint}', to_jsonb((now() + interval '1 hour')::text));
-    insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, r.id, 'faint', r.name || ' 餓到昏倒，在' || public.town_place_name(r.place) || '倒下了');
+    insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, r.id, 'faint', r.name || ' 餓到昏倒，在' || public.town_place_name(r.place) || '倒下了' || case when r.place in ('jail','hospital') or public.town_is_off(r.town_id, 'hospital') then '' else '，被送進醫院' end);
+    r := public.town_admit(r);
   end if;
   if not r.sleeping and r.energy <= 0 then
     r.sleeping := true; r.energy := 0;
@@ -1058,9 +1069,9 @@ begin
   if public.town_closed(case when act = 'obj' then item when act = 'job' then public.town_pjob_key(item) else act end) is not null then raise exception '%', public.town_closed(case when act = 'obj' then item when act = 'job' then public.town_pjob_key(item) else act end); end if;
   if public.town_is_off(r.town_id, public.town_feature(case when act = 'move' then dest when act = 'job' then public.town_pjob_key(item) else act end)) then raise exception '這個小鎮沒有開這個設施'; end if;
   if act = 'move' then
-    if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter','rafi','stock','carshop','jail')
+    if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter','rafi','stock','carshop','jail','hospital','police','townhall')
        or (dest ~ '^home:\d+$' and exists (select 1 from public.town_residents where id = substr(dest,6)::bigint and town_id = r.town_id))) then raise exception '去不了那裡'; end if;
-    if px is null or py is null or px < 0 or px > 64 or py < 0 or py > 40 then raise exception '位置不對'; end if;
+    if px is null or py is null or px < 0 or px > 71 or py < 0 or py > 40 then raise exception '位置不對'; end if;
     -- 走過別人留下的便便會踩到（路線離便便不到 0.6 格）
     select p.id::int into n from public.town_poops p where p.town_id = r.town_id and p.maker is distinct from rid and p.at > now() - interval '2 hours' and public.town_seg_d(p.x, p.y, r.x, r.y, px, py) < .6 order by p.at limit 1;
     if n is not null then
@@ -1077,6 +1088,7 @@ begin
     end if;
     if vk is not null then r := public.town_traffic(r, vk, px, py, dest); r := public.town_crash(r, vk, px, py); end if;
     r.x := px; r.y := py; r.place := dest;
+    if (r.items->>'hosp') is not null and (r.items->>'faint') is not null and (r.items->>'faint')::timestamptz > now() then r := public.town_admit(r); end if;  -- 車禍住院：送到醫院門口
     r.items := (case when dest = 'home:' || rid then jsonb_set(r.items, '{dr}', '1'::jsonb) else r.items - 'dr' end) - 'fv';  -- 走到自己家門口：站在門外，要按「進屋」；移動一定離開朋友家（fv）
     -- 隨機事件：出門走到外面的地方時偶爾發生（家裡不會）
     if dest !~ '^home:' and random() < .12 then
@@ -1092,7 +1104,7 @@ begin
       else r.money := r.money + 2000; tn := r.name || ' 買刮刮樂中了 €2000！🎉'; end if;
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', tn); tn := null;
     end if;
-    if dest in ('plaza','restaurant','market','park','cafe','cinema','gym','arena','slaughter','rafi','stock','carshop','jail') then
+    if dest in ('plaza','restaurant','market','park','cafe','cinema','gym','arena','slaughter','rafi','stock','carshop','jail','hospital','police','townhall') then
       select string_agg(name, '、') into others from public.town_residents where town_id = r.town_id and place = dest and id <> rid and not sleeping;
       if others is not null and not exists (select 1 from public.town_events e where e.actor = rid and e.kind = 'meet' and e.at > now() - interval '2 hours') then
         insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'meet', r.name || ' 在' || public.town_place_name(dest) || '遇到了 ' || others);
@@ -1654,6 +1666,16 @@ do $mig$ begin
       from (values (27,0,7,6),(27,17,9,5),(36,0,6,5),(36,9,8,5),(38,17,6,4),(46,17,7,4),(44,0,4,5),(46,10,2,4),(50,0,7,6),(50,9,7,5)) as b(bx,by,bw,bh)
       where r.place = 'street' and r.x >= b.bx and r.x < b.bx + b.bw and r.y >= b.by and r.y < b.by + b.bh;
     insert into public.town_migrations(id) values ('layout2');
+  end if;
+end $mig$;
+
+-- 地圖加寬（2026-11，醫院、警察局、市政廳）：站在新建築位置上的人移到廣場
+do $mig$ begin
+  if not exists (select 1 from public.town_migrations where id = 'layout3') then
+    update public.town_residents r set place = 'plaza', x = 14, y = 11
+      from (values (59,9,5,5),(56,17,6,4),(66,0,5,5)) as b(bx,by,bw,bh)
+      where r.place = 'street' and r.x >= b.bx and r.x < b.bx + b.bw and r.y >= b.by and r.y < b.by + b.bh;
+    insert into public.town_migrations(id) values ('layout3');
   end if;
 end $mig$;
 

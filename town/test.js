@@ -144,15 +144,15 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(sql.includes("greatest(300, mins * "+J.bailPerMin+")")&&J.bailMin==300,"保釋金公式和 JAIL 不一致");
  check(sql.includes("t.energy - "+J.hurt[0])&&sql.includes("t.fun - "+J.hurt[1])&&sql.includes("r.energy - "+J.self[0])&&sql.includes("r.fun - "+J.self[1]),"砍人傷害和 JAIL 不一致");
  check(sql.includes("then .8 else .45")&&J.catchP==45&&J.catchFallP==80,"被抓機率和 JAIL 不一致");
- check(M.COLS==64,"COLS 要和 town.sql 的 px 上限（64）一致");check(require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8").includes("px > "+M.COLS+" or"),"town.sql 的 px 上限要等於 COLS");check(M.bailCost(60*6e4)==600&&M.bailCost(10*6e4)==300,"保釋金 1 小時 €600、最低 €300");
+ check(M.COLS==71,"COLS 要和 town.sql 的 px 上限（71）一致");check(require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8").includes("px > "+M.COLS+" or"),"town.sql 的 px 上限要等於 COLS");check(M.bailCost(60*6e4)==600&&M.bailCost(10*6e4)==300,"保釋金 1 小時 €600、最低 €300");
  check(J.labor[0]<M.JOBS_MIN_WAGE||J.labor[0]<190,"牢裡勞動不能比最低的打工薪水高");
  const town=require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8");
- check(town.includes("town_jailed")&&town.includes("when p = 'jail' then '監獄'")&&town.includes("'carshop','jail')"),"town.sql 要有 town_jailed 與 jail 地點");
+ check(town.includes("town_jailed")&&town.includes("when p = 'jail' then '監獄'")&&town.includes("'carshop','jail','hospital','police','townhall')"),"town.sql 要有 town_jailed 與 jail 地點");
  const near=Object.entries(M.PLACES).filter(([k,p])=>k!="jail"&&p.block).filter(([k,p])=>{const [x,y,w,h]=P.r,[a,b,c,d]=p.r;return !(a>=x+w+2||a+c<=x-2||b>=y+h+2||b+d<=y-2)});check(near.length==0,"監獄離其他建築至少要 2 格："+near.map(x=>x[0]))}
 // 走進設施裡面：ROOMS 的地點要存在、物件在 12×4 格內、點物件要對得到面板按鈕；SQL 的 town_fi 白名單要和 ROOMS 一致；fin 只有 items.fi 等於現在的 place 才算
-{const sql=require("fs").readFileSync(__dirname+"/../supabase/town_fi.sql","utf8"),labels=[...Object.values(M.FAC).map(d=>d[0]),"坐下逗留 🪑","起身 🪑","打工：咖啡師 💼","打工：服務生 💼","打工：健身教練 💼","喝咖啡 ☕","吃一頓","健身 🏋️","做牢裡的勞動 💼","放風 ☀️","申請假釋 🪪","越獄 🕳️","付保釋金出去 💰","探望 乙 🤝","替 乙 保釋 💰"];
+{const sql=require("fs").readFileSync(__dirname+"/../supabase/town_fi.sql","utf8"),labels=[...Object.values(M.FAC).map(d=>d[0]),"坐下逗留 🪑","起身 🪑","打工：咖啡師 💼","打工：服務生 💼","打工：健身教練 💼","喝咖啡 ☕","吃一頓","健身 🏋️","做牢裡的勞動 💼","放風 ☀️","申請假釋 🪪","越獄 🕳️","付保釋金出去 💰","探望 乙 🤝","替 乙 保釋 💰","掛號看診 🩺","出院 🚪","探病 乙 🤝","繳罰單（9 折）🧾","自首 👮","報案 📜","今日治安 📊","市政廳大廳 🏛️"];
  check(sql.includes("pl not in ("+Object.keys(M.ROOMS).map(k=>"'"+k+"'").join(",")+")"),"town_fi.sql 的地點白名單要和 ROOMS 一致");
- const need={cafe:["coffee","jukebox","bar","table","plant"],restaurant:["kitchen","menu","bar","table","lamp"],gym:["treadmill","rack","bag","mirror","locker"],jail:["bars","vent","glass","gate","bailDesk","bunk","work","yard"]};
+ const need={cafe:["coffee","jukebox","bar","table","plant"],restaurant:["kitchen","menu","bar","table","lamp"],gym:["treadmill","rack","bag","mirror","locker"],jail:["bars","vent","glass","gate","bailDesk","bunk","work","yard"],hospital:["hbed","reg","meds","cross"],police:["pdesk","pboard","prep","pstat","badge"],townhall:["annb","hall","ballot","cfund"]};
  for(const [k,rm] of Object.entries(M.ROOMS)){check(M.PLACES[k],`ROOMS ${k} 不是地點`);const seen=new Set();
   for(const o of rm.items){const d=M.ITEM[o[0]];check(!!d,`${k} 的物件代號 ${o[0]} 沒有定義`);if(!d)continue;check(o[1]>=0&&o[1]<M.RW&&o[2]>=0&&o[2]<M.RH,`${k} 物件 ${o[0]} 超出格子`);check(!seen.has(o[1]+","+o[2]),`${k} 物件重疊 ${o[1]},${o[2]}`);seen.add(o[1]+","+o[2]);if(d[2])check(labels.some(l=>d[2].test(l)),`${k} 的 ${d[1]} 對不到任何按鈕`)}
   for(const c of need[k])check(rm.items.some(o=>o[0]==c),`${k} 要有 ${c}`);
@@ -247,5 +247,30 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(wsql.includes("town_vin(r)")&&wsql.includes("town_jailed(r)")&&wsql.includes("'faint'"),"town_wake_out：在屋裡、入獄、昏倒都要擋");
  check(tjs.includes('btn("叫醒到門外"')&&tjs.includes('rpc("town_wake_out"')&&tjs.includes("function checkWoken"),"前端要有「叫醒到門外」按鈕、呼叫 town_wake_out、檢查 wo 彈窗");
  check(/t\.place==p&&!t\.sleeping&&!r\.sleeping\?faceActs\(id\)/.test(tjs),"他在門口醒著時，門口面板要列出面對面互動")}
+// 公共建設：醫院、警察局、市政廳（supabase/town_civic.sql；前端 HOSP／POLICE／CIVIC 要和 SQL 一致）
+{const fs=require("fs"),csql=fs.readFileSync(__dirname+"/../supabase/town_civic.sql","utf8"),tsql=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8"),jsql=fs.readFileSync(__dirname+"/../supabase/town_jail.sql","utf8"),tjs=fs.readFileSync(__dirname+"/town.js","utf8");
+ const names=["hospital","police","townhall"];
+ for(const k of names){check(M.PLACES[k]&&M.PLACES[k].block&&M.ROOMS[k],"公共建設 "+k+" 要有座標與室內");const P=M.PLACES[k];
+  const near=Object.entries(M.PLACES).filter(([o,p])=>o!=k&&p.block).filter(([o,p])=>{const [x,y,w,h]=P.r,[a,b,c,d]=p.r;return !(a>=x+w+2||a+c<=x-2||b>=y+h+2||b+d<=y-2)});check(near.length==0,k+" 離其他建築至少要 2 格："+near.map(x=>x[0]));
+  check(P.r[0]+P.r[2]<=M.COLS,k+" 要在地圖內");check(tsql.includes("when p = '"+k+"' then")&&tsql.includes("'"+k+"'"),"town.sql 要有地點 "+k);check(csql.length>0&&fs.readFileSync(__dirname+"/../supabase/town_fi.sql","utf8").includes("'"+k+"'"),"town_fi.sql 白名單要有 "+k)}
+ check(M.FEATS||true,"");
+ check(tsql.includes("'carshop','lux','jail','hospital','police','townhall'"),"town_features 白名單要有三個新設施");check(tsql.includes("when what = 'hospital' then 'hospital'")&&tsql.includes("when what = 'police' then 'police'")&&tsql.includes("when what = 'townhall' then 'townhall'"),"town_feature 要對應三個新設施");
+ check(tsql.includes("create or replace function public.town_admit")&&tsql.includes("r.place := 'hospital'; r.x := 61; r.y := 14;")&&tsql.includes("r := public.town_admit(r);")&&jsql.includes("t := public.town_admit(t);"),"昏倒、車禍、被砍倒地都要送醫院（town_admit）");
+ check(tsql.includes("update public.town_residents set place = t.place")||jsql.includes("update public.town_residents set place = t.place, x = t.x, y = t.y where id = t.id"),"被砍送醫要把位置寫進資料庫");
+ check(M.HOSP.fee==150&&csql.includes("fee := 150;")&&csql.includes("r.energy := r.energy + 20; r.hygiene := least(100, r.hygiene + 40)")&&csql.includes("interval '60 minutes'")&&csql.includes("t.fun := t.fun + 10")&&csql.includes("r.fun := r.fun + 3; r.energy := r.energy - 2")&&csql.includes("town_bond(r.town_id, rid, t.id, 2)"),"醫院：看診 €150、探病數字要和 SQL 一致");
+ check(M.POLICE.disc==10&&csql.includes("floor((e->>'a')::int * 0.9)")&&M.POLICE.jail==30&&csql.includes("mins int := 30")&&M.POLICE.rpDays==7&&csql.includes("interval '7 days'")&&M.POLICE.rpMax==5&&csql.includes("least(5, n + 1)")&&M.POLICE.rpPct==10&&jsql.includes("(1 + .1 * case")&&jsql.includes("least(5,"),"警察局：9 折、自首 30 分鐘、報案點 7 天／最多 5 點／每點 10% 要和 SQL 一致");
+ check(csql.includes("if not public.town_wanted(r) then raise exception '你沒有被通緝'")&&csql.includes("'bad', 0")&&csql.includes("town_prior_set(r, now() + make_interval(mins => mins), false)"),"自首要通緝中、不算惹事、不加刑");
+ check(csql.includes("raise exception '今天已經報過案了")&&csql.includes("e.kind = 'report' and e.at > now() - interval '7 days'")&&!/update public\.town_residents[^;]*jl[^;]*where id = tid/.test(csql),"報案：每天 1 次、同一人 7 天 1 次、不會自動入獄");
+ for(const [k,o] of Object.entries(M.CIVIC)){const m=csql.match(new RegExp("when '"+k+"' then array\\[(\\d+), (\\d+), (\\d+), (\\d+), (\\d+)\\]"));check(!!m&&+m[1]==o[1]&&+m[2]==o[2]&&+m[3]==o[3]&&+m[4]==o[4]&&+m[5]==o[5],"建設案 "+k+" 的費用／座標／心情／精力要和 SQL 一致");
+  M.setRows(2);check(!M.blocked(o[2],o[3])&&!M.isRoad(o[2],o[3]),"建設案 "+k+" 的位置不能壓在建築或馬路上");
+  const p=M.route([14,11],[o[2],o[3]],null);check(p&&p.length>0&&Math.abs(p[p.length-1][0]-o[2])+Math.abs(p[p.length-1][1]-o[3])<=2,"建設案 "+k+" 要走得到");}
+ check(M.CIVQ.join()=="2,3,5"&&csql.includes("then 3 else 2 end")&&csql.includes("yn > nn and tot >= quorum")&&csql.includes("interval '24 hours'"),"投票：24 小時、贊成多於反對、至少 3 票（不到 5 人 2 票）");
+ check(csql.includes("if ok and fnd < cost then ok := false")&&csql.includes("raise exception '只有鎮長可以提建設案'")&&!/fund\s*=\s*[^;]*rid/.test(csql),"建設案：鎮長才能提、基金不夠就否決、基金不能轉給個人");
+ check(csql.includes("c.vote is not null then raise exception '現在已經有一個投票在進行了")&&csql.includes("then raise exception '你已經投過了'"),"同時只有一個投票、每人一票");
+ check(csql.includes("jsonb_array_length(a) > 3")&&csql.includes("char_length(q) not between 1 and 40"),"公告最多 3 則、1～40 字");
+ for(const k of ["town_hospital","town_police","town_civic","town_civic_use","town_civic_proj_list"])check(tjs.includes('"'+k+'"')&&csql.includes("function public."+k+"("),"前端要呼叫 "+k+"，SQL 要有它");
+ for(const k of ["hospital","visithosp","report","civic"])check(new RegExp("\\b"+k+":").test(tjs.match(/const KIND_ICON=\{([^}]*)\}/)[1]),"KIND_ICON 要有 "+k);
+ check(tjs.includes("drawCivic();")&&tjs.includes("function drawCivic"),"建好的建設案要畫在地圖上");
+ const ic=fs.readFileSync(__dirname+"/icons.js","utf8");for(const n of ["cross","badge","scroll"])check(new RegExp("\\n"+n+":`\\n(.{12}\\n){11}.{12}`").test(ic),"icons.js 的 "+n+" 要是 12×12")}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

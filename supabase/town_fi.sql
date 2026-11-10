@@ -15,7 +15,7 @@ begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if op = 'enter' then
-    if pl is null or pl not in ('cafe','restaurant','gym','jail') then raise exception '這裡還不能進去'; end if;
+    if pl is null or pl not in ('cafe','restaurant','gym','jail','hospital','police','townhall') then raise exception '這裡還不能進去'; end if;
     if r.place <> pl then raise exception '要先走到門口'; end if;
     if r.sleeping then raise exception '你在睡覺，先起床'; end if;
     if public.town_jailed(r) then raise exception '你被關在監獄裡'; end if;

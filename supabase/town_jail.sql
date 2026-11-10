@@ -36,7 +36,8 @@ create or replace function public.town_pr_pct(r public.town_residents) returns i
   select case when public.town_pr_on(r) then 92 else 100 end
 $$;
 create or replace function public.town_pr_mult(r public.town_residents) returns real language sql stable as $$
-  select (case when public.town_wanted(r) then 2.5 when public.town_pr_on(r) then 1.5 else 1 end)::real
+  select ((case when public.town_wanted(r) then 2.5 when public.town_pr_on(r) then 1.5 else 1 end)
+    * (1 + .1 * case when coalesce((r.items->'rp'->>'u'),'') <> '' and (r.items->'rp'->>'u')::timestamptz > now() then least(5, coalesce((r.items->'rp'->>'n')::int, 0)) else 0 end))::real   -- 報案紀錄（警察局）：每點 +10%，7 天內有效，最多 5 點
 $$;
 -- 記前科：from_ts + 24 小時；inc = 這次是新的一筆（累計次數 +1）
 create or replace function public.town_prior_set(r public.town_residents, from_ts timestamptz, inc boolean) returns public.town_residents language plpgsql as $$
@@ -83,6 +84,7 @@ begin
     if t.energy <= 0 then
       fall := true; t.energy := 0; t.sleeping := true;
       t.items := jsonb_set(jsonb_set(t.items, '{faint}', to_jsonb((now() + interval '2 hours')::text)), '{hosp}', '1'::jsonb);
+      t := public.town_admit(t);   -- 倒地的人送到醫院門口（醫院被關掉就留在原地）
       fee := least(1500, greatest(0, r.money)); r.money := r.money - fee; m := -fee;
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, target, 'slash', r.name || ' 砍了 ' || t.name || '，' || t.name || ' 倒在路上被送進醫院（醫藥費 €' || fee || ' 由 ' || r.name || ' 付）');
       msg := t.name || ' 被你砍倒了，送進醫院，醫藥費 €' || fee || ' 由你付';
@@ -108,6 +110,7 @@ begin
     end if;
     r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('slash', now()));
     perform public.town_save_r(t);
+    if fall then update public.town_residents set place = t.place, x = t.x, y = t.y where id = t.id; end if;   -- 送醫：town_save_r 不存位置
     perform public.town_save_r(r);
     -- town_save_r 不存位置：入獄要另外把人移到監獄門口
     if caught then update public.town_residents set place = r.place, x = r.x, y = r.y where id = r.id; end if;

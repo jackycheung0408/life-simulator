@@ -33,6 +33,25 @@ window.fetch=(url,o)=>{if(!String(url).includes("/rpc/"))return _fetch(url,o);co
  if(fn=="town_jail_ev"){const r=R(b.rid);if(b.op=="poll"){if(!r.__je&&r.place=="jail"){r.__je=1;return ok({ev:{k:1,at:String(Date.now())}})}return ok({ev:null})}return ok({hit:true,f:8,e:-5,m:0,b:0,dl:0})}
  if(fn=="town_wake_out"){const r=R(b.rid),t=R(b.target);if(r.place!="home:"+b.target)return bad("要先走到他家門口");if(!t.sleeping)return bad(t.name+" 醒著");if(Math.random()<.3)return ok({ok:false,msg:t.name+" 睡得很沉，叫不醒（3 分鐘後再試）"});t.sleeping=false;t.items=Object.assign({},t.items,{dr:1,wo:{f:r.id,at:new Date().toISOString()}});ev(r.town_id,`${r.name} 在門外把 ${t.name} 叫醒，${t.name} 揉著眼睛走出來`,"wakeup",r.id,t.id);return ok({ok:true,msg:t.name+" 被你叫醒了，走到門口"})}
  if(fn=="town_wake_out"){const r=R(b.rid),t=R(b.target);if(r.place!="home:"+b.target)return bad("要先走到他家門口");if(!t.sleeping)return bad(t.name+" 醒著");if(Math.random()<.3)return ok({ok:false,msg:t.name+" 睡得很沉，叫不醒（3 分鐘後再試）"});t.sleeping=false;t.items=Object.assign({},t.items,{dr:1,wo:{f:r.id,at:new Date().toISOString()}});ev(r.town_id,`${r.name} 在門外把 ${t.name} 叫醒，${t.name} 揉著眼睛走出來`,r.id,t.id,"wakeup");return ok({ok:true,msg:t.name+" 被你叫醒了，走到門口"})}
+ if(fn=="town_hospital"){const r=R(b.rid);r.items=Object.assign({},r.items);const td=new Date(Date.now()+8*36e5).toISOString().slice(0,10);
+  if(b.op=="consult"){if(r.items.hp&&r.items.hp.d==td)return bad("今天已經看過診了，明天再來");if(r.money<150)return bad("錢不夠，掛號看診 €150");r.money-=150;r.energy=Math.min(100,r.energy+20);r.hygiene=Math.min(100,r.hygiene+40);r.items.hp={d:td};return ok({ok:true,msg:"看診完成：精力 +20、清潔 +40、傷好了（掛號費 €150）",m:-150})}
+  if(b.op=="discharge"){delete r.items.fi;r.place="street";r.x=62;r.y=15;return ok({ok:true,msg:"出院了，路上小心"})}
+  if(b.op=="visit"){const t=R(b.target);if(t.place!="hospital")return bad(t.name+" 沒有住院");t.fun=Math.min(100,t.fun+10);r.fun=Math.min(100,r.fun+3);ev(r.town_id,`${r.name} 到醫院探望住院的 ${t.name}`,r.id,t.id,"visithosp");return ok({ok:true,msg:"探望了 "+t.name+"，他心情 +10、好感 +2"})}
+  return bad("不支援的操作")}
+ if(fn=="town_police"){const r=R(b.rid);r.items=Object.assign({},r.items);
+  if(b.op=="stats")return ok({ok:true,tk:4,crash:1,slash:2,jail:2,esc:0,rp:0});
+  if(b.op=="pay"){const tk=r.items.tk||[];if(!tk.length)return bad("沒有罰單");const n=tk.reduce((a,x)=>a+Math.floor(x.a*.9),0);r.money-=n;r.items.tk=[];return ok({ok:true,msg:"繳了 €"+n+"（比原價省 10%）",m:-n})}
+  if(b.op=="surrender"){if(!r.items.wt)return bad("你沒有被通緝");delete r.items.wt;r.items.jl=new Date(Date.now()+18e5).toISOString();r.place="jail";r.x=61;r.y=5;return ok({ok:true,msg:"自首了，通緝解除，關 30 分鐘（沒有加刑）"})}
+  if(b.op=="report"){const t=R(+b.item);t.items=Object.assign({},t.items,{rp:{n:1,u:new Date(Date.now()+6048e5).toISOString()}});ev(r.town_id,`${r.name} 到警察局報案，檢舉 ${t.name} 的惡劣行為`,r.id,t.id,"report");return ok({ok:true,msg:"報案受理，"+t.name+" 記了 1 個報案點（7 天內巡警盯他比較緊）"})}
+  return bad("不支援的操作")}
+ if(fn=="town_civic_proj_list"){return ok((db.civic&&db.civic[b.tid]&&db.civic[b.tid].proj)||[])}
+ if(fn=="town_civic_use"){return ok({ok:true,msg:"在新長椅旁休息：心情 +3、精力 +15"})}
+ if(fn=="town_civic"){const r=R(b.rid);db.civic=db.civic||{};const c=db.civic[r.town_id]=db.civic[r.town_id]||{ann:[],proj:[],vote:null,hist:[],fund:34500};
+  if(b.op=="announce"){c.ann.unshift({t:b.item,at:now()});c.ann=c.ann.slice(0,3)}
+  if(b.op=="unannounce")c.ann.splice(+b.item,1);
+  if(b.op=="propose"){c.vote=b.item=="poll"?{k:"poll",q:b.note,by:r.id,bn:r.name,at:now(),end:new Date(Date.now()+864e5).toISOString(),yn:0,nn:0,mine:null}:{k:"build",p:b.item,cost:15000,by:r.id,bn:r.name,at:now(),end:new Date(Date.now()+864e5).toISOString(),yn:0,nn:0,mine:null}}
+  if(b.op=="vote"&&c.vote){if(b.item=="yes")c.vote.yn++;else c.vote.nn++;c.vote.mine=b.item}
+  return ok({ok:true,fund:c.fund,flog:{rent:3200,tax:1500,lux:800,pk:50},ann:c.ann,proj:c.proj,hist:c.hist,mayor:!!r.mayor,vote:c.vote,quorum:2})}
  if(fn=="town_visit"){const r=R(b.rid);r.items=Object.assign({},r.items);if(b.op=="enter"){const t=R(b.target);if(r.place!="home:"+b.target)return bad("要先走到他家門口");if(t.place!="home:"+t.id||String(t.items&&t.items.dr)=="1")return bad(t.name+" 不在屋裡，只能在門口留言或放禮物");r.items.fv=b.target}else delete r.items.fv;return ok({ok:true,fv:r.items.fv||null})}
  if(fn=="town_mischief"){const r=R(b.rid),today=new Date(Date.now()+8*36e5).toISOString().slice(0,10);r.items=Object.assign({},r.items);if(b.act=="shield"||b.act=="unshield"){if(b.act=="shield")r.items.sh=today;else delete r.items.sh;return ok({msg:b.act=="shield"?"今天掛上免整牌了":"收起免整牌了"})}
   const t=R(b.target);if(t.items&&t.items.sh==today)return bad(t.name+" 今天掛了免整牌，改天再整他");t.items=Object.assign({},t.items);if(b.act=="sticker")t.items.sk={u:new Date(Date.now()+36e5).toISOString(),from:r.name};ev(r.town_id,`${r.name} 對 ${t.name} 用了「${b.act}」`,r.id,t.id,b.act=="photo"?"photo":b.act=="forgive"?"forgive":"mischief");return ok({msg:"對 "+t.name+" 用了 "+b.act,b:-1,rev:false})}
