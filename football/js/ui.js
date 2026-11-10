@@ -345,7 +345,7 @@ function finish(){try{localStorage.setItem("fb-played","1")}catch{}playHit("fini
  <div style="margin:8px 0;padding:8px;background:#16241a;color:#f4f1de">${(()=>{const od=realOdds(p.c),t5=p.clubsPlayed.some(n=>{const c=CLUBS.find(x=>x.name==n);return c&&TOP5.includes(c.lg)}),pro=!!p.debut;
   return t5?`你踢進了五大聯賽。在真實的${p.c}，同年出生的男孩約 ${oneIn(od.top5)} 做得到。`:pro?`你踢上了職業一線隊。在真實的${p.c}，同年出生的男孩約 ${oneIn(od.pro)} 做得到。`:`你沒能踢上職業一線隊。在真實的${p.c}，也只有約 ${oneIn(od.pro)} 能成為職業球員。`})()}</div>
  ${(p.honors||[]).length?`<div><b>傳奇榮譽</b>　${p.honors.map(esc).join("、")}</div>`:""}<div><b>人生主線</b>　${SAGA[p.saga][0]}：${SAGA[p.saga][1]}</div><div><b>效力過</b>　${p.clubsPlayed.join(" → ")||"沒有職業球隊"}</div>${(()=>{const r=starRank(p);return r?`<div><b>同世代排行</b>　第 ${r.rank} / ${r.all.length} 名，${esc(p.c)}第 ${r.hrank} / ${r.home.length} 名（前三：${r.all.slice(0,3).map(x=>esc(x.n)).join("、")}）</div>`:""})()}
- <div class="chart" style="margin-top:10px">${chart(p.ovrHist,"能力值變化")}</div>`;
+ <div class="chart" style="margin-top:10px">${chart(p.ovrHist,"能力值變化")}</div>${autoReviewHtml(p)}`;
  drawFace($("cface"),p);
  checkAch(p,true);$("endAch").innerHTML=`<b>這段生涯的成就</b><br>${Object.entries(p.achGot||{}).map(([n,t])=>`${TIER[t-1].split(" ")[0]} ${n}`).join("　")||"沒有"}`;drawReport("endReports");const _unused=p.seasons.map(s=>`<div class="row"><span>${s.y}（${s.age}歲）${s.club}</span><span>${s.apps} 場 · ${s.goals} 球 · 評分 ${s.rating}${s.titles.length?" · 🏆":""}</span></div>`).join("")||"<p class='mut'>沒有職業球季。</p>";
  try{const h=JSON.parse(localStorage.getItem("fb-hof")||"[]");h.push({name:p.name,c:p.c,pos:p.pos,sc,title:(p.card?p.card+"・":"")+title,peak:Math.round(p.peak),goals:p.goals,tro:p.trophies.length,y:`${p.y0}–${p.y0+p.age}`,

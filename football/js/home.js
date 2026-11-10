@@ -43,6 +43,8 @@ $("tourBtn").onclick=()=>tour(0);
 const muteTxt=()=>{$("muteBtn").textContent=muted?"🔇 靜音":"🔊 音效"};muteTxt();$("muteBtn").onclick=()=>{muted=!muted;try{localStorage.setItem("fb-mute",muted?"1":"0")}catch{}muteTxt();if(!muted)sfx("kick")};
 $("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"▶ 繼續":"⏸ 暫停"};
 $("skipQ").onclick=()=>{pendingSkip=true};
+function autoUi(){$("autoSty").innerHTML=AUTO_STYLES.map(x=>`<button class="${x==autoStyle?"on":""}" data-s="${x}">${x}</button>`).join("");$("autoSty").querySelectorAll("button").forEach(b=>b.onclick=()=>{autoStyle=b.dataset.s;try{localStorage.setItem("fb-autostyle",autoStyle)}catch{}toast({平衡:"平衡：穩健與進取各一半",穩健:"穩健：偏好成功率高、留隊續約",進取:"進取：偏好高回報、敢轉會挑戰",隨性:"隨性：完全隨機",依性格:"依性格：照球員的個性選"}[autoStyle]);autoUi()});$("autoMaj").textContent=autoQuiet?"🔕 全自動（不打擾）":"🔔 重大抉擇提醒";$("autoMaj").onclick=()=>{autoQuiet=!autoQuiet;try{localStorage.setItem("fb-automajor",autoQuiet?"quiet":"ask")}catch{}toast(autoQuiet?"重大抉擇也自動決定，不彈卡片":"重大抉擇會彈出 8 秒倒數卡片");autoUi()}}
+autoUi();
 $("auto").onchange=e=>{auto=e.target.checked;toast(auto?"之後的抉擇自動決定":"之後的抉擇由你決定")};
 $("skipEnd").onclick=e=>{const b=e.currentTarget;if(!b.dataset.arm){b.dataset.arm=1;b.textContent="再按一次確認";setTimeout(()=>{delete b.dataset.arm;if(!toEnd)b.textContent="⏩ 跳到結局"},3000);return}
  toEnd=true;b.textContent="⏩ 快速跑完中…";const open=!$("modal").classList.contains("hide")&&[...$("choice").querySelectorAll(".opt:not([disabled])")];if(open&&open.length)pick(open).click()};

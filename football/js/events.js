@@ -6,7 +6,11 @@ function queueModal(fn){if(auto||toEnd)return fn();modalWait++;const run=modalQ.
 function ask(q,opts,info){return queueModal(()=>askNow(q,opts,info))}
 function askNow(q,opts,info){
  const avail=opts.filter(o=>!o[3]||o[3]());
- if(auto||toEnd){const o=pick(avail.length?avail:opts);say(`${q} → ${o[0]}`);o[1]();return Promise.resolve()}
+ if(auto||toEnd){const pk=autoPick(q,opts,avail),major=toEnd||autoQuiet?null:autoIsMajor(q,pk.o),isKey=/成功率依你的細項/.test(info||"");
+  if(major)return autoCard(q,opts,info,pk,major,avail);
+  autoDo(q,pk.o,pk.why,!!autoIsMajor(q,pk.o),isKey);return Promise.resolve()}
+ return askManual(q,opts,info)}
+function askManual(q,opts,info){
  return new Promise(res=>{$("mtag").textContent=`${P.age} 歲 · ${P.y0+P.age} 年`;$("mctx").textContent=(P.retired?"退休後":P.club?`${P.club}${P.phase?" · "+P.phase:""}`:P.stage||"")+(modalWait?`　·　還有 ${modalWait} 個抉擇等你`:"");$("modal").classList.remove("hide");
   $("choice").innerHTML=`<h2 style="margin-top:10px">${q}</h2>${info?`<p class="mut">${info}</p>`:""}`+opts.map((o,i)=>{const ok=!o[3]||o[3]();return `<button class="opt" data-i="${i}" ${ok?"":"disabled"}>${o[0]}${o[2]?`<small>${o[2]}</small>`:""}</button>`}).join("");
   $("choice").querySelectorAll(".opt").forEach(b=>b.onclick=()=>{const o=opts[b.dataset.i],before=ovr(P);b.classList.add("picked");$("choice").querySelectorAll(".opt").forEach(x=>x.disabled=true);

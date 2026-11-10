@@ -8,6 +8,7 @@
   - `js/data.js`：國家、聯賽、球會、能力（FACE／DPW 權重、ovr、rateAt、value）
   - `js/events.js`：問答視窗 ask、關鍵時刻、機率動畫、訓練成長
   - `js/career.js`：每季流程 season、轉會、國家隊、同世代球星（STARS、LEGENDS、STAR_BORN）、真實足壇大事（REAL_EV、REAL_WC）
+  - `js/auto.js`：自動抉擇（風格 `fb-autostyle`：平衡／穩健／進取／隨性／依性格；`autoScore` 依選項副標的成功率、實力差、年薪變化打分；重大抉擇 `autoIsMajor` 彈 8 秒倒數卡片 `autoCard`，`fb-automajor=quiet` 為全自動；回顧存 `p.autoLog`（上限 40）並顯示在結局證書 `autoReviewHtml`）。自動時機率與手動完全相同
   - `js/ui.js`：畫面、陣容、場上意向、報表
   - `js/home.js`：首頁（玩法、搜尋 picker、捏人、出生年份、存檔與 migrate）
   - 測試：`node football/test/run.js`（pre-push hook 會自動跑，要看到「✅ 全部通過」）
