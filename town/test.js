@@ -240,5 +240,12 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(/n >= 3 then raise exception '你們這一小時已經打了 3 場/.test(sql),"town_pk 每對每小時最多 3 場");
  check(/\.get\(\)|PK|pkModal/.test(src)&&/town_pk/.test(src)&&/town_mischief/.test(src),"前端要呼叫 town_pk、town_mischief");
  const e=src.match(/const KIND_ICON=\{([^}]*)\}/);for(const k of ["mischief","photo","forgive","pk","pkno","kick"])check(e&&new RegExp("\\b"+k+":").test(e[1]),"KIND_ICON 要有 "+k)}
+// 門外叫醒（supabase/town_wake_out.sql）：站在他家門口叫醒睡著的人，他走出來站在門口（dr=1），兩人在門口面對面
+{const fs=require("fs"),wsql=fs.readFileSync(__dirname+"/../supabase/town_wake_out.sql","utf8"),tjs=fs.readFileSync(__dirname+"/town.js","utf8");
+ check(wsql.includes("least(.7, .25 + (100 - t.energy) / 200)")&&wsql.includes("'wakefail'")&&wsql.includes("interval '3 minutes'")&&wsql.includes("interval '1 hour'"),"town_wake_out：成功率與冷卻要和進屋叫醒一致（25%～70%、叫不醒 3 分鐘、成功 1 小時）");
+ check(wsql.includes("'{dr}', '1'::jsonb")&&wsql.includes("'{wo}'")&&wsql.includes("t.fun := t.fun - 3")&&!/t\.energy\s*:=/.test(wsql),"town_wake_out：叫醒後在門口（dr=1）、記 wo、心情 −3、精力不補");
+ check(wsql.includes("town_vin(r)")&&wsql.includes("town_jailed(r)")&&wsql.includes("'faint'"),"town_wake_out：在屋裡、入獄、昏倒都要擋");
+ check(tjs.includes('btn("叫醒到門外"')&&tjs.includes('rpc("town_wake_out"')&&tjs.includes("function checkWoken"),"前端要有「叫醒到門外」按鈕、呼叫 town_wake_out、檢查 wo 彈窗");
+ check(/t\.place==p&&!t\.sleeping&&!r\.sleeping\?faceActs\(id\)/.test(tjs),"他在門口醒著時，門口面板要列出面對面互動")}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

@@ -192,6 +192,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u29-wakeout",date:"11/10",title:"在門外也能叫醒睡著的人",items:["站在朋友家門口，睡著的人可以直接按「叫醒到門外」，不用進屋","叫醒後他會走出來站在門口，兩人在門口就能擊掌、聊天、送禮、邀請一起做事","叫不醒只要等 3 分鐘再試，越累睡越沉；叫醒會讓他心情 −3、好感 −1","他上線時會看到「X 把你叫醒了」"]},
   {id:"u28-mischief",date:"11/10",title:"格鬥場約戰、室內扁人、更多惡趣味",items:["走到別人家門口不會再閃一下","進了別人家、或同在咖啡廳、餐廳、健身房裡，可以對在場的人擊掌、扁人；在別人家動手，屋主可能把你趕出門","格鬥場不能隨便扁人了：用「邀請 PK」約對方，他 3 分鐘內接受，三回合分勝負，可以下注（贏的拿 95%）","新增 8 種惡趣味：潑水、貼「踢我」紙條、假裝告白、偷零食、拍醜照、換座位、按門鈴逃跑、擺假便便","被整的人可以報復或原諒；不想被整就掛「免整牌」，今天沒人能整你、丟蛋、扁你"]},
   {id:"u27-landing2",date:"11/10",title:"首頁秒開、登入畫面重做",items:["首頁不用等遊戲載入，打開就能點「回到小鎮」","有小鎮插圖，住過的小鎮顯示你的角色和幾天前上線","搬進小鎮的步驟變成 1 邀請碼、2 選角色、3 進入，每一步都有提示","進入小鎮後的載入畫面，只有真的等比較久才會出現"]},
  {id:"u36-costs",date:"11/10",title:"突發支出",items:["每天有機會遇到突發支出：水管漏水、意外帳單、錢包掉了","損失是現金的 3～8%，錢越多損失越多，現金不到 10000 不會扣","街上的小偷也會偷更多（最多 6000）"]},
@@ -331,7 +332,7 @@ $("lg").innerHTML=`${LP.top(list)}
   catch(e){$("cerr").textContent=e.message;$("create").disabled=false}}}
 
 // ── 鎮內登入：我住在這裡，或用邀請碼搬進來 ──
-async function refresh(){const st=await rpc("town_state",{tid:TID});apply(st);if(me)try{checkInvite();checkPk()}catch(e){}}
+async function refresh(){const st=await rpc("town_state",{tid:TID});apply(st);if(me)try{checkInvite();checkPk();checkWoken()}catch(e){}}
 const seenLuck=new Set();
 function apply(st){S=st;POOPS=st.poops||[];CUR=(st.town&&st.town.cur)||"NT$";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>(e.kind=="luck"||e.kind=="rent"||e.kind=="ticket"||e.kind=="crash")&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
  st.residents.forEach(r=>{R[r.id]=r;const w=walkers[r.id];
@@ -495,10 +496,10 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  else if(p=="home:"+me){title="你家（屋裡）";list.push(btn("吃飯",hasF(r,"fridge")?"飽足 +48 · 精力 +15 · €30":"沒有冰箱：冷食，飽足 +32、心情 −3 · €60",()=>act("eat")),btn("上廁所",hasF(r,"toilet")?"膀胱回滿":"沒有馬桶：找個角落，清潔 −10、心情 −3",()=>act("toilet")),dbtn("洗澡",hasF(r,"shower")?"清潔回滿 · 精力 +10 · 10 分鐘一次":"沒有淋浴間：水桶，清潔只回 70% · 10 分鐘一次",()=>act("shower"),cdLeft(r,"shower",10)),dbtn("看電視",hasF(r,"tvcab")?`心情 +${hasF(r,"sofa")?22:15} · 10 分鐘一次`:"沒有電視櫃：發呆看窗外，心情 +6 · 15 分鐘一次",()=>act("tv"),cdLeft(r,"tv",hasF(r,"tvcab")?10:15)),dbtn("快速休息",`${hasF(r,"massage")?"精力 +100":hasF(r,"sofa")?"精力 +70":"沒有沙發：坐地上，精力 +50"} · 15 分鐘一次`,()=>act("nap"),cdLeft(r,"nap",15)),dbtn("快速睡覺",`${hasF(r,"bed")?"":"沒有好床：睡地上 · "}睡 15 分鐘自動醒 · 精力約 +${hasF(r,"bed")?56:40} · 30 分鐘一次`,()=>act("qsleep"),cdLeft(r,"qsleep",30)),btn("睡覺",hasF(r,"bed")?"精力每小時 +90 · 睡多久回多少":"沒有好床：睡地上，精力每小時 +64、醒來心情 −3",()=>act("sleep")),btn("佈置","搬家具、擺小道具、升級房子",()=>interiorModal(me),"home"),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal(),"home"),btn("出門","回到家門口",()=>act("exit"),"home"))}
  else if(p&&p.startsWith("home:")&&R[p.slice(5)]){const id=+p.slice(5),t=tickLocal(R[id],now());title=`${t.name} 家`;const peek=btn("看室內",`${HOUSES[((R[id].items||{}).hl||1)-1][0]} · 看他怎麼布置`,()=>interiorModal(id));
   const gifts=(r.items||{}).gift||0,giftB=gifts?btn("送禮物",`他心情 +20 · 背包 🎁${gifts}`,()=>act("gift",{target:id})):btn("送禮物","先去超市買",()=>toast("背包沒有禮物，去超市買一份"));
-  if(!inside(t)){note=`${t.name} ${t.place==p?"在家門口，還沒進屋":"不在家，在"+placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,peek,btn("丟雞蛋 🥚","好感 −1 · 30 分鐘一次",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
+  if(!inside(t)){note=`${t.name} ${t.place==p?"在家門口，還沒進屋":"不在家，在"+placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,peek,...(t.place==p&&!t.sleeping&&!r.sleeping?faceActs(id):[]),btn("丟雞蛋 🥚","好感 −1 · 30 分鐘一次",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
   else{note=`${t.name}${t.sleeping?" 在睡覺":offTxt(t)}：飽足 ${Math.round(t.hunger)}、清潔 ${Math.round(t.hygiene)}、心情 ${Math.round(t.fun)} · ${bondLabel(bondWith(id))}`;list.push(giftB);
    if(!vin(r)){note=`${t.name}${t.sleeping?" 在睡覺":offTxt(t)}，你在門口 · 按「進去」才能煮飯、洗澡、叫醒、串門子 · ${bondLabel(bondWith(id))}`;
-    list.push(peek,btn("進去",`走進他家 · 進去後才有你的身影`,()=>enterFriend(id)),...doorMisActs(id),btn("惡作劇 💨","在門口放個臭屁 · 好感 −2 · 30 分鐘一次",()=>act("prank",{target:id})),btn("丟雞蛋 🥚","好感 −1 · 30 分鐘一次",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
+    list.push(peek,btn("進去",`走進他家 · 進去後才有你的身影`,()=>enterFriend(id)),...(t.sleeping?[btn("叫醒到門外",`不用進去 · 叫醒他走出來，兩人在門口面對面 · 約 ${Math.round(100*(1-Math.min(.7,.25+(100-t.energy)/200)))}% 叫得醒 · 好感 −1`,()=>wakeOut(id))]:[]),...doorMisActs(id),btn("惡作劇 💨","在門口放個臭屁 · 好感 −2 · 30 分鐘一次",()=>act("prank",{target:id})),btn("丟雞蛋 🥚","好感 −1 · 30 分鐘一次",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
    else{title=`${t.name} 家（屋裡）`;list.push(peek,btn("煮飯給他","他飽足 +35 · €60",()=>act("feed",{target:id})),btn("幫他洗澡","他清潔 +45",()=>act("wash",{target:id})));
     if(t.sleeping)list.push(btn("叫醒他",`越累睡越沉 · 這次約 ${Math.round(100*(1-Math.min(.7,.25+(100-t.energy)/200)))}% 叫得醒 · 叫不醒只要等 3 分鐘`,()=>act("wakeup",{target:id})));
     if(!t.sleeping)list.push(btn("串門子","兩人心情 +15",()=>act("visit",{target:id})),...faceActs(id));
@@ -1433,6 +1434,12 @@ function checkInvite(){const r=R[me];if(!r||!r.items||!r.items.iv||modalOpen()||
 const snapMe=()=>{const r=R[me],w=walkers[me];if(r&&w){w.x=r.x;w.y=r.y;w.tx=r.x;w.ty=r.y;w.path=[];w.dest=null;w.then=null}};
 function pkModal(id){const t=R[id],r=R[me];if(!t)return;const cap=Math.min(r.money,t.money),opts=[0,100,500,1000,2000].filter(b=>b<=cap);
  choiceModal(`邀請 ${t.name} 去格鬥場 PK`,`他 3 分鐘內要回應 · 三回合分勝負，不會死 · 下注：輸的付、贏的拿 95%（5% 進鎮基金）· 沒下注贏的拿 ${CUR}100（每人 30 分鐘一次）`,opts.map(b=>[b?`下注 €${b}`:"友誼賽（不下注）",b?`雙方都要付得起 · 你 €${r.money}、他 €${t.money}`:"贏的人 €100 · 好感 +1",async()=>{try{const j=await rpc("town_pk",{rid:me,pin,op:"send",target:id,bet:b});toast(j.msg);feedback(true,j.msg);pkWatch(id)}catch(e){toast(e.message);feedback(false,e.message)}}]))}
+// ── 門外叫醒（supabase/town_wake_out.sql）：站在他家門口，叫醒睡著的人，他走出來站在門口，兩人在門口面對面 ──
+async function wakeOut(id){try{const j=await rpc("town_wake_out",{rid:me,pin,target:id});toast(j.msg);feedback(!!j.ok,j.msg);await refresh();if(j.ok)spawnFx("sparkle",id)}catch(e){toast(e.message);feedback(false,e.message)}renderPanel()}
+let woSeen="";
+function checkWoken(){const r=R[me];if(!r||!r.items||!r.items.wo||modalOpen()||!S)return;const w=r.items.wo,age=Date.parse(S.now)-Date.parse(w.at),f=R[w.f];
+ if(age>10*60e3||age<0||woSeen==w.at||!f)return;let key="town_wo_"+me;try{if(localStorage.getItem(key)==w.at)return;localStorage.setItem(key,w.at)}catch(e){}woSeen=w.at;
+ choiceModal(`${f.name} 把你叫醒了`,"你現在站在家門口，他就在門外 · 可以直接和他面對面互動；想繼續睡，進屋就好",[["知道了","去跟他打招呼",()=>{}]])}
 let pkTimer=null;
 function pkWatch(id){clearInterval(pkTimer);const t0=Date.now();pkTimer=setInterval(async()=>{if(Date.now()-t0>190e3){clearInterval(pkTimer);return}try{const j=await rpc("town_pk",{rid:me,pin,op:"poll"});if(j&&j.pkr){clearInterval(pkTimer);await refresh();if(j.pkr.no){toast(`${j.pkr.n} 婉拒了你的邀約`);return}snapMe();pkAnim(j.pkr)}}catch(e){}},4000)}
 let pkSeen="";
