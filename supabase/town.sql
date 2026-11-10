@@ -1464,12 +1464,12 @@ begin
       perform public.town_bond(r.town_id, rid, t.id, case when bond >= 30 then 0 when r.place = 'arena' and t.place = 'arena' then (case when bond >= 10 then 0 else -1 end) when bond >= 10 then -1 else -3 end);
       -- 在別人家屋裡動手：屋主有機率把訪客趕出門（訪客輸了 60%、贏了 25%）；訪客被趕出去只是回到門口，不會有事
       if (r.items->>'fv') = t.id::text and r.place = 'home:' || t.id then
-        if random() < case when pa >= pb then 0.25 else 0.6 end then
+        if random() < (case when pa >= pb then 0.25 else 0.6 end) then
           r.items := r.items - 'fv';
           insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, t.id, rid, 'kick', tn || ' 把 ' || r.name || ' 趕出家門 🚪');
         end if;
       elsif (t.items->>'fv') = r.id::text and t.place = 'home:' || r.id then
-        if random() < case when pa >= pb then 0.6 else 0.25 end then
+        if random() < (case when pa >= pb then 0.6 else 0.25 end) then
           t.items := t.items - 'fv';
           insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, t.id, 'kick', r.name || ' 把 ' || tn || ' 趕出家門 🚪');
         end if;
