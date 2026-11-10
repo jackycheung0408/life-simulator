@@ -77,5 +77,32 @@ begin
   update public.town_residents set place='home:'||rb, sleeping=false, items='{}'::jsonb, energy=90 where id=ra;
   update public.town_residents set place='home:'||rb, sleeping=false, items=jsonb_build_object('dr',1), energy=90 where id=rb;
   begin perform public.town_act(ra,'1234','greet',target:=rb); rep := rep||'門口擊掌：可以（對）'||E'\n'; exception when others then rep := rep||'門口擊掌：被擋 '||sqlerrm||'（錯）'||E'\n'; end;
+  -- 7) 醒著待在屋裡的人（離線）：喊他出來。好感 0 → 九成肯出來
+  ok_n := 0; fail_n := 0;
+  for i in 1..40 loop
+    delete from public.town_events where actor=ra and target=rb and kind in ('callout','calloutfail');
+    update public.town_residents set place='home:'||rb, sleeping=false, items='{}'::jsonb, seen_at=now()-interval '2 hours', updated_at=now() where id=rb;
+    update public.town_residents set place='home:'||rb, items='{}'::jsonb, sleeping=false where id=ra;
+    j := public.town_wake_out(ra,'1234',rb);
+    if (j->>'ok')::boolean then ok_n := ok_n + 1; else fail_n := fail_n + 1; end if;
+  end loop;
+  rep := rep||'喊他出來 40 次（好感 0）：肯 '||ok_n||'、不肯 '||fail_n||'（期望約 36／4）'||E'\n';
+  loop
+    delete from public.town_events where actor=ra and target=rb and kind in ('callout','calloutfail');
+    update public.town_residents set place='home:'||rb, sleeping=false, items='{}'::jsonb, seen_at=now()-interval '2 hours', updated_at=now() where id=rb;
+    j := public.town_wake_out(ra,'1234',rb);
+    exit when (j->>'ok')::boolean;
+  end loop;
+  select * into r1 from public.town_residents where id = rb;
+  rep := rep||'喊出來後：dr='||coalesce(r1.items->>'dr','無')||' wo.f='||coalesce(r1.items#>>'{wo,f}','無')||' 最後動作 '||round(extract(epoch from (now()-r1.seen_at)))||' 秒前 心情 '||round(r1.fun::numeric)||'（期望 1 甲 約 0 秒前 心情不變 90）'||E'\n';
+  begin perform public.town_wake_out(ra,'1234',rb); rep := rep||'已經在門口再喊：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'已經在門口再喊：'||sqlerrm||E'\n'; end;
+  update public.town_residents set items='{}'::jsonb where id=rb;
+  begin perform public.town_wake_out(ra,'1234',rb); rep := rep||'10 分鐘內再喊：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'10 分鐘內再喊：'||sqlerrm||E'\n'; end;
+  -- 不肯出來：寫 calloutfail、只擋 3 分鐘
+  delete from public.town_events where actor=ra and target=rb and kind in ('callout','calloutfail');
+  insert into public.town_events(town_id,actor,target,kind,msg) values (tid, ra, rb, 'calloutfail', '測試');
+  begin perform public.town_wake_out(ra,'1234',rb); rep := rep||'不肯出來後 3 分鐘內再喊：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'不肯出來後 3 分鐘內再喊：'||sqlerrm||E'\n'; end;
+  update public.town_events set at = now() - interval '4 minutes' where actor=ra and target=rb and kind='calloutfail';
+  begin perform public.town_wake_out(ra,'1234',rb); rep := rep||'4 分鐘後再喊：可以（對）'||E'\n'; exception when others then rep := rep||'4 分鐘後再喊：被擋 '||sqlerrm||'（錯）'||E'\n'; end;
   raise exception E'REPORT\n%', rep;
 end $$;

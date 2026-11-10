@@ -245,6 +245,8 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(wsql.includes("least(.7, .25 + (100 - t.energy) / 200)")&&wsql.includes("'wakefail'")&&wsql.includes("interval '3 minutes'")&&wsql.includes("interval '1 hour'"),"town_wake_out：成功率與冷卻要和進屋叫醒一致（25%～70%、叫不醒 3 分鐘、成功 1 小時）");
  check(wsql.includes("'{dr}', '1'::jsonb")&&wsql.includes("'{wo}'")&&wsql.includes("t.fun := t.fun - 3")&&!/t\.energy\s*:=/.test(wsql),"town_wake_out：叫醒後在門口（dr=1）、記 wo、心情 −3、精力不補");
  check(wsql.includes("town_vin(r)")&&wsql.includes("town_jailed(r)")&&wsql.includes("'faint'"),"town_wake_out：在屋裡、入獄、昏倒都要擋");
+ check(wsql.includes("'callout'")&&wsql.includes("'calloutfail'")&&wsql.includes("when bd >= 0 then .9 when bd >= -20 then .6 else .3 end")&&wsql.includes("interval '10 minutes'")&&wsql.includes("interval '3 minutes'"),"town_wake_out：醒著的人「叫他出來」好感 ≥0 九成、−20～0 六成、更差三成，成功 10 分鐘一次、不肯 3 分鐘");
+ check(tjs.includes('btn("叫他出來"')&&tjs.includes("bondWith(id)>=0?90:bondWith(id)>=-20?60:30"),"前端要有「叫他出來」按鈕與機率說明")
  check(tjs.includes('btn("叫醒到門外"')&&tjs.includes('rpc("town_wake_out"')&&tjs.includes("function checkWoken"),"前端要有「叫醒到門外」按鈕、呼叫 town_wake_out、檢查 wo 彈窗");
  check(/t\.place==p&&!t\.sleeping&&!r\.sleeping\?faceActs\(id\)/.test(tjs),"他在門口醒著時，門口面板要列出面對面互動")}
 // 叫醒到門外要讓他真的留在門外（離線的人也不會被馬上送回屋裡），進到室內時主畫面改畫室內
