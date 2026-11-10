@@ -28,6 +28,14 @@ check(M.door(7)[0]==11&&M.door(7)[1]==28,"房子 7 的門應該在 (11,28)，和
 {const fs=require("fs"),html=fs.readFileSync(__dirname+"/index.html","utf8"),m=html.match(/town\.js\?v=(\d+)/),vj=JSON.parse(fs.readFileSync(__dirname+"/version.json","utf8"));
  check(m&&vj.v==+m[1],"town/version.json 的 v（"+vj.v+"）要等於 index.html 的 town.js?v（"+(m&&m[1])+"）。跑 node tools/town-bump.mjs");
  const sw=fs.readFileSync(__dirname+"/sw.js","utf8");check(/version/.test(sw)&&/no-store/.test(sw),"sw.js 對首頁與 version.json 要 no-store");
+ // 首頁速度（目標：回訪玩家 ≤ 0.2 秒可點）：首頁自己先畫，不等 town.js／icons.js；不能有阻塞渲染的外部 script，HTML 不能變肥
+ check(!/<script[^>]*\ssrc=/.test(html.replace(/add\("[^"]*"\)/g,"")),"index.html 不能有阻塞渲染的 <script src>（遊戲程式要由 LP 動態載入）");
+ check(/LP\.top=function/.test(html)&&/LP\.t=Math\.round\(performance\.now\(\)\)/.test(html),"首頁 LP.top 與量測用的 LP.t 要在 index.html 內嵌");
+ check((html.match(/town\.js\?v=/g)||[]).length==1&&(html.match(/icons\.js\?v=/g)||[]).length==1,"town.js／icons.js 的 ?v= 在 index.html 只能各出現一次（town-bump 只改第一個）");
+ check(Buffer.byteLength(html)<=45000,"index.html 超過 45KB（"+Buffer.byteLength(html)+"），首頁會變慢；CSS／JS 太多的東西移到 town.js");
+ check(/animation:ldin 0s linear \.2s/.test(html),"載入畫面 .ld 要延遲 0.2 秒才出現");
+ check(/readyState/.test(fs.readFileSync(__dirname+"/town.js","utf8").slice(-600)),"town.js 最後要用 readyState 判斷再跑 init()（它是晚載入的）");
+ check(/searchParams\.has\("v"\)/.test(sw),"sw.js 要對帶 ?v= 的 js 用快取優先");
  check(/checkVer/.test(fs.readFileSync(__dirname+"/town.js","utf8")),"town.js 要有 checkVer 自動更新檢查")}
 // 需求（×2 速率）：醒著 10 小時，飽足 80 → 0；睡覺 8 小時，飽足 80 → 40
 const base={sleeping:false,hunger:80,energy:80,bladder:80,hygiene:80,fun:80,updated_at:new Date(0).toISOString()};

@@ -54,11 +54,17 @@
 - **每次改版（玩家看得到的改動）都要在 `town/town.js` 的 `UPDATES` 最前面加一則**：`{id, date, title, items:[3～6 條短句]}`，id 不可重複，繁體中文。`node town/test.js` 會檢查。
 - 玩家上線時彈「小鎮更新了」：已看過的 id 存在瀏覽器 localStorage（`town_ups_<角色id>`），沒有紀錄的舊玩家只彈最新一則，之後最多一次彈 3 則；選單「更新紀錄」可看全部。不需要 SQL。
 
-## 首頁（進入小鎮前，`town.js` 的 `landing`／`townLogin`）
-- 住過的小鎮：第一顆粉紅主按鈕「回到 XX」一鍵進入，其餘小鎮為一般按鈕；沒住過才是「加入朋友的小鎮」粉紅、「建立新小鎮」次要。主按鈕永遠只有一個。介紹只留標題＋一句＋一行玩法。
+## 首頁與登入畫面（進入小鎮前；目標：回訪玩家 ≤ 0.2 秒可點）
+- **首頁由 `town/index.html` 底部的內嵌腳本 `LP` 先畫，不等 `town.js`／`icons.js`／任何網路**：`LP.top(list)`（像素街景 SVG、住過的小鎮卡片、加入／建立入口）、`LP.scene(1)`（登入步驟用的矮版街景）、`LP.stepBar(n)`（1 邀請碼、2 選角色、3 進入）。`town.js` 與 `icons.js` 由 `LP` 在首頁畫好後 40ms 才動態載入（`?t=` 小鎮頁則立刻載入）；回訪玩家的卡片按下去直接 `location.search="?t=…"`（不用等 town.js）；按「加入／建立」時如果 town.js 還沒好，`LP.want` 記下要開哪個表單，載入後 `landing()` 會自動打開。`town.js` 的 `landing()` 用同一個 `LP.top()` 重畫，畫面不會跳動。主畫面（standalone）只住一個小鎮時，內嵌腳本直接 `location.replace` 進去，連首頁都不畫。
+- **`town.js` 是晚載入的**：`init()` 一定要放在整支檔案**最後**才呼叫，而且要先檢查 `document.readyState`（不是 `loading` 就直接跑；曾因放在中間，`CUR` 還沒宣告就丟 "Cannot access 'CUR' before initialization"）；`init()` 裡不能在 `let CUR` 之前呼叫 `pxify`（已改成 `setTimeout`）。`node town/test.js` 會檢查。
+- 快取：`sw.js` 對帶 `?v=` 的 js 用**快取優先**（網址每次改版都換，安全），首頁與 `version.json` 仍 `no-store`（自動更新要靠它）；`Cubic_11.woff2` 用 `preconnect`＋`preload`、`font-display:swap`（字型沒到先用系統字，不擋畫面）；載入畫面 `.ld` 延遲 0.2 秒才出現（`animation-delay`），回訪玩家看不到它。
+- **量測方法**：`LP.t`（`performance.now()`，首頁可點的時間）；模擬網路用 `python3 tools/town-slow.py <town 資料夾的複本> <埠>`（延遲 150ms、約 1.6Mbps、gzip，等於 Fast 4G，`Cache-Control: no-store`＝冷啟動），瀏覽器開 `http://localhost:<埠>/index.html`，在 console 讀 `LP.t` 與 `performance.getEntriesByType("navigation")[0].responseEnd`。2026-11-10 量到（冷啟動，Fast 4G，其中 150ms 是模擬的延遲）：**舊版 911ms 才能點、新版 207ms**（HTML 206ms 到、遊戲程式在背景約 938ms 載完，不擋首頁）。`node town/test.js` 會擋：`index.html` 不能有阻塞的 `<script src>`、`LP.top`／`LP.t` 要在、`?v=` 各只能出現一次、HTML ≤ 45KB（目前約 38KB／gzip 11KB）、`.ld` 要延遲。改首頁不要再讓 `index.html` 變肥，大東西放進 `town.js`。
+- 住過的小鎮存在 `localStorage["town-mine"]`：`{tid,name,rid,pin,me,at}`（`at` = 最後上線時間，登入時與每 15 秒同步時更新，首頁卡片顯示「N 小時前上線」；舊資料沒有 `at` 就不顯示）。
+- 登入流程三步：**1 邀請碼**（首頁「加入朋友的小鎮」→ 輸入邀請碼 →「下一步：選角色」，`town_find` 找小鎮）→ **2 選角色**（`townLogin`：我住在這裡的角色卡；或「用邀請碼搬進來」`joinStep` 選名字、空屋、造型）→ **3 進入**（`pinStep`：新裝置輸入一次邀請碼，之後這台裝置有金鑰就一鍵進入）。每一步上方有步驟條與矮版街景，輸入框用大字（`.lpcode`）。免密碼機制（每台裝置一把金鑰、邀請碼）沒動。
+- 住過的小鎮：第一顆粉紅主按鈕「回到 XX」一鍵進入，其餘小鎮為一般按鈕；沒住過才是「加入朋友的小鎮」粉紅、「建立新小鎮」次要。主按鈕永遠只有一個。介紹只留標題＋一句。首頁不用 emoji（內嵌腳本用像素 SVG 圖示，標題的 🐷 由 `pxify` 換成像素圖示）。
 - 錯誤訊息要說下一步（邀請碼打錯、網路斷線、進不去小鎮有「再試一次」）；`rpc` 網路失敗統一回「連不上小鎮，檢查網路後再按一次」；載入超過 6 秒顯示「網路比較慢」。
 - 第一次進遊戲：全新角色不彈「小鎮更新了」（直接標記已看）；新手提示 `tipsWhenFree` 等沒有彈窗才出現，順序 = 個性 → 願望 → 提示。
-- 看手機畫面時，本機常有其他 session 佔著 8765 等 port，開 `python3 -m http.server` 前先用 `curl` 確認回的是自己的版本（`?v=`）。
+- 看手機畫面時，本機常有其他 session 佔著 8765 等 port，開 `python3 -m http.server` 前先用 `curl` 確認回的是自己的版本（`?v=`）。`tools/town-mock.js` 已加 `town_find` 假回應（邀請碼 `ABC123`、小鎮代碼 `MOCK01`）；因為 `index.html` 的腳本是動態載入的，測試時要把複本裡 `add("icons.js?v=…")` 前面加上 `add("mock.js?v=N")`，不能再用 `<script src="mock.js">` 放在 town.js 前面。
 
 ## 互動按鈕一律第一層（不藏子選單）
 - 面板（`renderPanel`）裡能做的事每一件都是一顆按鈕，**不要再用「更多互動」「整蠱他」「休息／睡覺」這類收納式按鈕**；只有真的要選對象或確認（和誰？、要不要動手砍人、買東西）才開 `choiceModal`，modal 裡不再多一層「更多」。
@@ -118,7 +124,7 @@
 - SQL 不會自動套用：到 Supabase SQL Editor，抓 `raw.githubusercontent.com/jackycheung0408/life-simulator/<commit>/supabase/town.sql`，用 `monaco.editor.getModels()[0].setValue(...)` 貼上，按 ⌘↵，確認「Potential issue」對話框後執行。
 - 資料庫實測：在同一段 SQL 後面接一個 `do $$ ... $$` 區塊（建測試鎮、呼叫 `town_act`、把結果寫進 `zz_town_test`、最後 `delete from town_towns`），看完結果就 `drop table zz_town_test`。plpgsql 變數不要和欄位／參數同名。
 - **改 SQL 要特別小心**：一個語法錯就讓正式站所有人動不了（出過一次）。有 `= any(...)` 這類寫法先用小函式包起來測。
-- 畫面測試：`tools/town-mock.js` 是假資料庫。複製 `town/` 到暫存資料夾，在 `index.html` 的 `town.js` 前面加 `<script src="mock.js">`，用 `python3 -m http.server` 開，網址 `?t=MOCK01`。不要在正式站建帳號或填密碼。
+- 畫面測試：`tools/town-mock.js` 是假資料庫。複製 `town/` 到暫存資料夾，在 `index.html` 內嵌腳本的 `add("icons.js?v=…")` 前面加 `add("mock.js?v=N")`（首頁腳本是動態載入的，見「首頁與登入畫面」），用 `python3 -m http.server` 開，網址 `?t=MOCK01`。不要在正式站建帳號或填密碼。
 
 ## 建議下一步（CTA）統計
 `town_cta` 表記錄「建議下一步」的顯示與點擊（`town_track`），鎮長面板用 `town_mayor(act='stats')` 看近 7 天各建議的顯示／點擊／點擊率。前端在 `renderPanel` 顯示時記 show、在按鈕點擊時記 click。

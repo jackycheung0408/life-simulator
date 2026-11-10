@@ -199,6 +199,17 @@ body.ingame #needs{grid-template-columns:repeat(6,minmax(0,1fr))}body.ingame .ne
 .ldb{width:180px;height:14px;margin:0 auto;border:3px solid var(--ink);background:#fff}.ldb i{display:block;height:100%;width:30%;background:var(--gold);animation:ldm 1.2s steps(6) infinite}
 @keyframes ldh{50%{transform:translateY(-6px)}}@keyframes ldm{0%{margin-left:0}100%{margin-left:70%}}
 @media (prefers-reduced-motion:reduce){.ld .ldp,.ldb i{animation:none}}
+/* 首頁／登入畫面：像素小鎮插圖、住過的小鎮卡片、步驟條（插圖與卡片由 index.html 底部的 LP 先畫，town.js 載入前就能點） */
+.lpw{margin:0 0 10px}.lpw svg{display:block;width:100%;height:auto;max-height:200px;image-rendering:pixelated;border:3px solid var(--ink);border-radius:4px}.lpw.sm svg{height:84px}
+.lpw h2.hh{margin:10px 0 2px}.lpw p{margin:0}
+.lpw .cl{animation:lpc 14s steps(28) infinite}.lpw .cl2{animation:lpc 20s steps(40) infinite reverse}.lpw .pg{animation:lpp .8s steps(2) infinite}
+@keyframes lpc{0%{transform:translateX(-6px)}50%{transform:translateX(10px)}100%{transform:translateX(-6px)}}@keyframes lpp{50%{transform:translateY(-1px)}}
+.hi{flex:none;width:36px;height:36px;display:block}.hi svg{display:block;width:36px;height:36px;image-rendering:pixelated}
+.lpgo{display:flex;flex-direction:column;gap:8px;margin:0 0 10px}.lpgo>button{min-height:56px;font-size:16.5px}
+.big.lpbusy{opacity:.7}
+.steps{display:flex;gap:6px;margin:0 0 12px}.steps i{flex:1;font-style:normal;font-size:11px;text-align:center;padding:6px 2px;min-height:28px;border:3px solid var(--ink);background:#0f1530;color:#b9c2e8}.steps i.on{background:var(--gold);color:#1b1b2f}.steps i.dn{background:#2e7d4f;color:#fff}
+.lpcode input{font-size:22px;text-align:center;min-height:52px}
+@media (prefers-reduced-motion:reduce){.lpw .cl,.lpw .cl2,.lpw .pg{animation:none}}
 </style>
 </head>
 <body>
@@ -221,6 +232,46 @@ body.ingame #needs{grid-template-columns:repeat(6,minmax(0,1fr))}body.ingame .ne
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide"><div class="card" id="mbody"></div></div>
-<script src="icons.js?v=14"></script><script src="town.js?v=108"></script>
+<script>
+/* 首頁先畫（不等 town.js／icons.js／任何網路）：回訪玩家一鍵進入、離開首頁才載入遊戲程式。
+   town.js 載入後 landing() 會用同一個 LP.top() 重畫，畫面不會跳動。
+   town.js／icons.js 的 ?v= 由 node tools/town-bump.mjs 改，這裡只能各出現一次。 */
+(function(){
+var m=/[?&]t=([A-Za-z0-9]+)/.exec(location.search),T=m?m[1]:"",loaded=0,LP=window.LP={want:"",loadTown:load};
+function mine(){try{return JSON.parse(localStorage.getItem("town-mine")||"[]")}catch(e){return[]}}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function add(src){var s=document.createElement("script");s.src=src;s.async=false;document.body.appendChild(s)}
+function load(){if(loaded)return;loaded=1;add("icons.js?v=14");add("town.js?v=115")}
+function ago(t){if(!t)return"";var s=(Date.now()-t)/1e3;return s<90?"剛剛上線":s<3600?Math.round(s/60)+" 分鐘前上線":s<86400?Math.round(s/3600)+" 小時前上線":Math.round(s/86400)+" 天前上線"}
+var R=function(x,y,w,h,f){return'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+f+'"/>'};
+var HOUSE='<svg viewBox="0 0 12 12" shape-rendering="crispEdges">'+R(3,1,6,1,"#d9534f")+R(2,2,8,1,"#d9534f")+R(1,3,10,1,"#d9534f")+R(2,4,8,7,"#f4ead6")+R(5,7,2,4,"#8b5a2b")+R(3,5,2,2,"#9fd8ff")+R(7,5,2,2,"#9fd8ff")+'</svg>';
+var MAIL='<svg viewBox="0 0 12 12" shape-rendering="crispEdges">'+R(1,3,10,7,"#fff")+R(1,3,10,1,"#c9d3f5")+R(2,4,2,1,"#c9d3f5")+R(4,5,2,1,"#c9d3f5")+R(6,5,2,1,"#c9d3f5")+R(8,4,2,1,"#c9d3f5")+R(5,6,2,2,"#ff4f7e")+'</svg>';
+var FLAG='<svg viewBox="0 0 12 12" shape-rendering="crispEdges">'+R(3,1,1,10,"#8b5a2b")+R(4,1,6,1,"#ffd23f")+R(4,2,6,3,"#ffd23f")+R(4,5,5,1,"#ffd23f")+R(2,11,3,1,"#8b5a2b")+'</svg>';
+var SCENE='<svg viewBox="0 0 96 40" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges" role="img" aria-label="小豬鎮的像素街景">'+R(0,0,96,40,"#9fd8f5")
+ +'<g class="cl">'+R(8,5,12,3,"#fff")+R(11,3,6,2,"#fff")+'</g><g class="cl2">'+R(62,8,14,3,"#fff")+R(66,6,7,2,"#fff")+'</g>'
+ +R(0,24,96,16,"#7cc46a")+R(0,31,96,7,"#6b6b78")+R(0,38,96,2,"#c9c1ad")
+ +[2,14,26,38,50,62,74,86].map(function(x){return R(x,34,7,1,"#f0c040")}).join("")
+ +R(6,17,18,12,"#f4ead6")+R(4,15,22,2,"#d9534f")+R(6,13,18,2,"#d9534f")+R(9,11,12,2,"#d9534f")+R(13,22,4,7,"#8b5a2b")+R(8,19,3,3,"#9fd8ff")+R(19,19,3,3,"#9fd8ff")
+ +R(64,17,18,12,"#e8f1ff")+R(62,15,22,2,"#3b7dd8")+R(64,13,18,2,"#3b7dd8")+R(67,11,12,2,"#3b7dd8")+R(71,22,4,7,"#8b5a2b")+R(66,19,3,3,"#9fd8ff")+R(77,19,3,3,"#9fd8ff")
+ +R(46,24,2,5,"#8b5a2b")+R(43,18,8,7,"#2e9e5b")+R(45,16,4,2,"#2e9e5b")
+ +'<g class="pg">'+R(32,26,8,5,"#f4a6c0")+R(39,25,5,5,"#f4a6c0")+R(40,23,2,2,"#e0779b")+R(42,26,1,1,"#0b0b14")+R(43,28,2,2,"#e0779b")+R(33,31,1,2,"#e0779b")+R(37,31,1,2,"#e0779b")+R(31,27,1,1,"#e0779b")+'</g></svg>';
+LP.scene=function(small){return'<div class="lpw'+(small?" sm":"")+'">'+SCENE+'</div>'};
+LP.stepBar=function(n){return'<div class="steps" aria-label="步驟">'+["1 邀請碼","2 選角色","3 進入"].map(function(t,i){return'<i class="'+(i+1==n?"on":i+1<n?"dn":"")+'">'+t+'</i>'}).join("")+'</div>'};
+LP.top=function(list){
+ var h='<div class="lpw">'+SCENE+'<h2 class="hh">小豬鎮</h2><p class="mut">和朋友住同一個小鎮。吃飯、打工、串門子、送禮。</p></div>';
+ if(list.length)h+='<div class="list">'+list.map(function(x,i){return'<button class="big'+(i?"":" pri")+'" data-go="'+esc(x.tid)+'"><span class="hi">'+HOUSE+'</span><span><b>'+(i?"":"回到 ")+esc(x.name||x.tid)+'</b><small>'+esc(x.me||"")+(x.at?" · "+ago(x.at):"")+" · "+(i?"點一下進入":"一鍵進入")+'</small></span></button>'}).join("")+'</div>';
+ var one=!list.length;
+ h+='<div class="'+(one?"choose":"lpgo")+'"><button class="big'+(one?" pri":"")+'" id="cJoin"><span class="hi">'+MAIL+'</span><span><b>加入朋友的小鎮</b><small>用朋友給的邀請碼或連結</small></span></button>'
+  +'<button class="big" id="cNew"><span class="hi">'+FLAG+'</span><span><b>建立新小鎮</b><small>自己當鎮長</small></span></button></div>';
+ return h};
+if(T){load();return}
+var list=mine();
+if((matchMedia("(display-mode: standalone)").matches||navigator.standalone)&&list.length==1){location.replace("?t="+list[0].tid);return}
+var lg=document.getElementById("lg");lg.innerHTML=LP.top(list);LP.t=Math.round(performance.now());
+lg.querySelectorAll("[data-go]").forEach(function(b){b.onclick=function(){b.classList.add("lpbusy");b.querySelector("small").textContent="進入中…";location.search="?t="+b.dataset.go}});
+["cJoin","cNew"].forEach(function(id){var b=document.getElementById(id);b.onclick=function(){LP.want=id=="cJoin"?"j":"n";b.classList.add("on","lpbusy");load()}});
+setTimeout(load,40);
+})();
+</script>
 </body>
 </html>

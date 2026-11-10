@@ -192,6 +192,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u27-landing2",date:"11/10",title:"首頁秒開、登入畫面重做",items:["首頁不用等遊戲載入，打開就能點「回到小鎮」","有小鎮插圖，住過的小鎮顯示你的角色和幾天前上線","搬進小鎮的步驟變成 1 邀請碼、2 選角色、3 進入，每一步都有提示","進入小鎮後的載入畫面，只有真的等比較久才會出現"]},
  {id:"u36-costs",date:"11/10",title:"突發支出",items:["每天有機會遇到突發支出：水管漏水、意外帳單、錢包掉了","損失是現金的 3～8%，錢越多損失越多，現金不到 10000 不會扣","街上的小偷也會偷更多（最多 6000）"]},
  {id:"u34-gov",date:"11/10",title:"政府普發、打工有獎金",items:["政府今天普發每位居民 €20000","之後每天第一次上線，現金不到 10000 的人，政府發 €600 生活補助","每天打工第 3 次領勤勞獎金 €500、第 6 次 €1000","一起做事的心情加成變大，每天上限提高到 12 次"]},
  {id:"u33-odds",date:"11/10",title:"街機賠率調整，平手不再算輸",items:["猜拳平手全額退回；比大小兩張一樣大退回押注","21 點開局 21 點賠 3 倍；輪盤多了 ×1 三格、最高 ×4","骰子大小三顆一樣退一半；單點三顆賠 12 倍","老虎機兩個一樣賠 ×1.2；賓果中 2 個賠 ×1.5"]},
@@ -253,7 +254,6 @@ const fin=r=>!!r&&!!r.items&&!!ROOMS[r.place]&&(r.items.fi===r.place||(r.place==
 const visitHost=(r,RR)=>{const h=RR&&r&&r.place&&r.place.startsWith("home:")&&r.place!="home:"+r.id?RR[r.place.slice(5)]:null;return h&&inside(h)?h:null};// 在朋友家門口、他人在屋裡 → 看得到他家室內
 const roomOf=(r,RR)=>!r?null:fin(r)?ROOMS[r.place]:(r.place=="home:"+r.id&&inside(r))?homeRoom(r):visitHost(r,RR)?{...homeRoom(visitHost(r,RR)),visit:true,inn:vin(r)}:null;// RR = 居民表（頂層函式拿不到 init 裡的 R，由呼叫的人傳進來）
 if(typeof module!=="undefined")module.exports={vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
-if(typeof document!=="undefined")addEventListener("DOMContentLoaded",init);
 
 function init(){
 const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -267,7 +267,7 @@ function pxify(root){if(!root)return;const w=document.createTreeWalker(root,Node
  for(const n of nodes){const tv=CUR=="€"?n.nodeValue:n.nodeValue.replace(/€/g,()=>CUR);if(!EMO.test(tv)){EMO.lastIndex=0;n.nodeValue=tv;continue}EMO.lastIndex=0;const span=document.createElement("span");span.innerHTML=tv.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])).replace(EMO,m=>`<img class="px" alt="${m}" src="${pxIcon(m)}">`);n.replaceWith(...span.childNodes)}}
 // 畫面任何地方新增的 emoji 都自動變成像素圖示（選單、彈窗、首頁、需求列）
 {let q=new Set(),pend=false;new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)q.add(n.nodeType==3?n.parentElement:n);if(!pend){pend=true;requestAnimationFrame(()=>{pend=false;const l=[...q];q.clear();l.forEach(el=>el&&el.isConnected&&pxify(el))})}}).observe(document.body,{childList:true,subtree:true,characterData:false});
- addEventListener("load",()=>pxify(document.body))}
+ if(document.readyState==="complete")setTimeout(()=>pxify(document.body),0);else addEventListener("load",()=>pxify(document.body))}// 這支程式是晚載入的：頁面 load 早就過了，改成 init() 跑完（CUR 等變數宣告好）再 pxify
 const toast=t=>{const el=$("toast");el.textContent=t;el.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove("on"),2600)};
 const SKIN=["#f1c9a5","#e0ac7e","#c68a5a","#8d5a3a"],HAIR=["#222222","#5a3a1a","#a0522d","#d9b26a","#c0c0c0","#c0392b"],SHIRT=["#d9534f","#3b7dd8","#b45cc4","#8b5a2b","#2e9e5b","#d8901a","#333a44","#f0f0f0"],STYLE=["短髮","長髮","光頭","帽子"];
 const rp=a=>a[Math.floor(Math.random()*a.length)];
@@ -300,7 +300,8 @@ const houseName=s=>`${STREETS[Math.floor(s/3)]} ${s%3+1} 號`;
 
 // ── 我住的小鎮（存在這台手機）──
 const mine=()=>{try{return JSON.parse(localStorage.getItem("town-mine")||"[]")}catch(e){return []}};
-const saveMine=e=>{const l=mine().filter(x=>x.tid!=e.tid);l.unshift(e);try{localStorage.setItem("town-mine",JSON.stringify(l.slice(0,10)))}catch(er){}};
+const saveMine=e=>{e.at=Date.now();const l=mine().filter(x=>x.tid!=e.tid);l.unshift(e);try{localStorage.setItem("town-mine",JSON.stringify(l.slice(0,10)))}catch(er){}};
+let mineAt=0;const touchMine=()=>{if(!TID||Date.now()-mineAt<6e4)return;mineAt=Date.now();try{const l=mine(),x=l.find(y=>y.tid==TID);if(x){x.at=Date.now();localStorage.setItem("town-mine",JSON.stringify(l))}}catch(e){}};
 const dropMine=tid=>{try{localStorage.setItem("town-mine",JSON.stringify(mine().filter(x=>x.tid!=tid)))}catch(e){}};
 const go=tid=>{location.search="?t="+tid};
 // 裝置金鑰：每台手機自動產生一組，代替密碼（存在這台手機上，不用記）
@@ -308,18 +309,14 @@ const newKey=()=>{const a="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz2345
 
 // ── 首頁：建立小鎮、用代碼加入、我住的小鎮 ──
 function landing(){document.body.classList.remove("ingame");$("title").textContent="🐷 小豬鎮";$("game").classList.add("hide");$("login").classList.remove("hide");const list=mine();
-const tag=list.length?"":`<p class="mut" style="margin:10px 0 0">吃飯、打工、串門子、送禮，也可以惡作劇。</p>`;
- $("lg").innerHTML=`<div class="hero"><canvas id="heroCv" width="96" height="120"></canvas><div><h2 class="hh">和朋友住同一個小鎮</h2><p class="mut" style="margin:6px 0 0">手機就能玩，免下載。</p></div></div>${tag}
-  ${list.length?`<div class="list">${list.map((x,i)=>`<button class="big${i?"":" pri"}" data-go="${esc(x.tid)}"><span class="ai">🏡</span><span><b>${i?"":"回到 "}${esc(x.name||x.tid)}</b><small>${esc(x.me||"")} · ${i?"點一下進入":"一鍵進入，繼續上次的生活"}</small></span></button>`).join("")}</div><p class="mut" style="margin:12px 0 0">或是</p>`:""}
-  <div class="choose"><button class="big${list.length?"":" pri"}" id="cJoin"><span class="ai">💌</span><span><b>加入朋友的小鎮</b><small>有朋友給的邀請碼或連結</small></span></button>
-   <button class="big" id="cNew"><span class="ai">🏛️</span><span><b>建立新小鎮</b><small>自己當鎮長，邀請朋友搬進來</small></span></button></div>
-  <div id="fJoin" class="hide"><h2>加入朋友的小鎮</h2><p class="mut" style="margin:-4px 0 6px">輸入朋友給你的邀請碼。點朋友傳來的邀請連結會自動填好。</p><div class="inline"><input id="code" placeholder="邀請碼，例如 RCDR4V" maxlength="8" autocomplete="off" style="text-transform:uppercase"><button class="pri" id="join">前往</button></div><p class="err" id="jerr"></p></div>
+$("lg").innerHTML=`${LP.top(list)}
+  <div id="fJoin" class="hide">${LP.stepBar(1)}<h2>輸入邀請碼</h2><p class="mut" style="margin:-4px 0 6px">朋友給你的邀請碼。點朋友傳來的邀請連結會自動填好。</p><div class="lpcode"><input id="code" placeholder="例如 RCDR4V" maxlength="8" autocomplete="off" style="text-transform:uppercase"></div><div class="row"><button class="pri" id="join">下一步：選角色</button></div><p class="err" id="jerr"></p></div>
   <div id="fNew" class="hide"><h2>建立新小鎮</h2><label>小鎮名稱<input id="tn" maxlength="16" placeholder="例如：我們的小豬鎮"></label><label>你的名字<input id="mn" maxlength="12" placeholder="鎮上大家怎麼叫你"></label>
   ${curSel("NT$")}<h2 style="margin-top:12px">小鎮特色</h2><p class="mut" style="margin:-4px 0 6px">勾選要開的設施，之後在鎮長設定隨時能改</p>${featChecks([])}
   <div id="lk"></div><p class="err" id="cerr"></p><div class="row"><button class="pri" id="create">建立小鎮，當鎮長</button></div></div>
   ${standalone?"":`<p style="margin-top:14px"><button class="ghost" id="inst2" style="width:100%">📲 加到主畫面，像 App 一樣打開</button></p>`}`;
  const show=k=>{$("fJoin").classList.toggle("hide",k!="j");$("fNew").classList.toggle("hide",k!="n");$("cJoin").classList.toggle("on",k=="j");$("cNew").classList.toggle("on",k=="n");(k=="j"?$("code"):$("tn")).focus()};
- $("cJoin").onclick=()=>show("j");$("cNew").onclick=()=>show("n");miniPerson($("heroCv"),{skin:"#f1c9a5",hair:"#5a3a1a",style:"短髮",eyes:"圓眼",top:"T恤",shirt:"#e0779b",acc:"pigears",blush:true});
+ $("cJoin").onclick=()=>show("j");$("cNew").onclick=()=>show("n");if(LP.want){show(LP.want);LP.want=""}
  $("lg").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));if($("inst2"))$("inst2").onclick=installHelp;
  $("join").onclick=async()=>{const c=$("code").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.length<4){$("jerr").textContent="邀請碼是 6 個英文或數字，檢查有沒有少打";return}
   // 小鎮代碼或邀請碼都可以；輸入的是邀請碼就記起來，等一下自動填好
@@ -343,22 +340,22 @@ function apply(st){S=st;POOPS=st.poops||[];CUR=(st.town&&st.town.cur)||"NT$";try
  renderFeed();renderPanel();renderNeeds();if(me)renderStrip();pxify($("feed"));pxify($("tab-rank"));pxify($("tab-ppl"))}
 let mapKey="";
 function townLogin(){document.body.classList.remove("ingame");$("login").classList.remove("hide");$("game").classList.add("hide");const res=Object.values(R),full=res.length>=12;
- $("lg").innerHTML=`<p class="mut">住了 ${res.length} 人${savedInv()?" · 邀請碼已自動填好":""}</p>
-  ${res.length?`<h2>我住在這裡</h2><div class="who">${res.map(r=>`<button data-id="${r.id}"><canvas width="40" height="44" data-look='${esc(JSON.stringify(r.look||{}))}'></canvas><b>${esc(r.name)}</b><small>${r.mayor?"鎮長":houseName(r.slot)}</small></button>`).join("")}</div>`:""}
+ $("lg").innerHTML=`${LP.scene(1)}${LP.stepBar(2)}<h2>${esc(S.town.name)}</h2><p class="mut">住了 ${res.length} 人${savedInv()?" · 邀請碼已自動填好":""}</p>
+  ${res.length?`<h2>選你的角色</h2><div class="who">${res.map(r=>`<button data-id="${r.id}"><canvas width="40" height="44" data-look='${esc(JSON.stringify(r.look||{}))}'></canvas><b>${esc(r.name)}</b><small>${r.mayor?"鎮長":houseName(r.slot)}</small></button>`).join("")}</div>`:""}
   ${full?`<p class="mut">小鎮已經住滿 12 人了。</p>`:`<h2>我要搬進來</h2><div class="row" style="justify-content:flex-start"><button class="pri" id="mv">用邀請碼搬進來</button></div>`}
   <div class="row" style="justify-content:flex-start"><button id="home2">← 小豬鎮首頁</button></div>`;
  $("lg").querySelectorAll("canvas").forEach(c=>{const l=JSON.parse(c.dataset.look);miniPerson(c,l.skin?l:{skin:SKIN[0],hair:"#999",shirt:"#bbb",style:"短髮"})});
  $("lg").querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>pinStep(+b.dataset.id));
  if($("mv"))$("mv").onclick=()=>joinStep();$("home2").onclick=()=>go("")}
 const savedInv=()=>{try{return sessionStorage.getItem("town-inv-"+TID)||""}catch(e){return ""}};
-function pinStep(id){const r=R[id];$("lg").innerHTML=`<p><b>${esc(r.name)}</b>，歡迎回來</p><p class="mut">在新的手機或電腦上，輸入一次小鎮的邀請碼就好，之後這台裝置會一直記得你。</p>
-  <label>邀請碼（WeChat 群組裡的邀請訊息有，或問鎮長）<input id="inv" maxlength="8" autocomplete="off" style="text-transform:uppercase" value="${esc(savedInv())}"></label><p class="err" id="lerr"></p>
+function pinStep(id){const r=R[id];$("lg").innerHTML=`${LP.scene(1)}${LP.stepBar(3)}<p><b>${esc(r.name)}</b>，歡迎回來</p><p class="mut">在新的手機或電腦上，輸入一次小鎮的邀請碼就好，之後這台裝置會一直記得你。</p>
+  <label class="lpcode">邀請碼（邀請訊息裡有，或問鎮長）<input id="inv" maxlength="8" autocomplete="off" style="text-transform:uppercase" value="${esc(savedInv())}"></label><p class="err" id="lerr"></p>
   <div class="row"><button id="back">← 換人</button><button class="pri" id="go">進入小鎮</button></div>`;
  $("back").onclick=townLogin;$("inv").focus();
  $("go").onclick=async()=>{const inv=$("inv").value.trim().toUpperCase();if(!inv){$("lerr").textContent="先填小鎮的邀請碼（向鎮長要）";return}$("go").disabled=true;
   try{const k=newKey();await rpc("town_device",{tid:TID,invite:inv,rid:id,key:k});const res=await rpc("town_login",{rid:id,pin:k});me=id;pin=k;lastSeen=res.last_seen;saveMine({tid:TID,name:S.town.name,rid:id,pin:k,me:r.name});await enter()}catch(e){$("lerr").textContent=e.message;$("go").disabled=false}}}
 function joinStep(){const free=[];for(let s=0;s<12;s++)if(!bySlot(s))free.push(s);const show=free.filter(s=>Math.floor(s/3)<NR);if(!show.length&&free.length)show.push(free[0]);let slot=show[0],look=randLook();
- $("lg").innerHTML=`<p><b>搬進${esc(S.town.name)}</b></p><label>邀請碼（問鎮長）<input id="inv" maxlength="8" autocomplete="off" style="text-transform:uppercase" value="${esc(savedInv())}"></label>
+ $("lg").innerHTML=`${LP.scene(1)}${LP.stepBar(2)}<p><b>搬進${esc(S.town.name)}</b></p><label class="lpcode">邀請碼（問鎮長）<input id="inv" maxlength="8" autocomplete="off" style="text-transform:uppercase" value="${esc(savedInv())}"></label>
   <label>你的名字<input id="mn" maxlength="12"></label>
   <p class="mut" style="margin:10px 0 4px">選一間空屋</p><div class="houses">${show.map(s=>`<button class="sw${s==slot?" on":""}" data-s="${s}">${houseName(s)}${Math.floor(s/3)>=NR?"（新街）":""}</button>`).join("")}</div>
   <div id="lk"></div><p class="err" id="lerr"></p><div class="row"><button id="back">← 返回</button><button class="pri" id="go">搬進去</button></div>`;
@@ -1392,6 +1389,8 @@ const slow=setTimeout(()=>{const x=document.querySelector("#lg .ld small");if(x)
  try{await refresh()}catch(e){clearTimeout(slow);$("lg").innerHTML=`<h2>進不去這個小鎮</h2><p class="err">${esc(e.message)}</p><p class="mut">網路正常的話，可能是小鎮代碼打錯了。</p><div class="row" style="justify-content:flex-start"><button class="pri" id="retry3">再試一次</button><button id="home3">回小豬鎮首頁</button></div>`;$("home3").onclick=()=>go("");$("retry3").onclick=()=>location.reload();return}clearTimeout(slow);
  const a=mine().find(x=>x.tid==TID);
  if(a&&R[a.rid]){try{const res=await rpc("town_login",{rid:a.rid,pin:a.pin});me=a.rid;pin=a.pin;lastSeen=res.last_seen;await enter()}catch(e){townLogin()}}else townLogin();
- setInterval(()=>{if(document.visibilityState=="visible"&&S)refresh().catch(()=>{})},15000);setInterval(pePoll,20000)})();
+ setInterval(()=>{if(document.visibilityState=="visible"&&S){touchMine();refresh().catch(()=>{})}},15000);setInterval(pePoll,20000)})();
 }
 
+// 放在整支檔案最後：頂層的 const（例如 CUR）都初始化完才能跑 init()。index.html 的 LP 會在首頁畫好後才動態載入這支程式，那時 DOMContentLoaded 早就過了，所以要檢查 readyState
+if(typeof document!=="undefined"){if(document.readyState==="loading")addEventListener("DOMContentLoaded",init);else init()}
