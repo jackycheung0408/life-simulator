@@ -251,6 +251,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(/t\.place==p&&!t\.sleeping&&!r\.sleeping\?faceActs\(id\)/.test(tjs),"他在門口醒著時，門口面板要列出面對面互動")}
 // 叫醒到門外要讓他真的留在門外（離線的人也不會被馬上送回屋裡），進到室內時主畫面改畫室內
 {const fs=require("fs"),wsql=fs.readFileSync(__dirname+"/../supabase/town_wake_out.sql","utf8"),tjs=fs.readFileSync(__dirname+"/town.js","utf8");
+ for(const fn of ["town_wake_out.sql","town_civic.sql"]){const lines=fs.readFileSync(__dirname+"/../supabase/"+fn,"utf8").split("\n"),ci=lines.findIndex(l=>/^create /.test(l));const bad=lines.slice(0,ci).filter(l=>l.trim()&&!l.startsWith("--"));check(bad.length==0,fn+" 開頭的註解每行都要以 -- 開頭（否則整份 SQL 會語法錯誤）："+(bad[0]||"").slice(0,30))}
  check(wsql.includes("update public.town_residents set seen_at = now() where id = t.id;"),"town_wake_out：被叫醒的人要重設最後動作時間，不然離線的人會馬上又被送回屋裡睡");
  check(tjs.includes("function stageRoom()")&&tjs.includes("function drawRoomStage()")&&tjs.includes("if(drawRoomStage())return;")&&tjs.includes("if(stageRoom()){stageTap(e);return}"),"在室內時主畫面要改畫室內（frame 開頭畫室內並 return、點擊走 stageTap）");
  check(tjs.includes("function roomTap(fx,fy)")&&tjs.includes("lastSpots[k][1]-1==cy"),"點室內的人與物件走 roomTap（人的身體畫在腳的上一格，兩格都算點到）");
