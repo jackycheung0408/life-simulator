@@ -1,7 +1,7 @@
 -- 小豬鎮：在門外把睡著的朋友叫醒到門外（要在 town.sql 之後套用，可重複執行）
 -- 獨立 RPC town_wake_out(rid, pin, target)：你站在他家門口（沒進屋），他在屋裡睡著 → 叫醒後他走出來站在門口（items.dr = 1），
 -- 兩人在門口都能面對面互動。成功率、冷卻和「進去叫醒」（town_act 的 wakeup）一樣：25%～70% 叫不醒，叫不醒只擋 3 分鐘，成功叫醒 1 小時內不能再叫。
--- 精力不補、心情 −3、好感 −1（走 town_bond，吃每日負向上限）。他上線時前端看 items.wo = {f, at} 彈「X 把你叫醒了」。昏倒／住院中的人叫不醒。
+-- 精力不補、心情 −3、好感 −1（走 town_bond，吃每日負向上限）。他的最後動作時間（seen_at）設成現在，所以離線的人也會在門口站一陣子（60 分鐘沒動作才又回家睡），不會馬上被送回屋裡。他上線時前端看 items.wo = {f, at} 彈「X 把你叫醒了」。昏倒／住院中的人叫不醒。
 
 create or replace function public.town_wake_out(rid bigint, pin text, target bigint) returns json
 language plpgsql security definer set search_path = public as $$
@@ -32,6 +32,8 @@ begin
   t.items := jsonb_set(jsonb_set(t.items, '{dr}', '1'::jsonb), '{wo}', jsonb_build_object('f', rid, 'at', now()));
   t.items := t.items - 'qs';
   perform public.town_save_r(t);
+  -- 他可能離線很久：不重設最後動作時間的話，下一次結算（60 分鐘無動作就回家睡，town_tick）會立刻又把他送回屋裡睡著，人就不會真的出現在門外
+  update public.town_residents set seen_at = now() where id = t.id;
   perform public.town_bond(r.town_id, rid, t.id, -1);
   insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, target, 'wakeup', r.name || ' 在門外把 ' || tn || ' 叫醒，' || tn || ' 揉著眼睛走出來');
   update public.town_residents set seen_at = now() where id = rid;

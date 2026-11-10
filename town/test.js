@@ -247,6 +247,13 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(wsql.includes("town_vin(r)")&&wsql.includes("town_jailed(r)")&&wsql.includes("'faint'"),"town_wake_out：在屋裡、入獄、昏倒都要擋");
  check(tjs.includes('btn("叫醒到門外"')&&tjs.includes('rpc("town_wake_out"')&&tjs.includes("function checkWoken"),"前端要有「叫醒到門外」按鈕、呼叫 town_wake_out、檢查 wo 彈窗");
  check(/t\.place==p&&!t\.sleeping&&!r\.sleeping\?faceActs\(id\)/.test(tjs),"他在門口醒著時，門口面板要列出面對面互動")}
+// 叫醒到門外要讓他真的留在門外（離線的人也不會被馬上送回屋裡），進到室內時主畫面改畫室內
+{const fs=require("fs"),wsql=fs.readFileSync(__dirname+"/../supabase/town_wake_out.sql","utf8"),tjs=fs.readFileSync(__dirname+"/town.js","utf8");
+ check(wsql.includes("update public.town_residents set seen_at = now() where id = t.id;"),"town_wake_out：被叫醒的人要重設最後動作時間，不然離線的人會馬上又被送回屋裡睡");
+ check(tjs.includes("function stageRoom()")&&tjs.includes("function drawRoomStage()")&&tjs.includes("if(drawRoomStage())return;")&&tjs.includes("if(stageRoom()){stageTap(e);return}"),"在室內時主畫面要改畫室內（frame 開頭畫室內並 return、點擊走 stageTap）");
+ check(tjs.includes("function roomTap(fx,fy)")&&tjs.includes("lastSpots[k][1]-1==cy"),"點室內的人與物件走 roomTap（人的身體畫在腳的上一格，兩格都算點到）");
+ check(tjs.includes('cv.classList.toggle("hide",!show||!!stageRoom())'),"自己在室內時，面板的小畫布不顯示（主畫面已經有室內）");
+ check(tjs.includes('const beds=rm.home?[]:rm.items.filter(q=>q[0]=="hbed"||q[0]=="bunk")')&&tjs.includes("if(!rm.home&&o.sleeping)"),"住院、坐牢睡著的人要躺在病床、上下鋪上")}
 // 公共建設：醫院、警察局、市政廳（supabase/town_civic.sql；前端 HOSP／POLICE／CIVIC 要和 SQL 一致）
 {const fs=require("fs"),csql=fs.readFileSync(__dirname+"/../supabase/town_civic.sql","utf8"),tsql=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8"),jsql=fs.readFileSync(__dirname+"/../supabase/town_jail.sql","utf8"),tjs=fs.readFileSync(__dirname+"/town.js","utf8");
  const names=["hospital","police","townhall"];

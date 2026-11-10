@@ -204,6 +204,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u31-stageroom",date:"11/10",title:"進到室內，主畫面就是室內",items:["走進設施、自己家、朋友家時，主畫面直接換成放大的室內，不用看面板上的小圖","點室內的物件就會做對應的事，點裡面的人可以選他互動；要離開按下面的「出門」","住院的人躺在醫院的病床上，坐牢的人睡上下鋪","在門外叫醒離線的朋友後，他真的會站在門口，不會又馬上被送回屋裡睡"]},
   {id:"u30-civic",date:"11/10",title:"新增醫院、警察局、市政廳",items:["醫院：昏倒、車禍、被砍倒地的人會送到這裡，醒來按「出院」；平常可以掛號看診，朋友也能來探病","警察局：罰單在這裡繳九折；被通緝可以自首（關 30 分鐘、不加刑）；被整被砍可以報案，對方記報案點但不會入獄；還能看今日治安","市政廳：看鎮基金、貼公告、發起投票；鎮長可以提建設案，居民投票通過才花鎮基金蓋長椅、路燈、涼亭、雕像","地圖往右加寬，三棟新建築都能走進去看看"]},
   {id:"u29-wakeout",date:"11/10",title:"在門外也能叫醒睡著的人",items:["站在朋友家門口，睡著的人可以直接按「叫醒到門外」，不用進屋","叫醒後他會走出來站在門口，兩人在門口就能擊掌、聊天、送禮、邀請一起做事","叫不醒只要等 3 分鐘再試，越累睡越沉；叫醒會讓他心情 −3、好感 −1","他上線時會看到「X 把你叫醒了」"]},
   {id:"u28-mischief",date:"11/10",title:"格鬥場約戰、室內扁人、更多惡趣味",items:["走到別人家門口不會再閃一下","進了別人家、或同在咖啡廳、餐廳、健身房裡，可以對在場的人擊掌、扁人；在別人家動手，屋主可能把你趕出門","格鬥場不能隨便扁人了：用「邀請 PK」約對方，他 3 分鐘內接受，三回合分勝負，可以下注（贏的拿 95%）","新增 8 種惡趣味：潑水、貼「踢我」紙條、假裝告白、偷零食、拍醜照、換座位、按門鈴逃跑、擺假便便","被整的人可以報復或原諒；不想被整就掛「免整牌」，今天沒人能整你、丟蛋、扁你"]},
@@ -1174,6 +1175,7 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
  const bx=[vw/2-mg,MW-vw/2+mg],by=[vh/2-pt-mg,MH-vh/2+pb+mg];
  cam.x=bx[0]>bx[1]?MW/2:clamp(cam.x,bx[0],bx[1]);cam.y=by[0]>by[1]?MH/2+(pb-pt)/2:clamp(cam.y,by[0],by[1]);
  const ox=cam.x-vw/2,oy=cam.y-vh/2;cam.ox=ox;cam.oy=oy;
+ if(drawRoomStage())return;
  g.setTransform(1,0,0,1,0,0);g.fillStyle="#3d6b35";g.fillRect(0,0,cv.width,cv.height);g.setTransform(dpr*cam.s,0,0,dpr*cam.s,-ox*dpr*cam.s,-oy*dpr*cam.s);g.imageSmoothingEnabled=false;g.drawImage(maps[key],0,0);drawLights();drawCivic();
  const fx=17*T,fy=11.5*T;g.fillStyle="#9a9a9a";g.beginPath();g.arc(fx,fy,48,0,7);g.fill();g.fillStyle="#4aa3e0";g.beginPath();g.arc(fx,fy,40,0,7);g.fill();g.strokeStyle="#bfe6ff";g.lineWidth=2;g.beginPath();g.arc(fx,fy,18+(tk%50)/2.2,0,7);g.stroke();
  g.fillStyle="#f6a5c0";g.beginPath();g.arc(fx,fy-4,15,0,7);g.fill();g.fillRect(fx-15,fy-21,8,9);g.fillRect(fx+7,fy-21,8,9);g.fillStyle="#ec7fa6";g.fillRect(fx-7,fy-2,14,9);g.fillStyle="#8a3a55";g.fillRect(fx-4,fy+1,3,3);g.fillRect(fx+2,fy+1,3,3);g.fillStyle="#222";g.fillRect(fx-8,fy-11,3,3);g.fillRect(fx+5,fy-11,3,3);
@@ -1244,7 +1246,7 @@ const zoomAt=(ns,mx,my)=>{const rc=cv.getBoundingClientRect(),px=mx-rc.left,py=m
 cv.addEventListener("pointerdown",e=>{e.preventDefault();cam.vx=cam.vy=0;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});cv.setPointerCapture(e.pointerId);
  if(ptrs.size==2){const [a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1,s:cam.s,mx:(a.x+b.x)/2,my:(a.y+b.y)/2};down=null;return}
  down={x:e.clientX,y:e.clientY,ox:cam.x,oy:cam.y,moved:false,pinched:false}});
-cv.addEventListener("pointermove",e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+cv.addEventListener("pointermove",e=>{if(!ptrs.has(e.pointerId)||stageRoom())return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
  if(pinch&&ptrs.size>=2){const [a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2;zoomAt(pinch.s*d/pinch.d,mx,my);
   cam.x-=(mx-pinch.mx)/cam.s;cam.y-=(my-pinch.my)/cam.s;pinch.mx=mx;pinch.my=my;pinch.s=cam.s;pinch.d=d;return}
  if(!down)return;const dx=e.clientX-down.x,dy=e.clientY-down.y;if(Math.hypot(dx,dy)>6){down.moved=true;camFree=true;const t=performance.now(),px=down.lx??down.x,py=down.ly??down.y,dt2=Math.max(1,t-(down.lt||t-16));
@@ -1252,7 +1254,7 @@ cv.addEventListener("pointermove",e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(
 const endPtr=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2&&pinch){pinch=null;down=null}};
 cv.addEventListener("pointercancel",endPtr);
 cv.addEventListener("wheel",e=>{if(!e.ctrlKey&&!e.metaKey)return;e.preventDefault();zoomAt(cam.s*Math.exp(-e.deltaY*.01),e.clientX,e.clientY)},{passive:false});
-cv.addEventListener("pointerup",e=>{const wasPinch=ptrs.size>=2||!down;endPtr(e);if(wasPinch)return;const d=down;down=null;
+cv.addEventListener("pointerup",e=>{const wasPinch=ptrs.size>=2||!down;endPtr(e);if(wasPinch)return;const d=down;down=null;if(stageRoom()){stageTap(e);return}
  // 停在原地才放手就不要慣性
  if(d.moved&&performance.now()-(d.lt||0)>80){cam.vx=cam.vy=0}if(d.moved||!S)return;const rc=cv.getBoundingClientRect(),wx=(e.clientX-rc.left)/cam.s+cam.ox,wy=(e.clientY-rc.top)/cam.s+cam.oy,tx=Math.floor(wx/T),ty=Math.floor(wy/T);
  const hit=Object.values(R).find(r=>r.id!=me&&Math.hypot((walkers[r.id].x+.5)*T-wx,(walkers[r.id].y+.2)*T-wy)<T*.8);
@@ -1476,25 +1478,39 @@ function roomFxDraw(c){const A=roomAnim,C=RC,k=Math.max(0,Math.min(1,(A.age-.25)
   case "massage":for(let j=0;j<3;j++)P(ox-12+j*10,oy+Math.sin(k*30+j*2)*3,2,6,"rgba(255,255,255,.7)");break;
   case "bed":c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.fillStyle="#fff";c.strokeStyle="#1b1b2f";c.lineWidth=3;for(let j=0;j<2;j++){const zy=oy-12-((k*30+j*14)%22);c.strokeText("Z",ox+4+j*7,zy);c.fillText("Z",ox+4+j*7,zy)}break}}
 function drawRoom(){const cv=$("room");if(!cv)return;const r=R[me],rm=roomOf(r,R);
- const wk=walkers[me]&&walkers[me].path.length,show=!!rm&&(rm.home||!r.sleeping)&&!wk;
+ const wk=walkers[me]&&walkers[me].path.length,show=!!rm&&!wk&&(rm.home||!r.sleeping||fin(r));
  // 走去有室內的地方（有人在的朋友家、設施）時先保留畫布的位置：到了才畫內容，面板高度不會突然變高、整個畫面不會跳一下
- const dd=wk&&walkers[me].dest,ho=dd&&dd.startsWith("home:")?R[dd.slice(5)]:null,hold=!show&&!!dd&&(ROOMS[dd]||(ho&&ho.place==dd&&inside(ho)));
+ const dd=wk&&walkers[me].dest,ho=dd&&dd.startsWith("home:")?R[dd.slice(5)]:null,hold=!show&&!!dd&&!!ho&&ho.place==dd&&inside(ho);
  if(!show&&hold){if(cv.width==300&&cv.height==150){cv.width=144;cv.height=96}cv.classList.remove("hide");const c0=cv.getContext("2d");c0.fillStyle="#1b1b2f";c0.fillRect(0,0,cv.width,cv.height);return}
- cv.classList.toggle("hide",!show);if(!show)return;
+ cv.classList.toggle("hide",!show||!!stageRoom());if(!show)return;   // 自己人在室內時，室內畫在主畫面（drawRoomStage），面板的小畫布不用
  const C=RC,W=rw(rm),H=rh(rm);if(cv.width!=W*C)cv.width=W*C;if(cv.height!=H*C)cv.height=H*C;
  const c=cv.getContext("2d");c.imageSmoothingEnabled=false;c.clearRect(0,0,W*C,H*C);
  c.fillStyle=rm.wall;c.fillRect(0,0,W*C,C);for(let y=1;y<H;y++)for(let x=0;x<W;x++){c.fillStyle=rm.floor[(x+y)%2];c.fillRect(x*C,y*C,C,C)}
  c.fillStyle="rgba(0,0,0,.25)";c.fillRect(0,C-3,W*C,3);
  for(const o of rm.items){if(rm.home){furnDraw(c,o[0],o[1]*C,o[2]*C,C);continue}const im=roomImg(ITEM[o[0]][0]);if(im.complete&&im.naturalWidth)c.drawImage(im,o[1]*C,o[2]*C,C,C)}
- const here=rm.home?(rm.visit?[tickLocal(R[rm.hid],now()),...Object.values(R).filter(o=>o.id!=rm.hid&&vin(o)&&+o.items.fv==rm.hid&&!o.sleeping&&!(walkers[o.id]&&walkers[o.id].path.length)).sort((a,b)=>(b.id==me)-(a.id==me))]:[r]):Object.values(R).filter(o=>o.place==r.place&&fin(o)&&!o.sleeping&&(o.place=="jail"||!jailed(o))&&!(walkers[o.id]&&walkers[o.id].path.length)).sort((a,b)=>(b.id==me)-(a.id==me)),spots=roomSpots(rm);
+ const here=rm.home?(rm.visit?[tickLocal(R[rm.hid],now()),...Object.values(R).filter(o=>o.id!=rm.hid&&vin(o)&&+o.items.fv==rm.hid&&!o.sleeping&&!(walkers[o.id]&&walkers[o.id].path.length)).sort((a,b)=>(b.id==me)-(a.id==me))]:[r]):Object.values(R).filter(o=>o.place==r.place&&fin(o)&&(o.place=="jail"||!jailed(o))&&!(walkers[o.id]&&walkers[o.id].path.length)).sort((a,b)=>(b.id==me)-(a.id==me)),spots=roomSpots(rm);
+ const beds=rm.home?[]:rm.items.filter(q=>q[0]=="hbed"||q[0]=="bunk");let bi=0;
  lastSpots={};here.slice(0,Math.max(1,spots.length)).forEach((o,i)=>{const sp=spots[i]||[Math.floor(W/2),2];lastSpots[o.id]=sp;let x=(sp[0]+.5)*C,y=sp[1]*C+2,mv=false;
+  if(!rm.home&&o.sleeping){const bd=beds[bi++]||null,bx=bd?(bd[1]+.5)*C:x,by=bd?bd[2]*C+C-4:y;c.save();c.translate(bx,by-2);c.rotate(-Math.PI/2);drawChar(c,0,0,1.05,o.look,{moving:false},0);c.restore();c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.fillStyle="#fff";c.strokeText("Z z",bx+4,by-C+2);c.fillText("Z z",bx+4,by-C+2);c.strokeText(o.name.slice(0,4),bx,Math.max(11,by-C-8));c.fillStyle=o.id==me?"#fee761":"#fff";c.fillText(o.name.slice(0,4),bx,Math.max(11,by-C-8));return}
   if(rm.home&&o.sleeping&&!(roomAnim&&roomAnim.code=="bed"&&roomAnim.age<.25)){const bd=rm.items.find(q=>q[0]=="bed"),bx=bd?(bd[1]+.5)*C:x,by=bd?bd[2]*C+C-4:y;c.save();c.translate(bx,by-2);c.rotate(-Math.PI/2);drawChar(c,0,0,1.05,o.look,{moving:false},0);c.restore();
    c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.fillStyle="#fff";c.strokeText("Z z",bx+4,by-C+2);c.fillText("Z z",bx+4,by-C+2);return}
   if(o.id==me&&roomAnim&&roomAnim.age<1){const A=roomAnim,tx=(A.it[1]+.5)*C,sit=SITS.includes(A.code),ty=sit?A.it[2]*C+C-3:Math.min(A.h-1,A.it[2]+1)*C+2,kk=A.age<.25?A.age/.25:A.age>.82?(1-A.age)/.18:1;mv=kk<1;x+=(tx-x)*kk;y+=(ty-y)*kk;if(A.code=="treadmill"&&kk==1)y-=Math.abs(Math.sin(A.age*40))*2;if(A.code=="massage"&&kk==1)x+=Math.sin(A.age*70)*1.2}
   drawChar(c,x,y,1.05,o.look,{moving:mv},Math.floor(performance.now()/90));c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.strokeText(o.name.slice(0,4),x,Math.max(11,y-30));c.fillStyle=o.id==me?"#fee761":"#fff";c.fillText(o.name.slice(0,4),x,Math.max(11,y-30))});if(roomAnim&&roomAnim.age<1)roomFxDraw(c)}
-{const cv=typeof document!=="undefined"&&document.getElementById("room");if(cv)cv.addEventListener("click",ev=>{const r=R[me],rm=roomOf(r,R);if(!rm)return;if(rm.visit){interiorModal(rm.hid);return}const b=cv.getBoundingClientRect(),cx=Math.floor((ev.clientX-b.left)/b.width*rw(rm)),cy=Math.floor((ev.clientY-b.top)/b.height*rh(rm)),o=rm.items.find(o=>o[1]==cx&&o[2]==cy);if(!o){if(rm.home&&!r.sleeping)interiorModal(me);return}
+// 點室內：點人＝選他（面對面互動），點物件＝按面板上對應的按鈕；fx、fy 是在室內畫布上的位置（0～1）
+function roomTap(fx,fy){const r=R[me],rm=roomOf(r,R);if(!rm)return;if(rm.visit&&!vin(r)){interiorModal(rm.hid);return}const cx=Math.floor(fx*rw(rm)),cy=Math.floor(fy*rh(rm)),pid=Object.keys(lastSpots).find(k=>+k!=me&&lastSpots[k][0]==cx&&(lastSpots[k][1]==cy||lastSpots[k][1]-1==cy));   // 人的腳在格子上緣、身體畫在上一格，兩格都算點到
+ if(pid){sel=sel==+pid?null:+pid;renderPanel();return}const o=rm.items.find(o=>o[1]==cx&&o[2]==cy);if(!o){if(rm.home&&!r.sleeping&&!rm.visit)interiorModal(me);return}
  const d=rm.home?[0,(FURN.find(a=>a[0]==o[0])||[0,o[0]])[1],HACT[o[0]]?HACT[o[0]][0]:null]:ITEM[o[0]];if(!d[2]){if(rm.home)interiorModal(me);else toast(d[1]);return}
- const i=panelFns.findIndex(f=>d[2].test(f.label)),el=i<0?null:$("acts").querySelector(`button[data-i="${i}"]`);if(el)el.click();else toast(`${d[1]}現在不能用`)})}
+ const i=panelFns.findIndex(f=>d[2].test(f.label)),el=i<0?null:$("acts").querySelector(`button[data-i="${i}"]`);if(el)el.click();else toast(`${d[1]}現在不能用`)}
+{const cv=typeof document!=="undefined"&&document.getElementById("room");if(cv)cv.addEventListener("click",ev=>{const b=cv.getBoundingClientRect();roomTap((ev.clientX-b.left)/b.width,(ev.clientY-b.top)/b.height)})}
+// 主畫面帶屋內：自己人在室內（設施裡、自己家屋裡、朋友家屋裡；醫院住院的人也算）而且沒在走路時，主畫面改畫室內（放大），不再畫地圖；點物件、點人和面板按鈕一樣用
+function stageRoom(){const r=R[me];if(!r)return null;const wk=walkers[me];if(wk&&wk.path.length)return null;const rm=roomOf(r,R);if(!rm)return null;if(rm.visit&&!vin(r))return null;return rm}
+let roomRect=null;
+function drawRoomStage(){const rm=stageRoom(),rc=$("room");if(!rm||!rc){roomRect=null;return false}drawRoom();if(!rc.width||!rc.height)return false;
+ const mob=isMob(),pt=mob?($("needs").offsetHeight||0)+8:8,pb=mob?($("panel").offsetHeight||0)+8:8,aw=W-16,ah=Math.max(60,Hh-pt-pb),s=Math.max(1,Math.min(aw/rc.width,ah/rc.height)),dw=Math.round(rc.width*s),dh=Math.round(rc.height*s),x=Math.round((W-dw)/2),y=Math.round(pt+(ah-dh)/2);
+ g.setTransform(dpr,0,0,dpr,0,0);g.imageSmoothingEnabled=false;g.fillStyle="#1b1b2f";g.fillRect(0,0,W,Hh);
+ g.fillStyle="#0b0b14";g.fillRect(x-6,y-6,dw+12,dh+12);g.drawImage(rc,x,y,dw,dh);g.strokeStyle="#fff";g.lineWidth=2;g.strokeRect(x-4,y-4,dw+8,dh+8);
+ roomRect={x,y,w:dw,h:dh};return true}
+function stageTap(e){const b=cv.getBoundingClientRect(),px=e.clientX-b.left,py=e.clientY-b.top,rr=roomRect;if(!rr)return;if(px<rr.x||py<rr.y||px>=rr.x+rr.w||py>=rr.y+rr.h){toast("要離開，點下面的「出門」");return}roomTap((px-rr.x)/rr.w,(py-rr.y)/rr.h)}
 const togetherAt=p=>PEV[p]&&Object.values(R).filter(o=>o.place==p&&!o.sleeping).length>=2;
 const TOGETHER_LINES=["一起真開心","嘿嘿，有伴真好","這裡好熱鬧","要不要一起做點什麼？"];
 // 邀請一起做：按鈕在設施面板；收到邀請時彈窗，1 分鐘內可接受

@@ -26,6 +26,18 @@ begin
   end loop;
   select * into r1 from public.town_residents where id=rb;
   rep := rep||'成功後：sleeping='||r1.sleeping||' dr='||coalesce(r1.items->>'dr','無')||' wo.f='||coalesce(r1.items#>>'{wo,f}','無')||' 精力='||round(r1.energy::numeric)||'（期望 false／1／甲／約 20 沒補）心情='||round(r1.fun::numeric)||'（期望約 87）'||E'\n';
+  -- 他離線很久（seen_at 兩小時前）：叫醒前先把 seen_at 設舊，叫醒後要被重設成現在，過一次 tick 還是醒著、站在門口
+  update public.town_residents set sleeping=true, energy=60, items='{}'::jsonb, fun=90, seen_at=now()-interval '2 hours', updated_at=now()-interval '2 hours' where id=rb;
+  loop
+    delete from public.town_events where actor=ra and target=rb and kind in ('wakeup','wakefail');
+    update public.town_residents set sleeping=true, items='{}'::jsonb, seen_at=now()-interval '2 hours', updated_at=now()-interval '2 hours' where id=rb;
+    j := public.town_wake_out(ra,'1234',rb);
+    exit when (j->>'ok')::boolean;
+  end loop;
+  select * into r1 from public.town_residents where id = rb;
+  update public.town_residents set updated_at = now() - interval '5 minutes' where id=rb;
+  r1 := public.town_tick((select t from public.town_residents t where id = rb));
+  rep := rep||'離線很久的人叫醒後再結算一次：sleeping='||r1.sleeping||' place='||r1.place||' dr='||coalesce(r1.items->>'dr','無')||'（期望 false home:乙 1，不會被送回屋裡睡）'||E'\n';
   rep := rep||'事件：wakeup='||(select count(*) from public.town_events where actor=ra and target=rb and kind='wakeup')||'（期望 1）'||E'\n';
   -- 3) 失敗只寫 wakefail
   loop
