@@ -34,13 +34,13 @@ create or replace function public.town_tg(r public.town_residents, f int, e int)
 declare day text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); n int := 0;
 begin
   if r.items->'tg'->>'d' = day then n := coalesce((r.items->'tg'->>'n')::int, 0); end if;
-  if n >= 8 then return r; end if;
+  if n >= 12 then return r; end if;
   r.items := jsonb_set(r.items, '{tg}', jsonb_build_object('d', day, 'n', n + 1));
   r.fun := least(100, r.fun + f); r.energy := least(100, r.energy + e);
   return r;
 end $$;
 create or replace function public.town_tg_left(r public.town_residents) returns int language sql immutable as $$
-  select case when r.items->'tg'->>'d' = to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD') then greatest(0, 8 - coalesce((r.items->'tg'->>'n')::int, 0)) else 8 end
+  select case when r.items->'tg'->>'d' = to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD') then greatest(0, 12 - coalesce((r.items->'tg'->>'n')::int, 0)) else 12 end
 $$;
 
 create or replace function public.town_save_r(r public.town_residents) returns void language sql as $$
@@ -73,7 +73,7 @@ begin
     pe := pe || jsonb_build_object('lp', now(), 'd', today, 'n', dn);
     q := pe->'q';
     if q is not null and (q->>'at')::timestamptz < now() - interval '5 minutes' then pe := pe - 'q'; q := null; end if;
-    if q is null and now() >= (pe->>'nx')::timestamptz and dn < 8 then
+    if q is null and now() >= (pe->>'nx')::timestamptz and dn < 12 then
       q := jsonb_build_object('k', floor(random() * 3)::int, 'at', now());
       pe := pe || jsonb_build_object('q', q, 'nx', now() + (10 + random() * 10) * interval '1 minute', 'n', dn + 1);
     elsif q is null and now() >= (pe->>'nx')::timestamptz then
@@ -95,7 +95,7 @@ begin
     select id, name into xid, xname from public.town_residents where town_id = r.town_id and place = r.place and id <> rid and not sleeping order by random() limit 1;
     if xid is not null then
       if b <> 0 then perform public.town_bond(r.town_id, rid, xid, b); end if;
-      tgb := public.town_tg_left(r) > 0; r := public.town_tg(r, 2, 1);   -- 有人一起：小加成（每天最多 8 次）
+      tgb := public.town_tg_left(r) > 0; r := public.town_tg(r, 4, 2);   -- 有人一起：加成（每天最多 12 次）
     end if;
     pe := (pe - 'q') || jsonb_build_object('lp', now());
     r.items := jsonb_set(r.items, '{pe}', pe);
@@ -137,7 +137,7 @@ begin
     if iv is null or (iv->>'f')::bigint <> target or (iv->>'at')::timestamptz < now() - interval '1 minute' then raise exception '邀請已經過期了'; end if;
     if t.sleeping or t.place is distinct from r.place or iv->>'p' is distinct from r.place then raise exception '% 已經離開了', t.name; end if;
     ra := public.town_tg_left(r); ta := public.town_tg_left(t);
-    r := public.town_tg(r, 8, 3); t := public.town_tg(t, 8, 3);
+    r := public.town_tg(r, 12, 5); t := public.town_tg(t, 12, 5);
     perform public.town_bond(r.town_id, rid, t.id, 1);
     r.items := (r.items - 'iv') || jsonb_build_object('cd', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('jt' || t.id, now()));
     t.items := jsonb_set(t.items, '{cd}', coalesce(t.items->'cd','{}'::jsonb) || jsonb_build_object('jt' || rid, now()));

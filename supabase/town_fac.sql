@@ -174,11 +174,11 @@ begin
   -- 和誰互動：好感走 town_bond（吃每日上限）；有人一起就拿一次「一起」加成（每人每天最多 8 次，與其他一起加成共用）
   if pair then
     if b <> 0 then perform public.town_bond(r.town_id, rid, t.id, b); end if;
-    r := public.town_tg(r, 2, 1); t := public.town_tg(t, 2, 1);
+    r := public.town_tg(r, 4, 2); t := public.town_tg(t, 4, 2);
     perform public.town_save_r(t);
     if not (fa->'who' @> to_jsonb(t.id)) then fa := jsonb_set(fa, '{who}', (fa->'who') || to_jsonb(t.id)); end if;
   elsif xid is not null then
-    perform public.town_bond(r.town_id, rid, xid, b); r := public.town_tg(r, 2, 1);
+    perform public.town_bond(r.town_id, rid, xid, b); r := public.town_tg(r, 4, 2);
     if not (fa->'who' @> to_jsonb(xid)) then fa := jsonb_set(fa, '{who}', (fa->'who') || to_jsonb(xid)); end if;
   end if;
   if evk is not null then insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, case when pair then t.id else rid end, evk, evm); end if;

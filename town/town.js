@@ -192,6 +192,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+ {id:"u34-gov",date:"11/10",title:"政府普發、打工有獎金",items:["政府今天普發每位居民 €20000","之後每天第一次上線，政府再發 €3000","每天打工第 3 次領勤勞獎金 €500、第 6 次 €1000","一起做事的心情加成變大，每天上限提高到 12 次"]},
  {id:"u33-odds",date:"11/10",title:"街機賠率調整，平手不再算輸",items:["猜拳平手全額退回；比大小兩張一樣大退回押注","21 點開局 21 點賠 3 倍；輪盤多了 ×1 三格、最高 ×4","骰子大小三顆一樣退一半；單點三顆賠 12 倍","老虎機兩個一樣賠 ×1.2；賓果中 2 個賠 ×1.5"]},
  {id:"u32-bjbet",date:"11/10",title:"修好 21 點結果顯示錯誤",items:["以前發牌後如果改了押注金額，贏了也可能顯示成「輸了」","現在結果一律照這一局實際押的金額顯示","發牌後到結束前，押注按鈕會暫時鎖住"]},
  {id:"u31-nowake",date:"11/10",title:"睡著的人白天不會自己醒",items:["睡著離線的人，白天也會一直睡，不再精力滿了就自己醒","朋友可以走到他家、按「進去」再按「叫醒他」","自己上線按「起床」就會醒"]},
@@ -502,7 +503,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
     if(!t.sleeping)list.push(btn("串門子","兩人心情 +15",()=>act("visit",{target:id})),...faceActs(id));
     list.push(btn("出門","回到他家門口",()=>exitFriend()))}}}
  else if(p=="restaurant"){title="餐廳";list.push(btn("吃一頓","飽足 +55 · 精力 +20 · 心情 +10 · €250",()=>act("dine")),pjBtn("rest",r));note="朋友也在的話，點他可以請吃大餐 · "+pjNote("rest",r)}
- else if(p=="office"){title="公司";list.push(btn("打工",(wkLeft(R[me])?`休息中，${fmtLeft(wkLeft(R[me]))}後可再打 · `:"")+`+€${myWage()} · 精力 −25 · 每 ${alOf(R[me])[2]} 分鐘一次`,()=>act("work")));note=`今天已打工 ${workToday(R[me])} 次。每次薪水全額、不遞減，但每次打工之間要隔 ${alOf(R[me])[2]} 分鐘（所有打工共用），而且很耗精力，累了要回家睡。有同事在的話，點他可以一起加班，薪水加倍`}
+ else if(p=="office"){title="公司";list.push(btn("打工",(wkLeft(R[me])?`休息中，${fmtLeft(wkLeft(R[me]))}後可再打 · `:"")+`+€${myWage()} · 精力 −25 · 每 ${alOf(R[me])[2]} 分鐘一次`,()=>act("work")));note=`今天已打工 ${workToday(R[me])} 次（第 3 次再領勤勞獎金 €500、第 6 次 €1000）。每次薪水全額、不遞減，但每次打工之間要隔 ${alOf(R[me])[2]} 分鐘（所有打工共用），而且很耗精力，累了要回家睡。有同事在的話，點他可以一起加班，薪水加倍`}
  else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")));if(p=="plaza"&&isOn("arcade"))list.push(btn("小豬街機 🕹️","賭場 7 種＋單機 2 種",()=>gamesModal()))}
  else if(p=="cafe"){title="咖啡廳";list.push(btn("喝咖啡 ☕","€90 · 精力 +50 · 膀胱 −10 · 30 分鐘一次",()=>act("coffee")),pjBtn("cafe",r));note=pjNote("cafe",r)}
  else if(p=="rafi"){title="拉菲的辦公室";list.push(pjBtn("rafi",r));note=pjNote("rafi",r)+" · 薪水比公司高但很傷心情"}
@@ -1378,12 +1379,12 @@ const TOGETHER_LINES=["一起真開心","嘿嘿，有伴真好","這裡好熱鬧
 function inviteBtns(r){const p=r.place;if(!PEV[p]||r.sleeping)return[];const here=Object.values(R).filter(o=>o.id!=me&&o.place==p&&!o.sleeping);if(!here.length)return[];
  const cdOf=o=>{const t=Date.parse((r.items.cd||{})["jt"+o.id]||0);return Math.max(0,30*6e4-(now()-t))};
  const send=o=>async()=>{try{await rpc("town_invite",{rid:me,pin,op:"send",target:o.id});toast(`已邀請 ${o.name}，1 分鐘內他點接受就開始`);spawnFx("hearts",me)}catch(e){toast(e.message)}};
- const one=o=>{const c=cdOf(o);return btn(`邀請 ${o.name} 一起${JT[p]} 🤝`,c?`剛做過，${fmtLeft(c)}後再約`:"他 1 分鐘內接受 · 兩人心情 +8、精力 +3、好感 +1 · 30 分鐘一次",c?()=>toast("剛一起做過，晚點再約"):send(o),"face")};
+ const one=o=>{const c=cdOf(o);return btn(`邀請 ${o.name} 一起${JT[p]} 🤝`,c?`剛做過，${fmtLeft(c)}後再約`:"他 1 分鐘內接受 · 兩人心情 +12、精力 +5、好感 +1 · 30 分鐘一次",c?()=>toast("剛一起做過，晚點再約"):send(o),"face")};
  return here.slice(0,4).map(one)}
 let ivSeen="";
 function checkInvite(){const r=R[me];if(!r||!r.items||!r.items.iv||modalOpen()||!S)return;const iv=r.items.iv,age=Date.parse(S.now)-Date.parse(iv.at),f=R[iv.f];
  if(age>55e3||age<0||ivSeen==iv.at||!f||r.sleeping||r.place!=iv.p||f.place!=iv.p||!PEV[r.place])return;ivSeen=iv.at;
- choiceModal(`${f.name} 邀請你一起${JT[r.place]}`,"1 分鐘內有效 · 兩人心情 +8、精力 +3、好感 +1",[["好啊","一起做",async()=>{try{const j=await rpc("town_invite",{rid:me,pin,op:"yes",target:f.id});await refresh();spawnFx("hearts",me);spawnFx("hearts",f.id);toast(j.bonus?`和 ${f.name} 一起：心情 +8、精力 +3、好感 +1`:`和 ${f.name} 好感 +1（今天的加成用完了）`)}catch(e){toast(e.message)}renderPanel()}],["下次吧","不接受",async()=>{try{await rpc("town_invite",{rid:me,pin,op:"no",target:f.id});await refresh()}catch(e){}}]])}
+ choiceModal(`${f.name} 邀請你一起${JT[r.place]}`,"1 分鐘內有效 · 兩人心情 +12、精力 +5、好感 +1",[["好啊","一起做",async()=>{try{const j=await rpc("town_invite",{rid:me,pin,op:"yes",target:f.id});await refresh();spawnFx("hearts",me);spawnFx("hearts",f.id);toast(j.bonus?`和 ${f.name} 一起：心情 +12、精力 +5、好感 +1`:`和 ${f.name} 好感 +1（今天的加成用完了）`)}catch(e){toast(e.message)}renderPanel()}],["下次吧","不接受",async()=>{try{await rpc("town_invite",{rid:me,pin,op:"no",target:f.id});await refresh()}catch(e){}}]])}
 // ── 開始：沒有代碼就是首頁；有代碼就讀小鎮，這台手機住過就自動登入；每 15 秒同步一次 ──
 const slow=setTimeout(()=>{const x=document.querySelector("#lg .ld small");if(x)x.textContent="網路比較慢，再等一下…"},6000);
 (async()=>{if(!TID){clearTimeout(slow);const l=mine();if(standalone&&l.length==1){go(l[0].tid);return}landing();return}

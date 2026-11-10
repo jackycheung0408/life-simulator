@@ -694,6 +694,17 @@ revoke all on function public.town_rg_add(bigint,bigint,text) from public, anon,
 create or replace function public.town_dc_get(r public.town_residents, k text) returns int language sql stable as $$
   select case when r.items->'dc'->>'d' = to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD') then coalesce((r.items->'dc'->>k)::int,0) else 0 end
 $$;
+-- 打工額外好處：今天累計打工第 3 次 +500、第 6 次 +1000（勤勞獎金，每天各一次；前端 workBonus 要一致）
+create or replace function public.town_wk_bonus(r public.town_residents) returns public.town_residents language plpgsql as $$
+declare n int := coalesce((r.items->'dc'->>'work')::int, 0); b int := case n when 3 then 500 when 6 then 1000 else 0 end;
+begin
+  if b > 0 then
+    r.money := r.money + b;
+    insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, r.id, r.id, 'luck', r.name || ' 今天打工第 ' || n || ' 次，領到勤勞獎金 €' || b);
+  end if;
+  return r;
+end $$;
+revoke all on function public.town_wk_bonus(public.town_residents) from public, anon, authenticated;
 create or replace function public.town_dc_inc(r public.town_residents, k text) returns public.town_residents language plpgsql stable as $$
 declare dc jsonb; day text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD');
 begin
@@ -800,6 +811,9 @@ create or replace function public.town_rent(r public.town_residents) returns pub
 declare day text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); a int; p int; tx int := 0;
 begin
   if coalesce(r.items->>'rent','') = day then return r; end if;
+  -- 政府普發：每個台灣日第一次登入或動作 +3000（先發再扣房租，所以不會因房租被扣成 0）
+  r.money := r.money + 3000;
+  insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, r.id, r.id, 'luck', r.name || ' 領到政府今天普發的 €3000');
   a := public.town_rent_amt(coalesce((r.items->>'hl')::int,1)); a := a - a * public.town_rent_pct(r) / 100; p := least(a, greatest(0, r.money));
   r.money := r.money - p; r.items := jsonb_set(r.items, '{rent}', to_jsonb(day));
   perform public.town_fund_add(r.town_id, 'rent', p * 5 / 100);
@@ -1365,7 +1379,7 @@ begin
     if r.energy < greatest(15, -fx[1]) then raise exception '太累了，先回家睡覺'; end if;
     n := coalesce((r.items->'jw'->>item)::int,0);
     w := public.town_pay(public.town_pjob_wage(item, n), mo, public.town_has(r,'workaholic')) * public.town_work_pct(public.town_dc_get(r,'work')) / 100 * public.town_pr_pct(r) / 100;
-    r := public.town_dc_inc(r,'work');
+    r := public.town_dc_inc(r,'work'); r := public.town_wk_bonus(r);
     r.items := jsonb_set(r.items, '{jw}', coalesce(r.items->'jw','{}'::jsonb) || jsonb_build_object(item, n + 1));
     r.money := r.money + w; r.energy := r.energy + fx[1]; r.hunger := r.hunger + fx[2]; r.fun := r.fun + fx[3]; r.hygiene := r.hygiene + fx[4];
     if item = 'gym' then r.items := jsonb_set(r.items, '{fit}', to_jsonb(least(10, coalesce((r.items->>'fit')::int,0) + 1))); end if;
@@ -1381,7 +1395,7 @@ begin
       perform public.town_wk_check(r); r := public.town_wk_set(r);
       r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('work', now())); n := coalesce((r.items->>'works')::int,0);
       w := public.town_pay(public.town_wage(public.town_job_lv(n)), mo, public.town_has(r,'workaholic')) * public.town_work_pct(public.town_dc_get(r,'work')) / 100 * public.town_pr_pct(r) / 100;
-      r := public.town_dc_inc(r,'work');
+      r := public.town_dc_inc(r,'work'); r := public.town_wk_bonus(r);
       r.items := jsonb_set(r.items, '{works}', to_jsonb(n + 1)); r.money := r.money + w; r.energy := r.energy - 25; r.fun := r.fun - 10; r.hunger := r.hunger - 8;
       insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'work', r.name || ' 打工賺了 €' || w);
       if public.town_job_lv(n + 1) > public.town_job_lv(n) then
@@ -1588,6 +1602,14 @@ revoke all on function public.town_has(public.town_residents,text), public.town_
 create table if not exists public.town_migrations (id text primary key);
 alter table public.town_migrations enable row level security;
 revoke all on public.town_migrations from anon, authenticated;
+-- 政府普發 2 萬（2026-11-10 一次性，所有現有居民；只跑一次）
+do $mig$ begin
+  if not exists (select 1 from public.town_migrations where id = 'gift20k') then
+    update public.town_residents set money = money + 20000;
+    insert into public.town_events(town_id,actor,kind,msg) select id, null, 'luck', '政府今天普發每位居民 €20000' from public.town_towns;
+    insert into public.town_migrations(id) values ('gift20k');
+  end if;
+end $mig$;
 do $mig$ begin
   if not exists (select 1 from public.town_migrations where id = 'career1') then
     update public.town_residents r set items = jsonb_set(jsonb_set(r.items, '{works}', to_jsonb((select count(*) from public.town_events e where e.actor = r.id and e.kind = 'work')::int)),
