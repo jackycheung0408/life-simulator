@@ -34,7 +34,7 @@ begin
   begin perform public.town_hospital(rb,'1234','discharge'); rep := rep||'住院中出院：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'住院中出院：'||sqlerrm||E'\n'; end;
   begin perform public.town_hospital(rc,'1234','consult'); rep := rep||'不在醫院看診：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'不在醫院看診：'||sqlerrm||E'\n'; end;
   -- 6) 出院：faint 結束後（把 faint 設成過去）走 town_tick 醒來，再出院
-  update public.town_residents set items = jsonb_set(items,'{faint}',to_jsonb((now()-interval '1 minute')::text)) where id=rb;
+  update public.town_residents set updated_at = now() - interval '2 minutes', items = jsonb_set(items,'{faint}',to_jsonb((now()-interval '1 minute')::text)) where id=rb;   -- tick 要動起來：updated_at 不能是現在
   perform public.town_hospital(rb,'1234','discharge');
   select * into r1 from public.town_residents where id = rb;
   rep := rep||'出院後：place='||r1.place||' fi='||coalesce(r1.items->>'fi','無')||' sleeping='||r1.sleeping||'（期望 street 無 false）'||E'\n';
@@ -80,7 +80,7 @@ begin
   begin perform public.town_civic(ra,'1234','propose','statue'); rep := rep||'基金不夠提雕像：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'基金不夠提雕像：'||sqlerrm||E'\n'; end;
   j := public.town_civic(ra,'1234','propose','bench2');
   rep := rep||'提長椅：'||(j->'vote')::text||E'\n';
-  begin perform public.town_civic(rb,'1234','propose','poll',null,'要辦派對嗎'); rep := rep||'已有投票又發起：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'已有投票又發起：'||sqlerrm||E'\n'; end;
+  begin perform public.town_civic(rb,'1234','propose','poll','要辦派對嗎'); rep := rep||'已有投票又發起：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'已有投票又發起：'||sqlerrm||E'\n'; end;
   -- 投票：甲、乙贊成，丙反對；重複投被擋
   perform public.town_civic(ra,'1234','vote','yes'); perform public.town_civic(rb,'1234','vote','yes'); perform public.town_civic(rc,'1234','vote','no');
   begin perform public.town_civic(ra,'1234','vote','no'); rep := rep||'重複投票：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'重複投票：'||sqlerrm||E'\n'; end;
@@ -99,7 +99,7 @@ begin
   j := public.town_civic(ra,'1234','view');
   rep := rep||'只有 1 票（要 2 票）：proj='||(j->'proj')::text||' 基金 '||(j->>'fund')||'（期望 ["bench2"] 40000）'||E'\n'||'  結果：'||(j->'hist'->0->>'m')||E'\n';
   -- 發起一般投票（任何居民），題目有髒話被擋
-  j := public.town_civic(rb,'1234','propose','poll',null,'要辦派對嗎');
+  j := public.town_civic(rb,'1234','propose','poll','要辦派對嗎');
   rep := rep||'居民發起投票：'||(j->'vote'->>'q')||E'\n';
   -- 使用建好的長椅：要在 (48,8) 附近、10 分鐘一次、不給錢
   update public.town_residents set place='street', x=48, y=8, energy=50, fun=50 where id=ra;
