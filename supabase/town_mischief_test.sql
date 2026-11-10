@@ -66,9 +66,10 @@ begin
   -- 醜照
   j := public.town_mischief(ra,'1234','photo',rb); rep := rep||'醜照：'||(j->>'msg')||'，動態 photo 筆數 '||(select count(*) from public.town_events where kind='photo')||E'\n';
   -- 條件：不是面對面
-  update public.town_residents set x=50, y=10 where id=rc;
+  -- 同在廣場（不是街上）就算面對面，所以「太遠」要放到街上、距離 > 2.5
+  update public.town_residents set place='street', x=50, y=10 where id=rc;
   begin perform public.town_mischief(ra,'1234','splash',rc); rep := rep||'太遠潑水：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'太遠潑水：'||sqlerrm||E'\n'; end;
-  update public.town_residents set x=14, y=10 where id=rc;
+  update public.town_residents set place='plaza', x=14, y=10 where id=rc;
   -- 按門鈴／假便便：要站在對方家門口
   begin perform public.town_mischief(ra,'1234','doorbell',rc); rep := rep||'不在門口按門鈴：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'不在門口按門鈴：'||sqlerrm||E'\n'; end;
   update public.town_residents set place='home:'||rc where id=ra; update public.town_residents set place='home:'||rc where id=rc;
@@ -93,7 +94,7 @@ begin
     select money into m1 from public.town_residents where id=ra;
     if m1 < 5000 then paid := paid + (5000 - m1); else sn := sn + 1; end if;
   end loop;
-  rep := rep||'偷零食 60 次：成功 '||sn||' 次、被抓共賠 €'||paid||'；平均每次金錢 = '||round((-paid)::numeric/60,2)||'，加上成功拿到的零食價值 €60×'||sn||' → 每次期望 '||round(((sn*60 - paid)::numeric)/60,2)||'（要 ≤ 約 0）'||E'\n';
+  rep := rep||'偷零食 60 次：成功 '||sn||' 次、被抓共賠 €'||paid||'；平均每次金錢 = '||round((-paid)::numeric/60,2)||'，加上成功拿到的零食價值 €60×'||sn||' → 這一輪樣本每次 '||round(((sn*60 - paid)::numeric)/60,2)||'（60 次的隨機誤差很大）；理論期望 = 0.45×60 − 0.55×60 = −6（被抓機率 55%、賠 €60，≤ 0 才對）'||E'\n';
 
   -- ── 3) 免整牌／每日上限／原諒 ──
   update public.town_residents set items='{}'::jsonb, place='plaza', x=14, y=10, money=5000, sleeping=false where id in (ra,rb,rc);
@@ -110,10 +111,11 @@ begin
   delete from public.town_bonds where a=least(ra,rb) and b=greatest(ra,rb);
   j := public.town_mischief(rb,'1234','splash',ra);
   j := public.town_mischief(ra,'1234','splash',rb); rep := rep||'報復：rev='||(j->>'rev')||'、好感變化 b='||(j->>'b')||'（期望 true、0）'||E'\n';
-  -- 原諒
+  -- 原諒（同一個交易裡 now() 不動，所以先把前面的惡搞動態往前挪 1 分鐘，原諒動態才會比它新）
+  update public.town_events set at = at - interval '1 minute' where kind in ('mischief','photo');
   j := public.town_mischief(ra,'1234','forgive',rb); rep := rep||'原諒：'||(j->>'msg')||E'\n';
   begin perform public.town_mischief(ra,'1234','forgive',rb); rep := rep||'重複原諒：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'重複原諒：'||sqlerrm||E'\n'; end;
-  begin perform public.town_mischief(rc,'1234','forgive',ra); rep := rep||'原諒沒整過你的人：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'原諒沒整過你的人：'||sqlerrm||E'\n'; end;
+  begin perform public.town_mischief(ra,'1234','forgive',rc); rep := rep||'原諒沒整過你的人：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'原諒沒整過你的人：'||sqlerrm||E'\n'; end;
   -- 被關著的人不能整人
   update public.town_residents set items=jsonb_build_object('jl', now() + interval '1 hour') where id=ra;
   begin perform public.town_mischief(ra,'1234','splash',rb); rep := rep||'坐牢中整人：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'坐牢中整人：'||sqlerrm||E'\n'; end;
@@ -132,6 +134,7 @@ begin
   end loop;
   rep := rep||'室內扁屋主 100 次，訪客被趕出門 '||kick||' 次（期望約 42：輸 60%、贏 25%，各半）'||E'\n';
   -- 屋主睡著不能被扁
+  delete from public.town_events where kind in ('fight','kick');
   update public.town_residents set sleeping=true where id=rb; update public.town_residents set items=jsonb_build_object('fv', rb) where id=ra;
   begin perform public.town_act(ra,'1234','fight',target:=rb); rep := rep||'扁睡著的屋主：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'扁睡著的屋主：'||sqlerrm||E'\n'; end;
 
