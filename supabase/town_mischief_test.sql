@@ -21,7 +21,7 @@ begin
   begin perform public.town_pk(ra,'1234','send',rb,500); rep := rep||'對方付不起：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'對方付不起：'||sqlerrm||E'\n'; end;
   update public.town_residents set money=5000 where id=rb;
   -- 友誼賽（不下注）：邀約 → 接受
-  j := public.town_pk(ra,'1234','send',rb,0); rep := rep||'送出邀約：'||(j->>'msg')||E'\n';
+  update public.town_residents set items = items - 'cd' where id=ra; j := public.town_pk(ra,'1234','send',rb,0); rep := rep||'送出邀約：'||(j->>'msg')||E'\n';
   select * into r2 from public.town_residents where id=rb; rep := rep||'乙收到邀約 items.pk = '||coalesce((r2.items->'pk')::text,'無')||E'\n';
   begin perform public.town_pk(ra,'1234','send',rb,0); rep := rep||'3 分鐘內重送：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'3 分鐘內重送：'||sqlerrm||E'\n'; end;
   j := public.town_pk(rb,'1234','accept',ra);
@@ -35,18 +35,18 @@ begin
   update public.town_residents set money=5000, energy=90, fun=70, bruised_until=null where id in (ra,rb);
   delete from public.town_events where kind='pk';
   select fund into fund0 from public.town_towns where id=tid;
-  j := public.town_pk(ra,'1234','send',rb,1000); j := public.town_pk(rb,'1234','accept',ra);
+  update public.town_residents set items = items - 'cd' where id=ra; j := public.town_pk(ra,'1234','send',rb,1000); j := public.town_pk(rb,'1234','accept',ra);
   select * into r1 from public.town_residents where id=ra; select * into r2 from public.town_residents where id=rb; select fund into fund1 from public.town_towns where id=tid;
   rep := rep||'賭 1000：甲 '||r1.money||'、乙 '||r2.money||'（期望一個 5950、一個 4000）鎮基金 +'||(fund1-fund0)||'（期望 50）'||E'\n';
   -- 每對每小時最多 3 場
   update public.town_residents set money=5000, energy=90, bruised_until=null where id in (ra,rb);
-  j := public.town_pk(ra,'1234','send',rb,0); j := public.town_pk(rb,'1234','accept',ra);
+  update public.town_residents set items = items - 'cd' where id=ra; j := public.town_pk(ra,'1234','send',rb,0); j := public.town_pk(rb,'1234','accept',ra);
   update public.town_residents set money=5000, energy=90, bruised_until=null where id in (ra,rb);
-  j := public.town_pk(ra,'1234','send',rb,0); j := public.town_pk(rb,'1234','accept',ra);
-  begin j := public.town_pk(ra,'1234','send',rb,0); rep := rep||'第 4 場：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'第 4 場：'||sqlerrm||E'\n'; end;
+  update public.town_residents set items = items - 'cd' where id=ra; j := public.town_pk(ra,'1234','send',rb,0); j := public.town_pk(rb,'1234','accept',ra);
+  begin update public.town_residents set items = items - 'cd' where id=ra; j := public.town_pk(ra,'1234','send',rb,0); rep := rep||'第 4 場：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'第 4 場：'||sqlerrm||E'\n'; end;
   -- 婉拒
   delete from public.town_events where kind='pk'; update public.town_residents set energy=90, place='plaza' where id in (ra,rb);
-  j := public.town_pk(ra,'1234','send',rb,0); j := public.town_pk(rb,'1234','decline',ra);
+  update public.town_residents set items = items - 'cd' where id=ra; j := public.town_pk(ra,'1234','send',rb,0); j := public.town_pk(rb,'1234','decline',ra);
   j := public.town_pk(ra,'1234','poll'); rep := rep||'婉拒後甲 poll：no='||coalesce(j->'pkr'->>'no','無')||E'\n';
   -- 睡著的人不能邀
   update public.town_residents set sleeping=true where id=rb;
