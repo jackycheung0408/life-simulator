@@ -82,7 +82,7 @@ check(Math.round(M.tickLocal({...base,sleeping:true,energy:0,items:{fu:["bed"]}}
  check(Math.abs(e0-64)<.5&&Math.abs(e1-90)<.5,"睡覺一小時精力：地上 64／好床 90，實際 "+e0+"／"+e1);
 }
 check(M.hasF({items:{fu:["","fridge"]}},"fridge")&&!M.hasF({items:{f:["fridge"]}},"fridge"),"只有擺出來的家具才有效果");
-check(M.FURN.length==15&&M.HOUSES.map(h=>h[2]).join()=="6,10,15,20"&&M.HOUSES.map(h=>h[1]).join()=="0,20000,150000,400000","家具或房子等級表不對");
+check(M.FURN.length==15&&M.HOUSES.map(h=>h[2]).join()=="6,10,15,20"&&M.HOUSES.map(h=>h[1]).join()=="0,40000,300000,800000","家具或房子等級表不對");
 // 家裡自由佈置：房間大小、上限、掛牆道具、道具價格和 supabase/town_home.sql 一致；舊的 9 格 fu 換算後一定放得下、站位夠；動作按鈕對得到
 {const sql=require("fs").readFileSync(__dirname+"/../supabase/town_home.sql","utf8"),arr=a=>"array["+a.join(",")+"]";
  check(sql.includes(arr(M.HOME_DIM.map(d=>d[0])))&&sql.includes(arr(M.HOME_DIM.map(d=>d[1])))&&sql.includes(arr(M.HOUSES.map(h=>h[2]))),"town_home.sql 的房間大小或上限和 HOME_DIM／HOUSES 不一致");
