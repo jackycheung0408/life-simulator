@@ -44,7 +44,7 @@ const STYLES={"速度,射門":"速度型射手","射門,體能":"禁區殺手","
 function styleOf(p){if(p.age<13)return "還沒定型";const avg=ATTR.reduce((t,k)=>t+p.a[k],0)/6,top=ATTR.slice().sort((a,b)=>p.a[b]-p.a[a]);if(p.a[top[0]]-avg<4)return "全面均衡型";
  const key=[top[0],top[1]].sort((a,b)=>ATTR.indexOf(a)-ATTR.indexOf(b)).join(",");return STYLES[key]||STYLES[[top[1],top[0]].join(",")]||`${top[0]}專家`}
 // 不改動能力，估算這份課表一季大概會讓各能力變多少（給課表面板用）
-function planEstimate(p){const sh=planShare(),age=p.age,o=ovr(p),room=Math.max(0,p.pot-o);let base=(age<17?3.2:age<21?2.4:age<25?1.4:age<29?.4:age<32?-.8:-(age-29)*.9);
+function planEstimate(p){const sh=planShare(),age=p.age,o=ovr(p),room=Math.max(0,p.pot-o);let base=(age<17?3.2:age<21?2.4:age<25?1.8:age<29?.9:age<32?-.8:-(age-29)*.9);
  if(age>=12&&age<29)base*=.6+.6*Math.min(1,room/12)+.6*.4;const fat=p.fat||0,tired=(fat>80?.55:fat>60?.85:1);const e={};
  ATTR.forEach(k=>{let d=base>0?base*(.8+4*sh[k])*tired:base+2.2*sh[k]*tired;if(age>=15&&age<=34)d+=1.6*(sh[k]-1/6)*tired;if((k=="速度"||k=="體能")&&age>=29)d-=(age-28)*.25;
   if(room<=0&&d>0&&base>0)d*=.35;e[k]=d});return e}
@@ -52,7 +52,7 @@ function grow(p,minutes,frac=1){
  if(p.age<p.touchAge)return;
  const o=ovr(p),room=Math.max(0,p.pot-o),age=p.age,sh=planShare(),fat=p.fat||0;
  const env=(p.academy==5||(p.clubObj&&p.clubObj.tier>=4))?1:clamp(.72+(p.cs-50)/140,.72,1); // 足球環境：強國或頂級聯賽練得比較快
- let base=(age<8?2.6:age<12?3.4:age<17?3.2:age<21?2.4:age<25?1.4:age<29?.4:age<32?-.8:-(age-29)*.9);if(base>0)base*=env;
+ let base=(age<8?2.6:age<12?3.4:age<17?3.2:age<21?2.4:age<25?1.8:age<29?.9:age<32?-.8:-(age-29)*.9);if(base>0)base*=env;
  if(age>=12&&age<29)base*=.6+.6*Math.min(1,room/12)+minutes*.4;
  const tired=(fat>80?.55:fat>60?.85:1)*(1+.05*T(p,"職業態度")+.05*T(p,"苦練")-.08*T(p,"夜生活"));
  for(const k of ATTR){let d=base>0?base*frac*(.7+R()*.6)*(.8+4*sh[k])*tired:base*frac*(.7+R()*.6)+frac*2.2*sh[k]*tired;

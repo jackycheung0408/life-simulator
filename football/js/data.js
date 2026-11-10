@@ -67,7 +67,11 @@ const POS={FW:"前鋒",MF:"中場",DF:"後衛",GK:"門將"};
 const ATTR=["速度","射門","傳球","盤帶","防守","體能"];
 const POSW={FW:{速度:.2,射門:.35,傳球:.1,盤帶:.25,防守:0,體能:.1},MF:{速度:.12,射門:.12,傳球:.35,盤帶:.2,防守:.11,體能:.1},DF:{速度:.18,射門:0,傳球:.12,盤帶:.05,防守:.5,體能:.15},GK:{速度:.05,射門:0,傳球:.15,盤帶:0,防守:.6,體能:.2}};
 function ageCap(a){return a<=8?20+a*2:a<=12?36+(a-8)*3:a<=17?48+(a-12)*5:a<=21?73+(a-17)*4:a<=27?89+(a-21)*1.6:99}
-function capAttrs(p){const cap=ageCap(p.age),lim=Math.min(95,Math.min(cap,p.pot)+4);
+// 發育曲線：能力隨年齡逐步逼近天賦上限（約 26 歲到頂），早熟（bloom<0）早到、晚熟晚到；舊存檔（沒有 dev 旗標）維持原本的上限
+const DEVC=[[10,.5],[13,.72],[15,.81],[17,.88],[19,.93],[21,.96],[23,.98],[25,.995],[27,1]];
+function devFrac(p){const a=Math.max(10,Math.min(27,p.age-(p.bloom||0)*1.5));for(let i=1;i<DEVC.length;i++)if(a<=DEVC[i][0]){const [x0,y0]=DEVC[i-1],[x1,y1]=DEVC[i];return y0+(y1-y0)*(a-x0)/(x1-x0)}return 1}
+function potNow(p){return p.dev&&p.age>=11?p.pot*devFrac(p):p.pot}
+function capAttrs(p){const cap=ageCap(p.age),lim=Math.min(95,Math.min(cap,potNow(p))+4);
  // 依位置決定每項卡面能力的上限：主要能力最高、次要的低一些、用不到的明顯較低（參考 FIFA 球星的能力分布）
  const w=DPW[dpOf(p)],rel=ATTR.map(k=>[k,Object.keys(faceMap(p,k)).reduce((t,x)=>t+(w[x]||0),0)]).sort((a,b)=>b[1]-a[1]);
  // 長期重點訓練（p.focus 累積）的能力，上限往上提，練得越久越能變成你的招牌
@@ -126,6 +130,6 @@ function newPlayer(world,pos){
  const hT=({拉:175,歐:181,英:179,非:177,亞:172,中:175,華:173}[c[4]])+gauss()*6.5; // 成年身高目標（男性）
  const _bg=wpick(BG,x=>x[1]),_body=wpick(BODY,x=>x[1])[0],_mind=wpick(MIND,x=>x[1])[0];
  return attachA({bg:_bg[0],bgNote:_bg[2],body:_body,mind:_mind,s:sub,wf:wpick([1,2,3,4,5],x=>[5,30,45,15,5][x-1]),sm:wpick([1,2,3,4,5],x=>[10,35,35,15,5][x-1]),dp:({FW:"ST",MF:"CM",DF:"CB",GK:"GK"}[position]),name:pick(nm.男)+" "+pick(nm.姓),c:c[0],cs:c[2],ctier:c[3],region:c[4],pos:position,dreamPos:position,talent,pot:Math.min(pot,potCap),a,age:0,y0:BIRTH_Y,cls,fam,h:50,hT,bloom:gauss()*.9,touchAge:fan||sib?3+Math.floor(R()*2):4+Math.floor(R()*3),grade:55+R()*20,
-  ver:2,club:null,stage:"嬰兒",money:0,fame:0,morale:60,health:100,caps:0,intlGoals:0,apps:0,goals:0,assists:0,cleans:0,trophies:[],awards:[],injuries:0,seasons:[],ovrHist:[],log:[],alive:true,retired:false,contract:0,wage:0,partner:null,kids:0,after:null,clubsPlayed:[],peak:0,maxValue:0});
+  ver:2,dev:1,club:null,stage:"嬰兒",money:0,fame:0,morale:60,health:100,caps:0,intlGoals:0,apps:0,goals:0,assists:0,cleans:0,trophies:[],awards:[],injuries:0,seasons:[],ovrHist:[],log:[],alive:true,retired:false,contract:0,wage:0,partner:null,kids:0,after:null,clubsPlayed:[],peak:0,maxValue:0});
 }
 function say(t,hi){const p=document.createElement("p");if(hi)p.className="hi";p.innerHTML=`<span class="y">${P.age}歲</span>${t}`;const L=$("log");L.prepend(p);while(L.children.length>150)L.lastChild.remove();P.log.push([P.age,t,!!hi])} // 畫面只留最近 150 則，完整紀錄在報表的生平

@@ -2,10 +2,12 @@
 // ── 首頁 ──
 const cfg={w:"world",pos:"FW",mode:"real",card:null,stars:"real"};
 // ── 抽卡：稀有度決定潛力範圍 ──
-const RARITY=[["銅卡",60,45,58,"#c98a4b"],["銀卡",28,58,68,"#c9d3d8"],["金卡",10,68,80,"#ffd23f"],["傳奇卡",2,80,92,"#b07cff"]];
+const RARITY=[["銅卡",45,52,65,"#c98a4b"],["銀卡",33,63,75,"#c9d3d8"],["金卡",17,73,86,"#ffd23f"],["傳奇卡",5,85,95,"#b07cff"]];
 let draws=3,redraws=3;const drawn=[];
 function drawCard(){if(!draws)return;draws--;const r=wpick(RARITY,x=>x[1]),pot=Math.round(r[2]+R()*(r[3]-r[2])),flair=pick(["天生射手的嗅覺","大局觀","爆發力","不服輸的個性","左腳魔法","鋼鐵般的意志","驚人的彈跳","冷靜的頭腦"]);
- drawn.push({r:r[0],pot,flair,c:r[4]});if(drawn.length==1||pot>Math.max(...drawn.slice(0,-1).map(x=>x.pot)))cfg.card=drawn.length-1;renderCards(true)}
+ drawn.push({r:r[0],pot,flair,c:r[4]});
+ if(drawn.length==3&&drawn.every(x=>x.r=="銅卡")){const r2=RARITY[1],d=drawn[2];d.r=r2[0];d.c=r2[4];d.pot=Math.round(r2[2]+R()*(r2[3]-r2[2]))} // 保底：3 張至少 1 張銀卡以上
+ {const pt=drawn[drawn.length-1].pot;if(drawn.length==1||pt>Math.max(...drawn.slice(0,-1).map(x=>x.pot)))cfg.card=drawn.length-1}renderCards(true)}
 function renderCards(anim){
  const stars={"銅卡":1,"銀卡":2,"金卡":3,"傳奇卡":4};
  $("cards").innerHTML=[0,1,2].map(i=>{const d=drawn[i];if(!d)return `<button class="gc back" data-draw="1"><div class="gc-in"><div class="gc-logo">⚽</div><div class="gc-q">?</div><small>點我翻牌</small></div></button>`;
