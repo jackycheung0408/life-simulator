@@ -1356,7 +1356,11 @@ function roomFxDraw(c){const A=roomAnim,C=RC,k=Math.max(0,Math.min(1,(A.age-.25)
   case "massage":for(let j=0;j<3;j++)P(ox-12+j*10,oy+Math.sin(k*30+j*2)*3,2,6,"rgba(255,255,255,.7)");break;
   case "bed":c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.fillStyle="#fff";c.strokeStyle="#1b1b2f";c.lineWidth=3;for(let j=0;j<2;j++){const zy=oy-12-((k*30+j*14)%22);c.strokeText("Z",ox+4+j*7,zy);c.fillText("Z",ox+4+j*7,zy)}break}}
 function drawRoom(){const cv=$("room");if(!cv)return;const r=R[me],rm=roomOf(r,R);
- const show=!!rm&&(rm.home||!r.sleeping)&&!(walkers[me]&&walkers[me].path.length);cv.classList.toggle("hide",!show);if(!show)return;
+ const wk=walkers[me]&&walkers[me].path.length,show=!!rm&&(rm.home||!r.sleeping)&&!wk;
+ // 走去有室內的地方（有人在的朋友家、設施）時先保留畫布的位置：到了才畫內容，面板高度不會突然變高、整個畫面不會跳一下
+ const dd=wk&&walkers[me].dest,ho=dd&&dd.startsWith("home:")?R[dd.slice(5)]:null,hold=!show&&!!dd&&(ROOMS[dd]||(ho&&ho.place==dd&&inside(ho)));
+ if(!show&&hold){if(cv.width==300&&cv.height==150){cv.width=144;cv.height=96}cv.classList.remove("hide");const c0=cv.getContext("2d");c0.fillStyle="#1b1b2f";c0.fillRect(0,0,cv.width,cv.height);return}
+ cv.classList.toggle("hide",!show);if(!show)return;
  const C=RC,W=rw(rm),H=rh(rm);if(cv.width!=W*C)cv.width=W*C;if(cv.height!=H*C)cv.height=H*C;
  const c=cv.getContext("2d");c.imageSmoothingEnabled=false;c.clearRect(0,0,W*C,H*C);
  c.fillStyle=rm.wall;c.fillRect(0,0,W*C,C);for(let y=1;y<H;y++)for(let x=0;x<W;x++){c.fillStyle=rm.floor[(x+y)%2];c.fillRect(x*C,y*C,C,C)}

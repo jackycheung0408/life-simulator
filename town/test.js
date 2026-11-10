@@ -225,5 +225,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(M.lightG(0,6)==0&&M.lightG(0,15)==1&&M.lightG(0,22)==0,"路口錯開（6→0、15→1、22→0）：6 的 ib=6 偶、15 奇、22 偶");
  let n=0;for(let y=0;y<M.mapRows();y++)for(let x=0;x<COLS_;x++)if(M.isInter(x,y)){n++;check(M.isRoad(x,y)&&(x==16||x==17),"路口要在路上")}
  check(n>=8,"路口數量不對："+n);check(M.zoneLim(6)==2&&M.zoneLim(16)==2&&M.zoneLim(5)==2.5&&M.zoneLim(17)==2.5,"速限分區")}
+// 走去有室內的地方時，面板的室內畫布要先保留位置（走路中 hold），到了才畫，面板高度不會突然變高、畫面不會跳
+{const src=require("fs").readFileSync(__dirname+"/town.js","utf8");check(/hold=!show&&!!dd/.test(src)&&/cv\.classList\.remove\("hide"\)/.test(src),"drawRoom 走路中要保留室內畫布的位置（hold），不然走到朋友家門口面板會跳一下")}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
