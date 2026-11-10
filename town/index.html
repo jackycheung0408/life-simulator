@@ -11,6 +11,7 @@
 <meta property="og:image" content="https://jackycheung0408.github.io/life-simulator/town/og.png"><meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="favicon.png" type="image/png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#f6a5c0">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/gh/ACh-K/Cubic-11@1.500/fonts/web/Cubic_11.woff2">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="小豬鎮"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 :root{--bg:#f3efe6;--fg:#2c2620;--mut:#7a6d60;--card:#fffaf2;--line:#e3d9c8;--btn:#fff;--btnh:#f6ecdc;--ac:#e0779b;--good:#3fa34d;--warn:#e0a020;--bad:#d9453f}
@@ -194,7 +195,7 @@ body.ingame #needs{grid-template-columns:repeat(6,minmax(0,1fr))}body.ingame .ne
 #fb{float:right;margin:0 0 0 8px;padding:3px 8px;border:3px solid var(--ink);border-radius:4px;font-size:11px;line-height:1.4;max-width:62%;box-shadow:3px 3px 0 var(--ink)}
 #fb.good{background:#2e7d4f;color:#fff}#fb.bad{background:#8c2a3a;color:#fff}#fb.hide{display:none}
 @media (prefers-reduced-motion:reduce){#acts .act.ok,#acts .act.err{animation:none}}
-.ld{text-align:center;padding:24px 0}.ld .ldp{font-size:44px;animation:ldh .8s steps(2) infinite}.ld b{display:block;font-size:22px;margin:8px 0 12px}.ld small{display:block;margin-top:10px}
+.ld{text-align:center;padding:24px 0;opacity:0;animation:ldin 0s linear .2s forwards}@keyframes ldin{to{opacity:1}}.ld .ldp{font-size:44px;animation:ldh .8s steps(2) infinite}.ld b{display:block;font-size:22px;margin:8px 0 12px}.ld small{display:block;margin-top:10px}
 .ldb{width:180px;height:14px;margin:0 auto;border:3px solid var(--ink);background:#fff}.ldb i{display:block;height:100%;width:30%;background:var(--gold);animation:ldm 1.2s steps(6) infinite}
 @keyframes ldh{50%{transform:translateY(-6px)}}@keyframes ldm{0%{margin-left:0}100%{margin-left:70%}}
 @media (prefers-reduced-motion:reduce){.ld .ldp,.ldb i{animation:none}}
@@ -220,6 +221,6 @@ body.ingame #needs{grid-template-columns:repeat(6,minmax(0,1fr))}body.ingame .ne
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" class="hide"><div class="card" id="mbody"></div></div>
-<script src="icons.js?v=14"></script><script src="town.js?v=107"></script>
+<script src="icons.js?v=14"></script><script src="town.js?v=108"></script>
 </body>
 </html>

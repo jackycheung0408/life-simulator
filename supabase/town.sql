@@ -67,7 +67,7 @@ insert into public.town_shop(id,kind,slot,name,price,unlock) values
  ('suit','wear','top','西裝',4500,null),('jersey','wear','top','球衣',1800,null),('dress','wear','top','洋裝',2400,null),('couple','wear','top','情侶 T',0,'couple'),
  ('crown','wear','acc','皇冠',12000,null),('pigears','wear','acc','小豬耳朵',800,null),('headphones','wear','acc','耳機',3000,null),('scarf','wear','acc','圍巾',900,null),('bandage','wear','acc','繃帶頭',0,'bandage'),
  ('flowers','deco',null,'花圃',600,null),('mailbox','deco',null,'信箱',500,null),('lamp','deco',null,'路燈',1500,null),('bench','deco',null,'長椅',2000,null),('tree','deco',null,'小樹',1200,null),('pigstatue','deco',null,'小豬雕像',8000,null),
- ('bed','furn',null,'好床',7000,null),('fridge','furn',null,'冰箱',9000,null),('massage','furn',null,'按摩椅',12000,null),('shelf','furn',null,'書櫃',5000,null),('sofa','furn',null,'沙發',8000,null),('tvcab','furn',null,'電視櫃',6000,null),('rug','furn',null,'地毯',2000,null),('plant','furn',null,'盆栽',1000,null)
+ ('bed','furn',null,'好床',3500,null),('fridge','furn',null,'冰箱',4500,null),('massage','furn',null,'按摩椅',6000,null),('shelf','furn',null,'書櫃',2500,null),('sofa','furn',null,'沙發',4000,null),('tvcab','furn',null,'電視櫃',3000,null),('rug','furn',null,'地毯',1000,null),('plant','furn',null,'盆栽',500,null)
 on conflict (id) do update set kind=excluded.kind, slot=excluded.slot, name=excluded.name, price=excluded.price, unlock=excluded.unlock;
 alter table public.town_shop enable row level security;
 revoke all on public.town_shop from anon, authenticated;
@@ -811,11 +811,13 @@ create or replace function public.town_rent(r public.town_residents) returns pub
 declare day text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); a int; p int; tx int := 0;
 begin
   if coalesce(r.items->>'rent','') = day then return r; end if;
-  -- 政府普發：每個台灣日第一次登入或動作 +3000（先發再扣房租，所以不會因房租被扣成 0）
-  r.money := r.money + 3000;
-  insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, r.id, r.id, 'luck', r.name || ' 領到政府今天普發的 €3000');
-  -- 突發支出：每天 30% 機率，現金 > 2000 時損失 3～8%（上限 6000），政府普發之後的錢出口
-  if r.money > 2000 and random() < .3 then
+  -- 政府生活補助：每個台灣日第一次登入或動作，現金 < 10000 才發 €600（先發再扣房租；有錢人不領）
+  if r.money < 10000 then
+    r.money := r.money + 600;
+    insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, r.id, r.id, 'luck', r.name || ' 領到政府今天的生活補助 €600');
+  end if;
+  -- 突發支出：每天 30% 機率，現金 > 10000 時損失 3～8%（上限 6000；窮人不扣）
+  if r.money > 10000 and random() < .3 then
     tx := least(6000, floor(r.money * (.03 + random() * .05))::int);
     r.money := r.money - tx;
     insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, r.id, r.id, 'luck', r.name || (array['家裡水管漏水，修理花了','收到一張意外的帳單','被朋友騙去買東西，花了','錢包掉了，不見了','家電壞了，換新花了'])[1 + floor(random() * 5)::int] || ' €' || tx);
@@ -1356,11 +1358,11 @@ begin
     if r.items#>>'{veh,k}' is null then raise exception '你沒有騎車'; end if;
     r.items := jsonb_set(r.items, '{veh}', (r.items->'veh') - 'k');
   elsif act = 'upgrade' then
-    -- 房子升級：1 小屋、2 公寓 €40000、3 獨棟 €300000、4 豪宅 €800000
+    -- 房子升級：1 小屋、2 公寓 €20000、3 獨棟 €150000、4 豪宅 €400000
     if not public.town_inside(r) then raise exception '要先進屋'; end if;
     jl := coalesce((r.items->>'hl')::int,1);
     if jl >= 4 then raise exception '已經是豪宅了'; end if;
-    n := (array[0,40000,300000,800000])[jl+1];
+    n := (array[0,20000,150000,400000])[jl+1];
     if r.money < n then raise exception '錢不夠，升級要 €%', n; end if;
     r.money := r.money - n; r.fun := r.fun + 15; r.items := jsonb_set(r.items, '{hl}', to_jsonb(jl+1));
     insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', r.name || ' 把家升級成' || (array['小屋','公寓','獨棟','豪宅'])[jl+1] || '了');
