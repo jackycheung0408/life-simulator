@@ -332,7 +332,7 @@ function save(){const all=slots();P.id=P.id||Date.now()+"";all[P.id]={P:slim(P),
  Object.keys(all).sort((a,b)=>all[b].t-all[a].t).slice(6).forEach(k=>delete all[k]);
  for(let i=0;i<5;i++){try{localStorage.setItem("fb-saves",JSON.stringify(all));return}catch{const old=Object.keys(all).filter(k=>k!=P.id).sort((a,b)=>all[a].t-all[b].t)[0];if(old)delete all[old];else P.log=P.log.slice(-300)}}}
 function score(p){return Math.round(p.peak*1.2+p.trophies.length*8+p.awards.length*12+p.caps*.3+p.goals*.15+(p.wc||0)*6)}
-function finish(){try{localStorage.setItem("fb-played","1")}catch{}if(!auto)playHit("finish");
+function finish(){try{localStorage.setItem("fb-played","1")}catch{}playHit("finish");
  try{const all=slots();delete all[P.id];localStorage.setItem("fb-saves",JSON.stringify(all))}catch{}
  const p=P;$("game").classList.add("hide");$("end").classList.remove("hide");scrollTo(0,0);
  const sc=score(p),title=p.awards.some(a=>a[1]=="世界足球先生")?"世界足球先生":p.trophies.some(t=>t[1]=="世界盃冠軍")?"世界冠軍":p.peak>=85?"一代球星":p.peak>=75?"職業好手":p.debut?"職業球員":p.footEnd?({青訓:"青訓營畢業生",業餘:"業餘球員",學校隊:"學校隊隊員",少年隊:"少年隊球員"}[p.stage]||"踢過球的孩子"):"追夢的人";
@@ -354,7 +354,7 @@ function finish(){try{localStorage.setItem("fb-played","1")}catch{}if(!auto)play
     return {apps:p.apps,assists:p.assists,cleans:p.cleans,caps:p.caps,ig:p.intlGoals,clubs:p.clubsPlayed.slice(0,12),tro:cnt(p.trophies),aw:cnt(p.awards),honors:p.honors||[],
      ss:p.seasons.map(s=>[s.y,s.age,s.club,s.apps,s.goals,s.assists,s.rating,s.ovr,s.pos||null]),arcs:(p.arcs||[]).slice(0,6).map(a=>[a.from,a.y,a.txt.slice(0,80)]),
      rank:sr?[sr.rank,sr.all.length]:null,after:p.afterDetail||p.after||"",end:p.footEnd||"",bg:p.bg||"",style:p.age>=13?styleOf(p):"",maxV:p.maxValue,inj:p.injuries,dp:posName(p)}})()});h.sort((a,b)=>b.sc-a.sc);localStorage.setItem("fb-hof",JSON.stringify(h.slice(0,20)))}catch{}
- p._sc=sc;p._title=title;$("cardImg").onclick=()=>shareCard(p);$("upload").onclick=()=>uploadCareer(p);if(!p.debut){$("upload").classList.add("hide")}else if(!p.uploaded){p.uploaded=1;uploadCareer(p)} // 踢上職業的生涯在結局自動上傳（只有球員名字與數據）
+ p._sc=sc;p._title=title;$("cardImg").onclick=()=>shareCard(p);$("upload").onclick=()=>uploadCareer(p);uploadCareer(p); // 每段生涯結局都自動上傳（只有球員名字與數據），失敗會自動重試
  $("share").onclick=async()=>{const text=`我在足球員模擬器踢了一生：${p.name}（${p.c}·${POS[p.pos]}），巔峰能力 ${Math.round(p.peak)}，${p.goals} 球、${p.trophies.length} 座冠軍。${location.href.split("?")[0]}`;try{if(navigator.share)await navigator.share({text});else{await navigator.clipboard.writeText(text);toast("已複製分享文字")}}catch{}};
 }
 
@@ -436,12 +436,26 @@ const playHit=k=>{try{fetch(SB_RPC+"play_hit",{method:"POST",headers:{apikey:SBK
 const playStats=()=>fetch(SB_RPC+"play_stats",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify({g:GAME})}).then(r=>r.json()).then(x=>{const el=document.getElementById("plays");if(el&&x&&x.total_start)el.textContent=`👥 今天有 ${x.today_start.toLocaleString()} 局${GAME=="life"?"人生":"生涯"}開始，累計 ${x.total_start.toLocaleString()} 局、${x.total_finish.toLocaleString()} 局走到結局`}).catch(()=>{});
 
 function devId(){let d=null;try{d=localStorage.getItem("fb-dev")}catch{}if(!d){d="d"+Math.random().toString(36).slice(2)+Date.now().toString(36);try{localStorage.setItem("fb-dev",d)}catch{}}return d}
-async function uploadCareer(p){const b=$("upload");if(b.dataset.done)return;b.disabled=true;b.textContent="上傳中…";
- const row={device:devId(),name:p.name.slice(0,24),country:p.c.slice(0,12),pos:p.pos,title:String(p._title||"").slice(0,30),peak:Math.min(99,Math.round(p.peak)),apps:Math.min(1200,p.apps),goals:Math.min(1500,p.goals),trophies:Math.min(60,p.trophies.length),awards:Math.min(80,p.awards.length),score:Math.min(2500,p._sc||0),born:p.y0,died:p.y0+p.age};
- try{const r=await fetch(SB+"fb_careers",{method:"POST",headers:{...SBH,Prefer:"return=minimal"},body:JSON.stringify(row)});
-  if(r.ok){b.dataset.done=1;b.textContent="✔ 已自動上傳到全球排行榜";toast("已上傳到全球排行榜");try{loadBoard()}catch{}return}
-  const e=await r.json().catch(()=>({}));toast({"too fast":"送太快了，請一分鐘後再試","bad words":"名字含有不當字詞，無法上傳",busy:"現在上傳的人太多，請稍後再試"}[e.message]||"資料不符合排行榜規則，無法上傳")}catch{toast("連線失敗，請稍後再試")}
- b.disabled=false;b.textContent="🌍 上傳到全球排行榜"}
+const lsj=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||"")??d}catch{return d}},lss=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+let upBusy=false;
+function upBtn(t,dis){const b=$("upload");if(b){b.classList.remove("hide");b.textContent=t;b.disabled=!!dis}}
+function upRow(p){const apps=Math.min(1200,p.apps),goals=Math.min(1500,p.goals,apps*2+5),tro=Math.min(60,p.trophies.length,Math.floor(apps/8)+6);
+ return {device:devId(),name:p.name.slice(0,24),country:p.c.slice(0,12),pos:p.pos,title:String(p._title||"").slice(0,30),peak:Math.max(0,Math.min(99,Math.round(p.peak))),apps,goals,trophies:tro,awards:Math.min(80,p.awards.length),score:Math.max(0,Math.min(2500,p._sc||0)),born:p.y0,died:Math.max(p.y0,p.y0+p.age)}}
+// 結局上傳：先進佇列（存在這台裝置），逐筆送；同一生涯只送一次（p.id 去重）；送太快自動等 62 秒重試，網路失敗每 30 秒重試
+function uploadCareer(p){const done=lsj("fb-upd",[]);if(p&&done.includes(p.id)){upBtn("✔ 已上傳到全球排行榜",1);return}
+ const q=lsj("fb-upq",[]);if(p&&!q.some(x=>x.pid==p.id)){q.push({pid:p.id,row:upRow(p)});lss("fb-upq",q)}flushUp()}
+async function flushUp(){if(upBusy)return;upBusy=true;let wait=0;
+ try{for(;;){const q=lsj("fb-upq",[]);if(!q.length){upBtn("✔ 已上傳到全球排行榜",1);try{loadBoard()}catch{}break}
+  const it=q[0];it.row.device=devId();upBtn("上傳中…",1);
+  let r=null;try{r=await fetch(SB+"fb_careers",{method:"POST",headers:{...SBH,Prefer:"return=minimal"},body:JSON.stringify(it.row)})}catch{}
+  if(r&&r.ok){const d=lsj("fb-upd",[]);d.push(it.pid);lss("fb-upd",d.slice(-200));lss("fb-upq",q.slice(1));toast("已上傳到全球排行榜");continue}
+  const e=r?await r.json().catch(()=>({})):{},m=e.message||"";
+  if(r&&m!="too fast"&&m!="busy"&&r.status<500){lss("fb-upq",q.slice(1));toast(m=="bad words"?"名字含有不當字詞，無法上傳":"資料不符合排行榜規則，無法上傳："+(m||r.status));upBtn("🌍 上傳到全球排行榜");continue}
+  wait=m=="too fast"?62:30;upBtn(m=="too fast"?"等待上傳（約 1 分鐘）…":"連線失敗，稍後自動重試",1);break}}
+ finally{upBusy=false}
+ if(wait)setTimeout(flushUp,wait*1000)}
+if(window.addEventListener)window.addEventListener("online",()=>{if(lsj("fb-upq",[]).length)flushUp()});
+setTimeout(()=>{if(lsj("fb-upq",[]).length)flushUp()},3000);
 let gbCountry="";
 async function loadBoard(){const el=$("gb");if(!el)return;el.innerHTML="<p class='mut'>載入中…</p>";
  try{const q=`fb_careers?select=id,name,country,pos,title,peak,goals,trophies,score,born,died&order=score.desc&limit=30${gbCountry?`&country=eq.${encodeURIComponent(gbCountry)}`:""}`;
