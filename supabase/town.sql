@@ -1672,7 +1672,7 @@ begin
   if game = 'rps' then
     if choice not in ('r','p','s') then raise exception '出剪刀、石頭或布'; end if;
     house := (array['r','p','s'])[1 + floor(random()*3)::int];
-    if choice = house then win := floor(bet*.9); elsif (choice,house) in (('r','s'),('s','p'),('p','r')) then win := bet*2; end if;
+    if choice = house then win := bet; elsif (choice,house) in (('r','s'),('s','p'),('p','r')) then win := bet*2; end if;
     res := json_build_object('you',choice,'house',house,'win',win);
   elsif game = 'hl_start' then
     c := public.town_card(); r.items := jsonb_set(r.items, '{hl}', jsonb_build_object('bet',bet,'card',c));
@@ -1684,19 +1684,20 @@ begin
     -- 賠率看機率：猜中的牌越少賠越多（期望值 0.92）
     if coalesce(choice,'') not in ('hi','lo') then raise exception '猜更大或更小'; end if;
     p := case when choice = 'hi' then 13 - d1 else d1 - 1 end;
-    if p > 0 and ((choice = 'hi' and d2 > d1) or (choice = 'lo' and d2 < d1)) then win := floor(bet * .92 * 13 / p); end if;
+    -- 一樣大退回押注；贏的賠率 = 0.97 × 12 / 贏的點數數（每個選項期望值都是 0.972）
+    if d2 = d1 then win := bet; elsif p > 0 and ((choice = 'hi' and d2 > d1) or (choice = 'lo' and d2 < d1)) then win := floor(bet * 11.64 / p); end if;
     r.items := r.items - 'hl';
     res := json_build_object('card',c,'next',c2,'win',win);
   elsif game = 'wheel' then
     -- 10 格：銘謝惠顧 ×6、×0.5、×1、×2、×5
-    c := floor(random()*10)::int; mult := (array[0,0,0,0,0,0,.5,1,2,5])[c+1]; win := floor(bet*mult);
+    c := floor(random()*10)::int; mult := (array[0,0,0,0,.5,1,1,1,2,4])[c+1]; win := floor(bet*mult);
     res := json_build_object('slot',c,'mult',mult,'win',win);
   elsif game = 'bj_start' then
     st := jsonb_build_object('bet',bet,'p',jsonb_build_array(public.town_card(),public.town_card()),'d',jsonb_build_array(public.town_card()));
     if public.town_bj_total(st->'p') = 21 then
       -- 開局就 21 點：莊家補牌比一比
       dc := st->'d'; while public.town_bj_total(dc) < 17 loop dc := dc || to_jsonb(public.town_card()); end loop;
-      win := case when public.town_bj_total(dc) = 21 and jsonb_array_length(dc) = 2 then bet else floor(bet*2.5) end;
+      win := case when public.town_bj_total(dc) = 21 and jsonb_array_length(dc) = 2 then bet else bet*3 end;
       res := json_build_object('p',st->'p','d',dc,'done',true,'win',win,'bj',true);
     else r.items := jsonb_set(r.items, '{bj}', st); res := json_build_object('p',st->'p','d',st->'d','done',false); end if;
   elsif game in ('bj_hit','bj_stand') then
@@ -1712,26 +1713,26 @@ begin
       r.items := r.items - 'bj'; res := json_build_object('p',st->'p','d',dc,'done',true,'win',win);
     end if;
   elsif game = 'dice' then
-    -- 三顆骰：大（11～17）／小（4～10）三顆一樣莊家通吃，賠 1 倍（期望 0.972）；押單一點數：出現幾顆賠幾倍（期望 0.921）
+    -- 三顆骰：大（11～17）／小（4～10）三顆一樣退一半押注，賠 1 倍（期望 0.986）；押單一點數：出現 1、2 顆賠 2、3 倍，三顆賠 12 倍（期望 0.958）
     if coalesce(choice,'') not in ('big','small','1','2','3','4','5','6') then raise exception '押大、小或一個點數'; end if;
     d1 := 1 + floor(random()*6)::int; d2 := 1 + floor(random()*6)::int; d3 := 1 + floor(random()*6)::int; p := d1 + d2 + d3;
-    if choice = 'big' then if p >= 11 and not (d1 = d2 and d2 = d3) then win := bet*2; end if;
-    elsif choice = 'small' then if p <= 10 and not (d1 = d2 and d2 = d3) then win := bet*2; end if;
-    else k := (d1 = choice::int)::int + (d2 = choice::int)::int + (d3 = choice::int)::int; if k > 0 then win := bet * (k + 1); end if; end if;
+    if choice = 'big' then if d1 = d2 and d2 = d3 then win := floor(bet*.5); elsif p >= 11 then win := bet*2; end if;
+    elsif choice = 'small' then if d1 = d2 and d2 = d3 then win := floor(bet*.5); elsif p <= 10 then win := bet*2; end if;
+    else k := (d1 = choice::int)::int + (d2 = choice::int)::int + (d3 = choice::int)::int; if k > 0 then win := bet * (case k when 3 then 12 else k + 1 end); end if; end if;
     res := json_build_object('dice',json_build_array(d1,d2,d3),'win',win);
   elsif game = 'slots' then
-    -- 三輪各 6 種圖案（0=7 1=鈴 2=星 3=櫻桃 4=檸檬 5=西瓜）：三個一樣 ×40／20／12／10／8／8，剛好兩個一樣 ×1.1（期望 0.912）
+    -- 三輪各 6 種圖案（0=7 1=鈴 2=星 3=櫻桃 4=檸檬 5=西瓜）：三個一樣 ×40／20／12／10／8／8，剛好兩個一樣 ×1.2（期望 0.954）
     sy := array[floor(random()*6)::int, floor(random()*6)::int, floor(random()*6)::int];
     if sy[1] = sy[2] and sy[2] = sy[3] then win := floor(bet * (array[40,20,12,10,8,8])[sy[1]+1]);
-    elsif sy[1] = sy[2] or sy[2] = sy[3] or sy[1] = sy[3] then win := floor(bet * 1.1); end if;
+    elsif sy[1] = sy[2] or sy[2] = sy[3] or sy[1] = sy[3] then win := floor(bet * 1.2); end if;
     res := json_build_object('reels',to_json(sy),'win',win);
   elsif game = 'bingo' then
-    -- 賓果：1～10 自己選 3 個，開 5 個號碼；中 2 個 ×1.4、中 3 個 ×4（期望 0.917）
+    -- 賓果：1～10 自己選 3 個，開 5 個號碼；中 2 個 ×1.5、中 3 個 ×4（期望 0.958）
     begin pk := string_to_array(choice, ',')::int[]; exception when others then raise exception '選 3 個號碼'; end;
     if coalesce(array_length(pk,1),0) <> 3 or (select count(distinct x) from unnest(pk) x) <> 3 or exists (select 1 from unnest(pk) x where x < 1 or x > 10) then raise exception '選 3 個不同的號碼（1～10）'; end if;
     select array_agg(x) into dr from (select x from generate_series(1,10) x order by random() limit 5) q;
     select count(*) into k from unnest(pk) x where x = any(dr);
-    win := case k when 3 then bet*4 when 2 then floor(bet*1.4) else 0 end;
+    win := case k when 3 then bet*4 when 2 then floor(bet*1.5) else 0 end;
     res := json_build_object('pick',to_json(pk),'draw',to_json(dr),'hit',k,'win',win);
   else raise exception '沒有這個遊戲'; end if;
   -- 結果一律帶這一局實際押注（前端不要用畫面上的押注選單推算輸贏）
