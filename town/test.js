@@ -198,6 +198,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  const strip=l=>l.replace(/\/\/.*$/,"").replace(/`(?:[^`\\]|\\.)*`/g,"``").replace(/"(?:[^"\\]|\\.)*"/g,'""').replace(/'(?:[^'\\]|\\.)*'/g,"''");
  const bad=[];top.forEach((l,i)=>{const s=strip(l);for(const n of ["me","$","esc","pxify","toast","pin","R","S"]){const re=new RegExp("(^|[^\\w$.])"+n.replace("$","\\$")+"(?![\\w$:])");if(re.test(s))bad.push(n+"@"+(i+1))}});
  check(ii>0&&bad.length==0,"頂層函式用了只在 init() 裡的變數："+bad.join(", ")+"（把函式搬進 init()，或把值當參數傳進去）")}
+check(!require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8").includes("睡飽了自然醒")&&!/r\.sleeping and qe is null and not fa and hr between 8 and 21/.test(require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8")),"town.sql：睡著的人白天不可自然醒（要讓朋友叫得醒）");
 // roomOf 是頂層函式，拿不到 init() 裡的 R：不可直接用 R（曾因此在街上也丟 "R is not defined"），要靠呼叫的人傳居民表
 {const A={id:1,place:"street",items:{}},H={id:2,place:"home:2",sleeping:true,items:{hl:1}},W={id:3,place:"home:2",items:{}};
  let ok1=true,ok2=true,ok3=true;try{ok1=M.roomOf(A,{1:A,2:H})===null}catch(e){ok1=false}

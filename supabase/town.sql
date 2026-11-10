@@ -396,9 +396,7 @@ begin
     select * into d from public.town_door(r.slot);
     r.place := 'home:' || r.id; r.x := d.dx; r.y := d.dy; r.items := r.items - 'dr' - 'fv';
     r.sleeping := hr < 8 or hr >= 22 or r.energy < 90;
-  elsif r.sleeping and qe is null and not fa and hr between 8 and 21 and now() > r.seen_at + interval '30 minutes' and r.energy >= 90 then
-    r.sleeping := false;  -- 睡飽了自然醒
-  end if;
+  end if;  -- 睡著的人白天也不會自然醒（要朋友叫醒、或自己上線按起床；2026-11 取消白天自動醒來）
   if fa then r.sleeping := true; end if;
   -- 昏倒滿 1 小時：醒來，扣醫藥費 €1500（不夠就扣到 0）
   if (r.items->>'faint') is not null and not fa then
