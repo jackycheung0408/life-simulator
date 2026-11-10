@@ -192,6 +192,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u28-mischief",date:"11/10",title:"格鬥場約戰、室內扁人、更多惡趣味",items:["走到別人家門口不會再閃一下","進了別人家、或同在咖啡廳、餐廳、健身房裡，可以對在場的人擊掌、扁人；在別人家動手，屋主可能把你趕出門","格鬥場不能隨便扁人了：用「邀請 PK」約對方，他 3 分鐘內接受，三回合分勝負，可以下注（贏的拿 95%）","新增 8 種惡趣味：潑水、貼「踢我」紙條、假裝告白、偷零食、拍醜照、換座位、按門鈴逃跑、擺假便便","被整的人可以報復或原諒；不想被整就掛「免整牌」，今天沒人能整你、丟蛋、扁你"]},
   {id:"u27-landing2",date:"11/10",title:"首頁秒開、登入畫面重做",items:["首頁不用等遊戲載入，打開就能點「回到小鎮」","有小鎮插圖，住過的小鎮顯示你的角色和幾天前上線","搬進小鎮的步驟變成 1 邀請碼、2 選角色、3 進入，每一步都有提示","進入小鎮後的載入畫面，只有真的等比較久才會出現"]},
  {id:"u36-costs",date:"11/10",title:"突發支出",items:["每天有機會遇到突發支出：水管漏水、意外帳單、錢包掉了","損失是現金的 3～8%，錢越多損失越多，現金不到 10000 不會扣","街上的小偷也會偷更多（最多 6000）"]},
  {id:"u34-gov",date:"11/10",title:"政府普發、打工有獎金",items:["政府今天普發每位居民 €20000","之後每天第一次上線，現金不到 10000 的人，政府發 €600 生活補助","每天打工第 3 次領勤勞獎金 €500、第 6 次 €1000","一起做事的心情加成變大，每天上限提高到 12 次"]},
@@ -330,7 +331,7 @@ $("lg").innerHTML=`${LP.top(list)}
   catch(e){$("cerr").textContent=e.message;$("create").disabled=false}}}
 
 // ── 鎮內登入：我住在這裡，或用邀請碼搬進來 ──
-async function refresh(){const st=await rpc("town_state",{tid:TID});apply(st);if(me)try{checkInvite()}catch(e){}}
+async function refresh(){const st=await rpc("town_state",{tid:TID});apply(st);if(me)try{checkInvite();checkPk()}catch(e){}}
 const seenLuck=new Set();
 function apply(st){S=st;POOPS=st.poops||[];CUR=(st.town&&st.town.cur)||"NT$";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>(e.kind=="luck"||e.kind=="rent"||e.kind=="ticket"||e.kind=="crash")&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
  st.residents.forEach(r=>{R[r.id]=r;const w=walkers[r.id];
@@ -444,7 +445,7 @@ const floaters=[],fxs=[],FXIMG={};
 const ACT_FX={stock:"coins",vbuy:"coins",coffee:"can",movie:"sparkle",workout:"fist",spar:"fight",sneak:"scooter",nap:"zzz",eat:"eat",dine:"eat",snack:"eat",toilet:"toilet",shower:"bubbles",tv:"tv",sleep:"zzz",work:"coins",job:"coins",play:"hearts",browse:"sparkle",buy:"bag",paint:"paint",wake:"sun"};
 const FAC_FX={special:"eat",takeout:"bag",latte:"steam",redeem:"sparkle",treat:"hearts",song:"notes",film:"tv",popcorn:"eat",spar:"fight",checkin:"check",frisbee:"disc",fish:"fishing",picnic:"eat",photo:"flash",photo2:"flash",feast:"eat",spa:"bubbles",trip:"sparkle",sit:"zzz",up:"sparkle"}; // 設施互動的地圖動畫（沒有列的用金錢／閃光）
 const OBJ_FX={dummy:"fight",bench:"zzz",cooler:"bubbles",pwc:"toilet",mailbox:"sparkle",news:"sparkle",claw:"hearts",lottery:"coins",busker:"hearts",pond:"hearts",vend:"can",trash:"sparkle",stall:"eat",well:"coin",swing:"hearts",cat:"hearts"};
-const EV_FX={level:["sparkle","a"],feed:["eat","t"],wash:["bubbles","t"],visit:["hearts","both"],gift:["gift","fly"],note:["msg","fly"],call:["phone","both"],delivery:["scooter","fly"],thank:["hearts","fly"],greet:["clap","mid"],fight:["fight","mid"],egg:["egg","fly"],prank:["fart","t"],makeup:["hearts","mid"],cowork:["coins","both"],promo:["sparkle","a"],wish:["sparkle","a"],feast:["eat","both"],wakeup:["alarm","t"],wakefail:["alarm","t"],luck:["sparkle","a"],tier:["hearts","both"],look:["sparkle","a"],meet:["clap","a"],together:["hearts","a"],crash:["crash","a"],joint:["hearts","both"],slash:["fight","mid"],jail:["crash","a"],bail:["coins","a"],visitjail:["hearts","both"],jaillabor:["coins","a"],escape:["crash","a"],parole:["sparkle","a"]};
+const EV_FX={mischief:["fart","t"],photo:["flash","t"],forgive:["hearts","both"],pk:["fight","mid"],level:["sparkle","a"],feed:["eat","t"],wash:["bubbles","t"],visit:["hearts","both"],gift:["gift","fly"],note:["msg","fly"],call:["phone","both"],delivery:["scooter","fly"],thank:["hearts","fly"],greet:["clap","mid"],fight:["fight","mid"],egg:["egg","fly"],prank:["fart","t"],makeup:["hearts","mid"],cowork:["coins","both"],promo:["sparkle","a"],wish:["sparkle","a"],feast:["eat","both"],wakeup:["alarm","t"],wakefail:["alarm","t"],luck:["sparkle","a"],tier:["hearts","both"],look:["sparkle","a"],meet:["clap","a"],together:["hearts","a"],crash:["crash","a"],joint:["hearts","both"],slash:["fight","mid"],jail:["crash","a"],bail:["coins","a"],visitjail:["hearts","both"],jaillabor:["coins","a"],escape:["crash","a"],parole:["sparkle","a"]};
 const spawnFx=(type,a,b)=>{if(!walkers[a])return;fxs.push({type,a,b:b&&walkers[b]?b:null,born:performance.now(),dur:type=="crash"?2000:type=="fight"?1800:type=="scooter"?2200:1500})};
 let lastEvId=null;
 function fxFromEvents(evs){const mx=Math.max(0,...evs.map(e=>e.id));if(lastEvId==null){lastEvId=mx;return}
@@ -486,7 +487,7 @@ const btn=(label,sub,fn,g)=>({label,sub,fn,g});
 const cdLeft=(r,key,mins)=>Math.max(0,Date.parse(((r.items||{}).cd||{})[key]||"1970")+mins*6e4-now());
 const dbtn=(label,sub,fn,left,g)=>({...btn(label,sub,fn,g),dis:left?`剛做過，${fmtLeft(left)}後再來`:""});
 const ACT_ICON={吃飯:"🍚",上廁所:"🚽",洗澡:"🛁",看電視:"📺",睡覺:"😴",起床:"☀️",吃一頓:"🍽️",打工:"💼",玩一下:"🎈",逛逛:"👀",煮飯給他:"🍳",幫他洗澡:"🧽",叫醒他:"⏰",串門子:"🏠",惡作劇:"💨",送禮物:"🎁",盪鞦韆:"🎠",快速休息:"😴",快速睡覺:"💤",進屋:"🏠",出門:"🚪",室內:"🛋️",餵貓吃零食:"🐟",取消:"✖️"};
-const GROUP={tip:"建議下一步",self:"照顧自己",friend:"在他家",place:"在這裡",face:"面對面",online:"線上 · 在哪都能做",move:"移動",eat:"吃喝",fun:"玩樂",soc:"社交",work:"工作與任務",home:"房子"};let lastPanel="",panelFns=[];
+const GROUP={tip:"建議下一步",self:"照顧自己",friend:"在他家",place:"在這裡",face:"面對面",online:"線上 · 在哪都能做",mis:"惡趣味",move:"移動",eat:"吃喝",fun:"玩樂",soc:"社交",work:"工作與任務",home:"房子"};let lastPanel="",panelFns=[];
 function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),p=r.place,list=[];let title="",note="";
  if(walkers[me]&&walkers[me].path.length){title="走路中…";note="到了就可以做事"}
  else if(r.sleeping){title=`在${placeName(p)}睡覺 💤`;list.push(btn("起床","",()=>act("wake")))}
@@ -497,7 +498,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
   if(!inside(t)){note=`${t.name} ${t.place==p?"在家門口，還沒進屋":"不在家，在"+placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,peek,btn("丟雞蛋 🥚","好感 −1 · 30 分鐘一次",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
   else{note=`${t.name}${t.sleeping?" 在睡覺":offTxt(t)}：飽足 ${Math.round(t.hunger)}、清潔 ${Math.round(t.hygiene)}、心情 ${Math.round(t.fun)} · ${bondLabel(bondWith(id))}`;list.push(giftB);
    if(!vin(r)){note=`${t.name}${t.sleeping?" 在睡覺":offTxt(t)}，你在門口 · 按「進去」才能煮飯、洗澡、叫醒、串門子 · ${bondLabel(bondWith(id))}`;
-    list.push(peek,btn("進去",`走進他家 · 進去後才有你的身影`,()=>enterFriend(id)),btn("惡作劇 💨","在門口放個臭屁 · 好感 −2 · 30 分鐘一次",()=>act("prank",{target:id})),btn("丟雞蛋 🥚","好感 −1 · 30 分鐘一次",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
+    list.push(peek,btn("進去",`走進他家 · 進去後才有你的身影`,()=>enterFriend(id)),...doorMisActs(id),btn("惡作劇 💨","在門口放個臭屁 · 好感 −2 · 30 分鐘一次",()=>act("prank",{target:id})),btn("丟雞蛋 🥚","好感 −1 · 30 分鐘一次",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
    else{title=`${t.name} 家（屋裡）`;list.push(peek,btn("煮飯給他","他飽足 +35 · €60",()=>act("feed",{target:id})),btn("幫他洗澡","他清潔 +45",()=>act("wash",{target:id})));
     if(t.sleeping)list.push(btn("叫醒他",`越累睡越沉 · 這次約 ${Math.round(100*(1-Math.min(.7,.25+(100-t.energy)/200)))}% 叫得醒 · 叫不醒只要等 3 分鐘`,()=>act("wakeup",{target:id})));
     if(!t.sleeping)list.push(btn("串門子","兩人心情 +15",()=>act("visit",{target:id})),...faceActs(id));
@@ -535,11 +536,12 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
   if(here.length&&!(sel&&R[sel]))note=(note?note+" · ":"")+`${here.map(o=>o.name).join("、")} 也在這裡：一起做事大家心情都 +5，點他可以擊掌或扁他`}
  if(!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const q of POOPS)if(Math.abs(q.x-walkers[me].x)+Math.abs(q.y-walkers[me].y)<=2)list.push(btn("清掉便便 💩","領 €30",()=>act("sweep",{item:String(q.id)}),"place"));
  if(!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const k in OBJS)if(objNear(k,walkers[me].x,walkers[me].y,p))for(const [l,sub,v] of OBJS[k].acts)if(v!="feed"||((r.items||{}).snack))list.push(btn(l,`${OBJS[k].name} · ${sub}`,()=>act("obj",{item:k,note:v||null}),"place"));
+ if(!sel&&!r.sleeping&&!jailed(r)&&!(walkers[me]&&walkers[me].path.length))list.push(shielded(r)?btn("收起免整牌 🛡️","今天不想被整的牌子掛著 · 按一下收起來",()=>doShield(false),"self"):btn("掛免整牌 🛡️","今天不被惡搞、丟蛋、惡作劇、扁 · 掛到今天結束",()=>doShield(true),"self"));
  if(!r.sleeping&&(r.items||{}).snack&&!(walkers[me]&&walkers[me].path.length))list.push(btn("吃零食 🍪",`飽足 +20 · 還有 ${(r.items||{}).snack} 包`,()=>act("snack"),"self"));
  if(sel&&R[sel]&&sel!=me){const t=tickLocal(R[sel],now());note=`${t.name}：在${placeName(t.place)}${t.sleeping?"睡覺":""} · 飽足 ${Math.round(t.hunger)} · 清潔 ${Math.round(t.hygiene)} · 心情 ${Math.round(t.fun)} · ${bondLabel(bondWith(t.id))}`;
   const inRoom=sameRoom(r,t),away=inside(t)&&!inRoom,face=!away&&isNear(t.id)&&!t.sleeping&&!r.sleeping;title=`和 ${t.name} 互動`;
   if(away)note+=" · 他在屋裡休息，要到他家叫醒他才能互動（現在只能傳訊息）";
-  list.length=0;if(face)list.push(...faceActs(t.id));list.push(...onlineActs(t.id).filter(b=>!away||/傳訊息/.test(b.label)));
+  list.length=0;if(face)list.push(...faceActs(t.id));list.push(...onlineActs(t.id).filter(b=>!away||/傳訊息|PK/.test(b.label)));
   if(!face&&!away)list.push(btn(`走到 ${t.name} 旁邊`,`他在${placeName(t.place)} · 面對面才能擊掌、扁他`,()=>walkToPerson(t.id)));
   list.push(btn(`去 ${t.name} 家`,"煮飯、洗澡、串門子要到他家",()=>{sel=null;goHouse(t.slot)}),btn("取消","",()=>{sel=null;lastPanel="";renderPanel()}))}
  if(!r.sleeping&&!inside(r)&&!(walkers[me]&&walkers[me].path.length)&&!sel){const vk=vehOf(r);if(vk){list.push(btn(`${VEH[vk][4]} 下車`,`${VEH[vk][0]} · 速度 ×${vspd(r,vk).toFixed(1)} · 車況 ${Math.round(100-vwear(r,vk))}%${vwear(r,vk)>=60?"（太舊，去車行修）":""}`,()=>act("dismount"),"move"));
@@ -558,7 +560,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  // 內容沒變就不重畫，避免按到一半按鈕被換掉
  if(!sel){const t=nextStep(r,p);if(t){list.unshift({...t,g:"tip"});track("show",t.label)}}
  const dg=inside(r)?"self":p&&p.startsWith("home:")&&p!=="home:"+me?"friend":"place";list.forEach(b=>{if(!b.g)b.g=/^(走|去 |取消)/.test(b.label)?"move":/^(打工|應徵)/.test(b.label)?"work":dg});
- const GORD=["tip","self","place","eat","fun","soc","work","home","friend","face","online","move"],order=[...new Set(list.map(b=>b.g))].sort((a,b)=>GORD.indexOf(a)-GORD.indexOf(b)),multi=order.length>1;
+ const GORD=["tip","self","place","eat","fun","soc","work","home","friend","face","mis","online","move"],order=[...new Set(list.map(b=>b.g))].sort((a,b)=>GORD.indexOf(a)-GORD.indexOf(b)),multi=order.length>1;
  const html=order.map(g=>(multi?`<div class="grp">${GROUP[g]}</div>`:"")+list.map((b,i)=>{if(b.g!=g)return "";
    // 圖示放大在左邊；壞事用紅色；錢不夠就標出來
    const m=b.label.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u)||b.label.match(/^(.*?)\s*(\p{Extended_Pictographic}\uFE0F?)$/u),txt=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[1]:m[2]):b.label,ic=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[2]:m[1]):(ACT_ICON[b.label]||(b.g=="move"?"🚶":"•"));
@@ -617,7 +619,7 @@ const WISHES={rich:["首富","持有金錢",[30000,100000,300000],["小富翁","
  work:["打工王","職位（組長、經理、主管）",[2,3,4],["勤勞蜜蜂","職場達人","打工王"],r=>career(r).lv]};
 const WISH_BONUS=[200,500,1000];
 const titlesOf=r=>(r.items&&r.items.titles)||[];
-const nameTag=r=>{const t=titlesOf(r),tk=tickLocal(r,now()),n=t.length?r.name+" "+t[t.length-1]:r.name;return MOOD[moodOf(tk)][0]+" "+n+(!r.sleeping&&togetherAt(r.place)?" 正在一起":"")};
+const nameTag=r=>{const t=titlesOf(r),tk=tickLocal(r,now()),n=t.length?r.name+" "+t[t.length-1]:r.name,sk=r.items&&r.items.sk&&Date.parse(r.items.sk.u)>now();return MOOD[moodOf(tk)][0]+" "+n+(sk?" 「踢我」":"")+(!r.sleeping&&togetherAt(r.place)?" 正在一起":"")};
 const TRAITS={foodie:["吃貨","吃東西的飽足效果 +30%"],athlete:["運動家","健身進步更快、打架和擂台更強"],social:["社交達人","好感增加 +30%"],workaholic:["工作狂","薪水 +10%"],
  nightowl:["夜貓子","晚上 10 點到早上 6 點，醒著精力掉得慢"],clean:["愛乾淨","清潔掉得比較慢"],lucky:["幸運兒","路上壞事少、路邊好事多"],romantic:["浪漫","送出的禮物效果加倍"]};
 function traitModal(){const sel=[];$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>選 2 個個性</h2><p class="mut">只有加成，沒有壞處。選了就不能改，也可以先跳過。</p><div class="list">${Object.entries(TRAITS).map(([k,v])=>`<button data-tk="${k}" style="width:100%;text-align:left;margin-bottom:6px"><b>${v[0]}</b><br><small>${v[1]}</small></button>`).join("")}</div><p class="err" id="terr"></p><div class="row"><button id="tskip">先跳過</button><button class="pri" id="tok" disabled>選好了</button></div>`;
@@ -644,7 +646,7 @@ function lifeModal(){const r=R[me],c=career(r),w=(r.items&&r.items.wish)||{},k=W
 function wishModal(){$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>選一個人生願望</h2><p class="mut">每達成一個里程碑，有獎金、稱號和動態公告。可以先跳過。</p><div class="list">${Object.entries(WISHES).map(([k,v])=>`<button data-wk="${k}" style="width:100%;text-align:left;margin-bottom:6px"><b>${v[0]}</b><br><small>${v[1]}：${v[2].join("、")}</small></button>`).join("")}</div><div class="row"><button id="wskip">先跳過</button></div>`;
  const pick=async k=>{try{apply(await rpc("town_wish",{rid:me,pin,k}));$("modal").classList.add("hide");if(k!="skip"){toast("願望訂好了");lifeModal()}}catch(e){toast(e.message)}};
  $("mbody").querySelectorAll("[data-wk]").forEach(b=>b.onclick=()=>pick(b.dataset.wk));$("wskip").onclick=()=>pick("skip")}
-const KIND_ICON={kick:"🚪",level:"⭐",encounter:"💬",promo:"📈",wish:"🎯",duel:"✊",feed:"🍚",wash:"🛁",visit:"🏠",note:"📱",call:"📞",delivery:"🛵",gift:"🎁",thank:"💗",greet:"🙌",fight:"👊",egg:"🥚",prank:"💨",makeup:"🤝",wakeup:"⏰",wakefail:"⏰",cowork:"💼",feast:"🍖",tier:"💞",look:"✨",join:"🏡",found:"🏛️",expand:"🛣️",leave:"📦",meet:"👋",together:"🎉",crash:"💥",accident:"💦",passout:"😵",luck:"🍀",rent:"🧾",slash:"🔪",jail:"🚔",bail:"💰",visitjail:"🤝",jaillabor:"💼",escape:"🚔",parole:"🪪"};
+const KIND_ICON={mischief:"😈",photo:"📸",forgive:"🤝",pk:"🥊",pkno:"🙅",kick:"🚪",level:"⭐",encounter:"💬",promo:"📈",wish:"🎯",duel:"✊",feed:"🍚",wash:"🛁",visit:"🏠",note:"📱",call:"📞",delivery:"🛵",gift:"🎁",thank:"💗",greet:"🙌",fight:"👊",egg:"🥚",prank:"💨",makeup:"🤝",wakeup:"⏰",wakefail:"⏰",cowork:"💼",feast:"🍖",tier:"💞",look:"✨",join:"🏡",found:"🏛️",expand:"🛣️",leave:"📦",meet:"👋",together:"🎉",crash:"💥",accident:"💦",passout:"😵",luck:"🍀",rent:"🧾",slash:"🔪",jail:"🚔",bail:"💰",visitjail:"🤝",jaillabor:"💼",escape:"🚔",parole:"🪪"};
 const GOOD=["feed","wash","visit","note","call","delivery","gift","thank","greet","makeup","cowork","feast"],BADK=["fight","egg","prank","wakeup","crash"];
 let feedFilter="all",feedSeen=0;
 function renderFeed(){renderRank();renderPeople();const all=((S&&S.events)||[]).filter(e=>e.kind!="rent"||e.actor==me).slice().sort((a,b)=>b.at.localeCompare(a.at)||b.id-a.id);
@@ -664,12 +666,31 @@ function renderFeed(){renderRank();renderPeople();const all=((S&&S.events)||[]).
  $("feed").querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>act("thank",{target:+b.dataset.t}));
  $("feed").querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{walkToPerson(+b.dataset.g);toast("走過去找他算帳，到了就能扁他（報仇有加成）");$("stage").scrollIntoView({behavior:"smooth"})})}
 // 面對面才能做的事：擊掌、扁他、和好
-function faceActs(id){return faceActs0(id).map(b=>({...b,g:"face"}))}
+function faceActs(id){return [...faceActs0(id).map(b=>({...b,g:"face"})),...misActs(id)]}
+// ── 惡趣味（town_mischief.sql）：全部不會死、有冷卻、每人每天最多被整 6 次、對方可掛免整牌；報復不扣好感、也可以原諒 ──
+const MIS={splash:["潑水 💦","他清潔 −15、心情 −3 · 好感 −1",30],sticker:["貼「踢我」紙條 🦶","他名牌掛 1 小時「踢我」 · 好感 −1",60],fakelove:["假裝告白 💘","一半他害羞（好感 +1）、一半他氣炸（好感 −2）",60],snack:["偷零食 🍪","55% 被抓賠 €60、沒被抓到手一包 · 他要有零食",60],photo:["拍醜照貼到動態 📸","全鎮看得到 · 他心情 −5、好感 −2",60],swapseat:["換掉他的座位 🪑","只能在咖啡廳、餐廳裡面 · 好感 −1",30],doorbell:["按門鈴逃跑 🔔","站在他家門口 · 睡著的會被吵醒 · 好感 −1",30],fakepoop:["門口擺假便便 💩","站在他家門口 · 好感 −1",60]};
+const todayTW=()=>new Date(now()+8*36e5).toISOString().slice(0,10);
+const shielded=r=>!!r&&!!r.items&&r.items.sh==todayTW();
+function misBtn(id,k){const t=R[id],r=R[me],m=MIS[k],left=cdLeft(r,"ms"+k+id,m[2]);let why="";
+ if(shielded(t))why=`${t.name} 今天掛了免整牌`;else if(jailed(t))why=`${t.name} 被關著`;else if(((t.items||{}).ms||{}).d==todayTW()&&t.items.ms.n>=6)why=`${t.name} 今天已經被整太多次了，放過他吧`;
+ else if(k=="snack"&&!((t.items||{}).snack>0))why=`${t.name} 身上沒有零食`;
+ const b=dbtn(m[0],m[1],()=>doMis(k,id),why?0:left,"mis");return why?{...b,dis:why}:b}
+function misActs(id){const t=R[id],r=R[me],out=[];if(!t||t.sleeping||r.sleeping||jailed(r))return out;
+ for(const k of ["splash","sticker","fakelove","snack","photo"])out.push(misBtn(id,k));
+ if((r.place=="cafe"||r.place=="restaurant")&&fin(r)&&fin(t)&&r.place==t.place)out.push(misBtn(id,"swapseat"));
+ if(R[me]&&shouldForgive(id))out.push({...btn(`原諒 ${t.name} 🤝`,"他最近整過你 · 好感 +2、兩人心情 +3",()=>doMis("forgive",id),"mis")});return out}
+// 在他家門口：按門鈴逃跑、擺假便便（他睡著也行，睡著的人不能被打但可以被整）
+function doorMisActs(id){const r=R[me],t=R[id];if(!t||r.sleeping||jailed(r))return [];return [misBtn(id,"doorbell"),misBtn(id,"fakepoop")]}
+// 他三天內整過你、你還沒原諒：從動態找（動態只留最近幾十筆，找得到才顯示）
+const shouldForgive=id=>(S&&S.events||[]).some(e=>e.kind=="mischief"&&e.actor==id&&e.target==me&&Date.parse(e.at)>now()-3*864e5)&&!(S.events||[]).some(e=>e.kind=="forgive"&&e.actor==me&&e.target==id&&Date.parse(e.at)>now()-3*864e5);
+async function doMis(a,id){try{const j=await rpc("town_mischief",{rid:me,pin,act:a,target:id});await refresh();spawnFx(MIS_FX[a]||"sparkle",me,id);playRoomFx(a,id);const t=`${j.msg||""}${j.rev?" · 報復不扣好感":""}`;toast(t);feedback(true,t)}catch(e){toast(e.message);feedback(false,e.message)}renderPanel()}
+const MIS_FX={splash:"bubbles",sticker:"flash",fakelove:"hearts",snack:"eat",photo:"flash",swapseat:"fart",doorbell:"notes",fakepoop:"fart",forgive:"hearts"};
+async function doShield(on){try{const j=await rpc("town_mischief",{rid:me,pin,act:on?"shield":"unshield"});await refresh();toast(j.msg);feedback(true,j.msg)}catch(e){toast(e.message)}renderPanel()}
 function faceActs0(id){const t=R[id],b=bondWith(id),mp=R[me].place,coop=[];
  if(mp=="office"&&t.place=="office")coop.push(btn(`和 ${t.name} 一起加班 💼`,"薪水加倍 · 2 小時一次",()=>act("cowork",{target:id})));
  if(mp=="restaurant"&&t.place=="restaurant")coop.push(btn(`請 ${t.name} 吃大餐 🍖`,"€600 · 兩人飽足 +70",()=>act("feast",{target:id})));
  const out=[...coop,btn(`和 ${t.name} 擊掌 🙌`,"兩人心情 +8 · 好感 +1 · 1 小時一次",()=>act("greet",{target:id})),
-  btn(`扁 ${t.name} 👊`,b>=30?"好麻吉之間是打打鬧鬧 · 好感不變":b>=10?"比精力、心情和運氣 · 好朋友只扣 1":"比精力、心情和運氣 · 好感 −3",()=>act("fight",{target:id}))];
+  ...(mp=="arena"&&t.place=="arena"?[btn(`邀請 ${t.name} 打一場 🥊`,"格鬥場不能直接扁人，要約定好才開打 · 他接受後三回合分勝負",()=>pkModal(id))]:[btn(`扁 ${t.name} 👊`,b>=30?"好麻吉之間是打打鬧鬧 · 好感不變":b>=10?"比精力、心情和運氣 · 好朋友只扣 1":"比精力、心情和運氣 · 好感 −3",()=>act("fight",{target:id}))])];
  if(b<0)out.push(btn(`和 ${t.name} 和好 🤝`,"好感 +8 · 2 小時一次",()=>act("makeup",{target:id})));if(b<0&&mp=="street"&&t.place=="street"&&isOn("jail"))out.push(btn(`砍 ${t.name} 🔪`,"只對有仇的人 · 他倒地送醫院、你可能被巡警關 1～3 小時 · 30 分鐘一次",()=>slashModal(t)));return out}
 // 走到某人身邊：他在室內就走到那個地點的門口，在路上就走到他旁邊
 function walkToPerson(id){const t=R[id];if(!t)return;sel=id;if(t.place.startsWith("home:")){const o=R[t.place.slice(5)];if(o){walkTo(t.place,o.id==me?door(o.slot):visitSpot(o.slot));return}}
@@ -711,6 +732,7 @@ function onlineActs0(id){const t=R[id],gifts=((R[me].items||{}).gift)||0;return 
   btn(`📞 打電話給 ${t.name}`,t.sleeping?"他在睡覺，會被你吵醒 · 好感 −1":"兩人心情 +5 · 好感 +1 · 1 小時一次",()=>act("call",{target:id})),
   btn(`🛵 幫 ${t.name} 叫外送`,"€200 · 他飽足 +30 · 好感 +2",()=>act("delivery",{target:id})),
   ...(isOn("arcade")?[btn(`✊ 向 ${t.name} 下戰帖`,"猜拳賭錢，他回來應戰",()=>duelModal(id))]:[]),
+  btn(`🥊 邀請 ${t.name} 去格鬥場 PK`,"他 3 分鐘內回應 · 三回合分勝負、可下注 · 每對每小時最多 3 場",()=>pkModal(id)),
   btn(`📦 寄禮物給 ${t.name}`,gifts?`€60 運費 · 他心情 +20 · 背包 🎁${gifts}`:"先去超市買禮物",()=>gifts?act("gift",{target:id}):toast("背包沒有禮物，去超市買一份"))]}
 // ── 街機小遊戲（在廣場玩，和莊家比，結果由伺服器決定）──
 const RPS={r:["✊","石頭"],p:["✋","布"],s:["✌️","剪刀"]},CARD=n=>({1:"A",11:"J",12:"Q",13:"K"}[n%100]||String(n%100));
@@ -1330,7 +1352,7 @@ const ROOM_ACT={latte:"coffee",coffee:"coffee",special:"kitchen",dine:"bar",take
 let lastSpots={},spotsBefore=null;let roomAnim=null;
 const HOME_ACT={toilet:"toilet",shower:"shower",eat:"fridge",tv:"tvcab",nap:"massage",qsleep:"bed",sleep:"bed",feed:"fridge",wakeup:"bed",visit:"sofa"};// 家裡：互動 → 家具（沒有那件家具就在房間中央演）
 // 對人做的事（扁、丟蛋、惡作劇…）：我走到他旁邊，在他身上播動畫（PAIR_FX：互動 → 動畫代號）
-const PAIR_FX={fight:"punch",egg:"eggs",prank:"puff"};
+const PAIR_FX={fight:"punch",egg:"eggs",prank:"puff",splash:"splash",sticker:"stick",doorbell:"bell",fakepoop:"poop",swapseat:"swap",fakelove:"love",snack:"steal",photo:"snap",forgive:"love"};
 function playRoomFx(a,target){const r=R[me],rm=roomOf(r,R);if(!rm)return;const pf=PAIR_FX[a];
  const L=spotsBefore&&spotsBefore[target]?spotsBefore:lastSpots;
  if(pf&&target&&L[target]){const sp=L[target],mx=sp[0]>0?sp[0]-1:sp[0]+1;roomAnim={code:pf,it:[pf,mx,Math.max(0,sp[1]-1)],tv:null,home:!!rm.home,w:rw(rm),h:rh(rm),born:performance.now(),dur:1700,age:0,tgt:sp};loopRoom();return}
@@ -1345,6 +1367,14 @@ function roomFxDraw(c){const A=roomAnim,C=RC,k=Math.max(0,Math.min(1,(A.age-.25)
  switch(A.code){
   case "punch":{const tx=(A.tgt[0]+.5)*C,ty=A.tgt[1]*C+C*.5,b=Math.floor(k*8)%2;for(let j=0;j<6;j++){const a2=j*1.05+k*3,d=5+(k*14)%12;P(tx+Math.cos(a2)*d-1,ty+Math.sin(a2)*d-1,3,3,j%2?"#fee761":"#fff")}if(b)P(tx-7,ty-9,14,3,"#e74c3c");c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.fillStyle="#fee761";if(k>.2&&k<.8){c.strokeText("POW",tx,ty-C+2);c.fillText("POW",tx,ty-C+2)}break}
   case "eggs":{const tx=(A.tgt[0]+.5)*C,ty=A.tgt[1]*C+8;const f=Math.min(1,k*1.6);if(f<1)P(ox-1+(tx-ox)*f,oy+C-8-Math.sin(f*3.14)*10+(ty-oy-C+8)*f,4,5,"#fff");else{P(tx-6,ty,12,5,"#fee761");P(tx-4,ty+5,8,3,"#fff");P(tx-1,ty+8,2,4,"#fee761")}break}
+  case "splash":{const tx=(A.tgt[0]+.5)*C,ty=A.tgt[1]*C;for(let j=0;j<7;j++){const y=ty-6+((k*50+j*6)%22),x=tx-10+j*3+Math.sin(k*8+j)*2;P(x,y,2,3,j%2?"#6fc6ff":"#bfe6ff")}P(ox-8+(tx-ox+8)*Math.min(1,k*2),oy-4,6,5,"#6fc6ff");break}
+  case "stick":{const tx=(A.tgt[0]+.5)*C,ty=A.tgt[1]*C+10;P(tx-5,ty-2,10,12,"#fff");P(tx-3,ty+1,6,1,"#1b1b2f");P(tx-3,ty+4,6,1,"#1b1b2f");P(tx-3,ty+7,4,1,"#e74c3c");break}
+  case "bell":{const tx=(A.tgt[0]+.5)*C,ty=A.tgt[1]*C+6;P(tx-5,ty,10,7,"#fee761");P(tx-1,ty+7,2,3,"#c9a227");for(let j=0;j<3;j++)P(tx-9+j*9+Math.sin(k*40)*2,ty-4-j%2*3,2,2,"#fff");break}
+  case "poop":{const tx=(A.tgt[0]+.5)*C,ty=A.tgt[1]*C+C-6;P(tx-6,ty+2,12,4,"#6b4a2b");P(tx-4,ty-2,8,4,"#6b4a2b");P(tx-2,ty-5,4,3,"#6b4a2b");for(let j=0;j<3;j++)P(tx-6+j*6,ty-9-((k*30+j*5)%8),2,2,"#9ccf6e");break}
+  case "swap":{const tx=(A.tgt[0]+.5)*C,ty=A.tgt[1]*C+C-8,f=Math.floor(k*6)%2;P(tx-8+f*6,ty,5,3,"#c9a227");P(tx+3-f*6,ty+4,5,3,"#c9a227");P(tx-6,ty+9,12,2,"#6b4a2b");break}
+  case "love":{const tx=(A.tgt[0]+.5)*C,ty=A.tgt[1]*C;for(let j=0;j<3;j++){const x=tx-8+j*8+Math.sin(k*7+j)*2,y=ty-4-((k*40+j*10)%20);P(x,y,3,3,"#ff8fb3");P(x+3,y,3,3,"#ff8fb3");P(x+1,y+3,4,2,"#ff8fb3")}break}
+  case "steal":{const tx=(A.tgt[0]+.5)*C,ty=A.tgt[1]*C+8,f=Math.min(1,Math.max(0,(k-.2)/.6));P(tx+(ox-tx)*f-2,ty+(oy-ty)*f-2,5,5,"#c9833a");P(tx+(ox-tx)*f-1,ty+(oy-ty)*f-1,1,1,"#6b4a2b");break}
+  case "snap":{const tx=(A.tgt[0]+.5)*C,ty=A.tgt[1]*C;if(k>.25&&k<.5){c.fillStyle="rgba(255,255,255,.55)";c.fillRect(0,0,A.w*C,A.h*C)}P(tx-9,ty-12,8,6,"#1b1b2f");P(tx-7,ty-11,4,4,"#6fc6ff");break}
   case "puff":{const tx=(A.tgt[0]+.5)*C,ty=A.tgt[1]*C+C*.6;for(let j=0;j<5;j++){const y=ty-((k*30+j*7)%24),x=tx-8+j*4+Math.sin(k*9+j)*2;P(x,y,4,4,j%2?"#9ccf6e":"#6fa34a")}break}
   case "coffee":for(let j=0;j<4;j++)P(ox-8+j*5+Math.sin(k*9+j)*2,oy-8-((k*60+j*9)%18),3,3,`rgba(255,255,255,${.85-j*.12})`);break;
   case "jukebox":for(let j=0;j<3;j++){const x=ox+(j-1)*9+Math.sin(k*8+j)*3,y=oy-6-((k*50+j*12)%26);P(x,y,4,3,"#fee761");P(x+3,y-7,1,8,"#fee761")}break;
@@ -1399,6 +1429,36 @@ let ivSeen="";
 function checkInvite(){const r=R[me];if(!r||!r.items||!r.items.iv||modalOpen()||!S)return;const iv=r.items.iv,age=Date.parse(S.now)-Date.parse(iv.at),f=R[iv.f];
  if(age>55e3||age<0||ivSeen==iv.at||!f||r.sleeping||r.place!=iv.p||f.place!=iv.p||!PEV[r.place])return;ivSeen=iv.at;
  choiceModal(`${f.name} 邀請你一起${JT[r.place]}`,"1 分鐘內有效 · 兩人心情 +12、精力 +5、好感 +1",[["好啊","一起做",async()=>{try{const j=await rpc("town_invite",{rid:me,pin,op:"yes",target:f.id});await refresh();spawnFx("hearts",me);spawnFx("hearts",f.id);toast(j.bonus?`和 ${f.name} 一起：心情 +12、精力 +5、好感 +1`:`和 ${f.name} 好感 +1（今天的加成用完了）`)}catch(e){toast(e.message)}renderPanel()}],["下次吧","不接受",async()=>{try{await rpc("town_invite",{rid:me,pin,op:"no",target:f.id});await refresh()}catch(e){}}]])}
+// ── 格鬥場邀約 PK（town_mischief.sql 的 town_pk）：邀約 → 對方 3 分鐘內接受／婉拒 → 兩人被帶到格鬥場，三回合分勝負，動畫兩邊都看 ──
+const snapMe=()=>{const r=R[me],w=walkers[me];if(r&&w){w.x=r.x;w.y=r.y;w.tx=r.x;w.ty=r.y;w.path=[];w.dest=null;w.then=null}};
+function pkModal(id){const t=R[id],r=R[me];if(!t)return;const cap=Math.min(r.money,t.money),opts=[0,100,500,1000,2000].filter(b=>b<=cap);
+ choiceModal(`邀請 ${t.name} 去格鬥場 PK`,`他 3 分鐘內要回應 · 三回合分勝負，不會死 · 下注：輸的付、贏的拿 95%（5% 進鎮基金）· 沒下注贏的拿 ${CUR}100（每人 30 分鐘一次）`,opts.map(b=>[b?`下注 €${b}`:"友誼賽（不下注）",b?`雙方都要付得起 · 你 €${r.money}、他 €${t.money}`:"贏的人 €100 · 好感 +1",async()=>{try{const j=await rpc("town_pk",{rid:me,pin,op:"send",target:id,bet:b});toast(j.msg);feedback(true,j.msg);pkWatch(id)}catch(e){toast(e.message);feedback(false,e.message)}}]))}
+let pkTimer=null;
+function pkWatch(id){clearInterval(pkTimer);const t0=Date.now();pkTimer=setInterval(async()=>{if(Date.now()-t0>190e3){clearInterval(pkTimer);return}try{const j=await rpc("town_pk",{rid:me,pin,op:"poll"});if(j&&j.pkr){clearInterval(pkTimer);await refresh();if(j.pkr.no){toast(`${j.pkr.n} 婉拒了你的邀約`);return}snapMe();pkAnim(j.pkr)}}catch(e){}},4000)}
+let pkSeen="";
+function checkPk(){const r=R[me];if(!r||!r.items||!r.items.pk||modalOpen()||!S)return;const iv=r.items.pk,age=Date.parse(S.now)-Date.parse(iv.at),f=R[iv.f];
+ if(age>175e3||age<0||pkSeen==iv.at||!f||r.sleeping||jailed(r))return;pkSeen=iv.at;const bet=iv.b||0;
+ choiceModal(`${f.name} 邀你去格鬥場 PK`,`3 分鐘內有效 · 三回合分勝負，不會死 · ${bet?`賭注 €${bet}：輸的付、贏的拿 95%`:"友誼賽：贏的人 €100"}`,[["接受，走吧","兩個人都被帶到格鬥場",async()=>{try{const j=await rpc("town_pk",{rid:me,pin,op:"accept",target:f.id});await refresh();snapMe();pkAnim(j.pkr)}catch(e){toast(e.message)}renderPanel()}],["婉拒","他會收到通知",async()=>{try{await rpc("town_pk",{rid:me,pin,op:"decline",target:f.id});await refresh()}catch(e){toast(e.message)}}]])}
+function pkAnim(pk){const A=R[pk.a],B=R[pk.b];if(!A||!B)return;$("modal").classList.remove("hide");
+ $("mbody").innerHTML=`<h2>格鬥場 PK</h2><p class="mut">${esc(pk.an)} vs ${esc(pk.bn)}${pk.bet?` · 賭注 €${pk.bet}`:""}</p><canvas id="pkc" width="288" height="144" style="display:block;margin:6px auto;width:100%;max-width:288px;image-rendering:pixelated;border:3px solid var(--ink)"></canvas><p id="pkt" class="mut" style="text-align:center">準備…</p><div class="row"><button class="pri hide" id="pkOk">好</button></div>`;
+ const cv=$("pkc"),c=cv.getContext("2d");c.imageSmoothingEnabled=false;const rounds=pk.rounds.split(""),T0=performance.now(),RD=1300;let hpA=3,hpB=3,done=false;
+ const P=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(Math.round(x),Math.round(y),w,h)};
+ const frame=t=>{const el=t-T0,ri=Math.min(2,Math.floor(el/RD)),k=(el-ri*RD)/RD,aw=rounds[ri]=="W";c.clearRect(0,0,288,144);P(0,0,288,144,"#2a2347");P(0,96,288,48,"#5a3a2a");P(0,92,288,4,"#c0392b");P(0,100,288,2,"#e8d6a8");
+  // 擂台繩
+  for(let i=0;i<3;i++)P(0,30+i*18,288,2,i==1?"#fff":"#e74c3c");
+  hpA=3-rounds.slice(0,Math.min(3,ri+(k>.55?1:0))).filter(x=>x=="L").length;hpB=3-rounds.slice(0,Math.min(3,ri+(k>.55?1:0))).filter(x=>x=="W").length;
+  const lunge=k<.5?Math.sin(k*2*Math.PI/2)*22:0,hit=k>.5&&k<.8,hitX=aw?[200,80]:[80,200];
+  // 出拳的人向前、被打的人後仰
+  const ax=60+(aw?lunge:0)+(!aw&&hit?-8:0),bx=228-(aw?0:lunge)+(aw&&hit?8:0);
+  drawChar(c,ax,118,1.5,A.look,{moving:aw&&k<.5},Math.floor(el/90));drawChar(c,bx,118,1.5,B.look,{moving:!aw&&k<.5},Math.floor(el/90)+3);
+  if(hit){const hx=aw?bx-16:ax+16;for(let j=0;j<6;j++){const a2=j*1.05+k*8;P(hx+Math.cos(a2)*(6+k*10)-1,88+Math.sin(a2)*(6+k*10)-1,3,3,j%2?"#fee761":"#fff")}c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.fillStyle="#fee761";c.strokeText("POW",hx,72);c.fillText("POW",hx,72)}
+  // 血條與名字
+  c.font="11px 'Cubic 11',monospace";c.textAlign="left";c.fillStyle="#fff";c.fillText(pk.an.slice(0,5),6,12);c.textAlign="right";c.fillText(pk.bn.slice(0,5),282,12);
+  for(let i=0;i<3;i++){P(6+i*16,16,14,6,i<hpA?"#63c74d":"#3a3358");P(282-14-i*16,16,14,6,i<hpB?"#63c74d":"#3a3358")}
+  $("pkt").textContent=el<3*RD?`第 ${ri+1} 回合：${aw?pk.an:pk.bn} 打中了`:"";
+  if(el<3*RD+500){requestAnimationFrame(frame);return}
+  if(!done){done=true;const win=pk.w==pk.a?pk.an:pk.bn,me2=pk.w==me,txt=`${win} 贏了！${pk.bet?(me2?` 你拿到 €${pk.bet-pk.fee}`:pk.w?` 你輸了 €${pk.bet}`:""):(pk.prize&&me2?` 你拿到獎金 €${pk.prize}`:"")}`;$("pkt").textContent=txt;$("pkOk").classList.remove("hide");$("pkOk").onclick=()=>{$("modal").classList.add("hide");refresh().catch(()=>{})};spawnFx("fight",me)}};
+ requestAnimationFrame(frame)}
 // ── 開始：沒有代碼就是首頁；有代碼就讀小鎮，這台手機住過就自動登入；每 15 秒同步一次 ──
 const slow=setTimeout(()=>{const x=document.querySelector("#lg .ld small");if(x)x.textContent="網路比較慢，再等一下…"},6000);
 (async()=>{if(!TID){clearTimeout(slow);const l=mine();if(standalone&&l.length==1){go(l[0].tid);return}landing();return}

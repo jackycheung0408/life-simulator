@@ -229,5 +229,16 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
 {const src=require("fs").readFileSync(__dirname+"/town.js","utf8");check(/hold=!show&&!!dd/.test(src)&&/cv\.classList\.remove\("hide"\)/.test(src),"drawRoom 走路中要保留室內畫布的位置（hold），不然走到朋友家門口面板會跳一下")}
 // 同在一個室內空間算面對面（可以扁人、擊掌）；屋主把訪客趕出門的 SQL 要在
 {const src=require("fs").readFileSync(__dirname+"/town.js","utf8"),sql=require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8");check(/const sameRoom=/.test(src)&&/if\(sameRoom\(a,b\)\)return true/.test(src)&&/inRoom=sameRoom\(r,t\)/.test(src),"室內互動：要有 sameRoom，isNear 和選人面板都要認它");check(/'kick'/.test(sql)&&/把 ' \|\| r\.name \|\| ' 趕出家門/.test(sql),"town.sql 的 fight 要有「在別人家動手會被趕出門」")}
+// 惡趣味與格鬥場 PK：前端冷卻要和 town_mischief.sql 的 town_ms_cd 一致、8 種都有 SQL 分支、免整牌擋住 egg／prank／fight、格鬥場不能直接扁人
+{const fs=require("fs"),src=fs.readFileSync(__dirname+"/town.js","utf8"),sql=fs.readFileSync(__dirname+"/../supabase/town_mischief.sql","utf8"),tsql=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8");
+ const mis=src.match(/const MIS=\{([^\n]*)\};/);check(!!mis,"town.js 要有 MIS 惡趣味表");
+ if(mis){const found=[...mis[1].matchAll(/(\w+):\["[^"]*","[^"]*",(\d+)\]/g)];check(found.length==8,"惡趣味要有 8 種，現在 "+found.length);
+  for(const f of found){const cd=sql.match(new RegExp("when '"+f[1]+"' then (\\d+)"));check(cd&&cd[1]==f[2],"惡趣味 "+f[1]+" 冷卻前後端不一致（前端 "+f[2]+"、SQL "+(cd?cd[1]:"沒有")+"）");check(sql.includes("act = '"+f[1]+"'"),"town_mischief 沒有 "+f[1]+" 的分支")}}
+ check(/if act in \('egg','prank','fight'\) and \(t\.items->>'sh'\)/.test(tsql),"town.sql 的 egg／prank／fight 要被免整牌擋住");
+ check(/格鬥場要先約定/.test(tsql),"town.sql 的 fight 在格鬥場要擋住，改約 PK");
+ check(/create or replace function public\.town_pk\(/.test(sql)&&/fee := floor\(bet \* 0\.05\)/.test(sql)&&/bet < 0 or bet > 2000/.test(sql),"town_pk 要有下注上限 2000 與 5% 進鎮基金");
+ check(/n >= 3 then raise exception '你們這一小時已經打了 3 場/.test(sql),"town_pk 每對每小時最多 3 場");
+ check(/\.get\(\)|PK|pkModal/.test(src)&&/town_pk/.test(src)&&/town_mischief/.test(src),"前端要呼叫 town_pk、town_mischief");
+ const e=src.match(/const KIND_ICON=\{([^}]*)\}/);for(const k of ["mischief","photo","forgive","pk","pkno","kick"])check(e&&new RegExp("\\b"+k+":").test(e[1]),"KIND_ICON 要有 "+k)}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

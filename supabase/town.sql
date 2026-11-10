@@ -1440,6 +1440,9 @@ begin
     -- 叫不醒的那次不算「叫醒」，只擋 3 分鐘（成功叫醒才是 1 小時）
     if act = 'wakeup' and exists (select 1 from public.town_events e where e.actor = rid and e.target = t.id and e.kind = 'wakefail' and e.at > now() - interval '3 minutes') then raise exception '他睡得很沉，等 3 分鐘再試試'; end if;
     t := public.town_tick(t); tn := t.name; bond := public.town_bond_get(rid, t.id);
+    -- 免整牌：今天掛著，別人不能對他丟蛋、惡作劇、扁；格鬥場不能隨便扁人，要先邀約 PK（town_mischief.sql 的 town_pk）
+    if act in ('egg','prank','fight') and (t.items->>'sh') = to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD') then raise exception '% 今天掛了免整牌，改天再說', tn; end if;
+    if act = 'fight' and r.place = 'arena' and t.place = 'arena' then raise exception '格鬥場要先約定：按「邀請 PK」，對方接受才開打'; end if;
     -- 面對面：在同一個地方（不算路上），或在路上距離 2 格以內
     near := (r.place = t.place and r.place <> 'street') or (abs(r.x - t.x) + abs(r.y - t.y) <= 2.5);
     if act = 'thank' then
