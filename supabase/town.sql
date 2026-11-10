@@ -1459,6 +1459,18 @@ begin
       else r.fun := r.fun - 12; r.hygiene := r.hygiene - 15; r.bruised_until := now() + interval '2 hours'; t.fun := t.fun + 10; end if;
       -- 好麻吉之間是打打鬧鬧，感情反而更好
       perform public.town_bond(r.town_id, rid, t.id, case when bond >= 30 then 0 when r.place = 'arena' and t.place = 'arena' then (case when bond >= 10 then 0 else -1 end) when bond >= 10 then -1 else -3 end);
+      -- 在別人家屋裡動手：屋主有機率把訪客趕出門（訪客輸了 60%、贏了 25%）；訪客被趕出去只是回到門口，不會有事
+      if (r.items->>'fv') = t.id::text and r.place = 'home:' || t.id then
+        if random() < case when pa >= pb then 0.25 else 0.6 end then
+          r.items := r.items - 'fv';
+          insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, t.id, rid, 'kick', tn || ' 把 ' || r.name || ' 趕出家門 🚪');
+        end if;
+      elsif (t.items->>'fv') = r.id::text and t.place = 'home:' || r.id then
+        if random() < case when pa >= pb then 0.6 else 0.25 end then
+          t.items := t.items - 'fv';
+          insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, t.id, 'kick', r.name || ' 把 ' || tn || ' 趕出家門 🚪');
+        end if;
+      end if;
       -- 擂台上的友誼賽：贏的人 €100，每人 30 分鐘最多領一次（不然兩個人互打就能無限印錢）
       if r.place = 'arena' and t.place = 'arena' then
         if pa >= pb and not (r.items->'cd'->>'afp' is not null and (r.items->'cd'->>'afp')::timestamptz > now() - interval '30 minutes') then

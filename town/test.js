@@ -227,5 +227,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(n>=8,"路口數量不對："+n);check(M.zoneLim(6)==2&&M.zoneLim(16)==2&&M.zoneLim(5)==2.5&&M.zoneLim(17)==2.5,"速限分區")}
 // 走去有室內的地方時，面板的室內畫布要先保留位置（走路中 hold），到了才畫，面板高度不會突然變高、畫面不會跳
 {const src=require("fs").readFileSync(__dirname+"/town.js","utf8");check(/hold=!show&&!!dd/.test(src)&&/cv\.classList\.remove\("hide"\)/.test(src),"drawRoom 走路中要保留室內畫布的位置（hold），不然走到朋友家門口面板會跳一下")}
+// 同在一個室內空間算面對面（可以扁人、擊掌）；屋主把訪客趕出門的 SQL 要在
+{const src=require("fs").readFileSync(__dirname+"/town.js","utf8"),sql=require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8");check(/const sameRoom=/.test(src)&&/if\(sameRoom\(a,b\)\)return true/.test(src)&&/inRoom=sameRoom\(r,t\)/.test(src),"室內互動：要有 sameRoom，isNear 和選人面板都要認它");check(/'kick'/.test(sql)&&/把 ' \|\| r\.name \|\| ' 趕出家門/.test(sql),"town.sql 的 fight 要有「在別人家動手會被趕出門」")}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
