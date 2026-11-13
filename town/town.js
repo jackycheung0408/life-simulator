@@ -59,8 +59,9 @@ const OBJS={vend:{x:19,y:5,name:"自動販賣機",acts:[["投一罐飲料 🥤",
  });
  mailbox:{x:34,y:5,name:"郵筒",acts:[["查信箱 💌","免費 · 偶爾收到退款 · 一天最多領 3 次"]]},news:{x:14,y:19,name:"報攤",acts:[["買份報紙 📰","€20 · 心情 +8"]]},claw:{x:33,y:14,name:"夾娃娃機",acts:[["夾娃娃 🎁","€30 · 兩成夾到禮物"]]},lottery:{x:8,y:19,name:"刮刮樂攤",acts:[["刮一張 🍀","€100 · 有機會中大獎"]]},
  busker:{place:"plaza",name:"街頭藝人",acts:[["打賞 🎸","€50 · 心情 +15"]]},pond:{place:"park",name:"池塘",acts:[["餵鴨子 🐦","用一包零食 · 心情 +12","feed"]]},
- swing:{place:"park",name:"鞦韆",acts:[["盪鞦韆","心情 +12"]]},cat:{place:"park",name:"流浪貓",acts:[["摸摸貓 🐱","心情 +8 · 可能被抓"],["餵貓吃零食","用一包零食 · 心情 +15","feed"]]}};
- zombiepig:{place:"plaza",name:"喪屍豬",acts:[["揍喪屍豬 👊","精力 −5 · 小心牠烙人反擊","zombiepig"]]},
+ swing:{place:"park",name:"鞦韆",acts:[["盪鞦韆","心情 +12"]]},cat:{place:"park",name:"流浪貓",acts:[["摸摸貓 🐱","心情 +8 · 可能被抓"],["餵貓吃零食","用一包零食 · 心情 +15","feed"]]},
+ zombiepig:{place:"plaza",name:"喪屍豬",acts:[["揍喪屍豬 👊","精力 −5 · 小心牠烙人反擊","zombiepig"]]}
+ };
 // 公共建設（和 supabase/town_civic.sql 一致，node town/test.js 會比對）：
 //  醫院 HOSP＝[掛號費, 探病冷卻分鐘, 病人心情, 探病者心情, 探病者精力, 好感]；警察局 POLICE＝[繳罰單折扣%, 自首關幾分鐘, 報案點有效天數, 最多幾點, 每點巡警機率 +%]
 //  市政廳 CIVIC＝建設案 [名稱, 費用, x, y, 心情, 精力]（鎮長提案、居民投票 24 小時、過半且至少 3 票（不到 5 人的小鎮 2 票）才扣鎮基金；在路上走到旁邊 ≤ 2 格可用，10 分鐘一次）
