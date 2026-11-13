@@ -508,7 +508,7 @@ const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀
 // ── 下方面板：依所在地點顯示可以做的事 ──
 const btn=(label,sub,fn,g)=>({label,sub,fn,g});
 // 不能按的按鈕照樣顯示，灰掉並寫原因（冷卻、沒人在場、集點不夠…）；點了會提示原因
-const cdLeft=(r,key,mins)=>Math.max(0,Date.parse(((r.items||{}).cd||{})[key]||"1970")+mins*6e4-now());
+const cdLeft=(r,key,mins)=>0;
 const dbtn=(label,sub,fn,left,g)=>({...btn(label,sub,fn,g),dis:left?`剛做過，${fmtLeft(left)}後再來`:""});
 const ACT_ICON={吃飯:"🍚",上廁所:"🚽",洗澡:"🛁",看電視:"📺",睡覺:"😴",起床:"☀️",吃一頓:"🍽️",打工:"💼",玩一下:"🎈",逛逛:"👀",煮飯給他:"🍳",幫他洗澡:"🧽",叫醒他:"⏰",串門子:"🏠",惡作劇:"💨",送禮物:"🎁",盪鞦韆:"🎠",快速休息:"😴",快速睡覺:"💤",進屋:"🏠",出門:"🚪",室內:"🛋️",餵貓吃零食:"🐟",取消:"✖️"};
 const GROUP={tip:"建議下一步",self:"照顧自己",friend:"在他家",place:"在這裡",face:"面對面",online:"線上 · 在哪都能做",mis:"惡趣味",move:"移動",eat:"吃喝",fun:"玩樂",soc:"社交",work:"工作與任務",home:"房子"};let lastPanel="",panelFns=[];
@@ -573,7 +573,6 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  if(!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const q of POOPS)if(Math.abs(q.x-walkers[me].x)+Math.abs(q.y-walkers[me].y)<=2)list.push(btn("清掉便便 💩","領 €30",()=>act("sweep",{item:String(q.id)}),"place"));
  if(p=="street"&&!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const k of CIVP){const o=CIVIC[k];if(o&&Math.abs(walkers[me].x-o[2])+Math.abs(walkers[me].y-o[3])<=2)list.push(dbtn(`在${o[0]}旁休息`,`心情 +${o[4]}${o[5]?` · 精力 +${o[5]}`:""} · 10 分鐘一次`,()=>civicUse(k),cdLeft(r,"c_"+k,10)))}
  if(!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const k in OBJS)if(objNear(k,walkers[me].x,walkers[me].y,p))for(const [l,sub,v] of OBJS[k].acts)if(v!="feed"||((r.items||{}).snack))list.push(btn(l,`${OBJS[k].name} · ${sub}`,()=>act("obj",{item:k,note:v||null}),"place"));
- if(!sel&&!r.sleeping&&!jailed(r)&&!(walkers[me]&&walkers[me].path.length))list.push(shielded(r)?btn("收起免整牌 🛡️","今天不想被整的牌子掛著 · 按一下收起來",()=>doShield(false),"self"):btn("掛免整牌 🛡️","今天不被惡搞、丟蛋、惡作劇、扁 · 掛到今天結束",()=>doShield(true),"self"));
  if(!r.sleeping&&(r.items||{}).snack&&!(walkers[me]&&walkers[me].path.length))list.push(btn("吃零食 🍪",`飽足 +20 · 還有 ${(r.items||{}).snack} 包`,()=>act("snack"),"self"));
  if(sel&&R[sel]&&sel!=me){const t=tickLocal(R[sel],now());note=`${t.name}：在${placeName(t.place)}${t.sleeping?"睡覺":""} · 飽足 ${Math.round(t.hunger)} · 清潔 ${Math.round(t.hygiene)} · 心情 ${Math.round(t.fun)} · ${bondLabel(bondWith(t.id))}`;
   const inRoom=sameRoom(r,t),away=inside(t)&&!inRoom,face=!away&&isNear(t.id)&&!t.sleeping&&!r.sleeping;title=`和 ${t.name} 互動`;
@@ -642,7 +641,7 @@ const AL=[[0,"新居民",10,20,0,0],[3,"熟面孔",10,24,5,30],[10,"老鄰居",9
 const alN=r=>((r.items&&r.items.al)||{}).n||0;
 const lvOf=n=>{let l=0;AL.forEach((a,i)=>{if(n>=a[0])l=i});return l};// 0..4
 const alOf=r=>AL[lvOf(alN(r))];
-const wkLeft=r=>Math.max(0,Date.parse((r.items.cd||{}).wk||0)+alOf(r)[2]*6e4-now());
+const wkLeft=r=>0;
 const taxOf=m=>Math.max(0,Math.floor((m-1e5)*0.005));const RENT=[400,800,1500,3000];const rentOf=r=>{const b=RENT[Math.min(3,Math.max(0,((r.items&&r.items.hl)||1)-1))];return b-Math.floor(b*alOf(r)[4]/100)};
 // 其他工作（和 town.sql 的 town_pjob_* 一致）：[名稱, 地點, 底薪, [精力,飽足,心情,清潔], SQL 的 act 營業鍵]；熟練 15 次 ×1.15、40 次 ×1.3；拉菲底薪 320／450／650，要先升到「員工」
 const pjN=(r,k)=>((r.items&&r.items.jw)||{})[k]||0;
@@ -709,7 +708,7 @@ const MIS={splash:["潑水 💦","他清潔 −15、心情 −3 · 好感 −1",
 const todayTW=()=>new Date(now()+8*36e5).toISOString().slice(0,10);
 const shielded=r=>!!r&&!!r.items&&r.items.sh==todayTW();
 function misBtn(id,k){const t=R[id],r=R[me],m=MIS[k],left=cdLeft(r,"ms"+k+id,m[2]);let why="";
- if(shielded(t))why=`${t.name} 今天掛了免整牌`;else if(jailed(t))why=`${t.name} 被關著`;else if(((t.items||{}).ms||{}).d==todayTW()&&t.items.ms.n>=6)why=`${t.name} 今天已經被整太多次了，放過他吧`;
+ if(jailed(t))why=`${t.name} 被關著`;else if(((t.items||{}).ms||{}).d==todayTW()&&t.items.ms.n>=6)why=`${t.name} 今天已經被整太多次了，放過他吧`;
  else if(k=="snack"&&!((t.items||{}).snack>0))why=`${t.name} 身上沒有零食`;
  const b=dbtn(m[0],m[1],()=>doMis(k,id),why?0:left,"mis");return why?{...b,dis:why}:b}
 function misActs(id){const t=R[id],r=R[me],out=[];if(!t||t.sleeping||r.sleeping||jailed(r))return out;
@@ -1428,9 +1427,8 @@ function facBtns(r){const p=r.place,out=[],it=r.items||{},doy=doyTP();
  const c=claimable(r);out.push(btn("每日任務板 ⭐",c?`${c} 個任務可以領獎`:"今天的三個小任務，各 €50",()=>taskModal(),"work"));
  return out}
 function taskModal(){const r=R[me];if(!r)return;const a=faOf(r),ids=taskIds(),tk=a.tk||[],it=r.items||{};
- const rows=ids.map((t,i)=>{const done=taskDone(r,t),got=tk.includes(t);return[`${got?"已領":done?"可領獎":"未完成"}　${TASKS[t]}`,got?"獎勵 €50 已領":done?"點這裡領 €50":"完成後回來領 €50",async()=>{if(got||!done){toast(got?"已經領過了":"還沒完成");return}await doFac("claim",null,String(i))}]});
- const fq=Object.entries(it.fq||{}).filter(x=>x[1]>=5).map(x=>`${placeName(x[0])} ${tierOf(x[1])}`);
- choiceModal("每日任務板",`每天重新出三個，各 €50，三個都領完再 +€100。今天互動 ${a.n||0} 次 · 咖啡集點卡 ${it.cs||0}/8${it.gy?` · 健身房連續簽到 ${it.gy.d==dayKey()?it.gy.s:(it.gy.d==dayKey(-1)?it.gy.s:0)} 天`:""}${fq.length?` · 常客：${fq.join("、")}`:""}`,rows)}
+const rows=ids.map((t,i)=>{const done=taskDone(r,t),got=tk.includes(t);return[`${got?"已領":done?"可領獎":"未完成"} ${TASKS[t]}`,got?"獎勵 €500 已領":done?"點這裡領 €500":"完成後回來領 €500",async()=>{if(got||!done){toast(got?"已經領過了":"還沒完成");return}await doFac("claim",null,String(i))}]}); const fq=Object.entries(it.fq||{}).filter(x=>x[1]>=5).map(x=>`${placeName(x[0])} ${tierOf(x[1])}`);
+ choiceModal("每日任務板",`每天重新出三個，各 €500，三個都領完再 +€1000。今天互動 ${a.n||0} 次 · 咖啡集點卡 ${it.cs||0}/8${it.gy?` · 健身房連續簽到 ${it.gy.d==dayKey()?it.gy.s:(it.gy.d==dayKey(-1)?it.gy.s:0)} 天`:""}${fq.length?` · 常客：${fq.join("、")}`:""}`,rows)}
 // ── 走進設施裡面（咖啡廳、餐廳、健身房；RPC town_fi，資料 items.fi = 地點代號，只有 fi 等於現在的 place 才算在裡面）──
 // 室內格子系統（之後家裡擺家具可共用）：場景 = 12×5 格、每格 24px，第 0 列是牆；物件 = [代號, 格x, 格y]，代號查 ITEM = [圖示, 名稱, 對應面板按鈕的文字（沒有 = 裝飾）, 是否擋住站位]；
 // 人站在沒有被擋住的地板格（第 1 列起），依距離場景中央由近到遠一人一格，不會重疊；點物件 = 按面板上文字比對到的那顆按鈕。
