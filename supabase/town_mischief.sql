@@ -27,6 +27,25 @@ begin
   if r.sleeping then raise exception '你在睡覺，先起床'; end if;
   if public.town_jailed(r) then raise exception '你被關著，哪都不能去'; end if;
 
+  if target is null or target = rid then raise exception '要選一位朋友'; end if;
+  select * into t from public.town_residents where id = target and town_id = r.town_id for update;
+  if not found then raise exception '找不到這位鄰居'; end if;
+  tn := t.name;
+  t := public.town_tick(t);
+
+  -- 原諒：他三天內整過你（還沒原諒過），原諒他：好感 +2，兩人心情 +3
+  if act = 'forgive' then
+    if not exists (select 1 from public.town_events e where e.actor = target and e.target = rid and e.kind = 'mischief' and e.at > now() - interval '3 days'
+        and not exists (select 1 from public.town_events g where g.actor = rid and g.target = target and g.kind = 'forgive' and g.at > e.at)) then
+      raise exception '% 最近沒有整你，或你已經原諒過了', tn;
+    end if;
+    perform public.town_bond(r.town_id, rid, t.id, 2);
+    r.fun := r.fun + 3; t.fun := t.fun + 3;
+    insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, target, 'forgive', r.name || ' 原諒了 ' || tn || '，一笑泯恩仇 🤝');
+    perform public.town_save_r(r); perform public.town_save_r(t);
+    return json_build_object('msg','你原諒了 ' || tn, 'f', 3, 'b', 2);
+  end if;
+
   if act not in ('splash','sticker','doorbell','fakepoop','swapseat','fakelove','snack','photo') then raise exception '沒有這個惡作劇'; end if;
   if public.town_jailed(t) then raise exception '% 被關著，整不到', tn; end if;
   ms := case when t.items->'ms'->>'d' = today then t.items->'ms' else jsonb_build_object('d', today, 'n', 0) end;
