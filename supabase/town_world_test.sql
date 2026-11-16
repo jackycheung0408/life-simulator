@@ -1,17 +1,17 @@
 -- 鎮上隨機事件實測：接在 town.sql、town_world.sql 之後執行，最後 rollback，結果在錯誤訊息 REPORT。
 -- 檢查：1) 新鎮前 30 分鐘沒事件；2) 事件開始並寫 world 動態；3) 倍率 px／wd；4) 結束後恢復 100 並排下一個；5) luck 每日 10 次與 8 分鐘間隔、錢不為負、不在戶外不觸發。
 do $$
-declare cr json; ra bigint; tid text; rep text := ''; j json; i int; k text; pxv int; wdv int; r1 public.town_residents; cnt int := 0; neg boolean := false;
+declare cr json; ra bigint; tid text; rep text := ''; j json; i int; ek text; pxv int; wdv int; r1 public.town_residents; cnt int := 0; neg boolean := false;
 begin
   cr := public.town_create('ZZWD','甲','1234'); ra := (cr->>'resident_id')::bigint; tid := cr->>'town_id';
   update public.town_residents set place='street', x=20, y=7, sleeping=false, energy=90, hunger=90, fun=50, hygiene=90, bladder=90, money=10, items='{}'::jsonb, seen_at=now(), updated_at=now() where id = ra;
   j := public.town_world(ra,'1234','poll'); rep := rep||'1) 新鎮 poll：ev='||coalesce((j->>'ev'),'null')||'（期望 null）'||E'\n';
   update public.town_worlds set next_at = now() - interval '1 minute' where town_id = tid;
   j := public.town_world(ra,'1234','poll'); rep := rep||'2) 開始：'||(j->'ev')::text||' world 動態 '||(select count(*) from public.town_events where town_id = tid and kind='world')||'（期望 1）'||E'\n';
-  foreach k in array array['market','boom','bust','blackout','festival'] loop
-    update public.town_worlds set k = k, until = now() + interval '1 hour' where town_id = tid;
+  foreach ek in array array['market','boom','bust','blackout','festival'] loop
+    update public.town_worlds set k = ek, until = now() + interval '1 hour' where town_id = tid;
     pxv := public.town_px(tid, 250); wdv := public.town_wd_pct(tid);
-    rep := rep||'3) '||k||' 餐廳 250 → '||pxv||' 薪水 '||wdv||'%'||E'\n';
+    rep := rep||'3) '||ek||' 餐廳 250 → '||pxv||' 薪水 '||wdv||'%'||E'\n';
   end loop;
   update public.town_worlds set until = now() - interval '1 minute' where town_id = tid;
   rep := rep||'4) 過期後 px '||public.town_px(tid,250)||' wd '||public.town_wd_pct(tid)||'（期望 250／100）';
