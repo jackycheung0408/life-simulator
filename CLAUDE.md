@@ -123,6 +123,12 @@
 - 透明：每次寫 `town_events` kind `mayor`（公開）；前端選單「鎮長管理權」（`powBtn`，所有居民）與鎮長面板的按鈕都開 `powersModal`（權力清單、投票、使用紀錄、申訴）；被行使者上線時 `checkPwn` 彈窗（可直接申訴）；不能用的權力照樣顯示、灰掉並寫原因。`tools/town-mock.js` 有 `town_power` 假回應（簡化版）。
 - 教訓：`town_powers.sql` 裡 plpgsql 變數不要叫 `x`／`y`（和 `town_residents` 的位置欄撞名，已改 `en`）。
 
+## 鎮上隨機事件（2026-11-16；SQL **尚未套用到正式站**：順序 `town.sql` → `supabase/town_world.sql`，套完跑實測 `supabase/town_world_test.sql`（最後 rollback，結果在錯誤訊息 REPORT））
+- **全鎮事件**：每鎮同時 1 個，60～120 分，結束後隔 60～180 分；新鎮 30 分鐘後才有第一個；惰性結算（有人 `town_world` poll 才補算）。5 種：market 市集日（吃喝價 85%）、boom 景氣好（薪水 115%）、bust 景氣差（薪水 90%、價 110%）、blackout 停電（薪水 95%）、festival 慶典（價 90%、薪水 105%）。開始／結束寫公開動態 kind `world`（actor 為 null）。
+- `town.sql`：表 `town_worlds`（RLS 全關）、`town_wd_pct(tid)`（乘在公司／其他打工／加班／cowork 薪水）、`town_px(tid,base)`（餐廳 250、咖啡 90、電影 300 的檢查與扣款）。只套 `town.sql` 也不會壞（沒事件 = 100%）。
+- **個人突發事件**：`town_world(rid,pin,'luck')`，前端戶外（街上、廣場、公園）醒著、沒走路沒開 modal 時每 3 分鐘呼叫；伺服器擋：間隔 8 分、每天 10 次（`items.lk={d,n,at}`）、被關／睡覺／昏倒不觸發、35% 機率；8 種，錢只扣到 0、期望 ≤ 0，不會死；寫 kind `luck`（前端既有的 luck 動態 toast 會顯示）。
+- 前端：`wevPoll`／`wevDraw`（`#wev` 橫幅，每 60 秒 poll、切換時 toast）、`luckPoll`、`WEV` 文字；`node town/test.js` 比對 SQL 倍率與前端文字。鎮長開關（FEATS）這版沒做。
+
 ## 加一個新設施的清單（全都要改）
 1. `town.js`：`PLACES`（座標 r、door、block:1）、`HOURS`、`FEATS`（讓鎮長能開關）、面板按鈕、`buildMap` 的 `bld(...)` 與 `sign(...)`、`ACT_FX`。
 2. `town.sql`：`town_place_name`、`town_closed`（已取消營業時間，保留函式）、`town_feature`（對應開關）、`town_act` 的 move 白名單與位置上限（`px >`）、動作本身（冷卻存在 `items.cd`）、`town_features` 的白名單。

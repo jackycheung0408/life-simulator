@@ -216,6 +216,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u45-world",date:"11/16",title:"鎮上隨機事件",items:["全鎮會不定時出現事件：市集日、景氣好、景氣差、停電、小鎮慶典，畫面上方會顯示影響與剩餘時間","事件期間吃喝價格或打工薪水會跟著變，結束後恢復","在街上、廣場、公園走動時，偶爾會遇到個人小事件：撿到錢、被推銷、踩水坑、遇到街頭藝人","個人事件每天最多 10 次，不會讓你欠錢"]},
   {id:"u43-balance",date:"11/16",title:"收入與物價調整",items:["每日任務獎金維持每個 €500、全勤 +€1000","每天打工前 12 次全額，13～24 次 50%，之後 10%","存款很多的人，財產稅改成階梯（100 萬以上 1%、500 萬以上 2%）","你現有的錢都不會被動"]},
   {id:"u44-powers",date:"11/16",title:"鎮長管理權",items:["鎮長多了「管理權」：可以把人關進監獄（10～120 分鐘）、放人、罰款、從鎮基金發補助，還有公告、建設案、設施開關","每次行使都會公開寫進動態，被行使的人上線會看到說明；居民覺得不公平可以申訴，投票推翻就放人、退罰款","有上限：關人每天最多 3 人、每人每天一次，不能關自己或睡覺、住院的人；小鎮不到 3 人不能用","居民也能發起「彈劾鎮長」投票，多於全鎮一半、至少 3 票就換人","選單「鎮長管理權」大家都看得到紀錄與投票"]},
   {id:"u43-pigcoin",date:"11/16",title:"全小鎮統一用「$ 豬幣」",items:["所有小鎮的錢都改成「$」，名字叫豬幣，鎮長不用也不能再選別的貨幣","金額沒有變，只是換了符號","股票：價格變成純隨機漫步，不會再自己「拉回」基準價；買賣沒有上限，但低買高賣也不再穩賺"]},
@@ -1625,6 +1626,15 @@ zbBusy=true;try{const j=await zbCall("poll");if(j){zbSet(j);if(j.hit){toast("喪
 async function zbHit(id){const j=await zbCall("hit",id);if(!j)return;zbSet(j);spawnFx("fight",me);toast(j.msg||"揍了牠一拳");feedback(true,j.msg||"");await refresh().catch(()=>{});renderPanel()}
 async function zbSell(){const j=await zbCall("sell");if(!j)return;toast(j.msg);feedback(true,j.msg);await refresh().catch(()=>{});renderPanel()}
 setInterval(zbPoll,4000);
+// 鎮上隨機事件：全鎮事件橫幅（每 60 秒問一次）與個人突發事件（戶外每 ~3 分鐘）
+const WEV={market:["市集日","吃喝價格 85%"],boom:["景氣好","打工薪水 115%"],bust:["景氣差","打工薪水 90%、吃喝價格 110%"],blackout:["停電","打工薪水 95%"],festival:["小鎮慶典","吃喝價格 90%、打工薪水 105%"]};
+let wevK=null,wevUntil=0,wevBusy=false;
+function wevDraw(){let b=$("wev");if(!wevK||wevUntil<Date.now()){if(b)b.classList.remove("on");return}
+ if(!b){b=document.createElement("div");b.id="wev";document.body.appendChild(b)}
+ const m=Math.max(1,Math.ceil((wevUntil-Date.now())/6e4));b.textContent=`小鎮事件：${WEV[wevK][0]}（${WEV[wevK][1]}），剩 ${m} 分鐘`;b.classList.add("on")}
+async function wevPoll(){if(wevBusy||document.visibilityState!="visible"||!me||!S)return;wevBusy=true;try{const j=await rpc("town_world",{rid:me,pin,op:"poll"});const ev=j&&j.ev&&WEV[j.ev.k]?j.ev:null;const k=ev?ev.k:null;if(k!==wevK){if(k)toast(`小鎮事件：${WEV[k][0]}，${WEV[k][1]}`);else if(wevK)toast("小鎮事件結束了");}wevK=k;wevUntil=ev?Date.parse(ev.until):0;wevDraw()}catch(e){}finally{wevBusy=false}}
+async function luckPoll(){if(document.visibilityState!="visible"||!me||!S||updBusy())return;const r=R[me];if(!r||r.sleeping||!["street","plaza","park"].includes(r.place))return;try{const j=await rpc("town_world",{rid:me,pin,op:"luck"});if(j&&j.msg)await refresh().catch(()=>{})}catch(e){}}
+setInterval(wevPoll,6e4);setInterval(wevDraw,3e4);setInterval(luckPoll,18e4);setTimeout(wevPoll,4000);
 function drawZpig(g,X,Y,t){const b=Math.round(Math.sin(t/220)*1.5),R0=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(X+x,Y+y+b,w,h)};g.fillStyle="rgba(0,0,0,.25)";g.fillRect(X+4,Y+22,22,4);
  R0(8,-6,14,12,"#7fb069");R0(8,-6,14,3,"#5a8a4a");R0(6,0,6,5,"#a6d49f");R0(8,-2,3,3,"#c0392b");R0(15,-2,3,3,"#c0392b");R0(10,6,12,12,"#7fb069");R0(10,12,12,3,"#4b5e2d");R0(10,18,12,4,"#5a3a1a");R0(4,6,6,3,"#7fb069");R0(22,6,6,3,"#7fb069");R0(11,22,4,6,"#5a8a4a");R0(17,22,4,6,"#5a8a4a")}
 function pkWatch(id){clearInterval(pkTimer);const t0=Date.now();pkTimer=setInterval(async()=>{if(Date.now()-t0>190e3){clearInterval(pkTimer);return}try{const j=await rpc("town_pk",{rid:me,pin,op:"poll"});if(j&&j.pkr){clearInterval(pkTimer);await refresh();if(j.pkr.no){toast(`${j.pkr.n} 婉拒了你的邀約`);return}snapMe();pkAnim(j.pkr)}}catch(e){}},4000)}

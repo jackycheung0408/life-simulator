@@ -241,6 +241,17 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  {const m=sql.match(/function public\.town_mischief\([\s\S]*?end \$\$;/);check(m&&/select \* into t from public\.town_residents where id = target/.test(m[0])&&/act = 'forgive'/.test(m[0]),"town_mischief 要先載入對象 t（曾因取消免整牌時誤刪，所有惡趣味都壞掉）")}
  check(/\.get\(\)|PK|pkModal/.test(src)&&/town_pk/.test(src)&&/town_mischief/.test(src),"前端要呼叫 town_pk、town_mischief");
  const e=src.match(/const KIND_ICON=\{([^}]*)\}/);for(const k of ["mischief","photo","forgive","pk","pkno","kick"])check(e&&new RegExp("\\b"+k+":").test(e[1]),"KIND_ICON 要有 "+k)}
+// 鎮上隨機事件（supabase/town_world.sql + town.sql 的 town_px／town_wd_pct）：倍率與前端文字一致
+{const fs=require("fs"),w=fs.readFileSync(__dirname+"/../supabase/town_world.sql","utf8"),ts=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8"),tjs=fs.readFileSync(__dirname+"/town.js","utf8");
+ const lines=w.split("\n"),ci=lines.findIndex(l=>/^create /.test(l));check(lines.slice(0,ci).every(l=>!l.trim()||l.startsWith("--")),"town_world.sql 開頭每行都要是註解");
+ check(/function public\.town_wd_pct/.test(ts)&&/function public\.town_px/.test(ts)&&/town_worlds/.test(ts),"town.sql 要有 town_worlds／town_wd_pct／town_px");
+ check((ts.match(/town_wd_pct\(/g)||[]).length>=5,"town.sql 打工薪水都要乘 town_wd_pct");
+ const px={market:85,bust:110,festival:90},wd={boom:115,bust:90,blackout:95,festival:105};
+ for(const k of ["market","boom","bust","blackout","festival"]){const ft=(tjs.match(new RegExp(k+':\\["[^"]+","([^"]+)"\\]'))||[])[1]||"";check(ft.length>0,"前端 WEV 缺 "+k);
+  check(!px[k]||new RegExp("when '"+k+"' then "+px[k]).test((ts.match(/function public\.town_px[\s\S]*?\$\$;/)||[""])[0]),"SQL town_px "+k+" 倍率");
+  check(new RegExp("when '"+k+"' then "+(wd[k]||100)).test((ts.match(/function public\.town_wd_pct[\s\S]*?\$\$;/)||[""])[0])||!wd[k],"SQL town_wd_pct "+k);
+  if(px[k])check(ft.includes("價格 "+px[k]+"%"),"前端 "+k+" 價格文字");if(wd[k])check(ft.includes("薪水 "+wd[k]+"%"),"前端 "+k+" 薪水文字")}
+ check(fs.existsSync(__dirname+"/../supabase/town_world_test.sql"),"要有 town_world_test.sql")}
 // 門外叫醒（supabase/town_wake_out.sql）：站在他家門口叫醒睡著的人，他走出來站在門口（dr=1），兩人在門口面對面
 {const fs=require("fs"),wsql=fs.readFileSync(__dirname+"/../supabase/town_wake_out.sql","utf8"),tjs=fs.readFileSync(__dirname+"/town.js","utf8");
  check(wsql.includes("least(.7, .25 + (100 - t.energy) / 200)")&&wsql.includes("'wakefail'")&&wsql.includes("interval '3 minutes'")&&wsql.includes("interval '1 hour'"),"town_wake_out：成功率與冷卻要和進屋叫醒一致（25%～70%、叫不醒 3 分鐘、成功 1 小時）");
