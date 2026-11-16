@@ -31,7 +31,7 @@ begin
     if op = 'hit' then raise exception '這個小鎮關掉了喪屍豬'; end if;
     if op = 'sell' then null; else return json_build_object('z', '[]'::json, 'night', not day, 'hit', false, 'pork', coalesce((r.items->>'zp')::int, 0)); end if;
   end if;
-  delete from public.town_zombies where town_id = tid and at < now() - make_interval(mins => 8 + (id % 5) * 2);  -- 每隻活 8～16 分鐘
+  delete from public.town_zombies where town_id = tid and at < now() - make_interval(mins => (8 + (id % 5) * 2)::int);  -- 每隻活 8～16 分鐘
   if op <> 'sell' then
     -- 在戶外、醒著、上線中的人（喪屍豬的目標）
     select count(*) into ep from public.town_residents q where q.town_id = tid and q.place in ('street','plaza','park') and not q.sleeping and not public.town_jailed(q)
