@@ -87,7 +87,7 @@ begin
  perform public.town_market_step();
  select * into s from public.town_market m where m.code = town_stock_trade.code;
  if not found then raise exception '沒有這檔股票'; end if;
- r := public.town_rent(r); r := public.town_stock_settle(r);
+ r := public.town_rent(r);
  p := public.town_px(s.price); amt := p * qty;
  dv := case when r.items->'st'->'dv'->>'d' = today then coalesce((r.items->'st'->'dv'->>'v')::int,0) else 0 end;
  st := coalesce(r.items->'st', '{}'::jsonb); h := coalesce(st->'h', '{}'::jsonb);

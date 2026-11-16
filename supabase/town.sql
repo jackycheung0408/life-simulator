@@ -824,20 +824,6 @@ revoke all on function public.town_wk_check(public.town_residents), public.town_
 create or replace function public.town_rent_amt(lv int) returns int language sql immutable as $$
   select (array[400,800,1500,3000])[least(4, greatest(1, lv))]
 $$;
--- 舊版股市留下的待入帳款（items.st.pend）；新版賣股馬上拿錢，這個函式只是保險
-create or replace function public.town_stock_settle(r public.town_residents) returns public.town_residents language plpgsql as $$
-declare today date := (now() at time zone 'Asia/Taipei')::date; due int := 0; keep jsonb := '[]'::jsonb; e jsonb; pend jsonb := r.items->'st'->'pend';
-begin
-  if pend is null or jsonb_typeof(pend) <> 'array' or jsonb_array_length(pend) = 0 then return r; end if;
-  for e in select x from jsonb_array_elements(pend) x loop
-    if (e->>'d')::date <= today then due := due + coalesce((e->>'a')::int,0); else keep := keep || jsonb_build_array(e); end if;
-  end loop;
-  if jsonb_array_length(keep) <> jsonb_array_length(pend) then
-    r.money := r.money + due; r.items := jsonb_set(r.items, '{st,pend}', keep);
-  end if;
-  return r;
-end $$;
-revoke all on function public.town_stock_settle(public.town_residents) from public, anon, authenticated;
 create or replace function public.town_rent(r public.town_residents) returns public.town_residents language plpgsql as $$
 declare day text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); a int; p int; tx int := 0;
 begin
@@ -1082,7 +1068,6 @@ begin
   perform set_config('town.bm', (public.town_mood_bond(mo) * case when public.town_has(r,'social') then 130 else 100 end / case when r.hygiene < 1 then 2 else 1 end)::text, true);
   r := public.town_al_touch(r);
   r := public.town_rent(r);
-  r := public.town_stock_settle(r);
   r := public.town_tk_tick(r);
   e0 := r.energy;  -- 這次動作前的精力（town_ecap 用來算「靠吃喝休息補的精力」每日上限）
   if r.sleeping and act not in ('wake') then raise exception '你在睡覺，先起床'; end if;
