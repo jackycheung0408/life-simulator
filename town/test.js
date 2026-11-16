@@ -303,5 +303,12 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  for(const n of ["town_tweaks.sql","town_lf_jail.sql"]){const L=fs.readFileSync(__dirname+"/../supabase/"+n,"utf8").split("\n");let i=0;while(i<L.length&&/^--/.test(L[i]))i++;check(i>0&&L.slice(i).every(l=>true),n+" 開頭註解")}
  check(/lfjail1/.test(lf)&&/ilike '%LF%'/.test(lf)&&/n <> 1 then raise exception/.test(lf),"LF 入獄 SQL 要防重複、而且只有剛好 1 位才動手");
 }
+// 股票：純隨機漫步（沒有拉回基準價的偏移）、bigint 防溢位、貨幣統一 $
+{const fs=require("fs"),stk=fs.readFileSync(__dirname+"/../supabase/town_stock.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8");
+ check(!/ln\(p \/ s\.base\)/.test(stk.replace(/--.*\n/g,"\n"))&&/- 0\.5 \* power\(0\.010 \* s\.vol, 2\)/.test(stk),"股價不能有拉回基準價的偏移（取消上限後會變成穩賺），要是期望報酬 0 的隨機漫步");
+ check(/amt bigint/.test(stk)&&/q bigint; c bigint/.test(stk)&&/amt := p::bigint \* qty/.test(stk),"town_stock_trade 的金額要 bigint（防溢位）");
+ check(!/NT\$/.test(stk),"股票訊息不要寫死 NT$");
+ check(/let CUR="\$";/.test(js)&&/CUR="\$";try\{fxFromEvents/.test(js)&&!/const CURS=/.test(js)&&!/id="mcs"/.test(js),"貨幣統一 $：前端不再讀鎮的貨幣、鎮長面板與建鎮表單沒有貨幣選項");
+}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

@@ -44,13 +44,13 @@ begin
    p := s.price; h := s.hist;
    for k in 1..n loop
      z := (random() + random() + random() - 1.5) * 2;
-     p := p * exp(0.010 * s.vol * z - 0.003 * ln(p / s.base));
+     p := p * exp(0.010 * s.vol * z - 0.5 * power(0.010 * s.vol, 2));  -- 純隨機漫步、期望報酬 0：不再有「拉回基準價」的偏移（取消買賣上限後，那個偏移會讓低檔大額買進變成穩賺）
      if random() < 0.02 then
        sh := (0.05 + random() * 0.07) * case when random() < .5 then 1 else -1 end;
        p := p * (1 + sh);
        insert into public.town_market_news(code, msg, pct) values (s.code, s.name || ' ' || case when sh > 0 then up[1 + floor(random()*5)::int] || '，股價大漲' else dn[1 + floor(random()*5)::int] || '，股價大跌' end || '！', round(sh * 100)::int);
      end if;
-     p := greatest(s.base * 0.4, least(s.base * 2.5, p));
+     p := greatest(s.base * 0.05, least(s.base * 20, p));  -- 邊界放得很寬，只防數字跑掉
      h := h || to_jsonb(round(p, 2));
    end loop;
    if jsonb_array_length(h) > 36 then
@@ -75,7 +75,7 @@ end $$;
 -- 買賣（要在證券交易所）；op = buy / sell
 create or replace function public.town_stock_trade(rid bigint, pin text, op text, code text, qty int) returns json
 language plpgsql security definer set search_path = public as $$
-declare r public.town_residents; s public.town_market; today text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); p int; amt int; h jsonb; q int; c int; dv int; st jsonb; msg text; part int;
+declare r public.town_residents; s public.town_market; today text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); p int; amt bigint; h jsonb; q bigint; c bigint; st jsonb; msg text; part bigint;
 begin
  r := public.town_auth(rid, pin);
  if r.id is null then return json_build_object('error','密碼不對'); end if;
@@ -88,24 +88,23 @@ begin
  select * into s from public.town_market m where m.code = town_stock_trade.code;
  if not found then raise exception '沒有這檔股票'; end if;
  r := public.town_rent(r);
- p := public.town_px(s.price); amt := p * qty;
- dv := case when r.items->'st'->'dv'->>'d' = today then coalesce((r.items->'st'->'dv'->>'v')::int,0) else 0 end;
+ p := public.town_px(s.price); amt := p::bigint * qty;  -- bigint：股數放寬後避免溢位；單筆上限就是「現金能買的」，賣出上限是持股
  st := coalesce(r.items->'st', '{}'::jsonb); h := coalesce(st->'h', '{}'::jsonb);
- q := coalesce((h->s.code->>'q')::int, 0); c := coalesce((h->s.code->>'c')::int, 0);
+ q := coalesce((h->s.code->>'q')::bigint, 0); c := coalesce((h->s.code->>'c')::bigint, 0);
  if op = 'buy' then
-   if r.money < amt then raise exception '錢不夠（要 NT$%）', amt; end if;
-   r.money := r.money - amt;
+   if r.money < amt then raise exception '錢不夠（要 $%）', amt; end if;
+   r.money := (r.money - amt)::int;
    h := jsonb_set(h, array[s.code], jsonb_build_object('q', q + qty, 'c', c + amt));
-   msg := '買進 ' || s.name || ' ' || qty || ' 股，花 NT$' || amt;
+   msg := '買進 ' || s.name || ' ' || qty || ' 股，花 $' || amt;
  else
    if q < qty then raise exception '你只有 % 股', q; end if;
-   part := round(c::numeric * qty / q)::int;
-   r.money := r.money + amt;
+   part := round(c::numeric * qty / q)::bigint;
+   r.money := least(2147483647::bigint, r.money::bigint + amt)::int;
    if q - qty = 0 then h := h - s.code; else h := jsonb_set(h, array[s.code], jsonb_build_object('q', q - qty, 'c', c - part)); end if;
-   msg := '賣出 ' || s.name || ' ' || qty || ' 股，拿到 NT$' || amt || case when amt - part >= 0 then '（賺 ' else '（賠 ' end || abs(amt - part) || '）';
-   if amt - part >= 2000 then insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', r.name || ' 賣 ' || s.name || ' 賺了 NT$' || (amt - part)); end if;
+   msg := '賣出 ' || s.name || ' ' || qty || ' 股，拿到 $' || amt || case when amt - part >= 0 then '（賺 ' else '（賠 ' end || abs(amt - part) || '）';
+   if amt - part >= 2000 then insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', r.name || ' 賣 ' || s.name || ' 賺了 $' || (amt - part)); end if;
  end if;
- st := jsonb_set(jsonb_set(st, '{h}', h), '{dv}', jsonb_build_object('d', today, 'v', dv + amt));
+ st := jsonb_set(st, '{h}', h);  -- 舊的 st.dv（每日成交額）已不再使用，舊資料留著不用清
  r.items := jsonb_set(r.items, '{st}', st);
  update public.town_residents set money = r.money, items = r.items, seen_at = now() where id = rid;
  return json_build_object('ok', true, 'msg', msg, 'price', p, 'money', r.money);

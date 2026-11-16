@@ -116,7 +116,7 @@ $$;
 -- 鎮長可以關掉的設施（off 裡面的就是沒開）
 alter table public.town_towns add column if not exists off text[] not null default '{}';
 -- 鎮長選的貨幣符號（只影響畫面顯示，金額不變）
-alter table public.town_towns add column if not exists currency text not null default 'NT$';
+alter table public.town_towns add column if not exists currency text not null default '$';
 -- 鎮基金：房租、財產稅、奢侈品的 5% 進基金（財產稅全額）；fund_log = {rent,tax,lux 累計}
 alter table public.town_towns add column if not exists fund bigint not null default 0;
 alter table public.town_towns add column if not exists fund_log jsonb not null default '{}'::jsonb;
@@ -1688,7 +1688,7 @@ do $mig$ begin
   end if;
 end $mig$;
 alter table public.town_residents alter column money set default 2000;
-alter table public.town_towns alter column currency set default 'NT$';
+alter table public.town_towns alter column currency set default '$';  -- 2026-11-16 起全小鎮統一用 $（豬幣），currency 欄位保留但前端忽略
 
 revoke all on function public.town_state(text), public.town_create(text,text,text,jsonb), public.town_join(text,text,text,text,jsonb,int),
   public.town_login(bigint,text,jsonb), public.town_mayor(bigint,text,text,bigint), public.town_act(bigint,text,text,bigint,real,real,text,text,text) from public;
