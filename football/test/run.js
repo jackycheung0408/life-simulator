@@ -9,15 +9,17 @@ const files=[...html.matchAll(/<script src="(js\/[^"?]+)/g)].map(m=>fs.readFileS
 const inline=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]);
 const src=(files.length?files.join("\n;\n"):inline.join("\n;\n")).split("// ── 首頁 ──")[0];
 
+// home.js 在「// ── 首頁 ──」之後整段不載入，但 migrate 要測：把它單獨取出，和其他程式一起 eval（才看得到 ATTR、DPW 這些 const）
+const hsrc=fs.readFileSync(path.join(dir,"js/home.js"),"utf8"),mA=hsrc.indexOf("function migrate(p){"),mB=hsrc.indexOf("\nfunction loadSlot"),migSrc=mA>0&&mB>mA?hsrc.slice(mA,mB):"";
 global.setTimeout=f=>setImmediate(f);global.window=global;
 const el=()=>({textContent:"",innerHTML:"",style:{},dataset:{},children:[],classList:{add(){},remove(){},toggle(){},contains(){return true}},querySelectorAll:()=>[],querySelector:()=>null,prepend(){},getContext:()=>new Proxy({},{get:()=>()=>{}}),appendChild(){},insertAdjacentHTML(){},after(){},remove(){}});
 const store={};global.localStorage={getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=String(v)},removeItem:k=>{delete store[k]}};
 global.document={getElementById:el,querySelectorAll:()=>[],querySelector:()=>null,createElement:el,body:{appendChild(){},insertAdjacentHTML(){}},addEventListener(){}};
 global.performance={now:()=>Date.now()};global.location={href:"",host:"",pathname:""};global.scrollTo=()=>{};
-(0,eval)(src+`;auto=true;secPerSeason=0;mult=1e6;
+(0,eval)(src+"\n;"+migSrc+`;auto=true;secPerSeason=0;mult=1e6;
 animMatch=async()=>{};quietYear=async()=>{};
 global.T_run=async(w,mode)=>{P=newPlayer(w,"?");P.mode=mode;starsInit(P,"real");while(P.alive&&!P.footEnd){await season();save()}return P};
-global.T_CL=CLUBS;global.T_TOP5=TOP5;global.T_CONT=CONT;global.T_contOk=contOk;global.T_EU7=EU7;`);
+global.T_CL=CLUBS;global.T_TOP5=TOP5;global.T_CONT=CONT;global.T_contOk=contOk;global.T_EU7=EU7;global.T_SAVE_VER=SAVE_VER;global.T_ATTR=ATTR;global.T_migrate=typeof migrate=="function"?migrate:null;`);
 
 const N=Math.max(40,+process.argv[2]||40);/* 很快，所以至少跑 40 段 */const fails=[];const check=(ok,msg)=>{if(!ok)fails.push(msg)};
 (async()=>{const t0=Date.now();let pro=0,crash=0,maxSave=0,badOpp=0,badStar=0,titles=0,seasons=0;
@@ -40,5 +42,20 @@ const N=Math.max(40,+process.argv[2]||40);/* 很快，所以至少跑 40 段 */c
  // 樣本太少時比例會亂跳，至少 30 段才檢查
  if(N>=30)check(pro/N>.25&&pro/N<.9,`踢上職業的比例異常：${(pro/N*100).toFixed(0)}%`);
  check(maxSave<1.5e6,`存檔太大：${Math.round(maxSave/1024)} KB`);
+ // 存檔版本：新角色直接是最新版，載入時 migrate 不能動它；舊存檔每條規則只補一次（home.js 不在上面的 eval 範圍，這裡單獨取出 migrate）
+ {check(!!T_migrate,"找不到 home.js 的 migrate");
+  const msgs=[],realSay=global.say;global.say=t=>msgs.push(t);const mine=()=>msgs.filter(t=>/^📋 遊戲更新/.test(t)); // 遊戲本身的 setTimeout 也會呼叫 say，只看 migrate 的訊息
+  const mig=T_migrate;
+  const tick=()=>new Promise(r=>setImmediate(()=>setImmediate(r)));
+  const skew=q=>{Object.keys(q.s).forEach(k=>q.s[k]=85);T_ATTR.slice(0,3).forEach(k=>Object.keys(faceMap(q,k)).forEach(x=>q.s[x]=8));q.pot=95;return q};
+  const np=newPlayer("world","FW");check(np.ver===T_SAVE_VER,`新角色 ver=${np.ver}，應該是 SAVE_VER(${T_SAVE_VER})`);
+  const before=JSON.stringify(np.s);mig(np);await tick();check(JSON.stringify(np.s)===before&&mine().length==0,"新角色載入時被 migrate 改了能力或跳出舊存檔訊息");
+  const q1=skew(newPlayer("world","FW"));q1.ver=1;const b1=JSON.stringify(q1.s);mig(q1);await tick();
+  check(q1.ver===T_SAVE_VER&&JSON.stringify(q1.s)!==b1,"ver1 偏科存檔沒有被補");
+  check(mine().length==1&&!(/沒練到/.test(mine()[0])&&/天賦能力平均化/.test(mine()[0])),"ver1 存檔同一次載入被補了兩次（差距收斂＋天賦平均化）");
+  msgs.length=0;const q2=skew(newPlayer("world","FW"));q2.ver=2;mig(q2);await tick();
+  check(mine().length==1&&!/沒練到/.test(mine()[0])&&/天賦能力平均化/.test(mine()[0]),"ver2 存檔只應該補天賦平均化，不再補差距收斂");
+  const s2=JSON.stringify(q2.s);msgs.length=0;mig(q2);await tick();check(JSON.stringify(q2.s)===s2&&mine().length==0,"migrate 跑第二次又改了存檔 "+msgs.length+" "+(JSON.stringify(q2.s)===s2)+" ver="+q2.ver);
+  global.say=realSay}
  console.log(`跑了 ${N} 段生涯（${((Date.now()-t0)/1000).toFixed(0)} 秒）：職業 ${(pro/N*100).toFixed(0)}%、聯賽冠軍 ${titles}/${seasons} 季、最大存檔 ${Math.round(maxSave/1024)} KB`);
  if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過")})();
