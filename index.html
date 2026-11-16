@@ -343,7 +343,7 @@ body{font-size:15px;line-height:1.6}
 
 <script src="countries.js?v=76"></script>
 <script src="events.js?v=76"></script>
-<script src="life.js?v=77"></script>
+<script src="life.js?v=78"></script>
 <script src="pixel.js?v=76"></script>
 <script src="story.js?v=76"></script>
 <script src="realism.js?v=76"></script>
@@ -415,7 +415,7 @@ function world(c,w){
  // 過去的世界用世界銀行 1960 年代平均值；沒有資料時才用公式推估
  const ex=(e,e60)=>w=="past"?(e60||Math.max(35,e-(c[5]>40000?9:12+(85-e)*.8))):e+k.ex*(e<70?1:.6);
  const im=w=="past"&&c[12]?c[12]:Math.min(250,c[6]*k.im);
- return {name:c[0],city:c[9],mEx:ex(c[3],c[10]),fEx:ex(c[4],c[11]),gdp:c[5]*k.gdp,im,uni:Math.min(100,c[7]*k.uni),gini:c[8],y0:k.y};
+ return {name:c[0],city:c[9],mEx:ex(c[3],c[10]),fEx:ex(c[4],c[11]),gdp:c[5]*k.gdp,im,uni:Math.min(100,c[7]*k.uni),gini:c[8],y0:k.y,cbr:c[1]/c[2]*10};
 }
 function wpick(arr,w){let t=arr.reduce((a,x)=>a+w(x),0),r=R()*t;for(const x of arr){r-=w(x);if(r<=0)return x}return arr[0]}
 const CLS=["最貧困","貧困","中等","富裕","最富裕"],EDU=["沒上學","小學","中學","大學"];

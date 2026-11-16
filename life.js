@@ -11,19 +11,32 @@ const RELIGION=(()=>{const m={
  const o={};for(const [r,l] of Object.entries(m))for(const n of l.split(","))o[n]=r;return n=>o[n]||"基督宗教"})();
 const FESTIVAL={伊斯蘭教:["齋戒月結束，全家換上新衣，到親戚家拜訪。","宰牲節，家裡把肉分給鄰居和窮人。"],印度教:["排燈節，家家戶戶點起小油燈。","灑紅節，大家在街上互相潑彩色粉末。"],佛教:["新年潑水節，整條街都濕透了。","跟著家人到寺廟供養僧侶。"],民間信仰:["過年時全家圍爐，長輩發了紅包。","中秋節一家人在外面賞月。","清明節跟著家人去掃墓。"],東正教:["復活節，家裡染了彩蛋。","聖誕節前夕，全家一起吃了十二道菜。"],基督宗教:["聖誕節，全家人聚在一起交換禮物。","復活節，跟著家人上教堂。"]};
 
-const URBAN=g=>Math.min(.95,.2+Math.log10(Math.max(800,g))*.16-.35); // 所得越高，都市人口越多（概估）
-const FERT=g=>g<3000?5:g<8000?3.6:g<20000?2.3:1.6;                     // 總生育率（概估，依所得）
+// 都市人口比例（2024 年前後的概略值，聯合國／世界銀行）；沒列的國家才用所得公式概估（上限 .95）
+const URB_TAB={新加坡:1,香港:1,澳門:1,科威特:1,卡達:.99,比利時:.98,烏拉圭:.96,冰島:.94,以色列:.93,荷蘭:.93,阿根廷:.92,日本:.92,約旦:.92,加彭:.91,巴林:.9,黎巴嫩:.89,阿聯:.88,智利:.88,巴西:.88,丹麥:.88,瑞典:.88,委內瑞拉:.88,澳洲:.86,沙烏地阿拉伯:.85,英國:.84,美國:.83,西班牙:.82,加拿大:.82,法國:.82,墨西哥:.81,韓國:.81,利比亞:.81,台灣:.8,德國:.78,土耳其:.78,伊朗:.77,俄羅斯:.75,中國:.66,泰國:.53,奈及利亞:.54,印尼:.58,埃及:.43,巴基斯坦:.38,孟加拉:.41,越南:.4,衣索比亞:.23,印度:.36,剛果民主共和國:.48,烏干達:.26,盧安達:.18,蒲隆地:.14};
+const urbanOf=c=>{const g=Math.min(.95,.2+Math.log10(Math.max(800,c.gdp))*.16-.35);
+ if(c.y0<1990)return Math.min(g,Math.max(.1,(URB_TAB[c.name]??g)-.3)); // 1960 年代的都市人口少很多
+ return URB_TAB[c.name]??g};
+const URBAN=urbanOf;
+// 總生育率：由「每年出生數／人口」推算（TFR ≈ 粗出生率 × 0.15，與奈及利亞 5.1、剛果 6.2、美國 1.7、日本 1.0 吻合）；過去的世界另外抬高
+const fertOf=c=>{const byGdp=c.gdp<3000?5:c.gdp<8000?3.6:c.gdp<20000?2.3:1.6;
+ if(!c.cbr)return byGdp;
+ const t=Math.max(.8,c.cbr*.15);
+ return +(c.y0<1990?Math.max(t*1.5,byGdp):c.y0>2040?t*.9:t).toFixed(1)};
+const FERT=fertOf;
 const PJOB_LOW=["農民","攤販","日薪工人","漁夫","家管"],PJOB_MID=["工廠作業員","店員","司機","建築工人","家管","小店老闆"],PJOB_HI=["工程師","教師","公務員","醫師","經理","小企業老闆"];
+// 家境（cls 0 最貧～4 最富）先決定職業池，再依國家貧富縮放：窮國的富裕家庭是小老闆、教師、公務員，不是農民
+const jobPool=(cls,low)=>cls>=3?(low?["教師","公務員","小企業老闆","商店老闆","工程師"]:PJOB_HI):cls==2?(low?PJOB_MID.concat(["農民","攤販"]):PJOB_MID.concat(["教師","公務員"])):cls==1?(low?PJOB_LOW:PJOB_MID):(low?PJOB_LOW:PJOB_LOW.concat(["工廠作業員","店員"]));
 
 // 出生時決定的家庭
 function makeFamily(L){
  const reg=REGION(L.raw),low=L.c.gdp<8000;
  const surname=()=>"";
  const mAge=Math.round((low?19:25)+R()*10),fAge=mAge+Math.round(1+R()*7);
- const urban=R()<URBAN(L.c.gdp);
- const pool=(L.cls>=3&&!low?PJOB_HI:L.cls<=1||low?PJOB_LOW:PJOB_MID).filter(j=>!(urban&&["農民","漁夫"].includes(j)));
- const nSib=Math.max(0,Math.round(FERT(L.c.gdp)-1+(R()-.5)*2));
- const sibs=[];let age=0;for(let i=0;i<nSib;i++){age+=2+Math.floor(R()*3);sibs.push({sex:R()<.5?"男":"女",age,married:false})}
+ const urban=R()<urbanOf(L.c);
+ const pool=jobPool(L.cls,low).filter(j=>!(urban&&["農民","漁夫"].includes(j)));
+ const nSib=Math.max(0,Math.round(fertOf(L.c)-1+(R()-.5)*2));
+ // 手足：每個間隔 2～4 年，最大的哥姊出生時母親至少 16 歲（mAge − 最大手足年齡 ≥ 16）
+ const sibs=[];let age=0;for(let i=0;i<nSib;i++){const gap=2+Math.floor(R()*3);if(age+gap>mAge-16)break;age+=gap;sibs.push({sex:R()<.5?"男":"女",age,married:false})}
  L.fam={mother:{name:pick(NAMES[reg]["女"]),age:mAge,job:pick(pool.concat(["家管"])),alive:true},
   father:{name:pick(NAMES[reg]["男"]),age:fAge,job:pick(pool.filter(j=>j!="家管")),alive:true},
   sibs,grand:R()<.8,religion:RELIGION(L.raw),urban};
@@ -80,7 +93,7 @@ function countryPanel(L){
  const c=L.c,raw=C.find(x=>x[0]==L.raw);
  const rows=[["每年出生",raw?`${raw[1]>=1?raw[1].toLocaleString()+" 萬":Math.round(raw[1]*1e4).toLocaleString()} 人`:"—"],["人口",raw?`${raw[2].toLocaleString()} 百萬`:"—"],
   ["平均壽命 女／男",`${Math.round(c.fEx)}／${Math.round(c.mEx)} 歲`],["嬰兒死亡率",`每千人 ${Math.round(c.im)} 人`],["人均所得（PPP）",`US$${Math.round(c.gdp).toLocaleString()}`],
-  ["吉尼係數",c.gini],["大學就學率",`${Math.round(c.uni)}%`],["主要宗教",L.fam?.religion||"—"],["都市人口（估）",`${Math.round(URBAN(c.gdp)*100)}%`],["總生育率（估）",`${FERT(c.gdp)} 人`]];
+  ["吉尼係數",c.gini],["大學就學率",`${Math.round(c.uni)}%`],["主要宗教",L.fam?.religion||"—"],["都市人口（估）",`${Math.round(urbanOf(c)*100)}%`],["總生育率（估）",`${fertOf(c)} 人`]];
  return rows.map(r=>`<div class="row"><span class="mut">${r[0]}</span><span>${r[1]}</span></div>`).join("")+`<div class="mut" style="margin-top:6px">資料：世界銀行 WDI；標「估」者依所得概估</div>`;
 }
 
