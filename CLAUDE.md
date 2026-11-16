@@ -370,8 +370,8 @@
 - `career.js` 末尾 `SAGA`／`sagaOf(p)`／`SAGA_EV`／`sagaYear`：依出道年齡、傷病、轉會、國家隊、背景、性格判定主線（青訓天才、大器晚成、傷病重生、浪子漂泊、忠誠一線隊、國家隊支柱、爭議人物、球場領袖、平凡之路，沒踢上職業則另有傷病夢碎、為家庭轉身等）；結局稱號前綴主線名（`finish()`），每人生同一事件不重複、每 3 年最多一件。
 - 排行榜上傳：`ui.js` 的 `uploadCareer`／`flushUp`，結局一律進佇列 `fb-upq`（含沒踢上職業的），`fb-upd` 以 `p.id` 去重，送太快（60 秒限制）等 62 秒、網路失敗 30 秒自動重試；進球／冠軍先依 SQL `fb_sane` 夾住。`playHit("finish")` 不再排除自動播放。
 
-### 2026-11-16 足球矛盾審查後的修正（排行榜 SQL 要使用者本人套用）
-- **排行榜出生年範圍**：前端出生年 1950～2026、傳奇球星最早 1940，所以 `supabase/leaderboard.sql` 的 `born`／`died` 檢查放寬成 1900 起（`born` 1900～2100、`died` 1900～2250）；舊表的限制用 `do $$` 區塊從 `pg_constraint` 找出單欄位的 born／died 檢查再重建（名稱不一定叫 `fb_careers_born_check`）。**這個 SQL 要在 Supabase SQL Editor 套用才生效**，沒套用前 1999 年以前出生的生涯上傳仍會被拒；前端被拒時的提示已改成「數字超出排行榜收錄範圍（不是你違規）」（`ui.js` `flushUp`，依 `e.code=="23514"`）。
+### 2026-11-16 足球矛盾審查後的修正（排行榜 SQL 已套用到正式站並驗證）
+- **排行榜出生年範圍**：前端出生年 1950～2026、傳奇球星最早 1940，所以 `supabase/leaderboard.sql` 的 `born`／`died` 檢查放寬成 1900 起（`born` 1900～2100、`died` 1900～2250）；舊表的限制用 `do $$` 區塊從 `pg_constraint` 找出單欄位的 born／died 檢查再重建（名稱不一定叫 `fb_careers_born_check`）。**已在 2026-11-16 套用到正式站**（只跑檔案裡的 `do $$` 限制重建區塊和 `fb_guard` 函式；唯讀查詢確認 `born` 1900～2100、`died` 1900～2250、`fb_sane` 沒動、`fb_guard` 有 `duplicate`；在會 `raise exception` 回滾的 `do` 區塊裡寫入 1940 年出生的測試列成功、重複列被擋，表內仍是原本的 21 筆，沒有殘留測試資料）；前端被拒時的提示已改成「數字超出排行榜收錄範圍（不是你違規）」（`ui.js` `flushUp`，依 `e.code=="23514"`）。
 - **上傳列防壞數字**：`ui.js` 的 `upRow` 用 `upN` 把 NaN／undefined 換成 0 並取整（`score` 是 int 欄位，小數會被伺服器拒），`node football/test/run.js` 檢查每個欄位都在 SQL 限制內。已上傳清單 `fb-upd` 不再只留 200 筆（改 5000）；SQL 的 `fb_guard` 擋「同一裝置、名字、出生死亡年、出賽、進球、分數都一樣」的重複（例外訊息 `duplicate`），前端把 `duplicate` 當成已上傳；沒加 `pid` 欄位（避免前端比 SQL 先上線時整個上傳壞掉）。
 - **存檔版本**：`newPlayer` 的 `ver` 引用 `SAVE_VER`（定義在 `data.js`）。migrate 規則各自有版本：ver<2 才做「能力差距收斂＋年薪重算」、ver<3 才做「天賦能力平均化」，而且同一次載入裡 ver1 存檔做了差距收斂就不再疊加天賦平均化。測試在 `football/test/run.js`（取出 `home.js` 的 migrate 單獨跑）。
 - **能力邊界**：`rateAt` 夾在 1～99（換位置適應扣分最多 −6，剛起步的孩子可能減成負數）；`wageOf` 的「能力 − 球隊強度」夾在 ±30（避免極端指數）；`retireCheck` 的 `p.clubObj` 防空。
