@@ -21,13 +21,28 @@ create table if not exists public.fb_careers (
   trophies int not null check (trophies between 0 and 60),
   awards int not null check (awards between 0 and 80),
   score int not null check (score between 0 and 2500),
-  born int not null check (born between 2000 and 2100),
-  died int not null check (died between 2000 and 2250),
+  born int not null check (born between 1900 and 2100),
+  died int not null check (died between 1900 and 2250),
   reports int not null default 0,
   hidden boolean not null default false,
   -- 合理性：進球不可能遠超過出賽、冠軍不可能比出賽還多
   constraint fb_sane check (goals <= apps * 2 + 5 and trophies <= apps / 8 + 6 and died >= born)
 );
+-- 2026-11 放寬出生／死亡年：前端出生年可選 1950～2026、傳奇球星最早 1940 年出生，舊限制（2000 以後）會把 1999 年以前出生的生涯全部擋掉。
+-- 舊表上的限制名稱不一定叫 fb_careers_born_check，所以用 pg_constraint 找出「只管 born 或 died 單一欄位」的檢查（fb_sane 是多欄位，不會被動到）再重建。
+do $$
+declare c record;
+begin
+  for c in
+    select k.conname from pg_constraint k
+    where k.conrelid = 'public.fb_careers'::regclass and k.contype = 'c' and array_length(k.conkey, 1) = 1
+      and k.conkey[1] in (select a.attnum from pg_attribute a where a.attrelid = 'public.fb_careers'::regclass and a.attname in ('born', 'died'))
+  loop
+    execute format('alter table public.fb_careers drop constraint %I', c.conname);
+  end loop;
+  alter table public.fb_careers add constraint fb_careers_born_check check (born between 1900 and 2100);
+  alter table public.fb_careers add constraint fb_careers_died_check check (died between 1900 and 2250);
+end $$;
 create index if not exists fb_careers_score on public.fb_careers (score desc) where not hidden;
 create index if not exists fb_careers_country on public.fb_careers (country, score desc) where not hidden;
 

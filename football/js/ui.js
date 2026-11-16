@@ -450,7 +450,7 @@ async function flushUp(){if(upBusy)return;upBusy=true;let wait=0;
   let r=null;try{r=await fetch(SB+"fb_careers",{method:"POST",headers:{...SBH,Prefer:"return=minimal"},body:JSON.stringify(it.row)})}catch{}
   if(r&&r.ok){const d=lsj("fb-upd",[]);d.push(it.pid);lss("fb-upd",d.slice(-200));lss("fb-upq",q.slice(1));toast("已上傳到全球排行榜");continue}
   const e=r?await r.json().catch(()=>({})):{},m=e.message||"";
-  if(r&&m!="too fast"&&m!="busy"&&r.status<500){lss("fb-upq",q.slice(1));toast(m=="bad words"?"名字含有不當字詞，無法上傳":"資料不符合排行榜規則，無法上傳："+(m||r.status));upBtn("🌍 上傳到全球排行榜");continue}
+  if(r&&m!="too fast"&&m!="busy"&&r.status<500){lss("fb-upq",q.slice(1));toast(m=="bad words"?"名字含有不當字詞，無法上傳":(e.code=="23514"||/violates check constraint/.test(m))?"這段生涯的數字超出排行榜收錄範圍（不是你違規），這次不上傳":"伺服器沒收這筆（"+(m||r.status)+"），這次不上傳");upBtn("🌍 上傳到全球排行榜");continue}
   wait=m=="too fast"?62:30;upBtn(m=="too fast"?"等待上傳（約 1 分鐘）…":"連線失敗，稍後自動重試",1);break}}
  finally{upBusy=false}
  if(wait)setTimeout(flushUp,wait*1000)}
