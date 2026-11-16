@@ -34,6 +34,10 @@ const yearChecks=[
  L=>L.masters&&L.edu<3?"沒有大學學歷卻有碩士":null,
  L=>L.twNoKid&&L.kids>0?"選了「決定不生」之後仍然有孩子":null,
  L=>L.partner&&L.kids>0&&L.age<18?"未成年就有孩子":null,
+ L=>L.partner&&L.divorced?"有伴侶卻同時是離婚狀態":null,
+ L=>L.partner&&L.partnerYears>L.age-12?`相伴 ${L.partnerYears} 年但只有 ${L.age} 歲（再婚沒重設年數）`:null,
+ L=>L.c.tw&&L.childMarriage&&L.age-L.partnerYears<16?"台灣女生 16 歲前結婚（民法最低 16 歲）":null,
+ L=>L.partner&&!L.partnerName&&L.age>25?"有伴侶卻沒有名字":null,
 ];
 {const bad=new Set();for(let i=0;i<240;i++){const L=T.newLife(["now","past","future"][i%3]);if(i%4==0)L.twNoKid=true;T.setP(L);T.setS([]);let n=0;while(L.alive&&n++<130){await T.year(L);for(const c of yearChecks){const m=c(L);if(m)bad.add(m)}}}
  for(const m of bad)fails.push("逐年檢查："+m)}

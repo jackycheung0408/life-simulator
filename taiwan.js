@@ -143,7 +143,7 @@ async function twYear(L,f){
 
  // 新住民
  if(!L.partner&&L.sex=="男"&&yr>=1990&&yr<=2010&&L.age>=30&&L.age<=45&&R()<.03)
-  await ask(L,"親戚介紹你認識一位來自越南的女生",[["交往看看",()=>{L.partner=true;L.partnerName=pick(["阮氏玲","黎氏芳","陳氏秋"]);L.happy+=6;say(L,`和${L.partnerName}結婚，她努力學中文，很快就適應了台灣的生活。`)},"人際↑"],["不了",()=>{}]],"1990 至 2000 年代，台灣有大量來自東南亞的新住民。");
+  await ask(L,"親戚介紹你認識一位來自越南的女生",[["交往看看",()=>{newPartner(L,pick(["阮氏玲","黎氏芳","陳氏秋"]));L.happy+=6;say(L,`和${L.partnerName}結婚，她努力學中文，很快就適應了台灣的生活。`)},"人際↑"],["不了",()=>{}]],"1990 至 2000 年代，台灣有大量來自東南亞的新住民。");
 
  // 長照：父母老了
  if(L.parentAlive&&L.age>=45&&L.age<=65&&!L.twCare&&R()<.06){L.twCare=true;

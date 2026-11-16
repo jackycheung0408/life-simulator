@@ -83,6 +83,9 @@ async function loveYear(L){
  if((L.loveDmg||0)>=3&&R()<.25)await ask(L,`和${nm}的關係越來越冷淡`,[
   ["試著挽回",()=>{L.loveDmg=1;L.happy+=1},""],["和平分開",()=>divorce(L,"和平離婚，偶爾還會聊聊孩子的事。"),"財產對分"],["為了孩子先維持",()=>{L.happy-=3},"幸福↓"]]);
 }
+// 新伴侶（認識、相親、再婚、新住民…全部走這裡）：重設相伴年數、名字、婚禮、感情裂痕、收入（舊版再婚沿用前任的名字和年數）
+function newPartner(L,name){L.partner=true;L.partnerYears=0;L.wedDone=false;L.loveDmg=0;L.divorced=false;L.widowed=false;L.pInc=null;L.pNet=0;
+ const pool=(NAMES[REGION(L.raw)]||NAMES["華"])[L.sex=="男"?"女":"男"].filter(n=>n!==L.name&&n!==L.partnerName);L.partnerName=name||pick(pool);return L.partnerName}
 function divorce(L,t){const half=Math.max(0,L.money)/2;L.money-=half;ledger(L,"離婚財產分配",-half);L.partner=false;L.divorced=true;L.loveDmg=0;L.happy-=10;L.wedDone=false;say(L,t)}
 
 // ── 孩子的成長抉擇 ──

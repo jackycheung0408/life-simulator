@@ -342,13 +342,13 @@ body{font-size:15px;line-height:1.6}
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
 <script src="countries.js?v=76"></script>
-<script src="events.js?v=77"></script>
+<script src="events.js?v=78"></script>
 <script src="life.js?v=78"></script>
 <script src="pixel.js?v=76"></script>
 <script src="story.js?v=78"></script>
-<script src="realism.js?v=76"></script>
-<script src="events2.js?v=77"></script>
-<script src="taiwan.js?v=77"></script>
+<script src="realism.js?v=77"></script>
+<script src="events2.js?v=78"></script>
+<script src="taiwan.js?v=78"></script>
 <script src="foreshadow.js?v=76"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
@@ -689,7 +689,7 @@ async function year(L){
   const ps=L.sex=="男"?"女":"男",pa=Math.max(18,L.age+Math.round((L.sex=="男"?-3:3)+(R()-.5)*8)),pj=pick(L.edu==3?JOBS_U:JOBS),pm=Math.round(L.c.gdp*(.1+R()*.8)),pn=pick(NAMES[REGION(L.raw)][ps].filter(n=>n!==L.fam?.father.name&&n!==L.fam?.mother.name));
   const arranged=L.c.gdp<15000&&R()<.5;
   await ask(L,arranged?"家裡長輩介紹了一個對象":"你遇見了一個人",[
-   ["在一起",()=>{L.partner=true;L.partnerName=pn;L.happy+=10;L.rel+=5;say(L,`和${pn}結為伴侶。`)},"人際↑ 幸福↑"],
+   ["在一起",()=>{newPartner(L,pn);L.happy+=10;L.rel+=5;say(L,`和${pn}結為伴侶。`)},"人際↑ 幸福↑"],
    ["再相處看看",()=>{L.rel+=1},"先不決定"],
    ["拒絕",()=>{if(arranged){L.rel-=4;say(L,"拒絕了這門親事，家裡氣氛僵了一陣子。")}},arranged?"可能和家人起衝突":"維持單身"]],
    `${pn}，${pa} 歲${ps=="女"?"女性":"男性"}，職業：${pj}，存款約 ${money(pm)}。`)}
