@@ -32,8 +32,10 @@ const DEEP=process.argv.includes("--deep"),N=+process.argv.find(a=>/^\d+$/.test(
 const yearChecks=[
  L=>L.edu>=3&&L.age<18?`${L.age} 歲就有大學學歷`:null,
  L=>L.masters&&L.edu<3?"沒有大學學歷卻有碩士":null,
+ L=>L.twNoKid&&L.kids>0?"選了「決定不生」之後仍然有孩子":null,
+ L=>L.partner&&L.kids>0&&L.age<18?"未成年就有孩子":null,
 ];
-{const bad=new Set();for(let i=0;i<240;i++){const L=T.newLife(["now","past","future"][i%3]);T.setP(L);T.setS([]);let n=0;while(L.alive&&n++<130){await T.year(L);for(const c of yearChecks){const m=c(L);if(m)bad.add(m)}}}
+{const bad=new Set();for(let i=0;i<240;i++){const L=T.newLife(["now","past","future"][i%3]);if(i%4==0)L.twNoKid=true;T.setP(L);T.setS([]);let n=0;while(L.alive&&n++<130){await T.year(L);for(const c of yearChecks){const m=c(L);if(m)bad.add(m)}}}
  for(const m of bad)fails.push("逐年檢查："+m)}
 // ── 深度檢查（node tests/life.js --deep，約 3000 段、幾分鐘）：各所得層、性別的平均死亡年齡 vs 資料平均壽命差距 < 3 年
  if(DEEP){const tiers={};for(let i=0;i<3000;i++){const p=await L_run("now"),t=(p.c.gdp<8000?"低":p.c.gdp<30000?"中":"高")+p.sex;(tiers[t]=tiers[t]||[]).push([p.age,p.ex])}

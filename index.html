@@ -342,13 +342,13 @@ body{font-size:15px;line-height:1.6}
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
 <script src="countries.js?v=76"></script>
-<script src="events.js?v=76"></script>
+<script src="events.js?v=77"></script>
 <script src="life.js?v=78"></script>
 <script src="pixel.js?v=76"></script>
-<script src="story.js?v=77"></script>
+<script src="story.js?v=78"></script>
 <script src="realism.js?v=76"></script>
-<script src="events2.js?v=76"></script>
-<script src="taiwan.js?v=76"></script>
+<script src="events2.js?v=77"></script>
+<script src="taiwan.js?v=77"></script>
 <script src="foreshadow.js?v=76"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
@@ -676,9 +676,9 @@ async function year(L){
   await ask(L,"高中畢業了，接下來呢？",[
    ["考大學",()=>{if(R()<c.uni/100+(f=="學業"?.15:0)+L.cls*.05+L.know/300){L.edu=3;L.know+=8;if(L.cls>=3)say(L,"考上大學，學費由家裡負擔。");else{L.money-=fee;say(L,"考上大學，申請了助學貸款付學費。")}}else say(L,"沒考上大學。")},"知識↑ · 家境普通的話要背學貸"],
    ["直接工作",()=>{L.money+=c.gdp*.05},"早點開始賺錢"],
-   ["出國讀大學",()=>{L.edu=3;L.know+=12;L.money-=fee*3;L.studiedAbroad=true;say(L,"出國讀大學。");sayHi(L,"曾出國留學。")},"知識↑↑ · 花費很高",fee*3]],`在${c.name}，大學就學率約 ${Math.round(c.uni)}%。`)}
- if(!L.job&&!L.twRetake&&(L.age==(L.edu==3?22:L.edu==2?(c.tw?19:18):14)||L.age===L.jobRetry)){
-  const pool=(L.edu==3?JOBS_U:JOBS).slice().sort(()=>R()-.5).slice(0,3),start=c.gdp*.5*(L.edu==3?1.25:L.edu==2?.95:.7)*(1+(L.cls-2)*.04)*.85;
+   ["出國讀大學",()=>{L.edu=3;L.know+=12;L.money-=fee*3;say(L,"出國讀大學。");sayHi(L,"曾出國留學。")},"知識↑↑ · 花費很高",fee*3]],`在${c.name}，大學就學率約 ${Math.round(c.uni)}%。`)}
+ if(!L.job&&!L.twRetake&&(L.age==(L.edu==3?22:L.edu==2?(c.tw&&!L.twVoc?19:18):14)||L.age===L.jobRetry)){
+  const pool=(L.edu==3?JOBS_U:JOBS).slice().sort(()=>R()-.5).slice(0,3),start=c.gdp*.5*(L.edu==3?1.25:L.edu==2?.95*(L.twVoc?1.08:1):.7)*(1+(L.cls-2)*.04)*.85;
   const take=j=>{const [pay,,e]=JOB_INFO[j]||[1,"",{}];L.job=j;L.inc=start*pay*(L.sex=="女"?1-payGap(L.c):1);for(const k in e)L[k]+=e[k];say(L,`開始當${j}。`)};
   await ask(L,"要找什麼樣的工作？",pool.map(j=>[j,()=>take(j),`${(JOB_INFO[j]||[,"" ])[1]} · 起薪月薪約 ${money(start*(JOB_INFO[j]||[1])[0]*(L.sex=="女"?1-payGap(L.c):1)/13.5)}（年薪約 ${moneyShort(start*(JOB_INFO[j]||[1])[0]*(L.sex=="女"?1-payGap(L.c):1))}）`]).concat(L.jobRetry?[]:[["先不急，再找一年",()=>{L.jobRetry=L.age+1;L.know+=2;L.money-=c.gdp*.1},"知識↑ 晚一年有收入"]]));
   if(!L.job&&L.jobRetry<L.age)take(pool[0]);
@@ -693,7 +693,7 @@ async function year(L){
    ["再相處看看",()=>{L.rel+=1},"先不決定"],
    ["拒絕",()=>{if(arranged){L.rel-=4;say(L,"拒絕了這門親事，家裡氣氛僵了一陣子。")}},arranged?"可能和家人起衝突":"維持單身"]],
    `${pn}，${pa} 歲${ps=="女"?"女性":"男性"}，職業：${pj}，存款約 ${money(pm)}。`)}
- if(L.partner&&L.age<44&&R()<.06+(f=="家人"?.05:0)+(c.gdp<5000?.06:0)){L.kids++;L.happy+=5;say(L,`第 ${L.kids} 個孩子出生了。`)}
+ if(L.partner&&L.age>=18&&L.age<44&&!L.twNoKid&&R()<.06+(f=="家人"?.05:0)+(c.gdp<5000?.06:0)){L.kids++;L.happy+=5;say(L,`第 ${L.kids} 個孩子出生了。`)}
  if(L.kids&&L.age>48&&R()<.05*L.kids){L.grand++;say(L,`第 ${L.grand} 個孫子女出生。`)}
  if(L.partner&&L.age>55&&R()<.025){L.partner=false;L.widowed=true;L.happy-=15;say(L,`與伴侶相伴 ${L.partnerYears} 年後，對方先離開了人世。`)}
  if(!L.abroad&&L.age>=22&&L.age<=45&&c.gdp<30000&&R()<.02)await ask(L,"有機會移居到更富裕的國家，要去嗎？",[["移居",()=>{L.lockUntil=L.age+2;L.abroad=pick(["美國","德國","加拿大","澳洲","英國","日本"]);L.inc*=2.2;L.happy-=4;say(L,`移居到${L.abroad}，重新開始。`)}],["留下",()=>{L.happy+=2}]]);

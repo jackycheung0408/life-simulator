@@ -83,7 +83,7 @@ const SPEND=[
  {id:"class",min:18,max:60,cost:L=>L.c.gdp*.05,q:"看到一門想上的課程（語言、證照、才藝）",yes:"報名",y:L=>{L.know+=5;if(L.job)L.inc*=1.02},no:"算了",n:()=>{}},
  {id:"parents",min:22,max:65,cost:L=>L.inc*.06,q:"爸媽年紀大了，想帶他們好好吃一頓、包個紅包",yes:"包大一點",y:L=>{L.rel+=4;L.happy+=3},no:"意思一下就好",n:L=>{L.rel+=1}},
  {id:"reno",once:1,min:30,max:70,cost:L=>L.c.gdp*.4,q:"家裡老舊，想整修一下",yes:"整修",y:L=>{L.happy+=5;L.health+=1},no:"住得下去就好",n:()=>{}},
- {id:"pet",once:1,min:10,max:70,cost:L=>L.c.gdp*.05,q:"路邊有隻小狗一直跟著你",yes:"帶回家養",y:L=>{L.happy+=7;L.pet=true},no:"送到收容所",n:()=>{}},
+ {id:"pet",once:1,min:10,max:70,cost:L=>L.c.gdp*.05,q:"路邊有隻小狗一直跟著你",yes:"帶回家養",y:L=>{L.happy+=7;L.pet=L.age},no:"送到收容所",n:()=>{}},
  {id:"checkup",min:40,max:85,cost:L=>L.c.gdp*.04,q:"醫院推出自費健康檢查",yes:"去做",y:L=>{L.health+=4},no:"身體還好，不用",n:()=>{}},
  {id:"lend",min:25,max:70,cost:L=>L.inc*.15,q:"老朋友手頭緊，開口跟你借錢",yes:"借他",y:L=>{L.rel+=3;L.lent=L.inc*.15;L.lentAt=L.age},no:"婉拒",n:L=>{L.rel-=3}},
  {id:"invest",min:25,max:65,cost:L=>L.inc*.2,q:"同事說有一檔股票很有潛力",yes:"投一筆",y:L=>{const r=R()<.22?2:R()<.55?.3:1.05;L.money+=L.inc*.2*r;ledger(L,"投資",L.inc*.2*(r-1));say(L,r>1.5?"那檔股票真的漲了一倍！":r<.5?"股票套牢，賠了七成。":"股票小賺一點。")},no:"不碰",n:()=>{}},
@@ -240,7 +240,7 @@ async function careerFocus(L){
   L.edu>=3&&!L.masters?["讀在職碩士（兩年）",()=>{L.money-=g*.3;L.know+=8;L.health-=2;L.lockUntil=L.age+2;L.mbaAt=L.age+2},"知識↑↑ 兩年內很忙"]
    :["上進修班拿證書（兩年）",()=>{L.money-=g*.1;L.know+=5;L.health-=1;L.lockUntil=L.age+2;L.mbaAt=L.age+2},"知識↑ 兩年內很忙"],
   ["上免費線上課程",()=>{L.know+=2},"知識↑"],
-  ["學第二外語",()=>{L.money-=g*.02;L.know+=3;if(R()<.3)L.abroadOk=true},"以後可能有外派機會"]]);
+  ["學第二外語",()=>{L.money-=g*.02;L.know+=3;if(R()<.3){L.inc*=1.03;say(L,"第二外語派上用場，被指派負責對外窗口，薪水小幅調升。")}},"知識↑ 可能加薪"]]);
  if(L.mbaAt===L.age){L.mbaAt=0;if(L.edu>=3){L.masters=true;L.inc*=1.12;say(L,"拿到在職碩士學位，薪水也跟著往上調。")}else{L.inc*=1.05;say(L,"念完進修班，拿到結業證書，薪水小幅調升。")}}
  if(f=="工作"&&R()<.3)await ask(L,"今年想在工作上拚什麼？",[
   ["爭取升遷",()=>{if(R()<.35+L.know/300){L.inc*=1.15;L.happy+=3;say(L,"升上主管，責任和薪水都變多了。")}else{L.happy-=3;say(L,"升遷名單上沒有你。")}},"成功機率看能力"],
@@ -248,4 +248,7 @@ async function careerFocus(L){
   ["跳槽到薪水更高的公司",()=>{if(R()<.6){L.inc*=1.18;L.rel-=1;say(L,"跳槽成功，薪水多了快兩成。")}else{L.happy-=2;say(L,"面試了好幾家，都沒有下文。")}},"有機會大幅加薪"],
   ["把工作做好就好",()=>{L.happy+=2},"幸福↑"]]);
 }
-async function storyYear(L){minorGuard(L);await realismYear(L);await careerFocus(L);await investYear(L);livingYear(L);await wedding(L);await genderYear(L);await parentLeave(L);await smallChoice(L);kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L);await spendYear(L);minorGuard(L)}
+// 寵物：L.pet = 領養時的年齡（舊存檔是 true，視為幾年前領養）；陪伴讓幸福小幅上升，十二年後可能離世
+function petYear(L){if(!L.pet)return;if(L.pet===true)L.pet=Math.max(10,L.age-3);const y=L.age-L.pet;
+ if(y>=12&&R()<.18+(y-12)*.06){L.pet=null;L.happy-=5;say(L,"陪了你很多年的小狗走了，難過了好一陣子。")}else L.happy+=.6}
+async function storyYear(L){minorGuard(L);await realismYear(L);await careerFocus(L);await investYear(L);livingYear(L);await wedding(L);await genderYear(L);await parentLeave(L);await smallChoice(L);kidEvents(L);moneyYear(L);dailyLife(L);await kindness(L);await spendYear(L);petYear(L);minorGuard(L)}

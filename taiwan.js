@@ -101,7 +101,7 @@ async function twYear(L,f){
    ["照自己的步調讀",()=>{L.know+=2}],
    ["讀高職，早點學技術",()=>{L.twVoc=true;L.know+=1;say(L,"選擇讀高職。")},"畢業後比較快就業"]],
   yr<1990?"那個年代補習班林立，升學競爭非常激烈。":"");
- if(L.age==18&&L.edu==2&&!L.twCollegeAsked){L.twCollegeAsked=true;
+ if(L.age==18&&L.edu==2&&!L.twCollegeAsked&&(!L.twVoc||R()<.35)){L.twCollegeAsked=true;
   const rate=c.uni,name=yr<2002?"大學聯考":"學測";
   await ask(L,`要考${name}嗎？`,[
    ["拚一下",()=>{if(R()<rate/100+L.know/250+(f=="學業"?.1:0)-.1){L.edu=3;L.know+=8;say(L,yr<1990?"考上大學了！家裡放鞭炮慶祝。":"考上大學了。");if(L.cls<=2){L.money-=c.gdp*.25;ledger(L,"就學貸款",-c.gdp*.25);say(L,"申請了就學貸款。")}}else say(L,"沒考上大學。")},"知識↑ · 家境普通要背就貸"],
