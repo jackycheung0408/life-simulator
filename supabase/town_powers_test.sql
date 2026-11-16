@@ -18,10 +18,11 @@ begin
   rep := rep||'動態 kind=mayor：'||(select count(*) from public.town_events where town_id=tid and kind='mayor')||'（期望 1）'||E'\n';
   -- 2) 安全閥
   begin perform public.town_power(ra,'1234','use','jail',ra,60); rep := rep||'關自己：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'關自己：'||sqlerrm||E'\n'; end;
+  update public.town_powers set log = (select jsonb_agg(e || jsonb_build_object('at', now() - interval '30 hours')) from jsonb_array_elements(log) e) where town_id = tid;
   update public.town_residents set mayor = true where id = rc;
   begin perform public.town_power(ra,'1234','use','jail',rc,60); rep := rep||'關另一位鎮長：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'關另一位鎮長：'||sqlerrm||E'\n'; end;
   update public.town_residents set mayor = false where id = rc;
-  begin perform public.town_power(rb,'1234','use','jail',rc,60); rep := rep||'非鎮長行使：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'非鎮長行使：'||sqlerrm||E'\n'; end;
+  begin perform public.town_power(rd,'1234','use','jail',rb,60); rep := rep||'非鎮長行使：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'非鎮長行使：'||sqlerrm||E'\n'; end;
   begin perform public.town_power(ra,'1234','use','jail',rb,60); rep := rep||'關已被關的人：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'關已被關的人：'||sqlerrm||E'\n'; end;
   update public.town_powers set log = (select jsonb_agg(e || jsonb_build_object('at', now() - interval '30 hours')) from jsonb_array_elements(log) e) where town_id = tid;   -- 把紀錄往前推到昨天，避開冷卻與每日上限
   update public.town_residents set sleeping = true where id = rc;

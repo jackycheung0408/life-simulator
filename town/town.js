@@ -1080,7 +1080,7 @@ async function pwAppeal(id){if(!confirm("確定要申訴嗎？居民會投票決
 async function powersModal(){$("modal").classList.remove("hide");$("mbody").innerHTML='<p class="mut">載入中…</p>';
  let st;try{st=PWS=await rpc("town_power",{rid:me,pin,op:"view"})}catch(e){$("mbody").innerHTML=`<p class="err">${esc(e.message)}</p><div class="row"><button id="mc">關閉</button></div>`;$("mc").onclick=()=>$("modal").classList.add("hide");return}
  const r=R[me],mayor=!!st.mayor,v=st.vote,age=at=>now()-Date.parse(at);
- let vh="";if(v){const left=Math.max(0,Date.parse(v.end)-now()),ap=v.kind=="appeal",what=ap?`申訴：推翻鎮長「${POWERS[v.k]?POWERS[v.k].n:v.k}」${esc(v.tn||"")}`:`${POWERS[v.k]?POWERS[v.k].n:v.k}：${esc(v.tn||"")}${v.n&&POWERS[v.k]&&POWERS[v.k].unit=="$"?" "+CUR+v.n:""}`;
+ let vh="";if(v){const left=Math.max(0,Date.parse(v.end)-now()),ap=v.kind=="appeal",what=ap?`申訴：推翻鎮長「${POWERS[v.k]?POWERS[v.k].n:v.k}」${esc(v.tn||"")}`:`${POWERS[v.k]?POWERS[v.k].n:v.k}：${esc(v.tn||"")}${v.num&&POWERS[v.k]&&POWERS[v.k].unit=="$"?" "+CUR+v.num:""}`;
   vh=`<h3>投票中</h3><p><b>${what}</b></p><p class="mut">${esc(v.bn)} 發起 · 贊成 ${v.yn} ／ 反對 ${v.nn} · 還有 ${fmtLeft(left)} · ${ap?"贊成多於反對、至少 2 票、多於非鎮長居民的一半才推翻":"贊成多於反對、至少 3 票、多於全鎮一半才通過"}</p>`+
    (v.mine?`<p class="mut">你投了${v.mine=="yes"?"贊成":"反對"}</p>`:ap&&mayor?'<p class="mut">鎮長不能對申訴投票</p>':`<div class="row"><button class="pri" data-pv="yes">${ap?"推翻":"贊成"}</button><button data-pv="no">${ap?"不推翻":"反對"}</button></div>`)}
  const pows=PWORD.map(k=>{const P=POWERS[k],w=pwWhy(k,st),tag=P.def[0]==0?"鎮長下令":P.def[0]==1?"居民投票":"鎮長或投票";

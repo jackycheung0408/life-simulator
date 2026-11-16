@@ -233,7 +233,7 @@ begin
     ok := yn > nn and yn >= 3 and yn * 2 > nres;
     ttl := '「' || public.town_pw_name(v->>'k') || '」' || coalesce(v->>'tn', '');
     if ok then
-      begin res := public.town_pw_do(tid, (v->>'by')::bigint, v->>'k', nullif(v->>'t', '')::bigint, nullif(v->>'n', '')::int, 'vote');
+      begin res := public.town_pw_do(tid, (v->>'by')::bigint, v->>'k', nullif(v->>'t', '')::bigint, nullif(v->>'num', '')::int, 'vote');
       exception when others then ok := false; res := sqlerrm; end;
     end if;
   end if;
@@ -274,7 +274,7 @@ begin
       if pw.vote is not null then raise exception '現在已經有一個投票在進行了，等結束再發起'; end if;
       perform public.town_pw_check(r.town_id, rid, pk, tg, num);
       select name into tn from public.town_residents where id = tg;
-      v := jsonb_build_object('id', left(md5(random()::text), 8), 'kind', 'power', 'k', pk, 't', tg, 'tn', tn, 'n', num, 'by', rid, 'bn', r.name, 'at', now(), 'end', now() + interval '24 hours', 'y', jsonb_build_array(rid), 'n', '[]'::jsonb);
+      v := jsonb_build_object('id', left(md5(random()::text), 8), 'kind', 'power', 'k', pk, 't', tg, 'tn', tn, 'num', num, 'by', rid, 'bn', r.name, 'at', now(), 'end', now() + interval '24 hours', 'y', jsonb_build_array(rid), 'n', '[]'::jsonb);
       update public.town_powers set vote = v where town_id = r.town_id;
       insert into public.town_events(town_id, actor, target, kind, msg) values (r.town_id, rid, tg, 'mayor',
         left(r.name || ' 發起投票：「' || public.town_pw_name(pk) || '」' || coalesce(tn, '') || case when num is not null and d[3] > 0 then ' ' || num else '' end || '（24 小時，居民投票）', 118));
@@ -289,7 +289,7 @@ begin
     if (en->>'undone')::boolean then raise exception '已經推翻了'; end if;
     if coalesce((en->>'appealed')::boolean, false) then raise exception '這一筆已經申訴過了'; end if;
     if (en->>'at')::timestamptz < now() - interval '24 hours' then raise exception '超過 24 小時，不能申訴了'; end if;
-    v := jsonb_build_object('id', left(md5(random()::text), 8), 'kind', 'appeal', 'k', en->>'k', 'ref', en->>'id', 't', en->>'t', 'tn', en->>'tn', 'n', en->>'n', 'by', rid, 'bn', r.name, 'mn', en->>'bn',
+    v := jsonb_build_object('id', left(md5(random()::text), 8), 'kind', 'appeal', 'k', en->>'k', 'ref', en->>'id', 't', en->>'t', 'tn', en->>'tn', 'num', en->>'n', 'by', rid, 'bn', r.name, 'mn', en->>'bn',
       'at', now(), 'end', now() + interval '12 hours', 'y', jsonb_build_array(rid), 'n', '[]'::jsonb);
     update public.town_powers set vote = v,
       log = (select coalesce(jsonb_agg(case when z.e->>'id' = en->>'id' then z.e || '{"appealed":true}'::jsonb else z.e end order by z.o), '[]'::jsonb) from jsonb_array_elements(pw.log) with ordinality as z(e, o))
