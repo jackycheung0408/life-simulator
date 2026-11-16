@@ -234,12 +234,14 @@ function minorGuard(L){if(L.age<18&&L.money<0){if(L===P&&!L.minorNote){L.minorNo
 async function careerFocus(L){
  if(L.backAt===L.age){L.backAt=0;L.job=L.studyJob||L.job||"工程師";L.inc*=1.3;L.studyJob=null;say(L,`留學回國，重新當${L.job}，薪水比出國前高。`)}
  if(!L.job||L.age>=65)return;const f=L.focus,g=L.c.gdp;
- if(f=="學業"&&R()<.3)await ask(L,"想利用下班時間進修",[
+ if(f=="學業"&&L.age>=22&&!L.mbaAt&&R()<.3)await ask(L,"想利用下班時間進修",[
   ["考專業證照",()=>{L.money-=g*.03;L.know+=4;if(R()<.6){L.inc*=1.06;say(L,"考到證照，公司幫你調薪。")}else say(L,"證照沒考過，明年再拚。")},"可能加薪"],
-  ["讀在職碩士（兩年）",()=>{L.money-=g*.3;L.know+=8;L.health-=2;L.lockUntil=L.age+2;L.mbaAt=L.age+2},"知識↑↑ 兩年內很忙"],
+  // 在職碩士要先有大學學歷；沒有的人只能念進修班拿證書（不會把學歷拉到大學）
+  L.edu>=3&&!L.masters?["讀在職碩士（兩年）",()=>{L.money-=g*.3;L.know+=8;L.health-=2;L.lockUntil=L.age+2;L.mbaAt=L.age+2},"知識↑↑ 兩年內很忙"]
+   :["上進修班拿證書（兩年）",()=>{L.money-=g*.1;L.know+=5;L.health-=1;L.lockUntil=L.age+2;L.mbaAt=L.age+2},"知識↑ 兩年內很忙"],
   ["上免費線上課程",()=>{L.know+=2},"知識↑"],
   ["學第二外語",()=>{L.money-=g*.02;L.know+=3;if(R()<.3)L.abroadOk=true},"以後可能有外派機會"]]);
- if(L.mbaAt===L.age){L.mbaAt=0;L.edu=Math.max(L.edu,3);L.inc*=1.12;say(L,"拿到在職碩士學位，薪水也跟著往上調。")}
+ if(L.mbaAt===L.age){L.mbaAt=0;if(L.edu>=3){L.masters=true;L.inc*=1.12;say(L,"拿到在職碩士學位，薪水也跟著往上調。")}else{L.inc*=1.05;say(L,"念完進修班，拿到結業證書，薪水小幅調升。")}}
  if(f=="工作"&&R()<.3)await ask(L,"今年想在工作上拚什麼？",[
   ["爭取升遷",()=>{if(R()<.35+L.know/300){L.inc*=1.15;L.happy+=3;say(L,"升上主管，責任和薪水都變多了。")}else{L.happy-=3;say(L,"升遷名單上沒有你。")}},"成功機率看能力"],
   ["接下一個大案子",()=>{L.health-=3;if(R()<.55){L.inc*=1.08;say(L,"大案子做得漂亮，年終多領不少。")}else{L.happy-=2;say(L,"案子出了狀況，被主管念了好幾次。")}},"健康↓ 可能加薪"],
