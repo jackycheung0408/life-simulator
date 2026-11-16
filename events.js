@@ -26,8 +26,6 @@ const HISTORY=[
  [1998,2003,["剛果民主共和國"],"戰爭在東部延燒多年。",{happy:-15,war:true}],
  [1991,2002,["獅子山"],"內戰期間村莊遭到襲擊。",{happy:-20,war:true}],
  [1989,1989,["德國"],"柏林圍牆倒下，分隔多年的親戚終於見面。",{happy:12}],
- [1987,1987,["台灣"],"解除戒嚴，社會氣氛變得不一樣了。",{happy:6}],
- [1999,1999,["台灣"],"九二一大地震，家裡房子出現裂痕。",{happy:-6}],
  [1997,1997,["香港"],"香港主權移交。",{happy:0}],
  [1994,1994,["南非"],"第一次全民參與的民主選舉，排了很久的隊去投票。",{happy:12}],
  [1997,1998,["泰國","印尼","韓國","馬來西亞","菲律賓"],"亞洲金融風暴，工作和存款都受到衝擊。",{inc:.8,happy:-8}],
@@ -134,11 +132,13 @@ const EVENTS=[
 const REPEAT=new Set([1,2,4,15,20,21,22,23,24,25,26,29,34,36,38,41,42,44,45,46,50]);
 
 // 死因：依年齡、所得水準與地區（概依 WHO 全球疾病負擔的主要模式）
-const AFRICA=/奈及利亞|迦納|象牙海岸|馬利|布吉納法索|塞內加爾|幾內亞|貝南|多哥|獅子山|賴比瑞亞|甘比亞|尼日|肯亞|坦尚尼亞|烏干達|盧安達|蒲隆地|南蘇丹|衣索比亞|厄利垂亞|索馬利亞|剛果|喀麥隆|加彭|中非|赤道幾內亞|查德|馬達加斯加|莫三比克|馬拉威|尚比亞|辛巴威|安哥拉|葛摩|吉布地|蘇丹|茅利塔尼亞/;
+// 撒哈拉以南非洲（瘧疾、愛滋病的死因權重用）：看名字分類 REGION（西非、東非、中非、非洲之角、南非）；蘇丹、茅利塔尼亞在撒赫爾地帶也算；模里西斯、維德角是島國沒有瘧疾所以不算（2026-11 修：舊正規式把「巴布亞紐幾內亞」當成幾內亞）
+const isAfrica=n=>/^(蘇丹|茅利塔尼亞)$/.test(n)||(["西非","東非","中非","非洲之角","南非"].includes(REGION(n))&&!/^(南非|波札那|史瓦帝尼|賴索托|納米比亞|模里西斯|維德角)$/.test(n));
 const SOUTH_AFRICA=/南非|波札那|史瓦帝尼|賴索托|辛巴威|尚比亞|馬拉威|納米比亞|莫三比克/;
 function causeOf(L){
- const a=L.age,c=L.c,low=c.gdp<8000,rich=c.gdp>40000,af=AFRICA.test(L.raw||c.name),w=[];
+ const a=L.age,c=L.c,low=c.gdp<8000,rich=c.gdp>40000,af=isAfrica(L.raw||c.name),w=[];
  const add=(n,k)=>w.push([n,k]);
+ if(L.warEnd&&c.y0+a<=L.warEnd+1)add("戰爭",a<15?1.5:a<60?5:1.5); // 戰爭期間（含結束後一年）
  if(a<5){add("新生兒併發症",4);add("肺炎",3);add("腹瀉疾病",low?3:.5);if(af)add("瘧疾",4);if(!low)add("先天性疾病",3)}
  else if(a<15){add("交通事故",2);add("溺水",2);if(low){add("瘧疾",af?3:0);add("腹瀉疾病",2);add("肺炎",2)}else add("白血病",1)}
  else if(a<45){add("交通事故",3);add("意外",1);if(low){add("結核病",2);add("暴力",1)}
@@ -160,7 +160,7 @@ async function lifeEvents(L,f){
   const key=h[3];L.seen=L.seen||{};if(L.seen[key])continue;L.seen[key]=1;
   const e=h[4];if(e.war&&$("soft").checked){say(L,"國家經歷了一段動盪的時期。");continue}
   say(L,key);L.health+=e.health||0;L.happy+=e.happy||0;if(e.inc)L.inc*=e.inc;if(e.wipe)L.money=Math.min(L.money,0);if(e.edu&&L.age<20&&L.edu>1)L.edu=1;
-  if(e.war)sayHi(L,"經歷過戰爭。");
+  if(e.war){sayHi(L,"經歷過戰爭。");L.warEnd=Math.max(L.warEnd||0,h[1])}
   if(e.flee&&L.age>=18)await ask(L,`要逃到${e.flee}嗎？`,[["逃難",()=>{L.abroad=e.flee;L.inc*=.6;L.happy-=5;say(L,`成為難民，逃到${e.flee}。`);sayHi(L,`曾以難民身分逃到${e.flee}。`)}],["留下",()=>{L.health-=8}]]);
  }
  // 今日主題事件
