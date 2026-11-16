@@ -238,7 +238,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(/格鬥場要先約定/.test(tsql),"town.sql 的 fight 在格鬥場要擋住，改約 PK");
  check(/create or replace function public\.town_pk\(/.test(sql)&&/fee := floor\(bet \* 0\.05\)/.test(sql)&&/bet < 0 or bet > 2000/.test(sql),"town_pk 要有下注上限 2000 與 5% 進鎮基金");
  check(/n >= 3 then raise exception '你們這一小時已經打了 3 場/.test(sql),"town_pk 每對每小時最多 3 場");
- {const m=sql.match(/function public\.town_mischief\([\s\S]*?\n\$\$;/);check(m&&/select \* into t from public\.town_residents where id = target/.test(m[0])&&/act = 'forgive'/.test(m[0]),"town_mischief 要先載入對象 t（曾因取消免整牌時誤刪，所有惡趣味都壞掉）")}
+ {const m=sql.match(/function public\.town_mischief\([\s\S]*?end \$\$;/);check(m&&/select \* into t from public\.town_residents where id = target/.test(m[0])&&/act = 'forgive'/.test(m[0]),"town_mischief 要先載入對象 t（曾因取消免整牌時誤刪，所有惡趣味都壞掉）")}
  check(/\.get\(\)|PK|pkModal/.test(src)&&/town_pk/.test(src)&&/town_mischief/.test(src),"前端要呼叫 town_pk、town_mischief");
  const e=src.match(/const KIND_ICON=\{([^}]*)\}/);for(const k of ["mischief","photo","forgive","pk","pkno","kick"])check(e&&new RegExp("\\b"+k+":").test(e[1]),"KIND_ICON 要有 "+k)}
 // 門外叫醒（supabase/town_wake_out.sql）：站在他家門口叫醒睡著的人，他走出來站在門口（dr=1），兩人在門口面對面
