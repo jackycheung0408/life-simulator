@@ -37,8 +37,8 @@ function familyLine(L){
 
 // 存活曲線：用同一套死亡率模型，從 0 歲推到 100 歲
 function survival(L){
- const base={c:L.c,ex:L.ex,health:75,smoke:false};let s=1;const out=[1];
- for(let a=1;a<=100;a++){base.age=a-1;s*=1-mortality({...base,age:a-1});out.push(s)}
+ const base={c:L.c,ex:L.ex,cls:L.cls,edu:0,smoke:false};let s=1;const out=[1];
+ for(let a=1;a<=100;a++){s*=1-mortality({...base,age:a-1},mortRef(base,a-1));out.push(s)}
  return out;
 }
 function survivalSVG(L){
@@ -86,7 +86,7 @@ function countryPanel(L){
 
 // 出生登記
 function birthCard(L,home){
- const f=L.fam,c=L.c,u5=Math.min(60,c.im*1.3/10),ex=Math.round(L.ex),CL=["貧困","偏低","中等","小康","富裕"][L.cls],pct=["後 20%","後 20～40%","中間 40～60%","前 20～40%","前 20%"][L.cls];
+ const f=L.fam,c=L.c,u5=Math.min(60,u5Rate(c.im)*100),ex=Math.round(L.ex),CL=["貧困","偏低","中等","小康","富裕"][L.cls],pct=["後 20%","後 20～40%","中間 40～60%","前 20～40%","前 20%"][L.cls];
  const place=c.tw?"台灣 "+c.tw.county+(f.urban?"":"（鄉下）"):c.name+" "+(f.urban?c.city:"鄉村");
  // 和世界平均比：壽命 73 歲、5 歲前離世 3.7%、人均所得約 US$21,000
  const cmpBar=(label,v,avg,max,fmt,good)=>{const w=Math.min(100,v/max*100),aw=Math.min(100,avg/max*100),better=good=="high"?v>=avg:v<=avg;
@@ -106,7 +106,7 @@ function birthCard(L,home){
  ${cmpBar("5 歲前離世機率",u5,3.7,20,v=>v.toFixed(1)+"%","low")}
  ${cmpBar("人均所得",c.gdp,21000,80000,v=>money(v),"high")}
  <div class="bc-cmp"><div class="bc-cl"><span>家境</span><b>${CL}</b></div><div class="bc-dots">${[0,1,2,3,4].map(i=>`<i class="${i<=L.cls?"on":""}"></i>`).join("")}</div></div>
- ${h?`<div class="bc-sec">和你的出生地比</div><div class="bc-vs"><div><span class="mut">你的${h.name}（現在）</span><b>${Math.round(L.sex=="男"?h.mEx:h.fEx)} 歲</b><small>5 歲前離世 ${Math.min(60,h.im*1.3/10).toFixed(1)}% · ${money(h.gdp)}</small></div><div class="vs">VS</div><div><span class="mut">這個孩子的${c.name}（${c.y0}）</span><b>${ex} 歲</b><small>5 歲前離世 ${u5.toFixed(1)}% · ${money(c.gdp)}</small></div></div>`:""}
+ ${h?`<div class="bc-sec">和你的出生地比</div><div class="bc-vs"><div><span class="mut">你的${h.name}（現在）</span><b>${Math.round(L.sex=="男"?h.mEx:h.fEx)} 歲</b><small>5 歲前離世 ${Math.min(60,u5Rate(h.im)*100).toFixed(1)}% · ${money(h.gdp)}</small></div><div class="vs">VS</div><div><span class="mut">這個孩子的${c.name}（${c.y0}）</span><b>${ex} 歲</b><small>5 歲前離世 ${u5.toFixed(1)}% · ${money(c.gdp)}</small></div></div>`:""}
  <div class="bc-sec">同一秒出生的另外四個人</div><div class="bc-others">${S.map(s=>`<div><b>${s.name}</b><span>${s.c.name}</span><small>${s.sex=="男"?"♂":"♀"} · ${["貧困","偏低","中等","小康","富裕"][s.cls]} · 壽命 ${Math.round(s.ex)}</small></div>`).join("")}</div>
  <p class="mut" style="margin-top:12px">活到平均壽命約需 ${cfg.l} 分鐘（1 年 ≈ ${Math.round(cfg.l*60/L.ex)} 秒）。中途關掉會自動存檔，下次可以接著過。</p></div>`;
 }
