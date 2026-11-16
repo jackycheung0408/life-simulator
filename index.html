@@ -342,12 +342,12 @@ body{font-size:15px;line-height:1.6}
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
 <script src="countries.js?v=77"></script>
-<script src="events.js?v=81"></script>
+<script src="events.js?v=82"></script>
 <script src="life.js?v=80"></script>
 <script src="pixel.js?v=76"></script>
 <script src="story.js?v=80"></script>
 <script src="realism.js?v=79"></script>
-<script src="events2.js?v=80"></script>
+<script src="events2.js?v=81"></script>
 <script src="taiwan.js?v=80"></script>
 <script src="foreshadow.js?v=76"></script>
 <script>
@@ -568,7 +568,7 @@ const MUST_ASK=/要找什麼樣的工作|生了一場病|癌症|兵役|孩子出
 let askQ=Promise.resolve(),askWait=0;
 function ask(L,q,opts,info){if(L!==P||auto)return askNow(L,q,opts,info);askWait++;const run=askQ.then(()=>{askWait--;return askNow(L,q,opts,info)});askQ=run.catch(()=>{});return run}
 function askNow(L,q,opts,info){
- if(L.lockUntil>L.age&&!MUST_ASK.test(q))return Promise.resolve();
+ if(L.lockUntil>L.age&&!MUST_ASK.test(q)){L.askSkipped=true;return Promise.resolve()} // 忙碌期間略過的抉擇：呼叫的一次性事件要把「已發生」的記號還原（askSkipped），之後才有機會再出現
  if(opts.length<3&&typeof EXTRA_OPTS!="undefined"&&EXTRA_OPTS[q])opts=opts.concat(EXTRA_OPTS[q].map(([a,fn,h])=>[a,()=>fn(L),h]));
  const ok=o=>!o[3]||L.money>=o[3],avail=opts.filter(ok);
  if(L!==P||auto){const o=pick(avail.length?avail:opts);if(L===P)say(L,q+" → "+o[0]);o[1]();return Promise.resolve()}
@@ -653,6 +653,7 @@ function statBase(L){
  const happy=58+rich*4+cls*1.5;
  return {health,know,rel,happy};
 }
+const clampStats=L=>{for(const k of ["health","happy","know","rel"])L[k]=Math.max(0,Math.min(100,Number.isFinite(L[k])?L[k]:50))};
 async function year(L){
  L.age++;const c=L.c,isP=L===P,f=isP&&!auto?focusSel:pick(FOCI),soft=$("soft").checked;L.focus=f;
  {const b=statBase(L),k=.25;for(const s of ["health","know","rel","happy"])L[s]+=(b[s]+(L.bias?.[s]||0)-L[s])*k}
@@ -717,6 +718,7 @@ async function year(L){
  survivalNote(L);
  if(isP&&Q[L.age])await reflect();
  L.hist[L.age]=L.happy;
+ clampStats(L); // 事件、故事、擬真各階段加減分之後，統一把四項屬性夾回 0～100，再算死亡率
  if(R()<mortality(L)){L.alive=false;L.cause=causeOf(L);say(L,`因${L.cause}離開了人世。`)}
 }
 

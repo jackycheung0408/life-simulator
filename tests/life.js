@@ -41,6 +41,7 @@ const DEEP=process.argv.includes("--deep"),N=+process.argv.find(a=>/^\d+$/.test(
 // ── 不變量（逐年）：每一年之後檢查狀態有沒有不可能的組合；之後新增的規則也往 yearChecks 加
 const yearChecks=[
  L=>L.edu>=3&&L.age<18?`${L.age} 歲就有大學學歷`:null,
+ L=>["health","happy","know","rel"].some(k=>!(L[k]>=0&&L[k]<=100))?"屬性超出 0～100（"+["health","happy","know","rel"].map(k=>k+"="+Math.round(L[k])).join(",")+"）":null,
  L=>L.masters&&L.edu<3?"沒有大學學歷卻有碩士":null,
  L=>L.twNoKid&&L.kids>0?"選了「決定不生」之後仍然有孩子":null,
  L=>L.partner&&L.kids>0&&L.age<18?"未成年就有孩子":null,

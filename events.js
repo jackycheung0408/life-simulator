@@ -69,6 +69,7 @@ const sayHi=(L,t)=>{(L.highlights=L.highlights||[]).push(t)};
 const clamp=L=>{L.health=Math.max(0,Math.min(100,L.health));L.happy=Math.max(0,Math.min(100,L.happy))};
 
 // 一般事件：[最小歲, 最大歲, 機率, 條件, 動作]
+// ⚠ 事件的「已發生」記在 L.done[索引]（events2.js 的 MORE_EVENTS 記在 L.moreSeen[索引]，realism.js 的 MISHAPS 同理）：新增事件一律加在陣列最後，不要在中間插入或刪除，否則舊存檔的記錄會錯位；不要的事件把條件改成 L=>false 保留位置
 const EVENTS=[
  // 童年
  [1,4,.15,L=>true,L=>say(L,pick(["說出了第一句話。","學會走路，跌跌撞撞地追著家人跑。","第一次看到海（或河）。"]))],
@@ -168,7 +169,7 @@ async function lifeEvents(L,f){
  // 一般事件：每年最多兩件
  L.done=L.done||{};let n=0;
  for(let i=0;i<EVENTS.length;i++){const e=EVENTS[i];if(n>=2)break;if(L.age<e[0]||L.age>e[1]||(L.done[i]&&!REPEAT.has(i))||!fated(L,"ev"+i,.55))continue;
-  if(R()<e[2]*(f=="享受"?1.1:1)&&e[3](L)){L.done[i]=1;await e[4](L);n++}}
+  if(R()<e[2]*(f=="享受"?1.1:1)&&e[3](L)){L.done[i]=1;L.askSkipped=false;await e[4](L);if(L.askSkipped){L.askSkipped=false;delete L.done[i]}else n++}}
  clamp(L);
 }
 
