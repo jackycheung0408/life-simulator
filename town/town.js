@@ -205,7 +205,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
   {id:"u43-pigcoin",date:"11/16",title:"全小鎮統一用「$ 豬幣」",items:["所有小鎮的錢都改成「$」，名字叫豬幣，鎮長不用也不能再選別的貨幣","金額沒有變，只是換了符號","股票：價格變成純隨機漫步，不會再自己「拉回」基準價；買賣沒有上限，但低買高賣也不再穩賺"]},
-  {id:"u41-zombie",date:"11/16",title:"夜晚有喪屍豬！",items:["晚上 8 點到早上 6 點，街上、廣場、公園會出現綠色的喪屍豬","牠會慢慢追過來，碰到會掉精力、心情、清潔，但不會死，也不會扣錢","站在牠旁邊按「打喪屍豬」，打倒領 €20～60，一天最多 €600，還可能掉生豬肉，到超市可賣 €30","躲進屋裡、店裡、醫院、監獄，或是睡著，牠都打不到你；天亮牠們會全部燒掉","鎮長可以在設施開關裡關掉喪屍豬"]},
+  {id:"u41-zombie",date:"11/16",title:"街上有喪屍豬！",items:["全天隨機會有綠色的喪屍豬出現在街上、廣場、公園，晚上更多","牠會慢慢追過來，碰到會掉精力、心情、清潔，但不會死，也不會扣錢","站在牠旁邊按「打喪屍豬」，打倒領 €20～60，一天最多 €600，還可能掉生豬肉，到超市可賣 €30","躲進屋裡、店裡、醫院、監獄，或是睡著，牠都打不到你；每隻只會待一陣子就消失","鎮長可以在設施開關裡關掉喪屍豬"]},
   {id:"u42-nocd",date:"11/16",title:"取消冷卻、取消免整牌、任務獎金 10 倍",items:["打工、設施互動、街機和單機遊戲、擂台、路邊物件，不用再等冷卻時間","為了不被一直刷錢：吃喝休息補回的精力一天最多 200，屠宰場一天最多 3 次，單機遊戲的心情獎勵一天 10 次","免整牌拿掉了；每天最多被整 6 次、報復不扣好感、可以原諒，這些不變","每日任務獎金變 10 倍：每個 €500，三個全做完再 +€1000","股票買賣沒有金額上限，價格還是每 10 分鐘變一次","比大小：A 最小、K 最大"]},
   {id:"u31-stageroom",date:"11/10",title:"進到室內，主畫面就是室內",items:["走進設施、自己家、朋友家時，主畫面直接換成放大的室內，不用看面板上的小圖","點室內的物件就會做對應的事，點裡面的人可以選他互動；要離開按下面的「出門」","住院的人躺在醫院的病床上，坐牢的人睡上下鋪","在門外叫醒離線的朋友後，他真的會站在門口，不會又馬上被送回屋裡睡"]},
   {id:"u30-civic",date:"11/10",title:"新增醫院、警察局、市政廳",items:["醫院：昏倒、車禍、被砍倒地的人會送到這裡，醒來按「出院」；平常可以掛號看診，朋友也能來探病","警察局：罰單在這裡繳九折；被通緝可以自首（關 30 分鐘、不加刑）；被整被砍可以報案，對方記報案點但不會入獄；還能看今日治安","市政廳：看鎮基金、貼公告、發起投票；鎮長可以提建設案，居民投票通過才花鎮基金蓋長椅、路燈、涼亭、雕像","地圖往右加寬，三棟新建築都能走進去看看"]},
@@ -1533,13 +1533,14 @@ function checkWoken(){const r=R[me];if(!r||!r.items||!r.items.wo||modalOpen()||!
  if(age>10*60e3||age<0||woSeen==w.at||!f)return;let key="town_wo_"+me;try{if(localStorage.getItem(key)==w.at)return;localStorage.setItem(key,w.at)}catch(e){}woSeen=w.at;
  choiceModal(`${f.name} 把你叫醒了`,"你現在站在家門口，他就在門外 · 可以直接和他面對面互動；想繼續睡，進屋就好",[["知道了","去跟他打招呼",()=>{}]])}
 let pkTimer=null;
-// ── 喪屍豬（supabase/town_tweaks.sql）：台灣 20:00～06:00 街上刷出綠皮小豬，緩慢追向最近的戶外玩家；碰到精力 −8、心情 −8、清潔 −10（不會死、不扣錢）；打倒領 €20～60（一天最多 €600），35% 掉生豬肉（超市收購 €30）；屋裡、店裡、醫院、監獄、睡覺都安全 ──
+// ── 喪屍豬（supabase/town_tweaks.sql）：全天隨機刷出（夜間機率較高、數量較多），每隻活 8～16 分鐘；綠皮小豬，緩慢追向最近的戶外玩家；碰到精力 −8、心情 −8、清潔 −10（不會死、不扣錢）；打倒領 €20～60（一天最多 €600），35% 掉生豬肉（超市收購 €30）；屋裡、店裡、醫院、監獄、睡覺都安全 ──
 let ZB=[],ZR={},zbLast=0,zbBusy=false;
-const nightTW=()=>{const h=new Date(nowFn()+8*36e5).getUTCHours();return h>=20||h<6};
 const zbOut=r=>!!r&&!r.sleeping&&!jailed(r)&&["street","plaza","park"].includes(r.place)&&!fin(r);
 async function zbCall(op,target){if(!me||!S)return null;try{return await rpc("town_zombie",{rid:me,pin,op,target:target||null})}catch(e){if(op!="poll")toast(e.message);return null}}
-function zbSet(j){const old=ZB;ZB=j.z||[];for(const z of ZB)if(!ZR[z.id])ZR[z.id]={x:z.x,y:z.y};for(const k of Object.keys(ZR))if(!ZB.some(z=>z.id==k))delete ZR[k];if(old.length&&!ZB.length&&!nightTW())toast("天亮了，喪屍豬都燒掉了");if(R[me]&&R[me].items&&j.pork!=null)R[me].items.zp=j.pork}
-async function zbPoll(){if(zbBusy||document.visibilityState!="visible"||!me||!S||!isOn("zombie"))return;if(!nightTW()&&!ZB.length)return;zbBusy=true;try{const j=await zbCall("poll");if(j){zbSet(j);if(j.hit){toast("喪屍豬打到你了！精力 −8、心情 −8、清潔 −10");spawnFx("flash",me);refresh().catch(()=>{})}renderPanel()}}finally{zbBusy=false}}
+function zbSet(j){const old=ZB;ZB=j.z||[];for(const z of ZB)if(!ZR[z.id])ZR[z.id]={x:z.x,y:z.y};for(const k of Object.keys(ZR))if(!ZB.some(z=>z.id==k))delete ZR[k];if(R[me]&&R[me].items&&j.pork!=null)R[me].items.zp=j.pork}
+let zbTick=0;
+async function zbPoll(){if(zbBusy||document.visibilityState!="visible"||!me||!S||!isOn("zombie"))return;if(!ZB.length&&(++zbTick)%3)return;// 沒有喪屍時每 12 秒問一次，有的時候每 4 秒
+zbBusy=true;try{const j=await zbCall("poll");if(j){zbSet(j);if(j.hit){toast("喪屍豬打到你了！精力 −8、心情 −8、清潔 −10");spawnFx("flash",me);refresh().catch(()=>{})}renderPanel()}}finally{zbBusy=false}}
 async function zbHit(id){const j=await zbCall("hit",id);if(!j)return;zbSet(j);spawnFx("fight",me);toast(j.msg||"揍了牠一拳");feedback(true,j.msg||"");await refresh().catch(()=>{});renderPanel()}
 async function zbSell(){const j=await zbCall("sell");if(!j)return;toast(j.msg);feedback(true,j.msg);await refresh().catch(()=>{});renderPanel()}
 setInterval(zbPoll,4000);

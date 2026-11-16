@@ -296,7 +296,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(!/30000|60000|NT\$30,000|NT\$60,000/.test(stk.replace(/--.*\n/g,"\n"))&&!/amt > |dv \+ amt >/.test(stk),"股票沒有單筆與單日上限");
  check(/\* 600\)/.test(stk)||/extract\(epoch from now\(\) - s\.stepped\) \/ 600/.test(stk),"股價要每 10 分鐘走一步");
  check(/'zombie'/.test(ts)&&/\["zombie"/.test(js),"zombie 要在鎮長設施開關白名單與 FEATS");
- check(/hr >= 20 or hr < 6/.test(tw)&&/h>=20\|\|h<6/.test(js),"喪屍豬夜間時段前後端要一致（20～06）");
+ check(/hr >= 20 or hr < 6/.test(tw)&&/case when day then \.25 else \.5 end/.test(tw)&&/case when day then 2 else 4 end/.test(tw)&&/8 \+ \(id % 5\) \* 2/.test(tw)&&!/nightTW/.test(js),"喪屍豬全天隨機生成：白天 25%／最多 2 隻、夜間 50%／最多 4 隻、每隻活 8～16 分鐘");
  check(/energy = greatest\(0, energy - 8\), fun = greatest\(0, fun - 8\), hygiene = greatest\(0, hygiene - 10\)/.test(tw)&&!/money = money - /.test(tw)&&/600 - got/.test(tw),"喪屍豬：打到精力 −8 心情 −8 清潔 −10、不扣錢、每天獎勵上限 600");
  check(/q\.place in \('street','plaza','park'\)/.test(tw)&&/town_fin\(q\)/.test(tw)&&/town_jailed\(q\)/.test(tw),"喪屍豬只打戶外、醒著、不在室內與監獄的人");
  for(const [n,t] of [["town_tweaks.sql",tw]]){const head=t.split("\n").slice(0,12).filter(l=>l.trim()&&!/^(do |create |declare|begin)/.test(l)).length;check(t.split("\n")[0].startsWith("--"),n+" 第一行要是註解")}

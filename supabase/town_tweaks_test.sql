@@ -1,5 +1,5 @@
 -- 小調整實測（喪屍豬、取消冷卻的防印鈔機）：接在 town.sql、town_social.sql、town_fi.sql、town_fac.sql、town_tweaks.sql 之後執行，結果在錯誤訊息 REPORT，整段 rollback（測試鎮，不碰真人）
--- 檢查：1) 白天沒有喪屍豬、夜間刷出；2) 碰到的人精力 −8 心情 −8 清潔 −10、60 秒內不重複、錢不變；3) 睡覺、在店裡、被關著的人不會被打；
+-- 檢查：1) 白天機率較低、數量上限 2、夜間刷出且上限 4、超過 16 分鐘的會消失；2) 碰到的人精力 −8 心情 −8 清潔 −10、60 秒內不重複、錢不變；3) 睡覺、在店裡、被關著的人不會被打；
 --       4) 打 3 下倒下、獎勵 €20～60、每天上限 600、35% 掉生豬肉；5) 超市賣生豬肉 €30；6) 打工沒有冷卻（連做 3 次）；7) 精力補充每日上限 200（咖啡）；
 --       8) 屠宰場一天最多 3 次；9) 任務獎金 €500／全勤 +€1000
 do $$
@@ -11,10 +11,14 @@ begin
   update public.town_residents set place='street', x=20, y=7, sleeping=false, energy=90, hunger=90, fun=90, hygiene=90, bladder=90, money=1000, items='{}'::jsonb, seen_at=now(), updated_at=now() where id in (ra, rb);
   -- 1) 白天
   perform set_config('town.hour', '12', true);
-  j := public.town_zombie(ra,'1234','poll'); rep := rep||'白天 12 點：night='||(j->>'night')||' 隻數='||json_array_length(j->'z')||'（期望 false／0）'||E'\n';
+  for i in 1..60 loop j := public.town_zombie(ra,'1234','poll'); exit when json_array_length(j->'z') >= 1; update public.town_zombies set at = now() - interval '1 minute' where town_id = tid; end loop;
+  rep := rep||'白天 12 點：night='||(j->>'night')||' 隻數='||json_array_length(j->'z')||'（期望 false／最多 2；白天也會隨機刷）'||E'\n';
+  update public.town_zombies set at = now() - interval '20 minutes' where town_id = tid; j := public.town_zombie(ra,'1234','poll'); rep := rep||'超過 16 分鐘的舊喪屍已消失：剩 '||(select count(*) from public.town_zombies where town_id = tid and at < now() - interval '16 minutes')||' 隻舊的（期望 0）'||E'\n';
+  delete from public.town_zombies where town_id = tid;
   -- 夜間刷出
   perform set_config('town.hour', '22', true);
-  j := public.town_zombie(ra,'1234','poll'); rep := rep||'夜間 22 點第一次：night='||(j->>'night')||' 隻數='||json_array_length(j->'z')||'（期望 true／1）'||E'\n';
+  for i in 1..40 loop j := public.town_zombie(ra,'1234','poll'); exit when json_array_length(j->'z') >= 1; end loop;
+  rep := rep||'夜間 22 點：night='||(j->>'night')||' 隻數='||json_array_length(j->'z')||'（期望 true／至少 1）'||E'\n';
   -- 2) 把牠放在甲旁邊
   select id into zid from public.town_zombies where town_id = tid limit 1;
   update public.town_zombies set x=20.5, y=7, moved=now() where id = zid;
