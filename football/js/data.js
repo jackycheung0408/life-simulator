@@ -1,4 +1,5 @@
 let BIRTH_Y=2026; // 首頁選的出生年份
+const SAVE_VER=3; // 存檔版本：newPlayer 建新角色直接寫成這個版本；home.js 的 migrate 只補比它舊的存檔。改平衡要補舊存檔時加一版
 // 資料：國家、聯賽、球隊、能力公式、球員產生
 const $=id=>document.getElementById(id),R=Math.random,pick=a=>a[Math.floor(R()*a.length)];
 const wpick=(a,w)=>{let t=a.reduce((s,x)=>s+w(x),0),r=R()*t;for(const x of a){r-=w(x);if(r<=0)return x}return a[0]};
@@ -102,7 +103,7 @@ function posCode(p){const d=dpOf(p);return d=="W"?(p.side=="R"?"RW":"LW"):d=="FB
 // 位置熟悉度：在一個位置踢越多季越熟；沒踢過的位置要適應，評分先打折（最多 -6，約 3 季後消失）
 function posXP(p){if(!p.posXP){p.posXP={};p.posXP[p.dp&&DP2POS[p.dp]==p.pos?p.dp:({FW:"ST",MF:"CM",DF:"CB",GK:"GK"}[p.pos])]=3}return p.posXP}
 function famPen(p,d){if(d=="GK"||!p.s)return 0;return Math.round(Math.max(0,6-2*(posXP(p)[d]||0)))}
-function rateAt(p,d){const w=DPW[d];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return Math.round(t/sw)-famPen(p,d)}
+function rateAt(p,d){const w=DPW[d];let t=0,sw=0;for(const k in w){t+=p.s[k]*w[k];sw+=w[k]}return clamp(Math.round(t/sw)-famPen(p,d),1,99)} // 換位置的適應扣分最多 −6，剛起步的孩子（細項只有 3～8）可能減成負數，夾在 1～99
 function dpOf(p){return p.dp&&DP2POS[p.dp]==p.pos?p.dp:({FW:"ST",MF:"CM",DF:"CB",GK:"GK"}[p.pos])}
 function setDp(p,dp){if(p.realStar&&p.pos&&DP2POS[dp]!=p.pos)return;p.dp=dp;p.pos=DP2POS[dp]}
 function faceMap(p,k){return p.pos=="GK"&&k=="防守"?GKFACE:FACE[k]}
@@ -132,6 +133,6 @@ function newPlayer(world,pos){
  const hT=({拉:175,歐:181,英:179,非:177,亞:172,中:175,華:173}[c[4]])+gauss()*6.5; // 成年身高目標（男性）
  const _bg=wpick(BG,x=>x[1]),_body=wpick(BODY,x=>x[1])[0],_mind=wpick(MIND,x=>x[1])[0];
  return attachA({bg:_bg[0],bgNote:_bg[2],body:_body,mind:_mind,s:sub,wf:wpick([1,2,3,4,5],x=>[5,30,45,15,5][x-1]),sm:wpick([1,2,3,4,5],x=>[10,35,35,15,5][x-1]),dp:({FW:"ST",MF:"CM",DF:"CB",GK:"GK"}[position]),name:pick(nm.男)+" "+pick(nm.姓),c:c[0],cs:c[2],ctier:c[3],region:c[4],pos:position,dreamPos:position,talent,pot:Math.min(pot,potCap),a,age:0,y0:BIRTH_Y,cls,fam,h:50,hT,bloom:gauss()*.9,touchAge:fan||sib?3+Math.floor(R()*2):4+Math.floor(R()*3),grade:55+R()*20,
-  ver:2,dev:1,club:null,stage:"嬰兒",money:0,fame:0,morale:60,health:100,caps:0,intlGoals:0,apps:0,goals:0,assists:0,cleans:0,trophies:[],awards:[],injuries:0,seasons:[],ovrHist:[],log:[],alive:true,retired:false,contract:0,wage:0,partner:null,kids:0,after:null,clubsPlayed:[],peak:0,maxValue:0});
+  ver:SAVE_VER,dev:1,club:null,stage:"嬰兒",money:0,fame:0,morale:60,health:100,caps:0,intlGoals:0,apps:0,goals:0,assists:0,cleans:0,trophies:[],awards:[],injuries:0,seasons:[],ovrHist:[],log:[],alive:true,retired:false,contract:0,wage:0,partner:null,kids:0,after:null,clubsPlayed:[],peak:0,maxValue:0});
 }
 function say(t,hi){const p=document.createElement("p");if(hi)p.className="hi";p.innerHTML=`<span class="y">${P.age}歲</span>${t}`;const L=$("log");L.prepend(p);while(L.children.length>150)L.lastChild.remove();P.log.push([P.age,t,!!hi])} // 畫面只留最近 150 則，完整紀錄在報表的生平

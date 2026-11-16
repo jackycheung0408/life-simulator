@@ -5,12 +5,12 @@
 ## 三個遊戲
 - **人生模擬器**（根目錄）：`index.html`，主要邏輯在 `life.js`、`events.js`、`events2.js`、`story.js`、`foreshadow.js`、`realism.js`；國家資料 `countries.js`、`taiwan.js`；測試 `node tests/life.js`
 - **足球員模擬器**（`football/`）：
-  - `js/data.js`：國家、聯賽、球會、能力（FACE／DPW 權重、ovr、rateAt、value）
+  - `js/data.js`：國家、聯賽、球會、能力（FACE／DPW 權重、ovr、rateAt、value）、發育曲線 `DEVC`／`devFrac`、存檔版本常數 `SAVE_VER`、`newPlayer`
   - `js/events.js`：問答視窗 ask、關鍵時刻、機率動畫、訓練成長
   - `js/career.js`：每季流程 season、轉會、國家隊、同世代球星（STARS、LEGENDS、STAR_BORN）、真實足壇大事（REAL_EV、REAL_WC）
   - `js/auto.js`：自動抉擇（風格 `fb-autostyle`：平衡／穩健／進取／隨性／依性格；`autoScore` 依選項副標的成功率、實力差、年薪變化打分；重大抉擇 `autoIsMajor` 彈 8 秒倒數卡片 `autoCard`，`fb-automajor=quiet` 為全自動；回顧存 `p.autoLog`（上限 40）並顯示在結局證書 `autoReviewHtml`）。自動時機率與手動完全相同
   - `js/ui.js`：畫面、陣容、場上意向、報表
-  - `js/home.js`：首頁（玩法、搜尋 picker、捏人、出生年份、存檔與 migrate）
+  - `js/home.js`：首頁（玩法、天賦卡 `RARITY` 與抽卡保底、搜尋 picker、捏人、出生年份、存檔與 `migrate`）
   - 測試：`node football/test/run.js`（pre-push hook 會自動跑，要看到「✅ 全部通過」）
 - **小豬鎮**（`town/`）：多人小鎮，詳見下方「小豬鎮」一節
 
@@ -18,7 +18,7 @@
 - 足球發育曲線：新球員（`p.dev=1`）能力上限 = `p.pot × devFrac`（`data.js` 的 `DEVC`，13 歲 72% → 27 歲 100%，`bloom` 早熟晚熟平移 1.5×年），舊存檔沒有 `dev` 旗標維持原上限。天賦卡 `RARITY`：銅45%(52–65)／銀33%(63–75)／金17%(73–86)／傳奇5%(85–95)，3 張至少 1 張銀以上。
 - 改 CSS 後確認大括號有配對（曾因多一個 `.ctrl{` 讓後面所有樣式失效）
 - 改了 js／css，要把對應 `index.html` 裡所有的 `?v=N` 加 1（快取）；小豬鎮改用 `node tools/town-bump.mjs`（連 `version.json` 一起，見「自動更新」）
-- 舊存檔要能繼續玩；平衡改動用 `football/js/home.js` 的 migrate（SAVE_VER）
+- 舊存檔要能繼續玩；平衡改動用 `football/js/home.js` 的 migrate（`SAVE_VER` 常數在 `data.js`，`newPlayer` 建新角色直接寫成最新版，所以新角色不會被 migrate 補；要補舊存檔就把 `SAVE_VER` 加 1，並讓 migrate 的新規則只對 `ver` 比它小的存檔跑一次）
 - 互動一律用按鈕，不要用超連結
 - 球員一律用英文名字
 - 要擬真，不要偏袒玩家
@@ -369,3 +369,11 @@
 ## 足球：人生主線與排行榜上傳（2026-11-10）
 - `career.js` 末尾 `SAGA`／`sagaOf(p)`／`SAGA_EV`／`sagaYear`：依出道年齡、傷病、轉會、國家隊、背景、性格判定主線（青訓天才、大器晚成、傷病重生、浪子漂泊、忠誠一線隊、國家隊支柱、爭議人物、球場領袖、平凡之路，沒踢上職業則另有傷病夢碎、為家庭轉身等）；結局稱號前綴主線名（`finish()`），每人生同一事件不重複、每 3 年最多一件。
 - 排行榜上傳：`ui.js` 的 `uploadCareer`／`flushUp`，結局一律進佇列 `fb-upq`（含沒踢上職業的），`fb-upd` 以 `p.id` 去重，送太快（60 秒限制）等 62 秒、網路失敗 30 秒自動重試；進球／冠軍先依 SQL `fb_sane` 夾住。`playHit("finish")` 不再排除自動播放。
+
+### 2026-11-16 足球矛盾審查後的修正（排行榜 SQL 要使用者本人套用）
+- **排行榜出生年範圍**：前端出生年 1950～2026、傳奇球星最早 1940，所以 `supabase/leaderboard.sql` 的 `born`／`died` 檢查放寬成 1900 起（`born` 1900～2100、`died` 1900～2250）；舊表的限制用 `do $$` 區塊從 `pg_constraint` 找出單欄位的 born／died 檢查再重建（名稱不一定叫 `fb_careers_born_check`）。**這個 SQL 要在 Supabase SQL Editor 套用才生效**，沒套用前 1999 年以前出生的生涯上傳仍會被拒；前端被拒時的提示已改成「數字超出排行榜收錄範圍（不是你違規）」（`ui.js` `flushUp`，依 `e.code=="23514"`）。
+- **上傳列防壞數字**：`ui.js` 的 `upRow` 用 `upN` 把 NaN／undefined 換成 0 並取整（`score` 是 int 欄位，小數會被伺服器拒），`node football/test/run.js` 檢查每個欄位都在 SQL 限制內。已上傳清單 `fb-upd` 不再只留 200 筆（改 5000）；SQL 的 `fb_guard` 擋「同一裝置、名字、出生死亡年、出賽、進球、分數都一樣」的重複（例外訊息 `duplicate`），前端把 `duplicate` 當成已上傳；沒加 `pid` 欄位（避免前端比 SQL 先上線時整個上傳壞掉）。
+- **存檔版本**：`newPlayer` 的 `ver` 引用 `SAVE_VER`（定義在 `data.js`）。migrate 規則各自有版本：ver<2 才做「能力差距收斂＋年薪重算」、ver<3 才做「天賦能力平均化」，而且同一次載入裡 ver1 存檔做了差距收斂就不再疊加天賦平均化。測試在 `football/test/run.js`（取出 `home.js` 的 migrate 單獨跑）。
+- **能力邊界**：`rateAt` 夾在 1～99（換位置適應扣分最多 −6，剛起步的孩子可能減成負數）；`wageOf` 的「能力 − 球隊強度」夾在 ±30（避免極端指數）；`retireCheck` 的 `p.clubObj` 防空。
+- **主線**：`sagaOf` 對沒踢上職業的人（`!p.debut`）不套用職業主線（傷病重生、爭議人物…），只會落到傷病夢碎、為家庭轉身等結局型主線；分數相同時照 `prodigy > late > injury > nomad > loyal > hero > rebel > leader` 的宣告順序決定，不隨機。
+- **2026 世界盃**：`REAL_WC[2026]` 冠軍＝西班牙（決賽延長賽 1-0 擊敗阿根廷，ESPN、NPR 等報導一致）；`REAL_EV[2026]` 的文字也補了結果。`REAL_LAST` 仍是 2026（之後的年份走隨機的 `WORLD` 大事）。

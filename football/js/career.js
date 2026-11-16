@@ -112,7 +112,7 @@ const TAC={控球:["傳球","盤帶"],防守反擊:["速度","防守"],高位壓
 function clubStyle(c){let h=0;for(const ch of c.name)h=(h*31+ch.charCodeAt(0))%997;return Object.keys(TAC)[h%6]}
 function styleFit(p,st){const k=TAC[st];if(!k||p.pos=="GK")return 0;const avg=ATTR.reduce((t,a)=>t+p.a[a],0)/6;return clamp(((p.a[k[0]]+p.a[k[1]])/2-avg)/3,-3,3)}
 function roleOf(p,c){const st=p.club==c.name&&p.coachStyle?p.coachStyle:clubStyle(c);const g=styleFit(p,st)+ovr(p)-c.str+(rel(p,"coach")-50)/10+T(p,"職業態度")+T(p,"領袖")-T(p,"火爆");return p.age<17||g<-10?"預備隊":g<-5?"替補":g<0?"輪換":"主力"}
-function wageOf(c,p){const W=(P&&P.world)||{},wm=(W.crisis&&W.crisis.until>=p.age&&W.crisis.lg==c.lg?.7:1)*(W.boom&&W.boom.until>=p.age&&W.boom.ct==c.ct?2:1);return wm*Math.max(.003,.6*(1+(rel(p,"agent")-50)/250)*c.pay*Math.pow(1.12,ovr(p)-c.str)*(1+Math.min(1.5,p.fame/250)))} // 百萬歐元／年：頂級聯賽一般球員約 €5M，巨星可到 €30M 以上
+function wageOf(c,p){const W=(P&&P.world)||{},wm=(W.crisis&&W.crisis.until>=p.age&&W.crisis.lg==c.lg?.7:1)*(W.boom&&W.boom.until>=p.age&&W.boom.ct==c.ct?2:1);return wm*Math.max(.003,.6*(1+(rel(p,"agent")-50)/250)*c.pay*Math.pow(1.12,clamp(ovr(p)-c.str,-30,30))*(1+Math.min(1.5,p.fame/250)))} // 百萬歐元／年：頂級聯賽一般球員約 €5M，巨星可到 €30M 以上
 function sign(c,yrs){const p=P;if(!c)return;p.coachStyle=clubStyle(c);setTimeout(()=>{if(P===p&&p.club==c.name&&p._styleSaid!=c.name+p.coachStyle&&(p._styleSaid=c.name+p.coachStyle))say(`${c.name}的總教練偏好「${p.coachStyle}」，看重${TAC[p.coachStyle].join("、")}${styleFit(p,p.coachStyle)>=1?"，正好是你的強項":styleFit(p,p.coachStyle)<=-1?"，不是你的強項":""}。`)},0);meet(p,"coach",null,50+3*T(p,"職業態度")-3*T(p,"火爆"));if(!p.rel?.mate||R()<.5)meet(p,"mate",null,45+R()*15);(p.moves=p.moves||[]).push({y:p.y0+p.age,age:p.age,from:p.club||p.stage,to:c.name,lg:c.lg,fee:p._fee||0,type:p._fee?"轉會":p.club?"自由轉會":"首份合約",yrs});p._fee=0;if(p.club&&p.club!==c.name)say(`離開${p.club}。`);p.club=c.name;p.clubObj=c;p.contract=yrs;p.wage=wageOf(c,p);if(!p.clubsPlayed.includes(c.name))p.clubsPlayed.push(c.name);say(`和${c.name}簽下 ${yrs} 年合約，年薪 ${eur(p.wage)}。`,1)}
 // ── 現實的淘汰關卡：大多數孩子會在某一關停下來 ──
 function proRescue(p){const o=ovr(p),home=poolFor(P).filter(c=>c.ct==p.c).sort((a,b)=>a.str-b.str)[0],any=poolFor(P).filter(x=>x.tier>=Math.min(2,p.ctier)||x.ct==p.c).sort((a,b)=>Math.abs(a.str-o-8)-Math.abs(b.str-o-8))[0],c=home&&home.str<=o+14?home:any;
@@ -310,7 +310,7 @@ async function lifeOff(){
 async function retireCheck(){
  const p=P,o=ovr(p);if(p.lastSeason){retire("踢完最後一季，在全場起立鼓掌中退休。");return}
  if(p.age>=40||(p.age>=24&&o<45)){retire("身體已經跟不上，宣布退休。");return}
- if((p.age>=34+T(p,"會保養")+T(p,"自律")+(p.retireBonus||0)&&R()<.3)||(p.age>=30&&o<p.clubObj.str-12))await ask(`${p.age} 歲，要繼續踢下去嗎？`,[["再踢一季",()=>{},"能力會持續下滑"],["退休，留下美好的回憶",()=>retire("宣布退休，向球迷告別。"),""],["到美國或沙烏地踢最後幾年",()=>{const c=pick(poolFor(P).filter(x=>x.ct=="沙烏地阿拉伯"||x.ct=="美國"));sign(c,2)},"收入高 · 競爭低"]]);
+ if((p.age>=34+T(p,"會保養")+T(p,"自律")+(p.retireBonus||0)&&R()<.3)||(p.age>=30&&p.clubObj&&o<p.clubObj.str-12))await ask(`${p.age} 歲，要繼續踢下去嗎？`,[["再踢一季",()=>{},"能力會持續下滑"],["退休，留下美好的回憶",()=>retire("宣布退休，向球迷告別。"),""],["到美國或沙烏地踢最後幾年",()=>{const c=pick(poolFor(P).filter(x=>x.ct=="沙烏地阿拉伯"||x.ct=="美國"));sign(c,2)},"收入高 · 競爭低"]]);
 }
 function retire(t){const p=P;p.retired=true;p.retireAge=p.age;say(t,1);p.club=null;p.clubObj=null}
 // 退休第一年：告別賽、球衣退役、俱樂部名人堂
@@ -506,12 +506,12 @@ const WORLD=[
  p=>pick(["國際足總宣布越位改用半自動判定。","歐洲聯賽改成 36 隊大聯賽制，比賽變多了。","國際足總限制每季出賽上限，球員工會表示歡迎。","世界盃擴大成 64 隊，小國也有機會參賽。"]),
 ];
 // 真實足壇大事（依年份）：[內容, 效果]
-const REAL_WC={1950:["巴西","烏拉圭"],1954:["瑞士","西德"],1958:["瑞典","巴西"],1962:["智利","巴西"],1966:["英格蘭","英格蘭"],1970:["墨西哥","巴西"],1974:["西德","西德"],1978:["阿根廷","阿根廷"],1982:["西班牙","義大利"],1986:["墨西哥","阿根廷"],1990:["義大利","西德"],1994:["美國","巴西"],1998:["法國","法國"],2002:["日本、韓國","巴西"],2006:["德國","義大利"],2010:["南非","西班牙"],2014:["巴西","德國"],2018:["俄羅斯","法國"],2022:["卡達","阿根廷"],2026:["美國、加拿大、墨西哥",null]};
+const REAL_WC={1950:["巴西","烏拉圭"],1954:["瑞士","西德"],1958:["瑞典","巴西"],1962:["智利","巴西"],1966:["英格蘭","英格蘭"],1970:["墨西哥","巴西"],1974:["西德","西德"],1978:["阿根廷","阿根廷"],1982:["西班牙","義大利"],1986:["墨西哥","阿根廷"],1990:["義大利","西德"],1994:["美國","巴西"],1998:["法國","法國"],2002:["日本、韓國","巴西"],2006:["德國","義大利"],2010:["南非","西班牙"],2014:["巴西","德國"],2018:["俄羅斯","法國"],2022:["卡達","阿根廷"],2026:["美國、加拿大、墨西哥","西班牙"]};
 const REAL_EV={1958:["17 歲的比利在世界盃決賽梅開二度，全世界認識了巴西足球。"],1970:["世界盃第一次彩色電視轉播，紅黃牌也在這屆開始使用。"],1982:["世界盃擴大成 24 隊。"],1986:["馬拉度納在世界盃對英格蘭打進「上帝之手」和「世紀進球」。"],
  1992:["英格蘭超級聯賽成立，歐洲冠軍盃改名歐洲冠軍聯賽；門將也不能再用手接隊友的回傳球。"],1993:["日本 J 聯賽開幕，亞洲職業足球開始起飛。"],1994:["世界盃開始採用贏球得 3 分。"],1995:["博斯曼裁決：合約到期的球員可以自由轉會，歐盟球員不再佔外援名額。"],1996:["美國職業大聯盟（MLS）開打。"],1998:["世界盃擴大成 32 隊。"],
  2004:["希臘爆冷拿下歐洲國家盃。"],2006:["義大利爆發「電話門」假球案，尤文圖斯被降級。",p=>{p.world.crisis={lg:"義大利甲級聯賽",until:p.age+2}}],2008:["全球金融海嘯，多家球會財務吃緊。"],2016:["中國超級聯賽砸大錢簽外援，開出的年薪是歐洲的好幾倍。",p=>{p.world.boom={ct:"中國",until:p.age+3}}],
  2018:["世界盃第一次使用 VAR 影像輔助判決。"],2020:["新冠疫情爆發，聯賽停擺後空場復賽，換人名額增為 5 人。",p=>{p.world.short=p.age}],2021:["歐洲超級聯賽宣布成立，不到 48 小時就宣告瓦解。"],2023:["沙烏地職業聯賽開始砸大錢簽歐洲球星。",p=>{p.world.boom={ct:"沙烏地阿拉伯",until:p.age+4}}],
- 2024:["歐冠改成 36 隊聯賽制，比賽變多了。"],2025:["世界俱樂部盃擴大成 32 隊。"],2026:["世界盃擴大成 48 隊。"]};
+ 2024:["歐冠改成 36 隊聯賽制，比賽變多了。"],2025:["世界俱樂部盃擴大成 32 隊。"],2026:["世界盃擴大成 48 隊；決賽西班牙在延長賽 1-0 擊敗阿根廷，拿下隊史第二座世界盃。"]};
 const REAL_LAST=2026;
 function realYear(p){const y=p.y0+p.age;if(p.age<5)return;const e=REAL_EV[y];if(e){if(e[1])e[1](p);say(`🌍 ${y} 年足壇大事：${e[0]}`,p.age>=14)}
  const w=REAL_WC[y];if(w)say(`🌍 ${y} 年世界盃在${w[0]}舉行。`);
@@ -611,6 +611,9 @@ function sagaOf(p){const ss=p.seasons||[],pk=ss.length?ss.reduce((a,b)=>b.ovr>a.
  sc.hero=p.caps>=30?2.5+p.caps/100:0;
  sc.rebel=(p.sagaBan||p.banned||(T(p,"拚命")>=2&&(p.pop??50)<45))?3:0;
  sc.leader=(T(p,"球商")>=2||(p.mind=="冷靜"&&p.age>=28))&&p.debut?2:0;
+ // 沒踢上職業的人不套用職業主線（傷病重生、爭議人物…都是以職業生涯為前提；沒踢上的走下面的「傷病夢碎」等結局型主線）
+ if(!p.debut)for(const k in sc)sc[k]=0;
+ // 分數相同時照上面宣告的順序，先宣告的贏（prodigy > late > injury > nomad > loyal > hero > rebel > leader），不隨機，同一人生每次結果一致
  let best=null,bv=0;for(const k in sc)if(sc[k]>bv){bv=sc[k];best=k}
  if(best)return best;if(p.debut)return"journey";
  const h=[...String(p.id||p.name)].reduce((a,c)=>a*31+c.charCodeAt(0)|0,7),o=[];

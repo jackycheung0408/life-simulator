@@ -439,8 +439,9 @@ function devId(){let d=null;try{d=localStorage.getItem("fb-dev")}catch{}if(!d){d
 const lsj=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||"")??d}catch{return d}},lss=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
 let upBusy=false;
 function upBtn(t,dis){const b=$("upload");if(b){b.classList.remove("hide");b.textContent=t;b.disabled=!!dis}}
-function upRow(p){const apps=Math.min(1200,p.apps),goals=Math.min(1500,p.goals,apps*2+5),tro=Math.min(60,p.trophies.length,Math.floor(apps/8)+6);
- return {device:devId(),name:p.name.slice(0,24),country:p.c.slice(0,12),pos:p.pos,title:String(p._title||"").slice(0,30),peak:Math.max(0,Math.min(99,Math.round(p.peak))),apps,goals,trophies:tro,awards:Math.min(80,p.awards.length),score:Math.max(0,Math.min(2500,p._sc||0)),born:p.y0,died:Math.max(p.y0,p.y0+p.age)}}
+const upN=(x,d=0)=>Number.isFinite(+x)?+x:d; // NaN／undefined 送出去會變 null 被伺服器 400 拒收，一律換成預設
+function upRow(p){const apps=Math.max(0,Math.min(1200,Math.floor(upN(p.apps)))),goals=Math.max(0,Math.min(1500,Math.floor(upN(p.goals)),apps*2+5)),tro=Math.max(0,Math.min(60,(p.trophies||[]).length,Math.floor(apps/8)+6)),y0=Math.round(upN(p.y0,2000));
+ return {device:devId(),name:String(p.name||"?").slice(0,24),country:String(p.c||"?").slice(0,12),pos:p.pos,title:String(p._title||"").slice(0,30),peak:Math.max(0,Math.min(99,Math.round(upN(p.peak)))),apps,goals,trophies:tro,awards:Math.min(80,(p.awards||[]).length),score:Math.max(0,Math.min(2500,Math.round(upN(p._sc)))),born:y0,died:Math.max(y0,y0+Math.round(Math.max(0,upN(p.age))))}}
 // 結局上傳：先進佇列（存在這台裝置），逐筆送；同一生涯只送一次（p.id 去重）；送太快自動等 62 秒重試，網路失敗每 30 秒重試
 function uploadCareer(p){const done=lsj("fb-upd",[]);if(p&&done.includes(p.id)){upBtn("✔ 已上傳到全球排行榜",1);return}
  const q=lsj("fb-upq",[]);if(p&&!q.some(x=>x.pid==p.id)){q.push({pid:p.id,row:upRow(p)});lss("fb-upq",q)}flushUp()}
@@ -448,9 +449,10 @@ async function flushUp(){if(upBusy)return;upBusy=true;let wait=0;
  try{for(;;){const q=lsj("fb-upq",[]);if(!q.length){upBtn("✔ 已上傳到全球排行榜",1);try{loadBoard()}catch{}break}
   const it=q[0];it.row.device=devId();upBtn("上傳中…",1);
   let r=null;try{r=await fetch(SB+"fb_careers",{method:"POST",headers:{...SBH,Prefer:"return=minimal"},body:JSON.stringify(it.row)})}catch{}
-  if(r&&r.ok){const d=lsj("fb-upd",[]);d.push(it.pid);lss("fb-upd",d.slice(-200));lss("fb-upq",q.slice(1));toast("已上傳到全球排行榜");continue}
+  if(r&&r.ok){const d=lsj("fb-upd",[]);d.push(it.pid);lss("fb-upd",d.slice(-5000));lss("fb-upq",q.slice(1));toast("已上傳到全球排行榜");continue}
   const e=r?await r.json().catch(()=>({})):{},m=e.message||"";
-  if(r&&m!="too fast"&&m!="busy"&&r.status<500){lss("fb-upq",q.slice(1));toast(m=="bad words"?"名字含有不當字詞，無法上傳":"資料不符合排行榜規則，無法上傳："+(m||r.status));upBtn("🌍 上傳到全球排行榜");continue}
+  if(r&&m=="duplicate"){const d=lsj("fb-upd",[]);d.push(it.pid);lss("fb-upd",d.slice(-5000));lss("fb-upq",q.slice(1));continue} // 伺服器已經有一模一樣的生涯（重開舊證書、或清過本機紀錄），當作已上傳
+  if(r&&m!="too fast"&&m!="busy"&&r.status<500){lss("fb-upq",q.slice(1));toast(m=="bad words"?"名字含有不當字詞，無法上傳":(e.code=="23514"||/violates check constraint/.test(m))?"這段生涯的數字超出排行榜收錄範圍（不是你違規），這次不上傳":"伺服器沒收這筆（"+(m||r.status)+"），這次不上傳");upBtn("🌍 上傳到全球排行榜");continue}
   wait=m=="too fast"?62:30;upBtn(m=="too fast"?"等待上傳（約 1 分鐘）…":"連線失敗，稍後自動重試",1);break}}
  finally{upBusy=false}
  if(wait)setTimeout(flushUp,wait*1000)}
