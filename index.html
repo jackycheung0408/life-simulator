@@ -341,14 +341,14 @@ body{font-size:15px;line-height:1.6}
 <div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
-<script src="countries.js?v=76"></script>
+<script src="countries.js?v=77"></script>
 <script src="events.js?v=80"></script>
-<script src="life.js?v=79"></script>
+<script src="life.js?v=80"></script>
 <script src="pixel.js?v=76"></script>
 <script src="story.js?v=80"></script>
 <script src="realism.js?v=79"></script>
 <script src="events2.js?v=79"></script>
-<script src="taiwan.js?v=79"></script>
+<script src="taiwan.js?v=80"></script>
 <script src="foreshadow.js?v=76"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
@@ -421,7 +421,10 @@ function wpick(arr,w){let t=arr.reduce((a,x)=>a+w(x),0),r=R()*t;for(const x of a
 const CLS=["最貧困","貧困","中等","富裕","最富裕"],EDU=["沒上學","小學","中學","大學"];
 
 function newLife(w){
- const raw=wpick(C,x=>cfg.m=="birth"?x[1]:x[2]),c=world(raw,w);
+ const raw=wpick(C,x=>cfg.m=="birth"?x[1]:x[2]);
+ // 世界模式抽到台灣，改走台灣人生（有台灣的大事、抉擇、兵役；資料以 taiwan.js 為準，不再用 countries.js 那一列）
+ if(raw[0]=="台灣"&&typeof twLife=="function")return twLife(w=="past"?1960:w=="future"?2060:today.getFullYear());
+ const c=world(raw,w);
  const sex=R()<.51?"男":"女",cls=Math.floor(R()*5);
  const L={c,raw:raw[0],sex,name:pick(NAMES[REGION(raw[0])][sex]),age:0,cls,know:45+R()*10+cls*2,rel:55+R()*10,hist:[],inc:c.gdp*Math.exp((cls-2)*c.gini*1.4),health:70+R()*20+cls*2,happy:60,edu:0,
   money:0,partner:null,partnerYears:0,widowed:false,kids:0,grand:0,job:null,jobYears:0,smoke:false,abroad:null,alive:true,events:[],notes:[],

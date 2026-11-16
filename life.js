@@ -19,6 +19,7 @@ const urbanOf=c=>{const g=Math.min(.95,.2+Math.log10(Math.max(800,c.gdp))*.16-.3
 const URBAN=urbanOf;
 // 總生育率：由「每年出生數／人口」推算（TFR ≈ 粗出生率 × 0.15，與奈及利亞 5.1、剛果 6.2、美國 1.7、日本 1.0 吻合）；過去的世界另外抬高
 const fertOf=c=>{const byGdp=c.gdp<3000?5:c.gdp<8000?3.6:c.gdp<20000?2.3:1.6;
+ if(c.tw)return +c.tw.tfr.toFixed(1); // 台灣模式用歷年總生育率（taiwan.js 的 TW_YEARS）
  if(!c.cbr)return byGdp;
  const t=Math.max(.8,c.cbr*.15);
  return +(c.y0<1990?Math.max(t*1.5,byGdp):c.y0>2040?t*.9:t).toFixed(1)};

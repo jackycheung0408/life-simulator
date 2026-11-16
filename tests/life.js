@@ -12,7 +12,7 @@ global.navigator={};global.performance={now:()=>Date.now()};global.location={hre
 // 網頁會直接用元素 id 當變數（例如 go.onclick），先幫每個 id 放一個假元素
 for(const m of html.matchAll(/id="([A-Za-z_$][\w$]*)"/g))if(!(m[1] in global))global[m[1]]=el();
 let src=files.join("\n;\n")+"\n;\n"+inline.join("\n;\n");
-(0,eval)(src+`;auto=true;global.L_run=async(w)=>{P=newLife(w);S=[];let n=0;while(P.alive&&n++<130)await year(P);return P};global.T={SPEND,kidIn,setP:p=>{P=p},setS:v=>{S=v},urbanOf,fertOf,u5Rate,mortB,mortQ,mortRef,world,C,newLife,year,survival,get P(){return P}};`);
+(0,eval)(src+`;auto=true;global.L_run=async(w)=>{P=newLife(w);S=[];let n=0;while(P.alive&&n++<130)await year(P);return P};global.T={twLife,TW_YEARS,SPEND,kidIn,setP:p=>{P=p},setS:v=>{S=v},urbanOf,fertOf,u5Rate,mortB,mortQ,mortRef,world,C,newLife,year,survival,get P(){return P}};`);
 const DEEP=process.argv.includes("--deep"),N=+process.argv.find(a=>/^\d+$/.test(a))||30,fails=[];
 // ── 不變量（解析式）：每個國家、性別、家境，死亡率模型算出的出生時平均壽命要等於資料（< 0.05 歲）；5 歲前死亡合計 ≈ 嬰兒死亡率 × 1.3
 {let bad=0,worst=0;for(const raw of T.C)for(const w of ["now","past"])for(const sex of ["男","女"])for(const cls of [0,2,4]){const c=T.world(raw,w),ex=sex=="男"?c.mEx:c.fEx,L={c,cls,edu:0,ex,smoke:false},B=T.mortB(L);let s=1,e=0,u5=0;
@@ -32,6 +32,9 @@ const DEEP=process.argv.includes("--deep"),N=+process.argv.find(a=>/^\d+$/.test(
 {const sp=T.SPEND.find(e=>e.id=="parents");if(sp.ok({parentAlive:false})||!sp.ok({parentAlive:true}))fails.push("SPEND「帶爸媽吃飯」沒有檢查父母是否健在");
  const L={kids:1,age:35,kidList:[{born:0,name:"x",sex:"男",done:{}}],raw:"台灣"};if(T.kidIn(L,6,17))fails.push("孩子 35 歲時仍觸發 6～17 歲的孩子事件");
  L.age=10;if(!T.kidIn(L,6,17))fails.push("孩子 10 歲時應該能觸發 6～17 歲的孩子事件")}
+// ── 不變量（台灣）：countries.js 的台灣列和 taiwan.js 的歷年表（2025、1960）一致
+{const row=T.C.find(x=>x[0]=="台灣"),y25=T.TW_YEARS.find(r=>r[0]==2025),y60=T.TW_YEARS.find(r=>r[0]==1960);
+ if(row[3]!=y25[1]||row[4]!=y25[2]||row[5]!=y25[3]||row[6]!=y25[4]||row[10]!=y60[1]||row[11]!=y60[2]||row[12]!=y60[4])fails.push("countries.js 的台灣列和 taiwan.js 的 TW_YEARS（2025／1960）數值不一致")}
 // ── 不變量（逐年）：每一年之後檢查狀態有沒有不可能的組合；之後新增的規則也往 yearChecks 加
 const yearChecks=[
  L=>L.edu>=3&&L.age<18?`${L.age} 歲就有大學學歷`:null,
@@ -45,7 +48,7 @@ const yearChecks=[
  L=>{const g=L.gap||0,bad=L.caregiver&&L.parentAlive&&L._pg!=null&&g>L._pg;L._pg=g;return bad?"照顧父母期間又被當成待業找工作（空窗年數增加）":null},
  L=>L.partner&&!L.partnerName&&L.age>25?"有伴侶卻沒有名字":null,
 ];
-{const bad=new Set();for(let i=0;i<240;i++){const L=T.newLife(["now","past","future"][i%3]);if(i%4==0)L.twNoKid=true;T.setP(L);T.setS([]);let n=0;while(L.alive&&n++<130){await T.year(L);for(const c of yearChecks){const m=c(L);if(m)bad.add(m)}}}
+{const bad=new Set();for(let i=0;i<300;i++){const L=i>=240?T.twLife([1950,1965,1980,1994,2010,2025][i%6]):T.newLife(["now","past","future"][i%3]);if(i%4==0)L.twNoKid=true;T.setP(L);T.setS([]);let n=0;while(L.alive&&n++<130){await T.year(L);for(const c of yearChecks){const m=c(L);if(m)bad.add(m)}}}
  for(const m of bad)fails.push("逐年檢查："+m)}
 // ── 深度檢查（node tests/life.js --deep，約 3000 段、幾分鐘）：各所得層、性別的平均死亡年齡 vs 資料平均壽命差距 < 3 年
  if(DEEP){const tiers={};for(let i=0;i<3000;i++){const p=await L_run("now"),t=(p.c.gdp<8000?"低":p.c.gdp<30000?"中":"高")+p.sex;(tiers[t]=tiers[t]||[]).push([p.age,p.ex])}
