@@ -19,7 +19,7 @@ global.performance={now:()=>Date.now()};global.location={href:"",host:"",pathnam
 (0,eval)(src+"\n;"+migSrc+`;auto=true;secPerSeason=0;mult=1e6;
 animMatch=async()=>{};quietYear=async()=>{};
 global.T_run=async(w,mode)=>{P=newPlayer(w,"?");P.mode=mode;starsInit(P,"real");while(P.alive&&!P.footEnd){await season();save()}return P};
-global.T_CL=CLUBS;global.T_TOP5=TOP5;global.T_CONT=CONT;global.T_contOk=contOk;global.T_EU7=EU7;global.T_SAVE_VER=SAVE_VER;global.T_ATTR=ATTR;global.T_migrate=typeof migrate=="function"?migrate:null;`);
+global.T_CL=CLUBS;global.T_TOP5=TOP5;global.T_CONT=CONT;global.T_contOk=contOk;global.T_EU7=EU7;global.T_SAVE_VER=SAVE_VER;global.T_ATTR=ATTR;global.T_SAGA=SAGA;global.T_migrate=typeof migrate=="function"?migrate:null;`);
 
 const N=Math.max(40,+process.argv[2]||40);/* 很快，所以至少跑 40 段 */const fails=[];const check=(ok,msg)=>{if(!ok)fails.push(msg)};
 (async()=>{const t0=Date.now();let pro=0,crash=0,maxSave=0,badOpp=0,badStar=0,titles=0,seasons=0;
@@ -35,7 +35,12 @@ const N=Math.max(40,+process.argv[2]||40);/* 很快，所以至少跑 40 段 */c
   for(const s of p.stars||[])for(const [age,cn] of s.moves){const c=T_CL.find(x=>x.name==cn);if(c&&c.ct!=s.c&&(["台灣","中國","日本","韓國","奈及利亞"].includes(c.ct)||(["美國","沙烏地阿拉伯"].includes(c.ct)&&age<30)))badStar++}
   // 數值不能壞掉
   check(Number.isFinite(p.fame)&&Number.isFinite(p.money)&&Number.isFinite(p.peak),`第 ${i} 局有 NaN`);
-  check(p.peak<=99,`第 ${i} 局巔峰超過 99`)}
+  check(p.peak<=99,`第 ${i} 局巔峰超過 99`);
+  // 主線：每個人生都有明確、固定的主線；沒踢上職業的不會被判成職業主線（傷病重生、爭議人物…）
+  {const k=sagaOf(p),pro=["prodigy","late","injury","nomad","loyal","hero","rebel","leader"];check(!!T_SAGA[k]&&sagaOf(p)===k,`第 ${i} 局主線 ${k} 不存在或不固定`);check(p.debut||!pro.includes(k),`第 ${i} 局沒踢上職業卻被判成職業主線 ${k}`)}
+  // 能力、身價、年薪的邊界；退休後不能還掛著球隊
+  for(const s of p.seasons){check(Number.isFinite(s.ovr)&&s.ovr>=1&&s.ovr<=99,`第 ${i} 局 ${s.y} 年能力 ${s.ovr} 超出 1～99`);check(Number.isFinite(s.val)&&s.val>0,`第 ${i} 局 ${s.y} 年身價 ${s.val} 不合理`);check(Number.isFinite(s.wage)&&s.wage>=0&&s.wage<200,`第 ${i} 局 ${s.y} 年年薪 ${s.wage} 不合理`)}
+  if(p.retired)check(!p.club&&!p.clubObj&&p.retireAge<=p.age,`第 ${i} 局已退休卻還掛著球隊或退休年齡錯`)}
  check(crash==0,`有 ${crash} 局當掉`);
  check(badOpp==0,`有 ${badOpp} 場大比賽對手不合理`);
  check(badStar==0,`有 ${badStar} 次球星轉到不合理的聯賽`);

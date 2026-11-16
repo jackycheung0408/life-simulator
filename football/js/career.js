@@ -112,7 +112,7 @@ const TAC={控球:["傳球","盤帶"],防守反擊:["速度","防守"],高位壓
 function clubStyle(c){let h=0;for(const ch of c.name)h=(h*31+ch.charCodeAt(0))%997;return Object.keys(TAC)[h%6]}
 function styleFit(p,st){const k=TAC[st];if(!k||p.pos=="GK")return 0;const avg=ATTR.reduce((t,a)=>t+p.a[a],0)/6;return clamp(((p.a[k[0]]+p.a[k[1]])/2-avg)/3,-3,3)}
 function roleOf(p,c){const st=p.club==c.name&&p.coachStyle?p.coachStyle:clubStyle(c);const g=styleFit(p,st)+ovr(p)-c.str+(rel(p,"coach")-50)/10+T(p,"職業態度")+T(p,"領袖")-T(p,"火爆");return p.age<17||g<-10?"預備隊":g<-5?"替補":g<0?"輪換":"主力"}
-function wageOf(c,p){const W=(P&&P.world)||{},wm=(W.crisis&&W.crisis.until>=p.age&&W.crisis.lg==c.lg?.7:1)*(W.boom&&W.boom.until>=p.age&&W.boom.ct==c.ct?2:1);return wm*Math.max(.003,.6*(1+(rel(p,"agent")-50)/250)*c.pay*Math.pow(1.12,ovr(p)-c.str)*(1+Math.min(1.5,p.fame/250)))} // 百萬歐元／年：頂級聯賽一般球員約 €5M，巨星可到 €30M 以上
+function wageOf(c,p){const W=(P&&P.world)||{},wm=(W.crisis&&W.crisis.until>=p.age&&W.crisis.lg==c.lg?.7:1)*(W.boom&&W.boom.until>=p.age&&W.boom.ct==c.ct?2:1);return wm*Math.max(.003,.6*(1+(rel(p,"agent")-50)/250)*c.pay*Math.pow(1.12,clamp(ovr(p)-c.str,-30,30))*(1+Math.min(1.5,p.fame/250)))} // 百萬歐元／年：頂級聯賽一般球員約 €5M，巨星可到 €30M 以上
 function sign(c,yrs){const p=P;if(!c)return;p.coachStyle=clubStyle(c);setTimeout(()=>{if(P===p&&p.club==c.name&&p._styleSaid!=c.name+p.coachStyle&&(p._styleSaid=c.name+p.coachStyle))say(`${c.name}的總教練偏好「${p.coachStyle}」，看重${TAC[p.coachStyle].join("、")}${styleFit(p,p.coachStyle)>=1?"，正好是你的強項":styleFit(p,p.coachStyle)<=-1?"，不是你的強項":""}。`)},0);meet(p,"coach",null,50+3*T(p,"職業態度")-3*T(p,"火爆"));if(!p.rel?.mate||R()<.5)meet(p,"mate",null,45+R()*15);(p.moves=p.moves||[]).push({y:p.y0+p.age,age:p.age,from:p.club||p.stage,to:c.name,lg:c.lg,fee:p._fee||0,type:p._fee?"轉會":p.club?"自由轉會":"首份合約",yrs});p._fee=0;if(p.club&&p.club!==c.name)say(`離開${p.club}。`);p.club=c.name;p.clubObj=c;p.contract=yrs;p.wage=wageOf(c,p);if(!p.clubsPlayed.includes(c.name))p.clubsPlayed.push(c.name);say(`和${c.name}簽下 ${yrs} 年合約，年薪 ${eur(p.wage)}。`,1)}
 // ── 現實的淘汰關卡：大多數孩子會在某一關停下來 ──
 function proRescue(p){const o=ovr(p),home=poolFor(P).filter(c=>c.ct==p.c).sort((a,b)=>a.str-b.str)[0],any=poolFor(P).filter(x=>x.tier>=Math.min(2,p.ctier)||x.ct==p.c).sort((a,b)=>Math.abs(a.str-o-8)-Math.abs(b.str-o-8))[0],c=home&&home.str<=o+14?home:any;
@@ -310,7 +310,7 @@ async function lifeOff(){
 async function retireCheck(){
  const p=P,o=ovr(p);if(p.lastSeason){retire("踢完最後一季，在全場起立鼓掌中退休。");return}
  if(p.age>=40||(p.age>=24&&o<45)){retire("身體已經跟不上，宣布退休。");return}
- if((p.age>=34+T(p,"會保養")+T(p,"自律")+(p.retireBonus||0)&&R()<.3)||(p.age>=30&&o<p.clubObj.str-12))await ask(`${p.age} 歲，要繼續踢下去嗎？`,[["再踢一季",()=>{},"能力會持續下滑"],["退休，留下美好的回憶",()=>retire("宣布退休，向球迷告別。"),""],["到美國或沙烏地踢最後幾年",()=>{const c=pick(poolFor(P).filter(x=>x.ct=="沙烏地阿拉伯"||x.ct=="美國"));sign(c,2)},"收入高 · 競爭低"]]);
+ if((p.age>=34+T(p,"會保養")+T(p,"自律")+(p.retireBonus||0)&&R()<.3)||(p.age>=30&&p.clubObj&&o<p.clubObj.str-12))await ask(`${p.age} 歲，要繼續踢下去嗎？`,[["再踢一季",()=>{},"能力會持續下滑"],["退休，留下美好的回憶",()=>retire("宣布退休，向球迷告別。"),""],["到美國或沙烏地踢最後幾年",()=>{const c=pick(poolFor(P).filter(x=>x.ct=="沙烏地阿拉伯"||x.ct=="美國"));sign(c,2)},"收入高 · 競爭低"]]);
 }
 function retire(t){const p=P;p.retired=true;p.retireAge=p.age;say(t,1);p.club=null;p.clubObj=null}
 // 退休第一年：告別賽、球衣退役、俱樂部名人堂
@@ -611,6 +611,9 @@ function sagaOf(p){const ss=p.seasons||[],pk=ss.length?ss.reduce((a,b)=>b.ovr>a.
  sc.hero=p.caps>=30?2.5+p.caps/100:0;
  sc.rebel=(p.sagaBan||p.banned||(T(p,"拚命")>=2&&(p.pop??50)<45))?3:0;
  sc.leader=(T(p,"球商")>=2||(p.mind=="冷靜"&&p.age>=28))&&p.debut?2:0;
+ // 沒踢上職業的人不套用職業主線（傷病重生、爭議人物…都是以職業生涯為前提；沒踢上的走下面的「傷病夢碎」等結局型主線）
+ if(!p.debut)for(const k in sc)sc[k]=0;
+ // 分數相同時照上面宣告的順序，先宣告的贏（prodigy > late > injury > nomad > loyal > hero > rebel > leader），不隨機，同一人生每次結果一致
  let best=null,bv=0;for(const k in sc)if(sc[k]>bv){bv=sc[k];best=k}
  if(best)return best;if(p.debut)return"journey";
  const h=[...String(p.id||p.name)].reduce((a,c)=>a*31+c.charCodeAt(0)|0,7),o=[];
