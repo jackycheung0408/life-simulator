@@ -342,13 +342,13 @@ body{font-size:15px;line-height:1.6}
 <button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
 
 <script src="countries.js?v=77"></script>
-<script src="events.js?v=82"></script>
+<script src="events.js?v=83"></script>
 <script src="life.js?v=80"></script>
 <script src="pixel.js?v=76"></script>
-<script src="story.js?v=80"></script>
-<script src="realism.js?v=79"></script>
+<script src="story.js?v=81"></script>
+<script src="realism.js?v=80"></script>
 <script src="events2.js?v=81"></script>
-<script src="taiwan.js?v=80"></script>
+<script src="taiwan.js?v=81"></script>
 <script src="foreshadow.js?v=76"></script>
 <script>
 const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
@@ -755,7 +755,7 @@ async function loop(){renderShop();
  setTimeout(finish,1200);
 }
 function story(L){
- const t=[`出生在${L.c.name}${L.c.city}一個${CLS[L.cls]}階層的家庭，是個${L.sex=="男"?"男孩":"女孩"}。`];
+ const t=[`出生在${L.c.name}${L.fam&&!L.fam.urban?"的鄉村":L.c.city}一個${CLS[L.cls]}階層的家庭，是個${L.sex=="男"?"男孩":"女孩"}。`];
  t.push(L.edu==3?"讀完了大學。":L.edu==0?"一生沒有上過學。":`最高讀到${EDU[L.edu]}。`);
  const j=L.job||L.lastJob||L.lostJob;if(j)t.push(`當${j}${L.jobYears>5?"多年":""}。`);
  if(L.abroad)t.push(`後來移居${L.abroad}。`);

@@ -112,7 +112,7 @@ const EVENTS=[
  [35,75,.015,L=>true,L=>ask(L,"被診斷出癌症，要接受治療嗎？",[["接受治療",()=>{L.money-=L.inc*(RICH(L.c)?.3:1.5)*(L.ins&&L.ins.med?.2:1);if(R()<(RICH(L.c)?.75:.4)){L.health-=5;say(L,"治療成功，病情控制住了。")}else{L.health-=25;say(L,"治療效果不好。")}}],["不治療",()=>{L.health-=35}]])],
  [35,70,.03,L=>false,L=>{L.happy+=6;say(L,pick(["孩子大學畢業了。","孩子結婚了。","孩子第一次帶薪水回家。"]))}], // 已由 story.js 的 KID_EVENTS（依孩子年齡、k.married）取代；保留這一格避免舊存檔的事件索引錯位
  [35,65,.015,L=>L.kids,L=>{L.happy-=6;say(L,"和孩子為了一件事冷戰了很久。")}],
- [40,70,.02,L=>(L.friends||0)>0,L=>{L.happy+=5;say(L,"和童年好友重逢，聊了一整晚。")}],
+ [40,70,.02,L=>(L.friends||0)>0&&(!L.pals||L.pals.some(p=>!p.gone)),L=>{L.happy+=5;say(L,"和童年好友重逢，聊了一整晚。")}],
  [40,80,.01,L=>L.abroad,L=>{say(L,`成為${L.abroad}公民。`);sayHi(L,`成為${L.abroad}公民。`)}],
  [45,80,.03,L=>L.parentAlive&&!L.careAsked,L=>{L.careAsked=true;return ask(L,"年邁的父母需要人照顧，要怎麼做？",[["搬回去照顧",()=>{L.caregiver=true;L.happy-=3;L.inc*=.9;sayHi(L,"在身邊照顧年邁的父母。")}],["請人照顧",()=>{L.money-=L.inc*.4}]])}],
  [55,90,.03,L=>true,L=>{L.happy+=4;say(L,pick(["開始學一樣新東西。","每天早上去公園散步。","種了一小片菜園。"]))}],

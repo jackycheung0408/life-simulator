@@ -235,7 +235,7 @@ function renderBoards(){
   (house?brow("房子市值",moneyShort(house)):"")+(loan?brow("房貸未還",`−${moneyShort(loan)}`):"")+brow("淨資產",`<span style="color:${net>=0?"var(--g)":"var(--ac)"}">${net<0?"−":""}${moneyShort(Math.abs(net))}</span>`)+
   brow("保險",L.ins?[L.ins.med&&"醫療",L.ins.acc&&"意外",L.ins.life&&"壽險"].filter(Boolean).join("、"):"沒有");
  // 人際關係
- const fam=[];if(L.fam){if(L.fam.fatherAlive!==false&&L.parentAlive!==false)fam.push("爸媽");}
+ const fam=[];if(L.fam){if(L.parentAlive!==false)fam.push("爸媽");}
  const ppl=(L.partner?`<div class="br"><span>❤ ${L.partnerName||"伴侶"}</span><b>${L.loveDmg>=2?"關係緊張":"感情穩定"}</b></div>`:L.divorced?brow("感情","離婚"):L.widowed?brow("感情","伴侶已過世"):brow("感情","單身"))+
   (L.kidList||[]).map(k=>brow(`${k.sex=="男"?"👦":"👧"} ${k.name}`,`${L.age-k.born} 歲`)).join("")+
   (L.pals||[]).map(f=>`<div class="br"><span>${f.name}</span><b>${f.gone?"已過世":f.faded?"很少聯絡":f.close>70?"摯友":"朋友"}</b></div>${f.gone?"":bbar(f.close,100,"var(--b)")}`).join("")+
@@ -281,7 +281,7 @@ function deathCard(L){
  const c=L.c,place=c.tw?"台灣 "+c.tw.county:c.name,net=(L.mhist||[]).filter(x=>x!=null).pop()??L.money,diff=L.age-Math.round(L.ex);
  const cells=[["享年",L.age+" 歲"],["教育",EDU[L.edu]],["工作",L.lastJob||L.job||L.lostJob||"—"],["伴侶",L.partner?(L.partnerName||"有"):L.widowed?"已先離開":L.divorced?"離婚":"單身"],["孩子",(L.kids||0)+" 人"],["孫子女",(L.grand||0)+" 人"],["淨資產",(net<0?"−":"")+moneyShort(Math.abs(net))],["做過的抉擇",L.events.filter(e=>/→/.test(e)).length+" 次"]];
  return `<div class="dc">
-  <div class="dc-top"><div><div class="dc-title">人生證書</div><div class="dc-mut">CERTIFICATE OF A LIFE</div></div><div class="dc-seal">圓滿</div></div>
+  <div class="dc-top"><div><div class="dc-title">人生證書</div><div class="dc-mut">CERTIFICATE OF A LIFE</div></div><div class="dc-seal">${L.age<5?"夭折":L.age<L.ex-15?"早逝":"圓滿"}</div></div>
   <div class="bc-id"><canvas id="endAvatar" width="80" height="80"></canvas><div><div class="dc-mut">姓名</div><div class="bc-name">${L.name}</div><div class="dc-years">${c.y0} — ${c.y0+L.age}</div><div class="bc-tags dc-tags"><span>${L.sex=="男"?"♂":"♀"} ${place}</span><span>${title(L)}</span></div></div></div>
   <p class="dc-line">${L.age} 歲時因${L.cause||"衰老"}離開人世，${diff>=0?`比當地平均壽命多活了 ${diff} 年`:`比當地平均壽命早了 ${-diff} 年`}。</p>
   <div class="dc-grid">${cells.map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join("")}</div>

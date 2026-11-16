@@ -3,7 +3,7 @@
 純靜態網站，推到 main 就由 GitHub Pages 部署：https://jackycheung0408.github.io/life-simulator/
 
 ## 三個遊戲
-- **人生模擬器**（根目錄）：`index.html`，主要邏輯在 `life.js`、`events.js`、`events2.js`、`story.js`、`foreshadow.js`、`realism.js`；國家資料 `countries.js`、`taiwan.js`；測試 `node tests/life.js`
+- **人生模擬器**（根目錄）：`index.html`（含死亡率、年度流程 `year()`），主要邏輯在 `life.js`、`events.js`、`events2.js`、`story.js`、`foreshadow.js`、`realism.js`、`pixel.js`（像素人物畫面）；國家資料 `countries.js`、`taiwan.js`；測試 `node tests/life.js`（解析式不變量＋逐年檢查，約幾秒）、`node tests/life.js --deep`（3000 段人生對照各所得層、性別的平均死亡年齡，約 1～2 分鐘）；詳見下方「人生模擬器：校準與不變量」
 - **足球員模擬器**（`football/`）：
   - `js/data.js`：國家、聯賽、球會、能力（FACE／DPW 權重、ovr、rateAt、value）、發育曲線 `DEVC`／`devFrac`、存檔版本常數 `SAVE_VER`、`newPlayer`
   - `js/events.js`：問答視窗 ask、關鍵時刻、機率動畫、訓練成長
@@ -25,6 +25,18 @@
 - 回覆用繁體中文，簡短
 - 改了檔案分工、部署流程或規則，就順手更新這份 CLAUDE.md（使用者不想手動維護）
 - Supabase 專案 gerqdagicybtyilihvvm；SQL 放在 `supabase/`
+
+## 人生模擬器：校準與不變量（2026-11 審查後修復）
+- **死亡率已校準到資料**（`index.html` 的 `mortality`／`mortB`／`mortQ`／`mortRef`、`life.js` 的 `survival`）：0 歲 = 嬰兒死亡率、1～4 歲每年 = 嬰兒死亡率 × 7.5%（5 歲前合計 ≈ IMR × 1.3，`u5Rate` 同時是出生登記卡的數字）、5 歲起 Gompertz（b = .085）＋底噪；每個「國家＋性別＋家境＋學歷」用二分法解出 B，讓出生時平均壽命剛好等於 `countries.js` 的男壽／女壽（基準健康 = `statBase` 曲線 + `MORT_REFOFF` 3，因為實際遊玩時健康平均比基準高）。**不要再把 ex 當眾數用**（舊版平均死亡年齡比資料短 8～12 年）。改死亡率或 `statBase` 後要跑 `node tests/life.js --deep`，各層差距要 < 3 年。
+- 家人與人口（`life.js`）：手足最多讓最大的哥姊出生時母親 ≥ 16 歲；父母職業池 `jobPool(cls,low)` 先看家境再看國家貧富；總生育率 `fertOf(c)` = 每年出生數／人口 × 1.5（台灣用 `TW_YEARS` 的歷年值）；都市比例 `urbanOf(c)` 查 `URB_TAB`（新加坡、香港、澳門 100%）沒列才用所得公式。
+- **狀態不變量**：`tests/life.js` 的 `yearChecks`（逐年檢查，含台灣人生）：屬性 0～100（`clampStats` 在 `year()` 死亡判定前統一夾）、18 歲前不可有大學學歷或孩子、`twNoKid` 後不再有孩子、有伴侶就有名字且 `partnerYears` 合理、`caregiver` 在雙親過世後清除。新增狀態規則時往 `yearChecks` 加一條。
+- **新伴侶一律走 `newPartner(L,name)`**（`realism.js`：重設 `partnerYears`／`wedDone`／`loveDmg`／`pInc`，`divorced`／`widowed` 清除），離婚一律走 `divorce()`（財產對半）。
+- 照顧父母：三套事件（`events.js`、`taiwan.js`、`story.js`）共用 `L.careAsked`，一生只問一次；`L.caregiver` 照顧期間不會 rehire／jobHunt，雙親過世（`familyEvents`）清掉。
+- 事件的「已發生」記在陣列**索引**（`L.done[i]`、`L.moreSeen[i]`、realism 的 MISHAPS 同理）：**新增事件一律加在陣列最後**，不要中間插入或刪除（不要的事件把條件改成 `L=>false` 保留位置）。`ask` 在忙碌期間（`lockUntil`）會略過非 `MUST_ASK` 的抉擇並設 `L.askSkipped`，一次性事件看到就把 done／moreSeen 還原。孩子相關事件用 `kidIn(L,lo,hi)` 看孩子年齡，不要只看 `L.kids`。
+- 台灣：役期依**出生年次**（≤1970 兩到三年、1971–80 將近兩年、1981–93 一年、1994–2004 四個月、2005 起一年，2013／2024 兩次改制已查證）；`countries.js` 的台灣列要和 `taiwan.js` 的 `TW_YEARS`（2025、1960）一致（測試會比）；**世界模式抽到台灣時走 `twLife`**（`newLife` 開頭）；童婚最低 16 歲（2023 起 18）。
+- `isAfrica(n)`（`events.js`）用 `REGION` 的西非／東非／中非／非洲之角／南非加蘇丹、茅利塔尼亞，扣掉南非、波札那、史瓦帝尼、賴索托、納米比亞、模里西斯、維德角（瘧疾權重用）。HISTORY 的 `war:true` 事件會記 `L.warEnd`，`causeOf` 戰爭期間多一個「戰爭」死因。
+- 金錢：投資本金每年也被通膨吃掉（`investYear`）；朋友投資事件期望值略負；**開銷上限 76%～92% 收入的調適機制保留**（模擬過改成可赤字，1500 段人生 65 歲時 60～95% 的人負債 2～11 倍人均 GDP，不可行；目前 65 歲負債比：低所得 37～45%、中所得 24～32%、高所得 10～18%，改金錢機制前後用 `wealth` 類模擬對照）。
+- 還沒做（審查提到）：其他徵兵國家（以色列、新加坡、土耳其、北韓等）的兵役只有台灣與韓國有；`friends`（events.js 隨機好友）與 `pals`（realism.js 三位會疏遠過世的朋友）兩套朋友系統沒有合併，只讓「童年好友重逢」檢查 `pals`；事件沒有穩定 id（只靠索引規則）。
 
 ## 改檔習慣
 - 中文 Python heredoc 容易出現編碼錯誤：先寫成 .py 檔，再用 `exec(compile(open(f,encoding="utf-8").read(),"p","exec"))` 執行
