@@ -184,7 +184,7 @@ function shopWallet(L){return !L.job&&L.age<22?"parents":"self"}
 function renderShop(){
  const el=$("shop");if(!el||!P)return;const L=P,mode=shopWallet(L),y=L.age;
  if(L.shopYear!==y){L.shopYear=y;L.shopCnt={};L.pocket=allowance(L)}
- const left=mode=="parents"?L.pocket:L.money,items=SHOP.filter(s=>y>=s[1]&&y<=s[2]);
+ const left=mode=="parents"?L.pocket:L.money,items=SHOP.filter(s=>y>=s[1]&&y<=s[2]&&(s[0]!="請爸媽吃飯"||L.parentAlive!==false));
  el.innerHTML=`<p style="margin:10px 0 4px"><b>花錢</b> <span class="mut">${mode=="parents"?`還沒工作，花的是爸媽給的零用錢：今年剩 ${money(Math.max(0,left))}`:`花自己的存款：${money(left)}`}</span></p>`+
   items.map((s,i)=>{const cost=s[3]*L.c.gdp,used=(L.shopCnt[s[0]]||0)>=s[5],poor=cost>left&&mode=="parents";
    return `<button class="buy" data-n="${s[0]}" ${used||poor?"disabled":""}>${s[0]}<small>${money(cost)}${used?" · 今年買過了":""}</small></button>`}).join("");

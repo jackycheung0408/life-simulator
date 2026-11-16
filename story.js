@@ -42,6 +42,8 @@ const KID_EVENTS=[
  [24,34,.12,(L,k)=>{if(k.married)return null;k.married=true;const cost=L.c.gdp*.35;L.money-=cost;ledger(L,"資助孩子結婚",-cost);L.happy+=6;return `${k.name}結婚了。你出了一筆錢幫忙辦婚禮。`}],
  [26,40,.08,(L,k)=>{if(k.left)return null;k.left=true;return `${k.name}搬出去住了，家裡突然安靜好多。`}],
 ];
+// 有沒有一個（還在家／沒離世）的孩子，年齡落在 lo～hi 歲；舊存檔沒有 kidList 時當作有
+const kidIn=(L,lo,hi)=>{if(!L.kids)return false;syncKids(L);return L.kidList.some(k=>!k.gone&&L.age-k.born>=lo&&L.age-k.born<=hi)};
 function kidEvents(L){
  syncKids(L);
  for(const k of L.kidList){const a=L.age-k.born;if(a<=0||k.gone)continue;
@@ -81,7 +83,7 @@ const SPEND=[
  {id:"phone",min:14,max:80,cost:L=>L.c.gdp*.03,q:"新手機出了，你的舊手機越來越卡",yes:"換新的",y:L=>{L.happy+=3},no:"再撐一年",n:()=>{}},
  {id:"car",once:1,min:22,max:60,cost:L=>L.c.gdp*.6,q:"想買一台車，通勤和帶家人出門都方便",yes:"買車",y:L=>{L.happy+=5;L.car=true},no:"繼續搭車騎車",n:()=>{}},
  {id:"class",min:18,max:60,cost:L=>L.c.gdp*.05,q:"看到一門想上的課程（語言、證照、才藝）",yes:"報名",y:L=>{L.know+=5;if(L.job)L.inc*=1.02},no:"算了",n:()=>{}},
- {id:"parents",min:22,max:65,cost:L=>L.inc*.06,q:"爸媽年紀大了，想帶他們好好吃一頓、包個紅包",yes:"包大一點",y:L=>{L.rel+=4;L.happy+=3},no:"意思一下就好",n:L=>{L.rel+=1}},
+ {id:"parents",ok:L=>L.parentAlive!==false,min:22,max:65,cost:L=>L.inc*.06,q:"爸媽年紀大了，想帶他們好好吃一頓、包個紅包",yes:"包大一點",y:L=>{L.rel+=4;L.happy+=3},no:"意思一下就好",n:L=>{L.rel+=1}},
  {id:"reno",once:1,min:30,max:70,cost:L=>L.c.gdp*.4,q:"家裡老舊，想整修一下",yes:"整修",y:L=>{L.happy+=5;L.health+=1},no:"住得下去就好",n:()=>{}},
  {id:"pet",once:1,min:10,max:70,cost:L=>L.c.gdp*.05,q:"路邊有隻小狗一直跟著你",yes:"帶回家養",y:L=>{L.happy+=7;L.pet=L.age},no:"送到收容所",n:()=>{}},
  {id:"checkup",min:40,max:85,cost:L=>L.c.gdp*.04,q:"醫院推出自費健康檢查",yes:"去做",y:L=>{L.health+=4},no:"身體還好，不用",n:()=>{}},
@@ -92,7 +94,7 @@ async function spendYear(L){
  if(L.lent&&L.age-L.lentAt>=2&&R()<.3){if(R()<.6){L.money+=L.lent;say(L,`朋友把之前借的 ${money(L.lent)} 還給你了。`)}else{L.rel-=2;say(L,"借出去的錢，朋友一直沒還，也不好意思開口。")}L.lent=0}
  if(L.age<14||R()>.3||L.money<=0&&L.age<22)return;
  L.spent=L.spent||{};
- const ok=SPEND.filter(e=>L.age>=e.min&&L.age<=e.max&&!(e.once&&L.spent[e.id])&&fated(L,"sp"+e.id,.6));if(!ok.length)return;
+ const ok=SPEND.filter(e=>L.age>=e.min&&L.age<=e.max&&(!e.ok||e.ok(L))&&!(e.once&&L.spent[e.id])&&fated(L,"sp"+e.id,.6));if(!ok.length)return;
  const e=pick(ok),cost=Math.max(e.cost(L),1);
  await ask(L,e.q,[[e.yes,()=>{L.spent[e.id]=1;L.money-=cost;ledger(L,"花費",-cost);e.y(L)},`約 ${money(cost)}`,cost],["花少一點，挑便宜的",()=>{L.money-=cost*.4;ledger(L,"花費",-cost*.4);L.happy+=2},`約 ${money(cost*.4)}`,cost*.4],[e.no,()=>{e.n(L)},"省下來"]]);
 }

@@ -12,7 +12,7 @@ global.navigator={};global.performance={now:()=>Date.now()};global.location={hre
 // 網頁會直接用元素 id 當變數（例如 go.onclick），先幫每個 id 放一個假元素
 for(const m of html.matchAll(/id="([A-Za-z_$][\w$]*)"/g))if(!(m[1] in global))global[m[1]]=el();
 let src=files.join("\n;\n")+"\n;\n"+inline.join("\n;\n");
-(0,eval)(src+`;auto=true;global.L_run=async(w)=>{P=newLife(w);S=[];let n=0;while(P.alive&&n++<130)await year(P);return P};global.T={setP:p=>{P=p},setS:v=>{S=v},urbanOf,fertOf,u5Rate,mortB,mortQ,mortRef,world,C,newLife,year,survival,get P(){return P}};`);
+(0,eval)(src+`;auto=true;global.L_run=async(w)=>{P=newLife(w);S=[];let n=0;while(P.alive&&n++<130)await year(P);return P};global.T={SPEND,kidIn,setP:p=>{P=p},setS:v=>{S=v},urbanOf,fertOf,u5Rate,mortB,mortQ,mortRef,world,C,newLife,year,survival,get P(){return P}};`);
 const DEEP=process.argv.includes("--deep"),N=+process.argv.find(a=>/^\d+$/.test(a))||30,fails=[];
 // ── 不變量（解析式）：每個國家、性別、家境，死亡率模型算出的出生時平均壽命要等於資料（< 0.05 歲）；5 歲前死亡合計 ≈ 嬰兒死亡率 × 1.3
 {let bad=0,worst=0;for(const raw of T.C)for(const w of ["now","past"])for(const sex of ["男","女"])for(const cls of [0,2,4]){const c=T.world(raw,w),ex=sex=="男"?c.mEx:c.fEx,L={c,cls,edu:0,ex,smoke:false},B=T.mortB(L);let s=1,e=0,u5=0;
@@ -28,6 +28,10 @@ const DEEP=process.argv.includes("--deep"),N=+process.argv.find(a=>/^\d+$/.test(
  if(T.urbanOf(get("日本"))<.9)fails.push("日本都市人口應約 92%");
  if(T.fertOf(get("奈及利亞"))<4.5)fails.push(`奈及利亞總生育率應約 5（算出 ${T.fertOf(get("奈及利亞"))}）`);
  if(T.fertOf(get("日本"))>1.5)fails.push(`日本總生育率應 < 1.5（算出 ${T.fertOf(get("日本"))}）`)}
+// ── 不變量（事件對象狀態）：父母過世後不會再「帶爸媽吃飯」；孩子年齡不在範圍內就不會有「孩子在學校…」
+{const sp=T.SPEND.find(e=>e.id=="parents");if(sp.ok({parentAlive:false})||!sp.ok({parentAlive:true}))fails.push("SPEND「帶爸媽吃飯」沒有檢查父母是否健在");
+ const L={kids:1,age:35,kidList:[{born:0,name:"x",sex:"男",done:{}}],raw:"台灣"};if(T.kidIn(L,6,17))fails.push("孩子 35 歲時仍觸發 6～17 歲的孩子事件");
+ L.age=10;if(!T.kidIn(L,6,17))fails.push("孩子 10 歲時應該能觸發 6～17 歲的孩子事件")}
 // ── 不變量（逐年）：每一年之後檢查狀態有沒有不可能的組合；之後新增的規則也往 yearChecks 加
 const yearChecks=[
  L=>L.edu>=3&&L.age<18?`${L.age} 歲就有大學學歷`:null,
@@ -38,7 +42,7 @@ const yearChecks=[
  L=>L.partner&&L.partnerYears>L.age-12?`相伴 ${L.partnerYears} 年但只有 ${L.age} 歲（再婚沒重設年數）`:null,
  L=>L.c.tw&&L.childMarriage&&L.age-L.partnerYears<16?"台灣女生 16 歲前結婚（民法最低 16 歲）":null,
  L=>L.caregiver&&!L.parentAlive?"雙親都過世了，照顧狀態還在":null,
- L=>L.caregiver&&L.parentAlive&&!L.job&&L.age<65&&L.age>=22&&L.gap>0?"照顧父母期間又被當成待業找工作":null,
+ L=>{const g=L.gap||0,bad=L.caregiver&&L.parentAlive&&L._pg!=null&&g>L._pg;L._pg=g;return bad?"照顧父母期間又被當成待業找工作（空窗年數增加）":null},
  L=>L.partner&&!L.partnerName&&L.age>25?"有伴侶卻沒有名字":null,
 ];
 {const bad=new Set();for(let i=0;i<240;i++){const L=T.newLife(["now","past","future"][i%3]);if(i%4==0)L.twNoKid=true;T.setP(L);T.setS([]);let n=0;while(L.alive&&n++<130){await T.year(L);for(const c of yearChecks){const m=c(L);if(m)bad.add(m)}}}
