@@ -746,10 +746,15 @@ create or replace function public.town_pjob_name(k text, n int) returns text lan
     else (case k when 'cafe' then '咖啡師' when 'rest' then '服務生' when 'gym' then '健身教練' when 'shop' then '店員' end) || (case when n >= 40 then '（資深）' when n >= 15 then '（熟手）' else '' end) end
 $$;
 revoke all on function public.town_pjob_place(text), public.town_pjob_key(text), public.town_pjob_fx(text), public.town_pjob_wage(text,int), public.town_pjob_name(text,int) from public, anon, authenticated;
--- 打工不再遞減（town_work_pct 固定 100，保留函式相容），改用 10 分鐘冷卻 town_wk_check
+-- 打工遞減（2026-11-16 起）：每天前 12 次全額、13～24 次 50%、之後 10%；沒有時間冷卻
 create or replace function public.town_work_pct(n int) returns int language sql immutable as $$
-  select 100
+  select case when n < 12 then 100 when n < 24 then 50 else 10 end
 $$;
+-- 財產稅（階梯，每天）：10 萬～100 萬 0.5%、100 萬～500 萬 1%、500 萬以上 2%（前端 taxOf 要一致）
+create or replace function public.town_tax(m numeric) returns int language sql immutable as $$
+  select floor(greatest(0, least(m, 1000000) - 100000) * 0.005 + greatest(0, least(m, 5000000) - 1000000) * 0.01 + greatest(0, m - 5000000) * 0.02)::int
+$$;
+revoke all on function public.town_tax(numeric) from public, anon, authenticated;
 -- ── 活躍天數等級（items.al = {n:累計活躍天, d:最後活躍台灣日, s:連續天數, lv}）；只給便利，前端 AL 表要一致 ──
 create or replace function public.town_lv_of(n int) returns int language sql immutable as $$
   select case when n >= 60 then 5 when n >= 30 then 4 when n >= 10 then 3 when n >= 3 then 2 else 1 end
@@ -843,8 +848,8 @@ begin
   a := public.town_rent_amt(coalesce((r.items->>'hl')::int,1)); a := a - a * public.town_rent_pct(r) / 100; p := least(a, greatest(0, r.money));
   r.money := r.money - p; r.items := jsonb_set(r.items, '{rent}', to_jsonb(day));
   perform public.town_fund_add(r.town_id, 'rent', p * 5 / 100);
-  -- 財產稅：現金超過 100000 的部分每天 0.5%（前端 taxOf 要一致）
-  tx := greatest(0, floor((r.money - 100000) * 0.005)::int);
+  -- 財產稅：階梯制（town_tax）
+  tx := public.town_tax(r.money);
   if tx > 0 then
     r.money := r.money - tx; r.items := jsonb_set(r.items, '{tx}', jsonb_build_object('d', day, 'a', tx));
     perform public.town_fund_add(r.town_id, 'tax', tx);
