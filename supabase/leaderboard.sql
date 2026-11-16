@@ -53,10 +53,12 @@ drop policy if exists "insert new" on public.fb_careers;
 create policy "insert new" on public.fb_careers for insert with check (reports = 0 and hidden = false);
 -- 沒有 update / delete 政策：任何人都不能改或刪
 
--- 送出前檢查：髒話、同一裝置 60 秒內只能送 1 筆、全站每分鐘最多 30 筆
+-- 送出前檢查：髒話、同一段生涯不重複、同一裝置 60 秒內只能送 1 筆、全站每分鐘最多 30 筆
 create or replace function public.fb_guard() returns trigger language plpgsql security definer set search_path = public as $$
 begin
   if has_bad_words(new.name) or has_bad_words(new.title) then raise exception 'bad words'; end if;
+  -- 同一裝置、同一段生涯（名字、出生死亡年、出賽進球、分數都一樣）不重複收：重開舊證書或清掉本機紀錄再上傳時，前端把 duplicate 當成已上傳
+  if exists (select 1 from fb_careers where device = new.device and name = new.name and born = new.born and died = new.died and score = new.score and apps = new.apps and goals = new.goals) then raise exception 'duplicate'; end if;
   if exists (select 1 from fb_careers where device = new.device and created_at > now() - interval '60 seconds') then raise exception 'too fast'; end if;
   if (select count(*) from fb_careers where created_at > now() - interval '1 minute') >= 30 then raise exception 'busy'; end if;
   new.created_at := now(); new.reports := 0; new.hidden := false;

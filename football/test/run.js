@@ -57,5 +57,9 @@ const N=Math.max(40,+process.argv[2]||40);/* 很快，所以至少跑 40 段 */c
   check(mine().length==1&&!/沒練到/.test(mine()[0])&&/天賦能力平均化/.test(mine()[0]),"ver2 存檔只應該補天賦平均化，不再補差距收斂");
   const s2=JSON.stringify(q2.s);msgs.length=0;mig(q2);await tick();check(JSON.stringify(q2.s)===s2&&mine().length==0,"migrate 跑第二次又改了存檔 "+msgs.length+" "+(JSON.stringify(q2.s)===s2)+" ver="+q2.ver);
   global.say=realSay}
+ // 排行榜上傳列：數字壞掉（NaN／缺值）也要送得出去，且每個欄位都在 SQL 限制內（supabase/leaderboard.sql）
+ {const rows=[upRow({name:"X",c:"台灣",pos:"FW",peak:NaN,apps:5000,goals:undefined,trophies:[],awards:[],_sc:NaN,y0:1940,age:40,_title:""}),upRow({name:"Y".repeat(40),c:"某個很長很長的國家名稱",pos:"GK",peak:99.6,apps:1100,goals:9999,trophies:new Array(99).fill(1),awards:new Array(200).fill(1),_sc:99999.5,y0:1999,age:30,_title:"傳".repeat(50)})];
+  rows.forEach((r,i)=>{const ok=[["peak",0,99],["apps",0,1200],["goals",0,1500],["trophies",0,60],["awards",0,80],["score",0,2500],["born",1900,2100],["died",1900,2250]].every(([k,lo,hi])=>Number.isInteger(r[k])&&r[k]>=lo&&r[k]<=hi);
+   check(ok,`排行榜上傳列 ${i} 有欄位不是整數或超出 SQL 範圍：`+JSON.stringify(r));check(r.goals<=r.apps*2+5&&r.trophies<=Math.floor(r.apps/8)+6&&r.died>=r.born&&r.name.length<=24&&r.country.length<=12&&r.title.length<=30,`排行榜上傳列 ${i} 違反合理性檢查`)})}
  console.log(`跑了 ${N} 段生涯（${((Date.now()-t0)/1000).toFixed(0)} 秒）：職業 ${(pro/N*100).toFixed(0)}%、聯賽冠軍 ${titles}/${seasons} 季、最大存檔 ${Math.round(maxSave/1024)} KB`);
  if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過")})();
