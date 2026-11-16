@@ -290,7 +290,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(/function public\.town_ecap\(/.test(ts)&&/town_ecap\(r, e0, act\)/.test(ts)&&/town_ecap\(r, e0, act\)/.test(fac)&&/u >= 200/.test(ts),"town_act 與 town_fac 要有每日精力補充上限 200（town_ecap）");
  check(/town_dcap\(r, 'sneak', 3\)/.test(ts),"屠宰場要有每日 3 次上限");
  check(!/'cd'->>'(shower|tv|qsleep|nap|spar|sneak)'/.test(ts)&&!/'cd'->>item\)/.test(ts),"這些動作的時間冷卻檢查要拿掉");
- check(/m := 200;[^\n]*r\.money \+ 200/.test(fac)&&/m := m \+ 400; r\.money := r\.money \+ 400/.test(fac)&&/各 €200，三個都領完再 \+€400/.test(js)&&/獎勵 €200 已領/.test(js),"每日任務獎金要是 €200、全勤 +€400（前後端一致）");
+ check(/m := 500;[^\n]*r\.money \+ 500/.test(fac)&&/m := m \+ 1000; r\.money := r\.money \+ 1000/.test(fac)&&/各 €500，三個都領完再 \+€1000/.test(js)&&/獎勵 €500 已領/.test(js),"每日任務獎金要是 €500、全勤 +€1000（前後端一致，使用者 2026-11-16 要求維持 ×10）");
  check(/p := case when choice = 'hi' then 13 - d1 else d1 - 1 end;/.test(ts)&&!/14/.test((ts.match(/elsif game = 'hl_guess'[\s\S]*?elsif game = 'wheel'/)||[""])[0]),"比大小：A=1 最小、K=13 最大，SQL 不能把 A 當 14");
  {const ranks=[1,2,3,4,5,6,7,8,9,10,11,12,13];const hi=d1=>13-d1,lo=d1=>d1-1;check(hi(1)==12&&hi(13)==0&&lo(1)==0&&lo(13)==12,"A 猜更小沒得賠、K 猜更大沒得賠")}
  check(!/30000|60000|NT\$30,000|NT\$60,000/.test(stk.replace(/--.*\n/g,"\n"))&&!/amt > |dv \+ amt >/.test(stk),"股票沒有單筆與單日上限");

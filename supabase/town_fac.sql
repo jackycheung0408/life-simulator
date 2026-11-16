@@ -50,9 +50,9 @@ begin
     if fa->'tk' @> to_jsonb(tid) then raise exception '這個任務已經領過了'; end if;
     if not public.town_fac_done(r, fa, tid) then raise exception '這個任務還沒完成'; end if;
     fa := jsonb_set(fa, '{tk}', (fa->'tk') || to_jsonb(tid));
-    m := 200; f := 3; r.money := r.money + 200; r.fun := r.fun + 3;
+    m := 500; f := 3; r.money := r.money + 500; r.fun := r.fun + 3;
     if jsonb_array_length(fa->'tk') >= 3 and not coalesce((fa->>'all')::boolean, false) then
-      fa := jsonb_set(fa, '{all}', 'true'::jsonb); m := m + 400; r.money := r.money + 400;
+      fa := jsonb_set(fa, '{all}', 'true'::jsonb); m := m + 1000; r.money := r.money + 1000;
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', r.name || ' 完成了今天的三個任務，領了任務板的全勤獎');
     end if;
     r.items := jsonb_set(r.items, '{fa}', fa);

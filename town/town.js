@@ -216,7 +216,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
-  {id:"u43-balance",date:"11/16",title:"收入與物價調整",items:["每日任務獎金降到每個 €200、全勤 +€400","每天打工前 12 次全額，13～24 次 50%，之後 10%","存款很多的人，財產稅改成階梯（100 萬以上 1%、500 萬以上 2%）","你現有的錢都不會被動"]},
+  {id:"u43-balance",date:"11/16",title:"收入與物價調整",items:["每日任務獎金維持每個 €500、全勤 +€1000","每天打工前 12 次全額，13～24 次 50%，之後 10%","存款很多的人，財產稅改成階梯（100 萬以上 1%、500 萬以上 2%）","你現有的錢都不會被動"]},
   {id:"u44-powers",date:"11/16",title:"鎮長管理權",items:["鎮長多了「管理權」：可以把人關進監獄（10～120 分鐘）、放人、罰款、從鎮基金發補助，還有公告、建設案、設施開關","每次行使都會公開寫進動態，被行使的人上線會看到說明；居民覺得不公平可以申訴，投票推翻就放人、退罰款","有上限：關人每天最多 3 人、每人每天一次，不能關自己或睡覺、住院的人；小鎮不到 3 人不能用","居民也能發起「彈劾鎮長」投票，多於全鎮一半、至少 3 票就換人","選單「鎮長管理權」大家都看得到紀錄與投票"]},
   {id:"u43-pigcoin",date:"11/16",title:"全小鎮統一用「$ 豬幣」",items:["所有小鎮的錢都改成「$」，名字叫豬幣，鎮長不用也不能再選別的貨幣","金額沒有變，只是換了符號","股票：價格變成純隨機漫步，不會再自己「拉回」基準價；買賣沒有上限，但低買高賣也不再穩賺"]},
   {id:"u41-zombie",date:"11/16",title:"街上有喪屍豬！",items:["全天隨機會有綠色的喪屍豬出現在街上、廣場、公園，晚上更多","牠會慢慢追過來，碰到會掉精力、心情、清潔，但不會死，也不會扣錢","站在牠旁邊按「打喪屍豬」，打倒領 €20～60，一天最多 €600，還可能掉生豬肉，到超市可賣 €30","躲進屋裡、店裡、醫院、監獄，或是睡著，牠都打不到你；每隻只會待一陣子就消失","鎮長可以在設施開關裡關掉喪屍豬"]},
@@ -1489,11 +1489,11 @@ function facBtns(r){const p=r.place,out=[],it=r.items||{},doy=doyTP();
   out.push({...btn(label,(pr?`€${pr}${pr<price?"（常客價）":""} · `:"")+sub,fn,FACG[k]||"place"),dis})}
  if(["restaurant","cafe","park","plaza"].includes(p)){const sit=it.sit,sitting=sit&&sit.pl==p;
   out.push(btn(sitting?"起身 🪑":"坐下逗留 🪑",sitting?`已經坐了 ${Math.max(0,Math.floor((now()-Date.parse(sit.at))/6e4))} 分鐘 · 坐越久恢復越多，上限 20 分鐘`:"每分鐘精力 +0.5、心情 +0.4，滿 20 分鐘，有人在場多 +2 心情",()=>doFac(sitting?"up":"sit"),"fun"))}
- const c=claimable(r);out.push(btn("每日任務板 ⭐",c?`${c} 個任務可以領獎`:"今天的三個小任務，各 €200",()=>taskModal(),"work"));
+ const c=claimable(r);out.push(btn("每日任務板 ⭐",c?`${c} 個任務可以領獎`:"今天的三個小任務，各 €500",()=>taskModal(),"work"));
  return out}
 function taskModal(){const r=R[me];if(!r)return;const a=faOf(r),ids=taskIds(),tk=a.tk||[],it=r.items||{};
-const rows=ids.map((t,i)=>{const done=taskDone(r,t),got=tk.includes(t);return[`${got?"已領":done?"可領獎":"未完成"} ${TASKS[t]}`,got?"獎勵 €200 已領":done?"點這裡領 €200":"完成後回來領 €500",async()=>{if(got||!done){toast(got?"已經領過了":"還沒完成");return}await doFac("claim",null,String(i))}]}); const fq=Object.entries(it.fq||{}).filter(x=>x[1]>=5).map(x=>`${placeName(x[0])} ${tierOf(x[1])}`);
- choiceModal("每日任務板",`每天重新出三個，各 €200，三個都領完再 +€400。今天互動 ${a.n||0} 次 · 咖啡集點卡 ${it.cs||0}/8${it.gy?` · 健身房連續簽到 ${it.gy.d==dayKey()?it.gy.s:(it.gy.d==dayKey(-1)?it.gy.s:0)} 天`:""}${fq.length?` · 常客：${fq.join("、")}`:""}`,rows)}
+const rows=ids.map((t,i)=>{const done=taskDone(r,t),got=tk.includes(t);return[`${got?"已領":done?"可領獎":"未完成"} ${TASKS[t]}`,got?"獎勵 €500 已領":done?"點這裡領 €500":"完成後回來領 €500",async()=>{if(got||!done){toast(got?"已經領過了":"還沒完成");return}await doFac("claim",null,String(i))}]}); const fq=Object.entries(it.fq||{}).filter(x=>x[1]>=5).map(x=>`${placeName(x[0])} ${tierOf(x[1])}`);
+ choiceModal("每日任務板",`每天重新出三個，各 €500，三個都領完再 +€1000。今天互動 ${a.n||0} 次 · 咖啡集點卡 ${it.cs||0}/8${it.gy?` · 健身房連續簽到 ${it.gy.d==dayKey()?it.gy.s:(it.gy.d==dayKey(-1)?it.gy.s:0)} 天`:""}${fq.length?` · 常客：${fq.join("、")}`:""}`,rows)}
 // ── 走進設施裡面（咖啡廳、餐廳、健身房；RPC town_fi，資料 items.fi = 地點代號，只有 fi 等於現在的 place 才算在裡面）──
 // 室內格子系統（之後家裡擺家具可共用）：場景 = 12×5 格、每格 24px，第 0 列是牆；物件 = [代號, 格x, 格y]，代號查 ITEM = [圖示, 名稱, 對應面板按鈕的文字（沒有 = 裝飾）, 是否擋住站位]；
 // 人站在沒有被擋住的地板格（第 1 列起），依距離場景中央由近到遠一人一格，不會重疊；點物件 = 按面板上文字比對到的那顆按鈕。
