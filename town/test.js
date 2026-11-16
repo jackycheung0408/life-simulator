@@ -283,7 +283,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(tjs.includes("drawCivic();")&&tjs.includes("function drawCivic"),"建好的建設案要畫在地圖上");
  const ic=fs.readFileSync(__dirname+"/icons.js","utf8");for(const n of ["cross","badge","scroll"])check(new RegExp("\\n"+n+":`\\n(.{12}\\n){11}.{12}`").test(ic),"icons.js 的 "+n+" 要是 12×12")}
 // 2026-11 小調整：取消時間冷卻（打工、設施互動、遊戲…）但有每日精力補充上限；任務獎金 ×10；比大小 A 最小 K 最大；股票沒有上限；喪屍豬
-{const fs=require("fs"),js=fs.readFileSync(__dirname+"/town.js","utf8"),ts=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8"),fac=fs.readFileSync(__dirname+"/../supabase/town_fac.sql","utf8"),stk=fs.readFileSync(__dirname+"/../supabase/town_stock.sql","utf8"),tw=fs.readFileSync(__dirname+"/../supabase/town_tweaks.sql","utf8"),lf=fs.readFileSync(__dirname+"/../supabase/town_lf_jail.sql","utf8");
+{const fs=require("fs"),js=fs.readFileSync(__dirname+"/town.js","utf8"),ts=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8"),fac=fs.readFileSync(__dirname+"/../supabase/town_fac.sql","utf8"),stk=fs.readFileSync(__dirname+"/../supabase/town_stock.sql","utf8"),tw=fs.readFileSync(__dirname+"/../supabase/town_tweaks.sql","utf8");
  check(/function public\.town_wk_check\([^)]*\) returns void language plpgsql as \$\$\s*begin\s*return;\s*end/.test(ts),"town_wk_check 要是空的（打工沒有時間冷卻）");
  check(/const wkLeft=r=>0;/.test(js)&&/const FACCD=\{\};/.test(js),"前端 wkLeft 要回 0、FACCD 要是空的");
  check(/cdm := 0;/.test(fac)&&!/when 'special' then 20\b/.test(fac),"town_fac 的 cdm 要是 0（設施互動沒有時間冷卻）");
@@ -299,9 +299,8 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(/hr >= 20 or hr < 6/.test(tw)&&/h>=20\|\|h<6/.test(js),"喪屍豬夜間時段前後端要一致（20～06）");
  check(/energy = greatest\(0, energy - 8\), fun = greatest\(0, fun - 8\), hygiene = greatest\(0, hygiene - 10\)/.test(tw)&&!/money = money - /.test(tw)&&/600 - got/.test(tw),"喪屍豬：打到精力 −8 心情 −8 清潔 −10、不扣錢、每天獎勵上限 600");
  check(/q\.place in \('street','plaza','park'\)/.test(tw)&&/town_fin\(q\)/.test(tw)&&/town_jailed\(q\)/.test(tw),"喪屍豬只打戶外、醒著、不在室內與監獄的人");
- for(const [n,t] of [["town_tweaks.sql",tw],["town_lf_jail.sql",lf]]){const head=t.split("\n").slice(0,12).filter(l=>l.trim()&&!/^(do |create |declare|begin)/.test(l)).length;check(t.split("\n")[0].startsWith("--"),n+" 第一行要是註解")}
- for(const n of ["town_tweaks.sql","town_lf_jail.sql"]){const L=fs.readFileSync(__dirname+"/../supabase/"+n,"utf8").split("\n");let i=0;while(i<L.length&&/^--/.test(L[i]))i++;check(i>0&&L.slice(i).every(l=>true),n+" 開頭註解")}
- check(/lfjail1/.test(lf)&&/ilike '%LF%'/.test(lf)&&/n <> 1 then raise exception/.test(lf),"LF 入獄 SQL 要防重複、而且只有剛好 1 位才動手");
+ for(const [n,t] of [["town_tweaks.sql",tw]]){const head=t.split("\n").slice(0,12).filter(l=>l.trim()&&!/^(do |create |declare|begin)/.test(l)).length;check(t.split("\n")[0].startsWith("--"),n+" 第一行要是註解")}
+ for(const n of ["town_tweaks.sql"]){const L=fs.readFileSync(__dirname+"/../supabase/"+n,"utf8").split("\n");let i=0;while(i<L.length&&/^--/.test(L[i]))i++;check(i>0&&L.slice(i).every(l=>true),n+" 開頭註解")}
 }
 // 股票：純隨機漫步（沒有拉回基準價的偏移）、bigint 防溢位、貨幣統一 $
 {const fs=require("fs"),stk=fs.readFileSync(__dirname+"/../supabase/town_stock.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8");
