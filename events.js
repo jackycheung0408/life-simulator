@@ -121,7 +121,7 @@ const EVENTS=[
  [70,100,.02,L=>L.grand,L=>{L.happy+=6;say(L,"孫子女來家裡住了一段時間。")}],
  // 45 以後：玩家抉擇（新增事件請加在最後，REPEAT 依索引）
  [25,55,.06,L=>L.job&&(L.kids||L.partner),L=>ask(L,"公司要你連續加班幾個月，要接下嗎？",[["接下",()=>{L.inc*=1.05;L.money+=L.inc*.2;L.health-=4;L.happy-=4}],["準時下班陪家人",()=>{L.happy+=5}]])],
- [25,60,.03,L=>L.money>L.inc,L=>ask(L,"朋友找你一起投資，要投嗎？",[["投資",()=>{const g=R();if(g<.45){L.money+=L.inc*.8;L.happy+=4;say(L,"投資賺了一筆。")}else{L.money-=L.inc*.6;L.happy-=6;say(L,"投資賠了。")}}],["不投",()=>{}]])],
+ [25,60,.03,L=>L.money>L.inc,L=>ask(L,"朋友找你一起投資，要投嗎？",[["投資",()=>{const g=R();if(g<.4){L.money+=L.inc*.8;L.happy+=4;say(L,"投資賺了一筆。")}else{L.money-=L.inc*.6;L.happy-=6;say(L,"投資賠了。")}}],["不投",()=>{}]])],
  [18,35,.04,L=>L.cls<=2&&!L.abroad&&!L.moved,L=>ask(L,"要離開家鄉，搬到大城市打拚嗎？",[["搬去城市",()=>{L.moved=true;L.inc*=1.3;L.happy-=3;say(L,`搬到${L.c.city}生活。`)}],["留在家鄉",()=>{L.happy+=3}]])],
  [26,42,.05,L=>L.partner&&L.kids==1&&!L.twNoKid,L=>ask(L,"要再生一個孩子嗎？",[["再生一個",()=>{L.kids++;L.happy+=4;say(L,`第 ${L.kids} 個孩子出生了。`)}],["一個就好",()=>{}]])],
  [20,50,.03,L=>L.money>L.inc*.5&&L.edu<3,L=>ask(L,"要花錢去上夜校進修嗎？",[["去進修",()=>{L.money-=L.inc*.3;if(R()<.6){L.edu=Math.min(3,L.edu+1);L.inc*=1.2;say(L,`讀完夜校，學歷升到${["沒上學","小學","中學","大學"][L.edu]}。`)}else say(L,"讀到一半，因為太累放棄了。")}],["不了",()=>{}]])],

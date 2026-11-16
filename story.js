@@ -146,6 +146,8 @@ function yearFlow(L){
  // 實領＝薪水扣掉稅與勞健保；退休後領年金；再加上伴侶的收入
  const income=(L.job?netPay(L):L.age>=65?pension(L):0)+(L.pInc||0);
  // 人會依收入調整生活：開銷最多花到收入的 76%～92%（看花錢習慣）；沒收入時靠家人接濟，只算最低開銷
+ // （2026-11 評估過「上班的人也能入不敷出」：開銷上限改 120% 收入或加 65% 完整開銷下限，模擬 1500 段人生 65 歲時 60～95% 的人負債 2～11 倍人均 GDP，經濟崩壞，所以維持這個調適機制；
+ //  赤字來自事件、房貸、養孩子與生病等大額支出，原本就有 15～41% 的人 65 歲時負債）
  const sp=L===P?spend:1,total=income?Math.min(full,income*(.76+sp*.08)):L.c.gdp*.06;
  return {cost,income,total,full};
 }
@@ -214,7 +216,8 @@ const INVEST={定存:[.015,.0,"穩穩的，但跟不上物價"],指數基金:[.0
 function gauss(){return Math.sqrt(-2*Math.log(R()||1e-9))*Math.cos(2*Math.PI*R())}
 async function investYear(L){
  // 已投資的部分：每年結算
- if(L.inv&&L.inv.amt>0){const [mu,sd]=INVEST[L.inv.type];let r=mu+sd*gauss();if(L.inv.type=="加密貨幣"&&R()<.04)r=-.95;r=Math.max(-.95,r);
+ if(L.inv&&L.inv.amt>0){L.inv.amt*=1-inflation(L);const [mu,sd]=INVEST[L.inv.type]; // 報酬率是名目的，本金也要被物價吃掉（定存 1.5% 跟不上 2～7% 的通膨）
+ let r=mu+sd*gauss();if(L.inv.type=="加密貨幣"&&R()<.04)r=-.95;r=Math.max(-.95,r);
   const d=L.inv.amt*r;L.inv.amt+=d;ledger(L,"投資"+(d>=0?"獲利":"虧損"),0);
   if(L===P&&Math.abs(r)>.25)say(L,r>0?`${L.inv.type}今年大漲 ${Math.round(r*100)}%，帳面多了 ${money(d)}。`:`${L.inv.type}今年大跌 ${Math.round(-r*100)}%，帳面少了 ${money(-d)}。`);
   L.inv.years++;}
