@@ -21,6 +21,8 @@ begin
     if lk ? 'at' and (lk->>'at')::timestamptz > now() - interval '8 minutes' then return json_build_object('none', true); end if;
     if random() >= 0.35 then return json_build_object('none', true); end if;
     pick := 1 + floor(random() * 8)::int;
+    -- 運氣：每點 +1% 把壞結果（迷路、被推銷、過期零食、踩水坑）改成好結果
+    if pick in (3,4,5,6) and random() < 0.01 * public.town_at(r,'lk') then pick := 7; end if;
     if pick = 1 then amt := 30 + floor(random() * 31)::int; r.money := r.money + amt; msg := '路邊撿到 €' || amt;
     elsif pick = 2 then r.fun := least(100, r.fun + 4); msg := '有人請你喝了一杯飲料，心情變好了';
     elsif pick = 3 then r.energy := greatest(0, r.energy - 4); msg := '走錯路迷路了一下，有點累';

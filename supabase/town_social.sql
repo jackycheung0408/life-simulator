@@ -34,7 +34,7 @@ create or replace function public.town_tg(r public.town_residents, f int, e int)
 declare day text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); n int := 0;
 begin
   if r.items->'tg'->>'d' = day then n := coalesce((r.items->'tg'->>'n')::int, 0); end if;
-  if n >= 12 then return r; end if;
+  -- 2026-11-16 起取消每天 12 次上限
   r.items := jsonb_set(r.items, '{tg}', jsonb_build_object('d', day, 'n', n + 1));
   r.fun := least(100, r.fun + f); r.energy := least(100, r.energy + e);
   return r;
@@ -73,7 +73,7 @@ begin
     pe := pe || jsonb_build_object('lp', now(), 'd', today, 'n', dn);
     q := pe->'q';
     if q is not null and (q->>'at')::timestamptz < now() - interval '5 minutes' then pe := pe - 'q'; q := null; end if;
-    if q is null and now() >= (pe->>'nx')::timestamptz and dn < 12 then
+    if q is null and now() >= (pe->>'nx')::timestamptz and dn < 2147483647 then
       q := jsonb_build_object('k', floor(random() * 3)::int, 'at', now());
       pe := pe || jsonb_build_object('q', q, 'nx', now() + (10 + random() * 10) * interval '1 minute', 'n', dn + 1);
     elsif q is null and now() >= (pe->>'nx')::timestamptz then
@@ -122,8 +122,8 @@ begin
   t := public.town_tick(t);
   if op = 'send' then
     if t.sleeping or t.place is distinct from r.place then raise exception '% 不在這裡，或在睡覺', t.name; end if;
-    if (r.items->'cd'->>('jt' || t.id))::timestamptz > now() - interval '30 minutes' then raise exception '你們剛一起做過了，30 分鐘後再約'; end if;
-    if (r.items->'cd'->>('iv' || t.id))::timestamptz > now() - interval '3 minutes' then raise exception '剛邀請過了，等他回覆'; end if;
+    if (r.items->'cd'->>('jt' || t.id))::timestamptz > now() + interval '1 day' then raise exception '你們剛一起做過了，30 分鐘後再約'; end if;
+    if (r.items->'cd'->>('iv' || t.id))::timestamptz > now() + interval '1 day' then raise exception '剛邀請過了，等他回覆'; end if;
     iv := t.items->'iv';
     if iv is not null and (iv->>'at')::timestamptz > now() - interval '1 minute' and (iv->>'f')::bigint <> rid then raise exception '% 正在回覆別人的邀請', t.name; end if;
     update public.town_residents set items = jsonb_set(items, '{iv}', jsonb_build_object('f', rid, 'at', now(), 'p', r.place)) where id = t.id;

@@ -82,7 +82,7 @@ begin
     if z.hp <= 1 then
       delete from public.town_zombies where id = z.id; killed := true;
       zk := case when (r.items->'zk'->>'d') = today then r.items->'zk' else jsonb_build_object('d', today, 'm', 0) end;
-      got := coalesce((zk->>'m')::int, 0); rew := greatest(0, least(20 + floor(random() * 41)::int, 600 - got));
+      got := coalesce((zk->>'m')::int, 0); rew := greatest(0, (20 + floor(random() * 41)::int));
       r.money := r.money + rew; r.items := jsonb_set(r.items, '{zk}', jsonb_build_object('d', today, 'm', got + rew));
       msg := '打倒了一隻喪屍豬' || case when rew > 0 then '，掉了 €' || rew else '（今天領的獎勵已達上限 €600）' end;
       if random() < .35 then r.items := jsonb_set(r.items, '{zp}', to_jsonb(coalesce((r.items->>'zp')::int, 0) + 1)); msg := msg || '，還掉了一塊生豬肉'; end if;

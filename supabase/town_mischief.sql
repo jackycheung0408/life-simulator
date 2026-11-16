@@ -49,9 +49,9 @@ begin
   if act not in ('splash','sticker','doorbell','fakepoop','swapseat','fakelove','snack','photo') then raise exception '沒有這個惡作劇'; end if;
   if public.town_jailed(t) then raise exception '% 被關著，整不到', tn; end if;
   ms := case when t.items->'ms'->>'d' = today then t.items->'ms' else jsonb_build_object('d', today, 'n', 0) end;
-  if coalesce((ms->>'n')::int, 0) >= 6 then raise exception '% 今天已經被整太多次了，放過他吧', tn; end if;
+  if false and coalesce((ms->>'n')::int, 0) >= 6 then raise exception '% 今天已經被整太多次了，放過他吧', tn; end if;
   ck := 'ms' || act || target; cdm := public.town_ms_cd(act);
-  if (r.items->'cd'->>ck) is not null and (r.items->'cd'->>ck)::timestamptz > now() - make_interval(mins => cdm) then raise exception '剛整過他，等一下再來'; end if;
+  if (r.items->'cd'->>ck) is not null and (r.items->'cd'->>ck)::timestamptz > now() + interval '1 day' then raise exception '剛整過他，等一下再來'; end if;
   -- 報復：他三天內整過你（或丟蛋、惡作劇、扁過你），你整回去不傷感情
   rev := exists (select 1 from public.town_events e where e.actor = target and e.target = rid and e.kind in ('mischief','egg','prank','fight','photo') and e.at > now() - interval '3 days');
   near := (r.place = t.place and r.place <> 'street') or (abs(r.x - t.x) + abs(r.y - t.y) <= 2.5);
@@ -157,8 +157,8 @@ begin
     if r.energy < 15 then raise exception '你太累了，休息一下再約'; end if;
     if r.money < bet or t.money < bet then raise exception '雙方都要付得起 €%（你 €%、%  €%）', bet, r.money, t.name, t.money; end if;
     select count(*) into n from public.town_events e where e.kind = 'pk' and e.at > now() - interval '1 hour' and ((e.actor = rid and e.target = target) or (e.actor = target and e.target = rid));
-    if n >= 3 then raise exception '你們這一小時已經打了 3 場，休息一下'; end if;
-    if (r.items->'cd'->>('pks' || target)) is not null and (r.items->'cd'->>('pks' || target))::timestamptz > now() - interval '3 minutes' then raise exception '剛約過他，等 3 分鐘再約'; end if;
+    -- 2026-11-16 起取消每小時 3 場
+    if (r.items->'cd'->>('pks' || target)) is not null and (r.items->'cd'->>('pks' || target))::timestamptz > now() + interval '1 day' then raise exception '剛約過他，等 3 分鐘再約'; end if;
     t.items := jsonb_set(t.items, '{pk}', jsonb_build_object('f', rid, 'n', r.name, 'at', now(), 'b', bet));
     r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object('pks' || target, now()));
     perform public.town_save_r(t); perform public.town_save_r(r);
@@ -188,11 +188,11 @@ begin
     if r.energy < 15 or t.energy < 15 then raise exception '有人太累了（精力至少要 15）'; end if;
     if r.money < bet or t.money < bet then raise exception '有人付不起押注 €%', bet; end if;
     select count(*) into n from public.town_events e where e.kind = 'pk' and e.at > now() - interval '1 hour' and ((e.actor = rid and e.target = target) or (e.actor = target and e.target = rid));
-    if n >= 3 then raise exception '你們這一小時已經打了 3 場，休息一下'; end if;
+    -- 2026-11-16 起取消每小時 3 場
     -- a = 邀約的人，bb = 被邀的人（r）；兩人都被帶到格鬥場門口
     a := t; bb := r;
-    sa := 30 + a.energy*.4 + a.fun*.2 + random()*45 + coalesce((a.items->>'fit')::int,0)*2 - case when a.bruised_until > now() then 15 else 0 end + public.town_mood_pow(public.town_mood(a)) + case when public.town_has(a,'athlete') then 5 else 0 end;
-    sb := 30 + bb.energy*.4 + bb.fun*.2 + random()*45 + coalesce((bb.items->>'fit')::int,0)*2 - case when bb.bruised_until > now() then 15 else 0 end + public.town_mood_pow(public.town_mood(bb)) + case when public.town_has(bb,'athlete') then 5 else 0 end;
+    sa := 30 + a.energy*.4 + a.fun*.2 + random()*45 + coalesce((a.items->>'fit')::int,0)*2 + public.town_at(a,'st') - case when a.bruised_until > now() then 15 else 0 end + public.town_mood_pow(public.town_mood(a)) + case when public.town_has(a,'athlete') then 5 else 0 end;
+    sb := 30 + bb.energy*.4 + bb.fun*.2 + random()*45 + coalesce((bb.items->>'fit')::int,0)*2 + public.town_at(bb,'st') - case when bb.bruised_until > now() then 15 else 0 end + public.town_mood_pow(public.town_mood(bb)) + case when public.town_has(bb,'athlete') then 5 else 0 end;
     aw := sa >= sb;
     pat := pats[1 + floor(random()*4)::int];
     -- 回合結果以「邀約的人」的角度寫：W = 邀約的人贏這回合；邀約的人輸時把 W／L 對調
@@ -204,9 +204,9 @@ begin
       if aw then a.money := a.money + bet - fee; bb.money := bb.money - bet; else bb.money := bb.money + bet - fee; a.money := a.money - bet; end if;
       perform public.town_fund_add(r.town_id, 'pk', fee);
     else
-      if aw and not ((a.items->'cd'->>'afp') is not null and (a.items->'cd'->>'afp')::timestamptz > now() - interval '30 minutes') then
+      if aw and not ((a.items->'cd'->>'afp') is not null and (a.items->'cd'->>'afp')::timestamptz > now() + interval '1 day') then
         a.money := a.money + 100; prize := 100; a.items := jsonb_set(a.items, '{cd}', coalesce(a.items->'cd','{}'::jsonb) || jsonb_build_object('afp', now()));
-      elsif not aw and not ((bb.items->'cd'->>'afp') is not null and (bb.items->'cd'->>'afp')::timestamptz > now() - interval '30 minutes') then
+      elsif not aw and not ((bb.items->'cd'->>'afp') is not null and (bb.items->'cd'->>'afp')::timestamptz > now() + interval '1 day') then
         bb.money := bb.money + 100; prize := 100; bb.items := jsonb_set(bb.items, '{cd}', coalesce(bb.items->'cd','{}'::jsonb) || jsonb_build_object('afp', now()));
       end if;
     end if;
