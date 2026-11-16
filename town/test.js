@@ -229,12 +229,12 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
 {const src=require("fs").readFileSync(__dirname+"/town.js","utf8");check(/hold=!show&&!!dd/.test(src)&&/cv\.classList\.remove\("hide"\)/.test(src),"drawRoom 走路中要保留室內畫布的位置（hold），不然走到朋友家門口面板會跳一下")}
 // 同在一個室內空間算面對面（可以扁人、擊掌）；屋主把訪客趕出門的 SQL 要在
 {const src=require("fs").readFileSync(__dirname+"/town.js","utf8"),sql=require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8");check(/const sameRoom=/.test(src)&&/if\(sameRoom\(a,b\)\)return true/.test(src)&&/inRoom=sameRoom\(r,t\)/.test(src),"室內互動：要有 sameRoom，isNear 和選人面板都要認它");check(/'kick'/.test(sql)&&/把 ' \|\| r\.name \|\| ' 趕出家門/.test(sql),"town.sql 的 fight 要有「在別人家動手會被趕出門」")}
-// 惡趣味與格鬥場 PK：前端冷卻要和 town_mischief.sql 的 town_ms_cd 一致、8 種都有 SQL 分支、免整牌擋住 egg／prank／fight、格鬥場不能直接扁人
+// 惡趣味與格鬥場 PK：前端冷卻要和 town_mischief.sql 的 town_ms_cd 一致、8 種都有 SQL 分支、免整牌已取消、格鬥場不能直接扁人
 {const fs=require("fs"),src=fs.readFileSync(__dirname+"/town.js","utf8"),sql=fs.readFileSync(__dirname+"/../supabase/town_mischief.sql","utf8"),tsql=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8");
  const mis=src.match(/const MIS=\{([^\n]*)\};/);check(!!mis,"town.js 要有 MIS 惡趣味表");
  if(mis){const found=[...mis[1].matchAll(/(\w+):\["[^"]*","[^"]*",(\d+)\]/g)];check(found.length==8,"惡趣味要有 8 種，現在 "+found.length);
   for(const f of found){const cd=sql.match(new RegExp("when '"+f[1]+"' then (\\d+)"));check(cd&&cd[1]==f[2],"惡趣味 "+f[1]+" 冷卻前後端不一致（前端 "+f[2]+"、SQL "+(cd?cd[1]:"沒有")+"）");check(sql.includes("act = '"+f[1]+"'"),"town_mischief 沒有 "+f[1]+" 的分支")}}
- check(/if act in \('egg','prank','fight'\) and \(t\.items->>'sh'\)/.test(tsql),"town.sql 的 egg／prank／fight 要被免整牌擋住");
+ check(!/items->>'sh'/.test(tsql)&&!/items->>'sh'/.test(sql)&&!/act = 'shield'/.test(sql),"免整牌已取消，SQL 不該再有 items.sh 檢查或 shield 動作");
  check(/格鬥場要先約定/.test(tsql),"town.sql 的 fight 在格鬥場要擋住，改約 PK");
  check(/create or replace function public\.town_pk\(/.test(sql)&&/fee := floor\(bet \* 0\.05\)/.test(sql)&&/bet < 0 or bet > 2000/.test(sql),"town_pk 要有下注上限 2000 與 5% 進鎮基金");
  check(/n >= 3 then raise exception '你們這一小時已經打了 3 場/.test(sql),"town_pk 每對每小時最多 3 場");
@@ -282,5 +282,26 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  for(const k of ["hospital","visithosp","report","civic"])check(new RegExp("\\b"+k+":").test(tjs.match(/const KIND_ICON=\{([^}]*)\}/)[1]),"KIND_ICON 要有 "+k);
  check(tjs.includes("drawCivic();")&&tjs.includes("function drawCivic"),"建好的建設案要畫在地圖上");
  const ic=fs.readFileSync(__dirname+"/icons.js","utf8");for(const n of ["cross","badge","scroll"])check(new RegExp("\\n"+n+":`\\n(.{12}\\n){11}.{12}`").test(ic),"icons.js 的 "+n+" 要是 12×12")}
+// 2026-11 小調整：取消時間冷卻（打工、設施互動、遊戲…）但有每日精力補充上限；任務獎金 ×10；比大小 A 最小 K 最大；股票沒有上限；喪屍豬
+{const fs=require("fs"),js=fs.readFileSync(__dirname+"/town.js","utf8"),ts=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8"),fac=fs.readFileSync(__dirname+"/../supabase/town_fac.sql","utf8"),stk=fs.readFileSync(__dirname+"/../supabase/town_stock.sql","utf8"),tw=fs.readFileSync(__dirname+"/../supabase/town_tweaks.sql","utf8"),lf=fs.readFileSync(__dirname+"/../supabase/town_lf_jail.sql","utf8");
+ check(/function public\.town_wk_check\([^)]*\) returns void language plpgsql as \$\$\s*begin\s*return;\s*end/.test(ts),"town_wk_check 要是空的（打工沒有時間冷卻）");
+ check(/const wkLeft=r=>0;/.test(js)&&/const FACCD=\{\};/.test(js),"前端 wkLeft 要回 0、FACCD 要是空的");
+ check(/cdm := 0;/.test(fac)&&!/when 'special' then 20\b/.test(fac),"town_fac 的 cdm 要是 0（設施互動沒有時間冷卻）");
+ check(/function public\.town_ecap\(/.test(ts)&&/town_ecap\(r, e0, act\)/.test(ts)&&/town_ecap\(r, e0, act\)/.test(fac)&&/u >= 200/.test(ts),"town_act 與 town_fac 要有每日精力補充上限 200（town_ecap）");
+ check(/town_dcap\(r, 'sneak', 3\)/.test(ts),"屠宰場要有每日 3 次上限");
+ check(!/'cd'->>'(shower|tv|qsleep|nap|spar|sneak)'/.test(ts)&&!/'cd'->>item\)/.test(ts),"這些動作的時間冷卻檢查要拿掉");
+ check(/m := 500;[^\n]*r\.money \+ 500/.test(fac)&&/m := m \+ 1000; r\.money := r\.money \+ 1000/.test(fac)&&/各 €500，三個都領完再 \+€1000/.test(js)&&/獎勵 €500 已領/.test(js),"每日任務獎金要是 €500、全勤 +€1000（前後端一致）");
+ check(/p := case when choice = 'hi' then 13 - d1 else d1 - 1 end;/.test(ts)&&!/14/.test((ts.match(/elsif game = 'hl_guess'[\s\S]*?elsif game = 'wheel'/)||[""])[0]),"比大小：A=1 最小、K=13 最大，SQL 不能把 A 當 14");
+ {const ranks=[1,2,3,4,5,6,7,8,9,10,11,12,13];const hi=d1=>13-d1,lo=d1=>d1-1;check(hi(1)==12&&hi(13)==0&&lo(1)==0&&lo(13)==12,"A 猜更小沒得賠、K 猜更大沒得賠")}
+ check(!/30000|60000|NT\$30,000|NT\$60,000/.test(stk.replace(/--.*\n/g,"\n"))&&!/amt > |dv \+ amt >/.test(stk),"股票沒有單筆與單日上限");
+ check(/\* 600\)/.test(stk)||/extract\(epoch from now\(\) - s\.stepped\) \/ 600/.test(stk),"股價要每 10 分鐘走一步");
+ check(/'zombie'/.test(ts)&&/\["zombie"/.test(js),"zombie 要在鎮長設施開關白名單與 FEATS");
+ check(/hr >= 20 or hr < 6/.test(tw)&&/h>=20\|\|h<6/.test(js),"喪屍豬夜間時段前後端要一致（20～06）");
+ check(/energy = greatest\(0, energy - 8\), fun = greatest\(0, fun - 8\), hygiene = greatest\(0, hygiene - 10\)/.test(tw)&&!/money = money - /.test(tw)&&/600 - got/.test(tw),"喪屍豬：打到精力 −8 心情 −8 清潔 −10、不扣錢、每天獎勵上限 600");
+ check(/q\.place in \('street','plaza','park'\)/.test(tw)&&/town_fin\(q\)/.test(tw)&&/town_jailed\(q\)/.test(tw),"喪屍豬只打戶外、醒著、不在室內與監獄的人");
+ for(const [n,t] of [["town_tweaks.sql",tw],["town_lf_jail.sql",lf]]){const head=t.split("\n").slice(0,12).filter(l=>l.trim()&&!/^(do |create |declare|begin)/.test(l)).length;check(t.split("\n")[0].startsWith("--"),n+" 第一行要是註解")}
+ for(const n of ["town_tweaks.sql","town_lf_jail.sql"]){const L=fs.readFileSync(__dirname+"/../supabase/"+n,"utf8").split("\n");let i=0;while(i<L.length&&/^--/.test(L[i]))i++;check(i>0&&L.slice(i).every(l=>true),n+" 開頭註解")}
+ check(/lfjail1/.test(lf)&&/ilike '%LF%'/.test(lf)&&/n <> 1 then raise exception/.test(lf),"LF 入獄 SQL 要防重複、而且只有剛好 1 位才動手");
+}
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

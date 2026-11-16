@@ -30,11 +30,12 @@ declare r public.town_residents; t public.town_residents;
   doy int := extract(doy from now() at time zone 'Asia/Taipei')::int;
   pl text; base int := 0; price int := 0; disc int := 0; fqn int := 0; cdm int := 0; ckey text; pair boolean := false; need_t boolean := false;
   f int := 0; e int := 0; h int := 0; m int := 0; b int := 0; msg text := ''; evk text := null; evm text := null; fk text := null;
-  fa jsonb; lux boolean := false; n int; s int; others int; xid bigint; xname text; pa numeric := random(); mins int; st int; ids int[]; tid int; i int; cl jsonb; fx jsonb;
+  fa jsonb; e0 real := 0; lux boolean := false; n int; s int; others int; xid bigint; xname text; pa numeric := random(); mins int; st int; ids int[]; tid int; i int; cl jsonb; fx jsonb;
   films text[] := array['感人劇情片','爆笑喜劇','熱血動作片','緊張驚悚片'];
   specs text[] := array['滷肉飯套餐','牛肉麵套餐','豬排飯套餐','咖哩飯套餐','雞腿便當套餐'];
 begin
   r := public.town_auth(rid, pin);
+  e0 := r.energy;
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if r.sleeping then raise exception '你在睡覺，先起床'; end if;
   pl := r.place;
@@ -49,9 +50,9 @@ begin
     if fa->'tk' @> to_jsonb(tid) then raise exception '這個任務已經領過了'; end if;
     if not public.town_fac_done(r, fa, tid) then raise exception '這個任務還沒完成'; end if;
     fa := jsonb_set(fa, '{tk}', (fa->'tk') || to_jsonb(tid));
-    m := 50; f := 3; r.money := r.money + 50; r.fun := r.fun + 3;
+    m := 500; f := 3; r.money := r.money + 500; r.fun := r.fun + 3;
     if jsonb_array_length(fa->'tk') >= 3 and not coalesce((fa->>'all')::boolean, false) then
-      fa := jsonb_set(fa, '{all}', 'true'::jsonb); m := m + 100; r.money := r.money + 100;
+      fa := jsonb_set(fa, '{all}', 'true'::jsonb); m := m + 1000; r.money := r.money + 1000;
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', r.name || ' 完成了今天的三個任務，領了任務板的全勤獎');
     end if;
     r.items := jsonb_set(r.items, '{fa}', fa);
@@ -100,11 +101,7 @@ begin
     if t.sleeping or t.place is distinct from pl then raise exception '% 不在這裡，或在睡覺', t.name; end if;
   end if;
   ckey := 'f_' || act || case when pair then target::text else '' end;
-  cdm := case act when 'special' then 20 when 'takeout' then 10 when 'latte' then 15 when 'redeem' then 15 when 'treat' then 30 when 'song' then 20
-    when 'film' then 60 when 'popcorn' then 15 when 'spar' then 20 when 'frisbee' then 15 when 'fish' then 10 when 'picnic' then 30 when 'photo' then 30
-    when 'feast' then 720 when 'trip' then 1440 when 'spa' then 600 else 0 end;
-  if cdm > 0 and (r.items->'cd'->>ckey)::timestamptz > now() - cdm * interval '1 minute' then
-    raise exception '還要等 % 分鐘', ceil(extract(epoch from ((r.items->'cd'->>ckey)::timestamptz + cdm * interval '1 minute' - now())) / 60)::int; end if;
+  cdm := 0;  -- 2026-11 使用者決定：設施互動不再有時間冷卻（好感每日上限、每日精力補充上限、各自的每日獎勵仍在）
   base := case act when 'special' then 200 when 'takeout' then 120 when 'latte' then 110 when 'treat' then 200 when 'song' then 50
     when 'film' then 280 when 'popcorn' then 80 when 'fish' then 30 when 'picnic' then 150
     when 'feast' then 3000 when 'trip' then 8000 when 'spa' then 2000 else 0 end;
@@ -189,6 +186,7 @@ begin
   r.items := jsonb_set(r.items, '{fa}', fa);
   if not lux then r.items := jsonb_set(r.items, '{fq}', coalesce(r.items->'fq','{}'::jsonb) || jsonb_build_object(pl, fqn + 1)); end if;
   if cdm > 0 then r.items := jsonb_set(r.items, '{cd}', coalesce(r.items->'cd','{}'::jsonb) || jsonb_build_object(ckey, now())); end if;
+  r := public.town_ecap(r, e0, act);  -- 靠吃喝休息補的精力每日上限（town.sql）
   perform public.town_save_r(r);
   return json_build_object('m', m, 'f', f, 'e', e, 'h', h, 'b', b, 'msg', msg, 'disc', disc, 'fq', fqn + 1, 'who', case when pair then t.name else xname end);
 end $$;

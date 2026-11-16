@@ -3,7 +3,7 @@
 -- 全部不會死；角色資料只放 items（缺值 = 預設，舊角色不用遷移）：
 --   items.pk  = 收到的 PK 邀約 {f:誰, n:名字, at:時間, b:下注}（3 分鐘內有效）
 --   items.pkr = PK 結果（給前端放動畫，讀一次就清）{w:贏的人id, a:邀約的人id, b:被邀的人id, rounds:"WWL", bet, at, no:拒絕才有}
---   items.sh  = 免整牌：今天（台灣日）掛著就不能被惡搞／丟蛋／惡作劇／扁
+--   （免整牌已取消，2026-11）
 --   items.sk  = 背上的紙條 {u:到期時間, from:誰貼的}，名牌掛「踢我」一小時
 --   items.ms  = {d:台灣日, n:今天被惡搞幾次}，每人每天最多被惡搞 6 次（不是霸凌工具）
 --   items.cd['ms'||act||對方id] = 冷卻
@@ -27,40 +27,8 @@ begin
   if r.sleeping then raise exception '你在睡覺，先起床'; end if;
   if public.town_jailed(r) then raise exception '你被關著，哪都不能去'; end if;
 
-  -- 免整牌：今天不想被整，按一下就掛到今天結束
-  if act = 'shield' then
-    r.items := jsonb_set(r.items, '{sh}', to_jsonb(today));
-    perform public.town_save_r(r);
-    return json_build_object('msg','今天掛上免整牌了，別人不能整你、丟蛋、惡作劇、扁你');
-  end if;
-  if act = 'unshield' then
-    r.items := r.items - 'sh';
-    perform public.town_save_r(r);
-    return json_build_object('msg','收起免整牌了');
-  end if;
-
-  if target is null or target = rid then raise exception '要選一位朋友'; end if;
-  select * into t from public.town_residents where id = target and town_id = r.town_id for update;
-  if not found then raise exception '找不到這位鄰居'; end if;
-  tn := t.name;
-  t := public.town_tick(t);
-
-  -- 原諒：他三天內整過你（還沒原諒過），原諒他：好感 +2，兩人心情 +3
-  if act = 'forgive' then
-    if not exists (select 1 from public.town_events e where e.actor = target and e.target = rid and e.kind = 'mischief' and e.at > now() - interval '3 days'
-        and not exists (select 1 from public.town_events g where g.actor = rid and g.target = target and g.kind = 'forgive' and g.at > e.at)) then
-      raise exception '% 最近沒有整你，或你已經原諒過了', tn;
-    end if;
-    perform public.town_bond(r.town_id, rid, t.id, 2);
-    r.fun := r.fun + 3; t.fun := t.fun + 3;
-    insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, target, 'forgive', r.name || ' 原諒了 ' || tn || '，一笑泯恩仇 🤝');
-    perform public.town_save_r(r); perform public.town_save_r(t);
-    return json_build_object('msg','你原諒了 ' || tn, 'f', 3, 'b', 2);
-  end if;
-
   if act not in ('splash','sticker','doorbell','fakepoop','swapseat','fakelove','snack','photo') then raise exception '沒有這個惡作劇'; end if;
   if public.town_jailed(t) then raise exception '% 被關著，整不到', tn; end if;
-  if (t.items->>'sh') = today then raise exception '% 今天掛了免整牌，改天再整他', tn; end if;
   ms := case when t.items->'ms'->>'d' = today then t.items->'ms' else jsonb_build_object('d', today, 'n', 0) end;
   if coalesce((ms->>'n')::int, 0) >= 6 then raise exception '% 今天已經被整太多次了，放過他吧', tn; end if;
   ck := 'ms' || act || target; cdm := public.town_ms_cd(act);
