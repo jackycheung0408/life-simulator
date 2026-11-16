@@ -1,809 +1,140 @@
 <!doctype html>
-<html lang="zh-Hant"><head><meta charset="utf-8"><link rel="apple-touch-icon" href="icon.png"><link rel="icon" type="image/png" href="icon.png"><link rel="manifest" href="manifest.json"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="人生模擬器"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="theme-color" content="#12122b" media="(prefers-color-scheme: dark)"><meta name="theme-color" content="#f4f1e8" media="(prefers-color-scheme: light)"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>人生模擬器</title>
-<meta name="description" content="按下出生，隨機成為世界上某個嬰兒，或活一次台灣人生：聯考、當兵、北漂、921、房價、長照。依真實統計，每個人的一生都不一樣。">
-<meta property="og:site_name" content="人生模擬器">
-<meta property="og:title" content="人生模擬器｜你會出生在哪裡？">
-<meta property="og:description" content="隨機出生在 173 國，或活一次台灣人生。聯考、當兵、北漂、921……每個人的一生都不一樣。">
-<meta property="og:type" content="website"><meta property="og:url" content="https://jackycheung0408.github.io/life-simulator/">
-<meta property="og:image" content="https://jackycheung0408.github.io/life-simulator/og.png">
-<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="人生模擬器：像素風的液晶螢幕小人和人生血條">
-<meta property="og:locale" content="zh_TW">
-<meta name="twitter:card" content="summary_large_image">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap" rel="stylesheet">
-<script>try{const t=localStorage.getItem("fb-theme");if(t&&t!="auto")document.documentElement.dataset.theme=t}catch(e){}</script>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Playground：人生模擬器、足球員模擬器、小豬鎮。">
+<link rel="icon" type="image/svg+xml" href="hub/favicon.svg">
+<link rel="apple-touch-icon" href="icon.png">
+<title>Playground</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Noto+Sans+TC:wght@400;700;900&display=swap">
 <style>
-:root{--bg:#f6f3ee;--fg:#222;--mut:#777;--card:#fff;--ac:#c0392b;--line:#e3ddd3}
+/* Layout: arcade cabinet shelf — big marquee header, three game "cartridges" in a wrapping grid */
+:root{
+  --bg:#f3f1fa; --panel:#ffffff; --ink:#1d1a2e; --muted:#6b6584; --line:#d9d4ea;
+  --life:#e0528a; --fb:#1f9d63; --town:#e08a1f; --chord:#4a63d9;
+  --pixel:"Silkscreen",ui-monospace,monospace;
+  --body:"Noto Sans TC","PingFang TC",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14121f; --panel:#1f1c30; --ink:#f1eefb; --muted:#a39dbd; --line:#34304a;
+  --life:#ff77aa; --fb:#3fd08c; --town:#ffb04a; --chord:#8a9cff; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14121f; --panel:#1f1c30; --ink:#f1eefb; --muted:#a39dbd; --line:#34304a;
+  --life:#ff77aa; --fb:#3fd08c; --town:#ffb04a; --chord:#8a9cff; color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.6}
+.wrap{max-width:1040px;margin:0 auto;padding-block:48px 64px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid;gap:40px}
+header{display:grid;gap:12px}
+.eyebrow{font-family:var(--pixel);font-size:13px;letter-spacing:.12em;color:var(--muted)}
+h1{margin:0;font-weight:900;font-size:clamp(34px,7vw,64px);line-height:1.1;text-wrap:balance}
+h1 .px{font-family:var(--pixel);font-weight:700;color:var(--life)}
+.lede{margin:0;color:var(--muted);max-width:40em;font-size:16px}
+.actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:6px}
+#random{font:700 15px var(--body);color:var(--bg);background:var(--ink);border:0;border-radius:4px;padding:10px 18px;cursor:pointer;
+  box-shadow:4px 4px 0 var(--life);transition:transform .1s,box-shadow .1s}
+#random:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--life)}
+#random:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--life)}
+#random:focus-visible{outline:3px solid var(--life);outline-offset:3px}
+.hint{font-size:13px;color:var(--muted)}
+.hint kbd{font-family:var(--pixel);border:1px solid var(--line);border-radius:3px;padding:0 5px}
+@media (hover:none){.hint{display:none}}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px}
+.game{--c:var(--life);display:grid;grid-template-rows:auto 1fr auto;gap:16px;
+  background:var(--panel);border:2px solid var(--line);border-radius:6px;padding:22px;
+  text-decoration:none;color:inherit;transition:transform .15s,border-color .15s,box-shadow .15s}
+.game:hover,.game:focus-visible,.game.pick{transform:translateY(-4px);border-color:var(--c);box-shadow:6px 6px 0 var(--c);outline:none}
+.game.fb{--c:var(--fb)} .game.town{--c:var(--town)} .game.chord{--c:var(--chord)}
+.screen{aspect-ratio:16/9;max-width:100%;border-radius:4px;background:var(--c);display:grid;place-items:center;
+  font-family:var(--pixel);font-size:44px;color:var(--panel);position:relative;overflow:hidden}
+.screen::after{content:"";position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(0,0,0,.08) 3px 4px)}
+.screen .key{position:absolute;top:8px;left:10px;font-size:13px;opacity:.85}
+.game h2{margin:0;font-size:22px;font-weight:900}
+.game .tag{font-family:var(--pixel);font-size:12px;letter-spacing:.1em;color:var(--c)}
+.game p{margin:6px 0 0;color:var(--muted);font-size:15px}
+.chips{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.chips li{font-size:12px;padding:2px 8px;border:1px solid var(--line);border-radius:3px;color:var(--muted)}
+.play{font-family:var(--pixel);font-size:14px;color:var(--c);display:flex;justify-content:space-between;
+  border-top:2px dashed var(--line);padding-top:12px}
+footer{font-size:13px;color:var(--muted);font-family:var(--pixel);letter-spacing:.08em}
+@media (prefers-reduced-motion:reduce){.game,#random{transition:none}}
+</style>
 
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,"PingFang TC","Noto Sans TC",sans-serif;line-height:1.6}
-.wrap{max-width:760px;margin:0 auto;padding:24px 16px}
-h1{font-size:2.4rem;margin:.1em 0}h2{font-size:1.2rem;margin:.2em 0}.mut{color:var(--mut);font-size:.88rem}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:12px 0}
-button,select{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--fg);padding:7px 13px;border-radius:8px;cursor:pointer;margin:4px 4px 0 0}
-button.pri{background:var(--ac);color:#fff;border-color:var(--ac);padding:10px 26px;font-size:1.1rem}.on{outline:2px solid var(--ac)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
-.stat b{display:block;font-size:1.15rem}.up{color:#2e8b57;font-size:.8rem}.down{color:var(--ac);font-size:.8rem}.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
-.row{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding:4px 0}
-#log{max-height:42vh;overflow:auto;font-size:.95rem}#log p{margin:4px 0}.y{color:var(--mut);margin-right:6px}
-details.more>summary{cursor:pointer;font-weight:600}details.more .card{margin:10px 0 0}
-#log p.hi{font-weight:600;border-left:3px solid var(--ac);padding-left:8px}
-#log p:first-child{animation:fade .5s}@keyframes fade{from{opacity:0;transform:translateY(-4px)}}
-.tl{position:relative;margin:8px 0 0 6px;padding-left:18px;border-left:2px solid var(--line)}
-.tl div{position:relative;margin:0 0 10px}.tl div::before{content:"";position:absolute;left:-24px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--ac)}
-.tl b{display:inline-block;min-width:44px;color:var(--mut);font-weight:500}
-.kpi{text-align:center}.kpi b{display:block;font-size:1.5rem}
-.hide{display:none}textarea,input{width:100%;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
-.big{font-size:1.6rem;font-weight:700}.tool{position:sticky;top:0;z-index:2}
-.sib{font-size:.85rem}.sib b{font-size:.95rem}
-.scene{display:flex;align-items:flex-end;gap:14px;font-size:2.2rem;line-height:1.1;padding:14px;border-radius:10px;background:linear-gradient(var(--line),transparent)}
-.scene .ppl{letter-spacing:2px}
-.lmap{display:grid;grid-template-columns:repeat(20,1fr);gap:3px}.lmap i{aspect-ratio:1;border:1px solid var(--line);border-radius:3px}
-.cert{border-top:6px solid var(--ac)}.cert .grid>div{border-bottom:1px dashed var(--line);padding:4px 0}
-.opt{display:block;width:100%;text-align:left;padding:10px 12px}.opt small{display:block;color:var(--mut)}
-.opt[disabled]{opacity:.45;cursor:not-allowed}
-button{transition:transform .08s,background .15s,border-color .15s,box-shadow .15s}
-button:hover:not([disabled]){border-color:var(--ac)}
-button:active:not([disabled]){transform:scale(.96)}
-button:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
-button.pri:hover{filter:brightness(1.08)}
-.on{background:color-mix(in srgb,var(--ac) 14%,var(--card))}
-.opt.picked{background:var(--ac);color:#fff;border-color:var(--ac)}.opt.picked small{color:#fff}
-.opt.dim{opacity:.35}
-#lifebar{transition:none}
-.bar.live{height:8px}
-.tbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}
-.tbar button{margin:0}
-.ib{width:40px;height:36px;padding:0;font-size:1rem;border-radius:50%}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--card)}
-.seg button{border:0;border-radius:0;padding:6px 11px;font-size:.88rem;font-variant-numeric:tabular-nums}
-.seg button+button{border-left:1px solid var(--line)}
-.seg button.on{background:var(--ac);color:#fff}
-.chip{border-radius:999px;padding:6px 13px;font-size:.88rem}
-.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
-.sw{display:inline-flex;align-items:center;gap:8px;font-size:.88rem;cursor:pointer;user-select:none;margin-left:auto}
-.sw input{display:none}.sw i{width:38px;height:22px;border-radius:999px;background:var(--line);position:relative;transition:background .2s}
-.sw i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 2px #0003}
-.sw input:checked+i{background:var(--ac)}.sw input:checked+i::after{transform:translateX(16px)}
-#modal{position:fixed;inset:0;z-index:8;display:flex;align-items:flex-end;justify-content:center;background:rgb(0 0 0/.45);animation:fadein .2s}
-#modal.hide{display:none}
-#modal .sheet{background:var(--card);width:100%;max-width:640px;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;padding:14px 18px 26px;box-shadow:0 -8px 30px #0004;animation:sheetup .3s cubic-bezier(.2,.8,.2,1)}
-#modal.closing{animation:fadeout .2s forwards}#modal.closing .sheet{animation:sheetdown .2s forwards}
-@media (min-width:700px){#modal{align-items:center}#modal .sheet{border-radius:18px}}
-.mbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.mbar .tag{font-size:.82rem;color:var(--ac);font-weight:600;letter-spacing:.05em}
-#mpill{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:7;border-radius:999px;box-shadow:0 6px 20px #0004;animation:sheetup .3s}
-@keyframes fadein{from{opacity:0}}@keyframes fadeout{to{opacity:0}}
-@keyframes sheetup{from{transform:translateY(40px);opacity:0}}@keyframes sheetdown{to{transform:translateY(40px);opacity:0}}
-.stat .bar i{transition:width .45s cubic-bezier(.2,.8,.2,1)}
-.lmap i{transition:background .5s}
-#svg-dot{transition:cx .4s,cy .4s}
-.stat.flash b{animation:flash .6s}@keyframes flash{30%{color:var(--ac)}}
-#scene .ppl span{display:inline-block;animation:popin .35s}@keyframes popin{from{transform:scale(.4);opacity:0}}
-#log p:first-child{animation:grow .35s ease-out}@keyframes grow{from{opacity:0;max-height:0;transform:translateY(-6px)}to{max-height:8em}}
-#toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.92rem;max-width:calc(100% - 32px);pointer-events:none;transition:opacity .2s,transform .2s;z-index:9}
-#toast.show{opacity:1;transform:translate(-50%,0)}
-.stat b{font-variant-numeric:tabular-nums}
-#choice{animation:pop .25s ease-out}@keyframes pop{from{opacity:0;transform:translateY(8px)}}
-#log p{cursor:pointer}#log p.star::after{content:" ★";color:#d4a017}
+<script>try{if((window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone)location.replace("https://jackycheung0408.github.io/life-sim/"+location.search+location.hash)}catch(e){}</script></head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">JACKY'S · INSERT COIN · 4 MACHINES</div>
+    <h1><span class="px">Playground</span></h1>
+    <p class="lede">三款模擬遊戲加一個樂團和弦譜，手機打開就能用，不用下載。挑一台機台，或讓命運幫你選。</p>
+    <div class="actions">
+      <button id="random" type="button">隨機來一款</button>
+      <span class="hint">鍵盤按 <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> 直接打開</span>
+    </div>
+  </header>
 
-/* ===== 復古街機風 ===== */
-:root{--bg:#12122b;--fg:#f4f1de;--mut:#a6a6c8;--card:#22224a;--ac:#ff4d4d;--line:#3d3d75;--y:#ffd23f;--b:#3fa7ff;--g:#4cd964;--ink:#05050f;--btn:#33336b;--stat:#1a1a3a;--deep:#0b0b1e;--opt:#2b2b5c;--opth:#3a3a7a;--btnh:#44448a;--inset:#4a4a8a;--dot:#ffffff0d;--scan:#0000001f;--px:"Press Start 2P","DotGothic16","PingFang TC","Noto Sans TC",monospace}
-/* 淺色主題：跟隨系統，或用右上角按鈕切換（和足球員模擬器共用設定）*/
-@media (prefers-color-scheme: light){:root:not([data-theme=dark]){--bg:#f4f1e8;--fg:#23233a;--mut:#5f5f7a;--card:#ffffff;--ac:#d0342c;--line:#d3cfc2;--y:#a36a00;--b:#1f6fc0;--g:#1e8f39;--ink:#23233a;--btn:#ebe7da;--stat:#f8f6ef;--deep:#efebdf;--opt:#f3f0e6;--opth:#e4dfcf;--btnh:#ddd8c6;--inset:#c9c3b0;--dot:#00000010;--scan:transparent;}}
-:root[data-theme=light]{--bg:#f4f1e8;--fg:#23233a;--mut:#5f5f7a;--card:#ffffff;--ac:#d0342c;--line:#d3cfc2;--y:#a36a00;--b:#1f6fc0;--g:#1e8f39;--ink:#23233a;--btn:#ebe7da;--stat:#f8f6ef;--deep:#efebdf;--opt:#f3f0e6;--opth:#e4dfcf;--btnh:#ddd8c6;--inset:#c9c3b0;--dot:#00000010;--scan:transparent;}
-:root[data-theme=dark]{--bg:#12122b;--fg:#f4f1de;--mut:#a6a6c8;--card:#22224a;--ac:#ff4d4d;--line:#3d3d75;--y:#ffd23f;--b:#3fa7ff;--g:#4cd964;--ink:#05050f;--btn:#33336b;--stat:#1a1a3a;--deep:#0b0b1e;--opt:#2b2b5c;--opth:#3a3a7a;--btnh:#44448a;--inset:#4a4a8a;--dot:#ffffff0d;--scan:#0000001f;}
-#themeBtn{position:fixed;top:10px;right:10px;z-index:1000;padding:6px 10px;font-size:14px}
-:root[data-resolved=light] h1,:root[data-resolved=light] h2{text-shadow:1px 1px 0 #f2c94c!important}
-body{background:var(--bg);font-family:"DotGothic16",system-ui,sans-serif;letter-spacing:.02em;
- background-image:radial-gradient(var(--dot) 1px,transparent 1px);background-size:6px 6px}
-body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:20;background:repeating-linear-gradient(#0000 0 2px,var(--scan) 2px 3px)}
-h1{font-family:var(--px);font-size:1.6rem;color:var(--y);text-shadow:3px 3px 0 var(--ac),6px 6px 0 var(--ink);line-height:1.5}
-h2{font-family:var(--px);font-size:.82rem;color:var(--y);text-shadow:2px 2px 0 var(--ink);line-height:1.8;letter-spacing:.04em}
-.card{background:var(--card);border:3px solid var(--ink);border-radius:0;box-shadow:inset 0 0 0 2px var(--line),5px 5px 0 var(--ink);position:relative}
-.card::before{content:"";position:absolute;top:4px;left:4px;width:6px;height:6px;background:var(--y);box-shadow:calc(100% - 0px) 0 0 transparent}
-button,select{border:3px solid var(--ink);border-radius:0;background:var(--btn);color:var(--fg);box-shadow:3px 3px 0 var(--ink);font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif}
-button:hover:not([disabled]){border-color:var(--ink);background:var(--btnh)}
-button:active:not([disabled]){transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
-button.pri{background:var(--ac);color:#fff;font-family:var(--px);font-size:.85rem;padding:12px 22px;text-shadow:2px 2px 0 var(--ink)}
-.on{background:var(--b)!important;color:#fff!important}
-.seg,.chip,.ib,.sw i{border-radius:0!important}
-.seg{border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);background:var(--btn)}
-.seg button{box-shadow:none;border:0;font-family:var(--px);font-size:.62rem;padding:9px 9px}
-.seg button+button{border-left:2px solid var(--ink)}
-.seg button.on{background:var(--y)!important;color:var(--ink)!important}
-.ib{width:42px;height:38px}
-.sw i{border:2px solid var(--ink);background:var(--btn)}.sw i::after{border-radius:0;background:var(--fg)}.sw input:checked+i{background:var(--g)}
-.mut{color:var(--mut)}
-.row{border-bottom:2px dotted var(--line)}
-.bar{border-radius:0;background:var(--ink);height:8px}.bar i{background:linear-gradient(90deg,var(--g),var(--y))}
-.stat{background:var(--stat);border:2px solid var(--ink);padding:6px 8px}
-.stat b{font-family:var(--px);font-size:.8rem;margin:4px 0;color:var(--fg)}
-.up{color:var(--g)}.down{color:var(--ac)}
-#log{background:var(--deep);border:3px solid var(--ink);box-shadow:inset 0 0 0 2px var(--line)}
-#log p.hi{border-left:4px solid var(--y);color:var(--y)}
-.opt{border:3px solid var(--ink);background:var(--opt);margin:8px 0 0}
-.opt:hover:not([disabled]){background:var(--opth)}
-.opt::before{content:"▶ ";color:var(--y);opacity:0}.opt:hover::before,.opt.picked::before{opacity:1}
-.opt.picked{background:var(--y);color:var(--ink)}.opt.picked small{color:var(--ink)}
-#modal .sheet{border:4px solid var(--ink);border-radius:0;box-shadow:inset 0 0 0 3px var(--y),8px 8px 0 var(--ink);background:var(--card)}
-.mbar .tag{font-family:var(--px);font-size:.6rem;color:var(--ink);background:var(--y);padding:6px 8px}
-#mpill{border-radius:0}
-#toast{border-radius:0;border:3px solid var(--ink);background:var(--y);color:var(--ink);box-shadow:4px 4px 0 var(--ink)}
-.lmap i{border-radius:0;border-color:var(--ink)}
-.cert{border-top:0}.cert::after{content:"";position:absolute;inset:0 0 auto;height:8px;background:repeating-linear-gradient(90deg,var(--ac) 0 12px,var(--y) 12px 24px)}
-.tl{border-left:3px dotted var(--y)}.tl div::before{border-radius:0;background:var(--y)}
-.kpi b{font-family:var(--px);font-size:1rem}
-.big{font-family:var(--px);color:var(--y)}
-textarea,input,select{border-radius:0}
-/* 字型清晰度：像素字型只在 8 的倍數時清楚 */
-h1,h2,.age,.seg button,.kpi b,.stat b,.big,.mbar .tag,button.pri,.lifebar-wrap .lbl{-webkit-font-smoothing:none;-moz-osx-font-smoothing:grayscale;font-smooth:never}
-h1{font-size:24px;line-height:40px}
-h2{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;font-size:16px;line-height:24px;letter-spacing:.06em}
-.seg button{font-size:8px;line-height:16px}
-.stat b{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;font-size:16px;line-height:24px}
-.kpi b{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;font-size:24px;line-height:32px}
-.big{font-size:24px;line-height:32px}
-.mbar .tag{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;font-size:14px;letter-spacing:.04em}
-button.pri{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;font-size:16px;letter-spacing:.1em}
-.hud .age{font-size:32px;line-height:32px}.hud .age small{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;font-size:16px}
-.lifebar-wrap .lbl{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;font-size:13px}
-.blink{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif!important;font-size:16px!important}
-/* 頂部：照片、年齡、血條 */
-.tool{padding:12px 14px}
-.hud{display:flex;gap:12px;align-items:center}
-.lcd{flex:none;width:92px;height:92px;padding:8px;background:#d7d2c3;border:3px solid var(--ink);box-shadow:inset 0 0 0 3px #a9a493,3px 3px 0 var(--ink);border-radius:18px 18px 18px 40px}
-.lcd canvas{width:100%;height:100%;display:block;image-rendering:pixelated;border:2px solid #5c6146;background:#9aa66a}
-.hud .age{font-family:var(--px);font-size:2rem;color:var(--y);text-shadow:3px 3px 0 var(--ac),5px 5px 0 var(--ink);line-height:1}
-.hud .age small{font-size:.7rem;margin-left:4px;text-shadow:none;color:var(--fg)}
-.hud .meta{font-size:.85rem;color:var(--mut);margin-top:6px}
-.lifebar-wrap{margin-top:10px}
-.lifebar-wrap .lbl{display:flex;justify-content:space-between;font-family:var(--px);font-size:.55rem;color:var(--fg);margin-bottom:4px}
-.lifebar-wrap .lbl b{color:var(--y)}
-.hp{position:relative;height:22px;background:var(--ink);border:3px solid var(--ink);box-shadow:inset 0 0 0 2px var(--inset),3px 3px 0 var(--ink)}
-.hp #lifebar{position:absolute;inset:2px auto 2px 2px;height:auto;max-width:calc(100% - 4px);background:linear-gradient(180deg,#fff6 0 30%,transparent 30%),linear-gradient(90deg,var(--g),var(--y) 60%,var(--ac));
- -webkit-mask:repeating-linear-gradient(90deg,#000 0 7px,#0000 7px 9px);mask:repeating-linear-gradient(90deg,#000 0 7px,#0000 7px 9px)}
-.hp .tick{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--fg);opacity:.5}
-.hp .avg{position:absolute;top:-8px;bottom:-8px;width:3px;background:var(--y);box-shadow:0 0 0 1px var(--ink)}
-.hp .avg::after{content:"平均";position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:.65rem;color:var(--y);white-space:nowrap}
-.stages{display:flex;font-size:.7rem;color:var(--mut);margin-top:4px;position:relative;height:14px}
-.stages span{position:absolute;transform:translateX(-50%)}
-#scenecv{width:100%;display:block;image-rendering:pixelated;border:3px solid var(--ink);background:#8ecae6}
-.fact{display:block;font-size:.76rem;color:var(--mut);margin:2px 0 0 3.2em;font-weight:400}
-.blink{animation:blink 1s steps(2) infinite}@keyframes blink{50%{opacity:0}}
-/* 清晰度：中文一律 DotGothic16 且 ≥14px；Press Start 2P 只留給標題與年齡數字 */
-body{font-size:15px}
-button,select,.tbar,.sw{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif;font-size:15px}
-.seg button{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif!important;font-size:14px!important;line-height:18px;padding:7px 10px}
-.lifebar-wrap .lbl{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif!important;font-size:14px!important}
-.stages{font-size:14px;height:20px}
-.stat b{font-family:"DotGothic16","PingFang TC","Noto Sans TC",sans-serif!important;font-size:18px!important}
-.hud .age small,#who,#yr{font-size:15px!important}
-.mut{font-size:14px}
-.saverow{display:flex;gap:6px;margin:6px 0}.saverow .resume{flex:1;text-align:left;margin:0}.saverow .del{margin:0;padding:8px 12px}
-button.pri{font-family:"DotGothic16","PingFang TC",sans-serif!important;font-size:18px!important}
-.stat .v{font-size:16px!important;white-space:nowrap}
-/* 易讀性：內文、按鈕、數值卡改用一般黑體；像素字只留標題與年齡 */
-body,button,select,textarea,.stat,.stat b,.seg button,.lifebar-wrap .lbl,.stages,.mbar .tag,button.pri,.opt,#log p,.mut,.blink,h2{font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif!important;-webkit-font-smoothing:antialiased!important;letter-spacing:.02em}
-h2{font-weight:700}.stat b{font-weight:700;font-size:20px!important}.seg button{font-weight:600}
-body{font-size:15px;line-height:1.6}
-.lmap i.now{outline:2px solid var(--y);outline-offset:1px;background:linear-gradient(to top,color-mix(in srgb,var(--y) 55%,transparent) var(--fill,0%),transparent var(--fill,0%))!important;animation:nowblink 1s steps(2) infinite}
-@keyframes nowblink{50%{outline-color:transparent}}
-#yr{color:var(--y);font-weight:700}
-.svpulse{animation:svp 1.2s ease-out infinite;transform-box:fill-box;transform-origin:center}
-@keyframes svp{0%{transform:scale(1);opacity:1}100%{transform:scale(3.2);opacity:0}}
-.svdot{animation:nowblink 1s steps(2) infinite}
-.yearbar{display:flex;align-items:center;gap:8px;margin:10px 0 6px;font-size:13px;color:var(--fg)}
-.ybtrack{flex:1;height:10px;background:var(--ink);border:2px solid var(--line);position:relative}
-#ybFill{position:absolute;inset:0 auto 0 0;width:0;background:var(--y);transition:width .1s linear}
-#shop{display:flex;flex-wrap:wrap;gap:6px}#shop p{flex-basis:100%}
-.buy{margin:0;padding:6px 10px;font-size:14px;display:flex;flex-direction:column;align-items:flex-start}.buy small{font-size:12px;color:var(--mut)}
-.boards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
-.board{background:var(--bg);border:2px solid var(--line);padding:10px 12px}.board h3{margin:0 0 8px;font-size:15px;color:var(--y)}
-.br{display:flex;justify-content:space-between;gap:8px;font-size:14px;padding:3px 0}.br b{font-weight:600;text-align:right}.br small{font-size:12px}
-.bb{height:5px;background:var(--ink);margin:0 0 4px}.bb i{display:block;height:100%}
-#reveal{position:fixed;inset:0;z-index:999;background:radial-gradient(circle at 50% 40%,#22224a,#05050f 70%);display:flex;align-items:center;justify-content:center;padding:16px;animation:rvIn .3s}
-#reveal.rv-out{opacity:0;transition:opacity .35s}@keyframes rvIn{from{opacity:0}}
-.rv-box{text-align:center;max-width:460px;width:100%}
-.rv-tag{color:var(--y);font-size:13px;letter-spacing:.15em;margin-bottom:12px;font-weight:700}
-.rv-reel{position:relative}.rv-win{border:4px solid var(--y);box-shadow:6px 6px 0 var(--ac),inset 0 0 0 3px var(--ink);background:var(--card);height:150px;overflow:hidden;position:relative}
-.rv-win::before,.rv-win::after{content:"";position:absolute;left:0;right:0;height:50px;z-index:2;pointer-events:none}.rv-win::before{top:0;background:linear-gradient(var(--card),transparent)}.rv-win::after{bottom:0;background:linear-gradient(transparent,var(--card))}
-.rv-strip div{height:50px;line-height:50px;font-size:20px;color:var(--mut)}.rv-strip div.mid{font-size:30px;font-weight:800;color:var(--fg);border-top:2px dashed var(--line);border-bottom:2px dashed var(--line)}
-.rv-strip.fast div{filter:blur(1.5px)}.rv-strip div.hit{color:var(--y);animation:rvHit .5s cubic-bezier(.2,1.6,.4,1)}
-.rv-win.flash{animation:rvFlash .4s steps(2) 2}@keyframes rvFlash{50%{background:var(--y)}}
-@keyframes rvHit{0%{transform:scale(1.8)}100%{transform:scale(1)}}
-.rv-arrow{position:absolute;top:50%;transform:translateY(-50%);color:var(--ac);font-size:22px}.rv-arrow.l{left:-22px}.rv-arrow.r{right:-22px}
-.rv-crumb{margin-top:12px;font-size:14px;color:var(--mut);min-height:20px}.rv-crumb b{color:var(--y)}
-.rv-sub{margin:10px 0;color:var(--fg);font-size:15px;min-height:22px}.rv-sub b{color:var(--y);font-size:18px}
-#rvStamps{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:10px 0 16px}
-.rv-stamp{border:2px solid var(--ac);color:var(--ac);padding:6px 10px;transform:rotate(-4deg);animation:rvStamp .3s ease-out;background:rgba(255,77,77,.08)}
-.rv-stamp span{display:block;font-size:11px;opacity:.8}.rv-stamp b{font-size:16px}
-@keyframes rvStamp{0%{transform:scale(2.4) rotate(-12deg);opacity:0}100%{transform:scale(1) rotate(-4deg);opacity:1}}
-.rv-skip{display:block;margin:14px auto 0;font-size:13px}
-.bc{position:relative;background:#f4f1de;color:#22223a;padding:18px;border:4px solid var(--ink);box-shadow:8px 8px 0 var(--ac)}
-.bc .mut{color:#6b6b85!important}.bc-top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px double #22223a;padding-bottom:10px;margin-bottom:12px}
-.bc-title{font-size:22px;font-weight:800;letter-spacing:.2em}
-.cert-seal{border:3px solid var(--ac);color:var(--ac);padding:4px 10px;transform:rotate(12deg);font-weight:800;animation:rvStamp .4s .3s both;white-space:nowrap}
-.bc-id{display:flex;gap:14px;align-items:center}.bc-id canvas{width:88px;height:88px;image-rendering:pixelated;border:3px solid #22223a;background:#9aa66a;flex:none}
-.bc-name{font-size:30px;font-weight:800;line-height:1.2}.bc-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.bc-tags span{background:#22223a;color:#f4f1de;font-size:13px;padding:2px 8px}
-.bc-line{margin:12px 0 4px}.bc-sec{margin:14px 0 6px;font-weight:800;border-left:5px solid var(--ac);padding-left:8px}
-.bc-fam,.bc-others{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}
-.bc-p,.bc-others div{background:#fff;border:2px solid #22223a;padding:6px 8px;display:flex;flex-direction:column}.bc-p b,.bc-others b{font-size:15px}.bc-p small,.bc-others small,.bc-others span{font-size:12px;color:#6b6b85}
-.bc-cmp{margin:6px 0}.bc-cl{display:flex;justify-content:space-between;font-size:14px}.bc-track{position:relative;height:10px;background:#ddd8c4;border:2px solid #22223a;margin-top:2px}.bc-track i{display:block;height:100%}.bc-track em{position:absolute;top:-5px;bottom:-5px;border-left:2px dashed #22223a}
-.bc-dots{display:flex;gap:4px;margin-top:3px}.bc-dots i{flex:1;height:10px;border:2px solid #22223a;background:#ddd8c4}.bc-dots i.on{background:var(--y)}
-.bc-vs{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}.bc-vs>div:not(.vs){background:#fff;border:2px solid #22223a;padding:8px;display:flex;flex-direction:column}.bc-vs b{font-size:22px}.bc-vs small{font-size:12px;color:#6b6b85}.bc-vs .vs{font-weight:800;color:var(--ac)}
-.lr{margin:14px 0}.lr-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:8px 0}.lr-facts div{background:var(--bg);border:2px solid var(--line);padding:8px}.lr-facts span{display:block;font-size:12px;color:var(--mut)}.lr-facts b{font-size:17px;color:var(--y)}
-.lr-chart{margin:10px 0}.lr-cl{display:flex;justify-content:space-between;font-size:14px}.lr-cl small{color:var(--mut)}.lr-chart svg{width:100%;height:80px;background:var(--bg);border:2px solid var(--line)}
-.lr-chs{display:grid;gap:8px;margin-top:10px}.lr-ch{border-left:4px solid var(--y);padding:6px 10px;background:var(--bg)}.lr-ch-h{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.lr-ch-h b{color:var(--y);font-size:16px}.lr-ch-h span,.lr-ch-h em{font-size:12px;color:var(--mut);font-style:normal}.lr-ch p{margin:4px 0;font-size:14px}
-.lr-play p{opacity:0;animation:lrIn .8s forwards;font-size:16px;color:var(--fg);margin:8px 0}.lr-play .lr-name{font-size:34px;font-weight:800;color:var(--y)}.lr-play .lr-sub{color:var(--mut)}.lr-play button{opacity:0;animation:lrIn .6s forwards;margin-top:16px}
-@keyframes lrIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.candle.on{background:var(--y);color:var(--ink)}
-.dc{position:relative;background:#14142c;color:#f4f1de;padding:18px;border:4px solid var(--y);box-shadow:8px 8px 0 var(--ink);text-align:left}
-.dc-top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px double var(--y);padding-bottom:10px;margin-bottom:12px}
-.dc-title{font-size:22px;font-weight:800;letter-spacing:.2em;color:var(--y)}.dc-mut{color:#a6a6c8;font-size:13px}
-.dc-seal{border:3px solid var(--y);color:var(--y);padding:4px 10px;transform:rotate(12deg);font-weight:800;animation:rvStamp .4s .3s both;white-space:nowrap}
-.dc .bc-id canvas{border-color:var(--y)}.dc-years{font-size:18px;color:var(--y);font-weight:700}.dc-tags span{background:var(--y);color:var(--ink)}
-.dc-line{margin:12px 0}.dc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px}.dc-grid div{border:2px solid #3d3d75;padding:6px 8px}.dc-grid span{display:block;font-size:12px;color:#a6a6c8}.dc-grid b{font-size:15px}
-.dc-epi{margin-top:14px;padding:12px;border-top:2px dashed #3d3d75;text-align:center;font-size:17px;color:var(--y);font-style:italic}.dc-tt{color:var(--y);font-weight:700}
-.bc{animation:paperIn .5s cubic-bezier(.2,1.2,.4,1)}@keyframes paperIn{from{transform:translateY(30px) rotate(-2deg);opacity:0}}
-.hall-tabs{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px}.hall-tabs button{margin:0;padding:6px 12px}.hall-tabs button.on{background:var(--y);color:var(--ink)}
-.hall{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
-.tomb{cursor:pointer;background:linear-gradient(#2a2a55,#1a1a38);border:3px solid #4a4a85;border-radius:40px 40px 0 0;padding:14px 10px 10px;text-align:center;display:flex;flex-direction:column;gap:2px;box-shadow:0 0 calc(var(--glow)*24px) rgba(255,210,63,calc(var(--glow)*.6));transition:transform .15s}
-.tomb:hover{transform:translateY(-3px)}.tomb b{font-size:16px;color:var(--fg)}.tomb .ty{color:var(--y);font-size:13px}.tomb .tp{font-size:12px;color:var(--mut)}.tomb .tt{font-size:12px;color:var(--mut);min-height:32px;overflow:hidden}
-.tomb .candle{margin:6px auto 0;padding:4px 10px;font-size:13px}.flames{font-size:14px;letter-spacing:-2px;animation:flick 1.6s infinite alternate}@keyframes flick{0%{opacity:.75;filter:brightness(1)}100%{opacity:1;filter:brightness(1.4)}}
-.tomb-big{max-width:520px;max-height:90vh;overflow:auto}
-.bc-facts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}.bc-facts div{background:#22223a;color:#f4f1de;padding:8px;text-align:center}.bc-facts b{display:block;font-size:18px;color:var(--y)}.bc-facts span{font-size:11px;opacity:.85}
-@media(max-width:480px){.bc-vs{grid-template-columns:1fr}.bc-vs .vs{text-align:center}}
-</style></head><body><div class="wrap">
+  <main class="grid">
+    <a class="game" href="https://jackycheung0408.github.io/life-sim/" target="_blank" rel="noopener">
+      <div class="screen"><span class="key">1P</span>LIFE</div>
+      <div>
+        <div class="tag">人生 · 單人</div>
+        <h2>人生模擬器</h2>
+        <p>按下出生，隨機成為世界上某個嬰兒，或活一次台灣人生。依真實統計，每個人的一生都不一樣。</p>
+        <ul class="chips"><li>聯考</li><li>當兵</li><li>北漂</li><li>房價</li><li>長照</li></ul>
+      </div>
+      <div class="play"><span>PLAY</span><span>▶</span></div>
+    </a>
 
-<!-- 首頁 -->
-<section id="home">
-<p class="mut">v1.0 · 免費人生模擬 · 依 170 個國家與地區的公開統計概估 · 15 歲以上</p>
-<h1>人生模擬器</h1>
-<p id="plays" class="mut" style="margin:0"></p>
-<p><button onclick="location.href='football/'" style="background:#2f8a3e;color:#fff;border:3px solid #05050f;box-shadow:3px 3px 0 #05050f;padding:6px 12px;font-weight:700">⚽ 新遊戲：足球員模擬器 ▶</button> <button onclick="location.href='town/'" style="background:#e0779b;color:#fff;border:3px solid #05050f;box-shadow:3px 3px 0 #05050f;padding:6px 12px;font-weight:700">🐷 新遊戲：小豬鎮（和朋友一起住）</button></p><p class="blink" style="font-family:var(--px);font-size:.7rem;color:var(--y)">— 按下「出生」開始 —</p>
-<p>此刻每秒約有四個嬰兒誕生，你會是其中一個，一路活到最後。出生在哪、父母是誰，你沒得選——當初的你也一樣。</p>
-<div class="grid card"><div><span class="big" id="born">0</span><div class="mut">你打開本頁後出生的嬰兒</div></div><div><span class="big" id="died">0</span><div class="mut">同一段時間離世的人</div></div></div>
-<div class="card"><b>今日主題：</b><span id="theme"></span><div class="mut">今天出生的人生都會遇到和這個主題有關的事件。</div></div>
+    <a class="game fb" href="https://jackycheung0408.github.io/football-life/" target="_blank" rel="noopener">
+      <div class="screen"><span class="key">2P</span>FB</div>
+      <div>
+        <div class="tag">足球 · 單人</div>
+        <h2>足球員模擬器</h2>
+        <p>從街頭踢球的孩子開始，一路踢到退休後的人生。每一季的選擇都由你決定。</p>
+        <ul class="chips"><li>青訓</li><li>轉會</li><li>國家隊</li><li>世界盃</li></ul>
+      </div>
+      <div class="play"><span>PLAY</span><span>▶</span></div>
+    </a>
 
-<div class="card"><h2>如果你是此刻出生的嬰兒</h2><div class="mut">機率依各國每年出生人數計算</div><div id="odds"></div></div>
+    <a class="game town" href="https://jackycheung0408.github.io/life-simulator/town/" target="_blank" rel="noopener">
+      <div class="screen"><span class="key">3P</span>PIG</div>
+      <div>
+        <div class="tag">小鎮 · 和朋友一起</div>
+        <h2>小豬鎮</h2>
+        <p>和朋友住在同一個像素小鎮，照顧自己吃飯睡覺洗澡，也能去朋友家串門子。</p>
+        <ul class="chips"><li>幫忙</li><li>送禮</li><li>惡作劇</li><li>扁他一頓</li></ul>
+      </div>
+      <div class="play"><span>PLAY</span><span>▶</span></div>
+    </a>
+    <a class="game chord" href="https://jackycheung0408.github.io/chordbook/#/" target="_blank" rel="noopener">
+      <div class="screen"><span class="key">4P</span>CHORD</div>
+      <div>
+        <div class="tag">樂團 · 工具</div>
+        <h2>和弦室 ChordRoom</h2>
+        <p>樂團的共用和弦譜，團員一起找譜、改譜，練團時直接打開看。</p>
+        <ul class="chips"><li>找譜</li><li>移調</li><li>看指型</li><li>一起改譜</li></ul>
+      </div>
+      <div class="play"><span>OPEN</span><span>▶</span></div>
+    </a>
+  </main>
 
-<div class="card" id="setup">
-<p><b>出生的世界</b><br>
-<button class="w" data-v="past">過去的世界（1960）</button><button class="w on" data-v="now">現在的世界</button><button class="w" data-v="future">未來的世界（2060）</button><button class="w" data-v="any">哪個都好</button><button class="w" data-v="tw">🇹🇼 台灣人生</button></p>
-<p id="twopt" class="hide"><b>出生年份</b><br><select id="twYear"></select><span class="mut"> 不同年代出生，會遇到不同的台灣：聯考、當兵、北漂、房價、長照……</span></p>
-<p><b>怎麼決定你出生在哪國？</b><br><button class="m on" data-v="birth">看各國出生人數</button><button class="m" data-v="pop">看各國人口</button><br><span class="mut">出生人數：生得多的國家（如印度、奈及利亞）較容易抽到。人口：人多的國家較容易抽到。</span></p>
-<p><b>一生的長度</b><br><button class="l" data-v="30">約 30 分鐘</button><button class="l on" data-v="60">約 1 小時</button><button class="l" data-v="90">約 1.5 小時</button><span class="mut"> 中途可暫停或加速</span></p>
-<p><b>你實際出生的國家或地區（選填）</b><br><select id="homeC"></select><span class="mut"> 用來把這一生和你的人生並排比較</span></p>
-<p><b>金額顯示</b><br><select id="cur"></select></p>
-<p><label><input type="checkbox" id="soft" style="width:auto"> 略過沉重情節</label></p>
-<button class="pri" id="go">出生</button><div id="saves"></div>
-<p class="mut">死亡、暴力、自殺等沉重的事也會照統計發生，不描寫畫面，並附上求助資訊（台灣安心專線 1925）。</p>
+  <footer>© JACKY CHEUNG · GAME OVER? PRESS START AGAIN</footer>
 </div>
 
-<div class="card"><div class="row"><h2>追思館</h2><span class="mut">大家走完的人生 · 按 🕯 點一支蠟燭</span></div><div id="memorial" class="mut">還沒有人生。</div></div>
-<div class="card"><h2>大家分享的人生</h2><div class="mut">沒有聯絡方式，只留下人生。</div><div id="shared" class="mut">還沒有分享。</div></div>
-<div class="card mut">
-<b>暫停片刻</b>：5、15、30、50、70 歲時時間會停下，問你一個問題。<br>
-<b>同一秒出生的人</b>：你出生的那一秒，世界各地還有四個嬰兒誕生，他們的人生會並列在你旁邊。<br>
-<b>自動抉擇</b>：嫌選擇麻煩，可在工具列打開，在一旁看著就好。<br>
-數字為聯合國、世界銀行等公開資料的概估值，僅供體驗。
-</div>
-</section>
-
-<!-- 出生登記 -->
-<section id="birth" class="hide"><div class="card" id="cert"></div><button class="pri" id="start">開始這一生</button></section>
-
-<!-- 遊戲 -->
-<section id="game" class="hide">
-<div class="card tool"><div class="hud">
- <div class="lcd" title="本人"><canvas id="avatar" width="16" height="16"></canvas></div>
- <div style="flex:1;min-width:0"><div class="age"><span id="agebig">0</span><small>歲</small></div>
- <div class="meta"><b id="who" style="color:var(--fg)"></b> · <span id="yr"></span></div></div>
-</div>
-<div class="tbar">
- <button id="pause" class="ib" title="暫停" aria-label="暫停">⏸︎</button>
- <div class="seg" id="speeds" role="group" aria-label="速度"><button data-m="1" class="on">1×</button><button data-m="2">2×</button><button data-m="4">4×</button><button data-m="8">8×</button><button data-m="16">16×</button></div>
- <button id="ffwd" class="chip" title="直接跳到下一次要你做決定的地方">⏭︎ 下一個抉擇</button>
- <button id="skip" class="chip" title="剩下的人生自動跑完">⏩︎ 跳到結局</button>
- <label class="sw"><input type="checkbox" id="auto"><i></i>自動抉擇</label>
-</div>
-<div class="yearbar"><span id="ybL"></span><div class="ybtrack"><i id="ybFill"></i></div><span id="ybR"></span></div>
-<div class="lifebar-wrap"><div class="lbl"><span>人生 <b id="stage"></b></span><span id="pct"></span></div>
- <div class="hp" id="hp"><i id="lifebar" style="width:0"></i></div><div class="stages" id="stages"></div></div></div>
-<div class="card"><canvas id="scenecv" width="240" height="96"></canvas><div class="mut" id="sceneTxt" style="margin-top:6px"></div><div class="mut" id="origin" style="margin-top:4px"></div></div>
-<div class="card grid" id="stats"></div>
-<div class="card boards" id="boards"></div>
-
-<div class="card"><b>今年的重心</b><br><span id="focus"></span>
-<p style="margin:8px 0 0"><b>花錢習慣</b> <select id="spend"><option value="0">節省</option><option value="1" selected>普通</option><option value="2">大方</option></select> <span class="mut">聚餐、送禮、孝親費；越大方人際越好，但存不了錢</span></p><div id="shop"></div></div>
-<div class="card" id="log"></div>
-<details class="card more"><summary>更多：同一秒出生的人、人生地圖、存活曲線、國家資訊</summary>
-<div class="card"><h2>同一秒出生的人</h2><div id="sibs" class="grid"></div></div>
-<div class="card"><h2>人生地圖</h2><div class="mut">一格是一年 · 顏色越深那年越幸福 · 實線格到當地平均壽命</div><div id="lmap"></div></div>
-<div class="card"><h2>存活曲線</h2><div class="mut">同一年出生的人，活到各年齡的比例</div><div id="surv"></div></div>
-<div class="card"><h2 id="cname"></h2><div id="cpanel"></div></div>
-</details>
-</section>
-
-<!-- 結局 -->
-<section id="end" class="hide">
-<div class="card" id="summary"></div>
-<div class="card" id="compare"></div>
-<div class="card"><h2>同一秒出生的人，後來</h2><div id="sibEnd"></div></div>
-<div class="card"><b>最後，對這個人說一句話</b><textarea id="msg" rows="2"></textarea>
-<p><label><input type="checkbox" id="share" style="width:auto" checked> 分享到追思館（不需要帳號）</label></p>
-<button class="pri" id="save">送出並再活一次</button> <button id="shareBtn">📣 分享給朋友</button></div>
-</section>
-</div>
-<div id="toast" role="status" aria-live="polite"></div>
-<div id="modal" class="hide" role="dialog" aria-modal="true"><div class="sheet"><div class="mbar"><span class="tag" id="mtag"></span><button class="chip" id="mmin">先收起來 ▾</button></div><div id="choice"></div></div></div>
-<button id="mpill" class="pri hide">有一個抉擇在等你 ▴</button>
-
-<script src="countries.js?v=77"></script>
-<script src="events.js?v=83"></script>
-<script src="life.js?v=80"></script>
-<script src="pixel.js?v=76"></script>
-<script src="story.js?v=81"></script>
-<script src="realism.js?v=80"></script>
-<script src="events2.js?v=81"></script>
-<script src="taiwan.js?v=81"></script>
-<script src="foreshadow.js?v=76"></script>
 <script>
-const CUR={"新台幣":32,"港幣":7.8,"人民幣":7.2,"美元":1,"澳門幣":8,"新加坡元":1.35,"令吉":4.6};
-const PPP={"新台幣":15,"港幣":6,"人民幣":3.6,"美元":1,"澳門幣":5.5,"新加坡元":0.9,"令吉":1.6}; // 體感換算
-const NAMES={
- 華:{男:["志明","建宏","浩宇","子軒","偉","俊傑","家豪","宇航"],女:["淑芬","雅婷","雨涵","欣怡","美玲","詩涵","佳穎","曉彤"]},
- 日:{男:["翔太","大輝","健一","陽斗","拓海"],女:["結衣","陽菜","美咲","優子","葵"]},
- 韓:{男:["敏俊","志勳","賢宇","在元"],女:["瑞妍","智恩","秀彬","敏智"]},
- 南亞:{男:["Arjun","Rahul","Imran","Rohan","Amit","Bilal","Sanjay"],女:["Priya","Ananya","Ayesha","Sneha","Pooja","Nusrat"]},
- 中東:{男:["Ahmed","Omar","Ali","Yusuf","Hassan","Mehmet","Reza"],女:["Fatima","Aisha","Layla","Zeynep","Mariam","Noor","Sara"]},
- 西非:{男:["Chinedu","Kofi","Moussa","Abdoulaye","Emeka","Kwame","Ousmane","Ibrahim"],女:["Amara","Aminata","Fatoumata","Ngozi","Adwoa","Awa","Chiamaka","Mariama"]},
- 東非:{男:["Juma","Baraka","Otieno","Mugisha","Kato","Hamisi"],女:["Wanjiru","Achieng","Neema","Aisha","Nakato","Uwase"]},
- 非洲之角:{男:["Tesfaye","Abdi","Dawit","Mohamed","Yonas","Liban"],女:["Abebech","Hodan","Selam","Amina","Hiwot","Halima"]},
- 南非:{男:["Thabo","Tendai","Sipho","Chisomo","Tiago","Mandla"],女:["Nokuthula","Chipo","Thandiwe","Lindiwe","Nádia","Tsitsi"]},
- 中非:{男:["Jean","Patrice","Emmanuel","Joseph","Mahamat","Didier"],女:["Grace","Deborah","Esther","Christelle","Zara","Mireille"]},
- 拉:{男:["Juan","Lucas","Mateo","Diego","Carlos","João","Gabriel"],女:["María","Ana","Camila","Valentina","Lucía","Beatriz","Sofía"]},
- 英:{男:["James","Liam","Noah","Ethan","Oliver","Jack"],女:["Emma","Olivia","Sophie","Grace","Emily","Chloe"]},
- 歐:{男:["Jonas","Luca","Pierre","Marco","Lukas","Mikael","Piotr"],女:["Emma","Giulia","Léa","Anna","Sofia","Elena","Zofia"]},
- 斯:{男:["Ivan","Dmitri","Taras","Aleksandr","Nikola","Andrei"],女:["Olga","Natalia","Anastasia","Daria","Milena","Irina"]},
- 越:{男:["明","俊","雄","國寶","德"],女:["玲","秋香","芳","玉蘭","垂"]},
- 東南亞:{男:["Minh","Somchai","Budi","Aung","Rizal","Ahmad"],女:["Linh","Siti","Mali","Ei Mon","Maria","Nurul"]}};
-const REGIONS=[["華","中國,台灣,香港,澳門,新加坡"],["日","日本"],["韓","韓國,北韓"],["南亞","印度,巴基斯坦,孟加拉,尼泊爾,斯里蘭卡,不丹,馬爾地夫,阿富汗"],["越","越南"],["東南亞","印尼,菲律賓,泰國,緬甸,柬埔寨,寮國,馬來西亞,東帝汶,斐濟,所羅門群島,巴布亞紐幾內亞"],["中東","埃及,伊朗,伊拉克,土耳其,沙烏地阿拉伯,葉門,敘利亞,約旦,黎巴嫩,以色列,巴勒斯坦,科威特,阿曼,阿聯,卡達,巴林,利比亞,突尼西亞,阿爾及利亞,摩洛哥,茅利塔尼亞,蘇丹,亞塞拜然,烏茲別克,哈薩克,塔吉克,土庫曼,吉爾吉斯"],["英","美國,英國,澳洲,加拿大,紐西蘭,愛爾蘭,牙買加,千里達及托巴哥,蓋亞那"],["拉","墨西哥,巴西,哥倫比亞,阿根廷,秘魯,委內瑞拉,智利,厄瓜多,瓜地馬拉,玻利維亞,古巴,多明尼加,宏都拉斯,巴拉圭,薩爾瓦多,尼加拉瓜,哥斯大黎加,巴拿馬,烏拉圭,海地,蘇利南"],["斯","俄羅斯,烏克蘭,白俄羅斯,塞爾維亞,保加利亞,克羅埃西亞,波士尼亞,蒙特內哥羅,北馬其頓,摩爾多瓦"],["歐","德國,法國,義大利,西班牙,波蘭,荷蘭,比利時,瑞典,捷克,希臘,葡萄牙,匈牙利,奧地利,瑞士,丹麥,芬蘭,挪威,羅馬尼亞,斯洛伐克,斯洛維尼亞,立陶宛,拉脫維亞,愛沙尼亞,阿爾巴尼亞,科索沃,塞普勒斯,盧森堡,馬爾他,冰島,喬治亞,亞美尼亞,蒙古"]];
-REGIONS.push(["西非","奈及利亞,迦納,象牙海岸,馬利,布吉納法索,塞內加爾,幾內亞,貝南,多哥,獅子山,賴比瑞亞,甘比亞,幾內亞比索,尼日,維德角"],["東非","肯亞,坦尚尼亞,烏干達,盧安達,蒲隆地,南蘇丹,葛摩,馬達加斯加,模里西斯"],["非洲之角","衣索比亞,厄利垂亞,索馬利亞,吉布地"],["南非","南非,辛巴威,尚比亞,馬拉威,莫三比克,波札那,納米比亞,賴索托,史瓦帝尼,安哥拉"],["中非","剛果民主共和國,剛果共和國,喀麥隆,加彭,中非共和國,赤道幾內亞,查德"]);
-const REGION=n=>REGIONS.find(r=>r[1].split(",").includes(n))?.[0]||"中非";
-const THEMES=[["網路","上網"],["戰爭","衝突"],["疫情","傳染病"],["音樂","樂團"],["氣候","極端天氣"],["移民","遷徙"],["運動","比賽"]];
-const R=Math.random,pick=a=>a[Math.floor(R()*a.length)],$=id=>document.getElementById(id);
-const store={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
-const today=new Date();const THEME=THEMES[(today.getFullYear()*400+today.getMonth()*31+today.getDate())%THEMES.length];
-$("theme").textContent=THEME[0];
-
-// 首頁
-const t0=Date.now();setInterval(()=>{const s=(Date.now()-t0)/1000;born.textContent=Math.floor(s*4.2).toLocaleString();died.textContent=Math.floor(s*2).toLocaleString()},250);
-const totB=C.reduce((a,c)=>a+c[1],0);
-$("odds").innerHTML=[...C].sort((a,b)=>b[1]-a[1]).slice(0,9).map(c=>`<div class="row"><span>${c[0]}</span><span>${(c[1]/totB*100).toFixed(1)}%</span></div>`).join("")+`<div class="row"><span>其餘 ${C.length-9} 個國家與地區</span><span>${(100-[...C].sort((a,b)=>b[1]-a[1]).slice(0,9).reduce((a,c)=>a+c[1],0)/totB*100).toFixed(1)}%</span></div>`;
-$("homeC").innerHTML=`<option value="">不想選擇</option>`+C.map((c,i)=>`<option value="${i}" ${c[0]=="台灣"?"selected":""}>${c[0]}</option>`).join("");
-$("cur").innerHTML=Object.keys(CUR).map(k=>`<option>${k}</option>`).join("");$("cur").value=store.get("cur","新台幣");$("cur").onchange=()=>store.set("cur",$("cur").value);
-const cfg={w:"now",m:"birth",l:60};
-$("twYear").innerHTML=`<option value="r">隨機（1950～2025）</option>`+Array.from({length:76},(_,i)=>2025-i).map(y=>`<option>${y}</option>`).join("");
-document.querySelectorAll(".w").forEach(b=>b.addEventListener("click",()=>$("twopt").classList.toggle("hide",b.dataset.v!=="tw")));
-["w","m","l"].forEach(k=>document.querySelectorAll("."+k).forEach(b=>b.onclick=()=>{document.querySelectorAll("."+k).forEach(x=>x.classList.remove("on"));b.classList.add("on");cfg[k]=k=="l"?+b.dataset.v:b.dataset.v}));
-// 追思館：存在 Supabase（公開金鑰只能讀、新增和點蠟燭，不能改或刪別人的資料）
-const SB="https://gerqdagicybtyilihvvm.supabase.co",SBK="sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y",SB_RPC=SB+"/rest/v1/rpc/",GAME="life";
-// 遊玩人數：只記「今天第幾局」，不記任何個人資料
-const playHit=k=>{try{fetch(SB_RPC+"play_hit",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify({g:GAME,k}),keepalive:true}).catch(()=>{})}catch(e){}};
-const playStats=()=>fetch(SB_RPC+"play_stats",{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify({g:GAME})}).then(r=>r.json()).then(x=>{const el=document.getElementById("plays");if(el&&x&&x.total_start)el.textContent=`👥 今天有 ${x.today_start.toLocaleString()} 局${GAME=="life"?"人生":"生涯"}開始，累計 ${x.total_start.toLocaleString()} 局、${x.total_finish.toLocaleString()} 局走到結局`}).catch(()=>{});
-playStats();
-const sb=(path,opt={})=>fetch(SB+"/rest/v1/"+path,{...opt,headers:{apikey:SBK,"Content-Type":"application/json",...(opt.headers||{})}}).then(r=>r.ok?r.json().catch(()=>null):Promise.reject(r.status));
-function lit(){try{return JSON.parse(localStorage.getItem("candles-lit")||"[]")}catch{return []}}
-function renderHalls(){
- sb("lives?select=id,created_at,name,country,age,born,words,data,candles&order=created_at.desc&limit=30").then(list=>{
-  list=(list||[]).filter(x=>x.name!=="測試");if(!list.length){$("memorial").textContent="還沒有人生。走完一生後，可以把它留在這裡。";$("shared").textContent="還沒有分享。";return}
-  HALL=list;drawHall();
-  $("shared").innerHTML=list.slice(0,6).map(s=>`<div class="card"><b>${esc(s.name)}</b> <span class="mut">${esc(s.country)} · ${esc(s.data?.sex||"")} · ${s.age}歲 · ${new Date(s.created_at).toLocaleDateString()}</span><p>${esc(s.data?.story||"")}</p>${s.words?`<p>「${esc(s.words)}」</p>`:""}</div>`).join("");
- }).catch(()=>{$("memorial").textContent="暫時讀不到追思館。"});
-}
-const REPO="jackycheung0408/life-simulator";
-const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-renderHalls();
-
-// 世界修正：過去壽命短、窮、嬰兒死亡高；未來相反
-function world(c,w){
- const k={past:{ex:-18,gdp:.25,im:4,uni:.25,y:1960},now:{ex:0,gdp:1,im:1,uni:1,y:today.getFullYear()},future:{ex:6,gdp:2,im:.4,uni:1.3,y:2060}}[w];
- // 1960 年的壽命：富國約少 9 年，其他國家越窮差距越大（最低 35 歲）
- // 過去的世界用世界銀行 1960 年代平均值；沒有資料時才用公式推估
- const ex=(e,e60)=>w=="past"?(e60||Math.max(35,e-(c[5]>40000?9:12+(85-e)*.8))):e+k.ex*(e<70?1:.6);
- const im=w=="past"&&c[12]?c[12]:Math.min(250,c[6]*k.im);
- return {name:c[0],city:c[9],mEx:ex(c[3],c[10]),fEx:ex(c[4],c[11]),gdp:c[5]*k.gdp,im,uni:Math.min(100,c[7]*k.uni),gini:c[8],y0:k.y,cbr:c[1]/c[2]*10};
-}
-function wpick(arr,w){let t=arr.reduce((a,x)=>a+w(x),0),r=R()*t;for(const x of arr){r-=w(x);if(r<=0)return x}return arr[0]}
-const CLS=["最貧困","貧困","中等","富裕","最富裕"],EDU=["沒上學","小學","中學","大學"];
-
-function newLife(w){
- const raw=wpick(C,x=>cfg.m=="birth"?x[1]:x[2]);
- // 世界模式抽到台灣，改走台灣人生（有台灣的大事、抉擇、兵役；資料以 taiwan.js 為準，不再用 countries.js 那一列）
- if(raw[0]=="台灣"&&typeof twLife=="function")return twLife(w=="past"?1960:w=="future"?2060:today.getFullYear());
- const c=world(raw,w);
- const sex=R()<.51?"男":"女",cls=Math.floor(R()*5);
- const L={c,raw:raw[0],sex,name:pick(NAMES[REGION(raw[0])][sex]),age:0,cls,know:45+R()*10+cls*2,rel:55+R()*10,hist:[],inc:c.gdp*Math.exp((cls-2)*c.gini*1.4),health:70+R()*20+cls*2,happy:60,edu:0,
-  money:0,partner:null,partnerYears:0,widowed:false,kids:0,grand:0,job:null,jobYears:0,smoke:false,abroad:null,alive:true,events:[],notes:[],
-  ex:sex=="男"?c.mEx:c.fEx,cause:null};
- {L.bias={health:(R()-.5)*12,know:(R()-.5)*10,rel:(R()-.5)*10,happy:(R()-.5)*10};const b=statBase(L);for(const k in b)L[k]=b[k]+L.bias[k]}L.hist[0]=L.happy;makeFamily(L);return L;
-}
-
-let P,S=[],paused=false,auto=false,mult=1,focusSel="健康",busy=false,spend=1,ffwd=false;
-const FOCI=["健康","學業","工作","家人","愛情","享受"];
-// 「今年的重心」依人生階段換成不同的選項，每年從中抽 5 個；背後對應到六種效果
-const STAGE_FOCI=[
- [0,5,[["黏著爸媽","家人"],["到處爬來爬去","健康"],["看圖畫書","學業"],["玩玩具","享受"],["跟鄰居小孩玩","愛情"]]],
- [6,12,[["認真寫功課","學業"],["下課去打球","健康"],["和同學玩","愛情"],["幫忙做家事","家人"],["看卡通、打電動","享受"],["上才藝班","學業"],["養寵物","享受"]]],
- [13,18,[["拚升學考試","學業"],["參加社團","健康"],["談一場戀愛","愛情"],["打工賺零用錢","工作"],["和朋友出去玩","享受"],["陪家人","家人"],["練一項運動","健康"],["自學寫程式或畫畫","學業"]]],
- [19,24,[["好好念書","學業"],["打工存錢","工作"],["談戀愛","愛情"],["揹包旅行","享受"],["健身","健康"],["陪家人","家人"],["參加志工","愛情"],["考證照","學業"]]],
- [25,64,[["衝刺事業","工作"],["下班進修","學業"],["照顧家庭","家人"],["經營感情","愛情"],["顧好身體","健康"],["享受生活","享受"],["發展副業","工作"],["培養興趣","享受"],["陪孩子長大","家人"],["存錢理財","工作"]]],
- [65,130,[["顧好身體","健康"],["含飴弄孫","家人"],["培養興趣","享受"],["學新東西","學業"],["當志工","愛情"],["和老朋友聚會","愛情"],["到處旅行","享受"],["整理一生的回憶","家人"]]]];
-let focusOpts=[],focusAge=-1;
-function renderFocus(){
- if(!P)return;if(focusAge!==P.age){focusAge=P.age;const pool=STAGE_FOCI.find(s=>P.age>=s[0]&&P.age<=s[1])[2].filter(([,k])=>k!="工作"||P.age>=13);
-  focusOpts=[...pool].sort(()=>R()-.5).slice(0,5);if(!focusOpts.some(o=>o[1]==focusSel))focusSel=focusOpts[0][1];}
- const cur=focusOpts.find(o=>o[1]==focusSel);
- $("focus").innerHTML=focusOpts.map(([t,k])=>`<button class="f${cur&&cur[0]==t?' on':''}" data-k="${k}">${t}</button>`).join("");
- document.querySelectorAll(".f").forEach(b=>b.onclick=()=>{focusSel=b.dataset.k;document.querySelectorAll(".f").forEach(x=>x.classList.toggle("on",x==b));toast(`今年的重心：${b.textContent}`)});
-}
-go.onclick=async()=>{
- if(cfg.w=="tw"){const y=$("twYear").value=="r"?1950+Math.floor(R()*76):+$("twYear").value;
-  // 同一秒出生的另外四個人還是來自世界各地，用同年代的世界
-  P=twLife(y);S=[0,1,2,3].map(()=>{const s=newLife(y<1990?"past":"now");s.c.y0=y;return s});}
- else{const w=cfg.w=="any"?pick(["past","now","future"]):cfg.w;P=newLife(w);S=[0,1,2,3].map(()=>newLife(w));}
- await revealBirth(P);
- home.classList.add("hide");birth.classList.remove("hide");scrollTo(0,0);
- cert.innerHTML=birthCard(P,$("homeC").value);const cv=$("certAvatar");if(cv)drawAvatarLCD(cv,P);
-};
-start.onclick=()=>{start.disabled=true;
- birth.classList.add("hide");game.classList.remove("hide");scrollTo(0,0);
- who.textContent=`${P.name}（${P.sex}）`;
- $("origin").textContent=`${P.c.y0} 年，出生在${P.c.name}${P.fam.urban?P.c.city:"的鄉村"}一個${CLS[P.cls]}階層的家庭，是個${P.sex=="男"?"男孩":"女孩"}。當地平均壽命 ${Math.round(P.ex)} 歲。`;
- renderFocus();
- log.innerHTML="";say(P,`${P.name}誕生了。${familyLine(P)}`);playHit("start");setupGame();loop();
-};
-function setupGame(){
- $("spend").value=spend;$("spend").onchange=e=>{spend=+e.target.value;toast(`花錢習慣：${["節省","普通","大方"][spend]}`)};
- $("cname").textContent=P.c.tw?`台灣 · ${P.c.tw.county}`:P.c.name;cpanel.innerHTML=P.c.tw?twPanel(P):countryPanel(P);
- log.onclick=e=>{const p=e.target.closest("p");if(p){p.classList.toggle("star");toast(p.classList.contains("star")?"已加星號":"已取消星號")}};render();
-}
-// 存檔接續
-function listSaves(){const o=allSaves(),rows=Object.entries(o).filter(([,v])=>v.P&&v.P.alive).sort((a,b)=>b[1].t-a[1].t);
- $("saves").innerHTML=rows.length?`<p><b>存檔中的人生（可續玩）</b></p>`+rows.map(([id,v])=>`<div class="saverow"><button class="resume" data-id="${id}">▶ ${v.P.name}・${v.P.c.tw?"台灣 "+v.P.c.tw.county:v.P.c.name}・${v.P.age} 歲${v.P.job?"・"+v.P.job:""}</button><button class="del" data-id="${id}" aria-label="刪除存檔">✕</button></div>`).join(""):"";
- $("saves").querySelectorAll(".resume").forEach(b=>b.onclick=()=>resumeSave(o[b.dataset.id]));
- $("saves").querySelectorAll(".del").forEach(b=>b.onclick=()=>{if(confirm("刪除這段人生的存檔？")){deleteSave(b.dataset.id);listSaves()}});}
-listSaves();
-function resumeSave(saved){
- ({P,S,focusSel,spend}=saved);Object.assign(cfg,saved.cfg);
- home.classList.add("hide");game.classList.remove("hide");
- who.textContent=`${P.name}（${P.sex}）`;
- $("origin").textContent=`${P.c.y0} 年，出生在${P.c.name}${P.fam.urban?P.c.city:"的鄉村"}一個${CLS[P.cls]}階層的家庭。當地平均壽命 ${Math.round(P.ex)} 歲。`;
- renderFocus();
- log.innerHTML=saved.log||"";setupGame();loop();
-};
-function setPaused(v){paused=v;pause.textContent=v?"▶︎":"⏸︎";pause.title=v?"繼續":"暫停";pause.setAttribute("aria-label",pause.title);pause.classList.toggle("on",v)}
-function setSpeed(m){mult=m;document.querySelectorAll("#speeds button").forEach(b=>b.classList.toggle("on",+b.dataset.m===m))}
-pause.onclick=()=>{setPaused(!paused);toast(paused?"已暫停":"繼續")};
-document.querySelectorAll("#speeds button").forEach(b=>b.onclick=()=>{setSpeed(+b.dataset.m);toast(`速度 ${b.dataset.m}×`)});
-$("auto").onchange=e=>{auto=e.target.checked;toast(auto?"之後的抉擇會自動決定":"之後的抉擇由你決定")};
-$("ffwd").onclick=e=>{ffwd=true;setPaused(false);e.target.textContent="⏭︎ 快轉中…";e.target.classList.add("on")};
-// 跳到結局：不用瀏覽器的 confirm（有些環境會被擋），改成按兩次確認；正在等的抉擇也自動選
-$("skip").onclick=e=>{const b=e.currentTarget;if(!b.dataset.arm){b.dataset.arm=1;b.textContent="再按一次確認跳到結局";toast("剩下的人生會自動抉擇並快速跑完");setTimeout(()=>{if(b.dataset.arm&&!b.classList.contains("on")){delete b.dataset.arm;b.textContent="⏩︎ 跳到結局"}},3000);return}
- const open=!$("modal").classList.contains("hide")&&[...choice.querySelectorAll("button.opt:not([disabled])")];if(open&&open.length)pick(open).click();auto=true;$("auto").checked=true;mult=9999;document.querySelectorAll("#speeds button").forEach(b=>b.classList.remove("on"));setPaused(false);e.target.classList.add("on");e.target.textContent="⏩︎ 快速跑完中…"};
-
-function openModal(tag){$("mtag").textContent=tag;modal.classList.remove("hide","closing");mpill.classList.add("hide");document.body.style.overflow="hidden";modal.querySelector(".sheet").scrollTop=0}
-function closeModal(){return new Promise(r=>{modal.classList.add("closing");setTimeout(()=>{modal.classList.add("hide");modal.classList.remove("closing");mpill.classList.add("hide");document.body.style.overflow="";r()},200)})}
-$("mmin").onclick=()=>{modal.classList.add("hide");mpill.classList.remove("hide");document.body.style.overflow=""};
-mpill.onclick=()=>{modal.classList.remove("hide");mpill.classList.add("hide");document.body.style.overflow="hidden"};
-let toastT;
-function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove("show"),2200);try{navigator.vibrate&&navigator.vibrate(12)}catch{}}
-// 抉擇前後比較數值，產生「健康 +12 · 存款 −3,000」之類的回饋
-const snap=L=>({健康:L.health,幸福:L.happy,知識:L.know,人際:L.rel,存款:L.money});
-function diffText(a,b){return Object.keys(a).map(k=>{const d=b[k]-a[k];if(k=="存款")return Math.abs(d)>=1?`存款 ${d>0?"+":"−"}${money(Math.abs(d))}`:"";const r=Math.round(d);return r?`${k} ${r>0?"+":""}${r}`:""}).filter(Boolean).join(" · ")}
-// 卡片用的短格式：超過一萬用「萬」表示
-function moneyShort(usd){const k=$("cur").value,v=Math.round(usd*PPP[k]);return (v>=1e8?(v/1e8).toFixed(1)+" 億":v>=1e4?(v/1e4).toFixed(v>=1e6?0:1)+" 萬":v.toLocaleString())+" "+k}
-function money(usd){const k=$("cur").value;return Math.round(usd*PPP[k]).toLocaleString()+" "+k}
-// 人生大事：紀錄中加粗標示，結局時列入時間軸
-const MILESTONE=/誕生了|上小學|升上中學|考上大學|開始當|轉行|結為伴侶|孩子出生|收養|移居|逃到|難民|公民|夢寐|當選|創業成功|買下|出版|退休|先離開|分開了|離開了人世|戰爭|革命|饑荒|改革開放|解體|圍牆|屠殺|內戰|海嘯|地震|疫情|金融|登陸月球|動盪|獨立|政變|核電廠|恐怖攻擊|伊波拉|洪水|火山|通膨|劇變|圍城|背上一筆債|退休生活|拮据|夜校|蓋好了/;
-function say(L,t,fact){L.events.push(`${L.age}歲：${t}`);if(L===P){const p=document.createElement("p");if(MILESTONE.test(t)&&!t.includes("沒考上"))p.className="hi";p.innerHTML=`<span class="y">${L.age}歲</span>${t}${fact?`<small class="fact">${fact}</small>`:""}`;log.prepend(p)}}
-// 數字滾動：在 0.4 秒內從舊值滾到新值
-function tween(el,to,fmt=x=>Math.round(x)){
- const from=el._v??to;el._v=to;if(from===to){el.textContent=fmt(to);return}
- const t0=performance.now(),d=400;
- const step=t=>{const k=Math.min(1,(t-t0)/d),e=1-Math.pow(1-k,3);el.textContent=fmt(from+(to-from)*e);if(k<1&&el._v===to)requestAnimationFrame(step)};
- requestAnimationFrame(step);setTimeout(()=>{if(el._v===to)el.textContent=fmt(to)},d+50); // 分頁在背景時 rAF 不會跑
-}
-const STATS=[["健康","health",1],["幸福","happy",1],["知識","know",1],["人際","rel",1],["教育"],["工作"],["薪水"],["存款"],["家庭"]];
-function buildStats(){
- stats.innerHTML=STATS.map(([n,k,bar])=>`<div class="stat" data-n="${n}">${n}<span class="dl"></span><b></b>${bar?`<div class="bar"><i></i></div>`:""}</div>`).join("");
-}
-function setStat(n,val,pct,delta){
- const el=stats.querySelector(`[data-n="${n}"]`);if(!el)return;const b=el.querySelector("b");
- if(typeof val=="number")tween(b,val);else if(b.textContent!==val)b.textContent=val;
- if(pct!=null)el.querySelector(".bar i").style.width=Math.max(0,Math.min(100,pct))+"%";
- if(delta!==undefined){const dl=el.querySelector(".dl");dl.className="dl "+(delta>0?"up":delta<0?"down":"");dl.textContent=delta?` ${delta>0?"▲":"▼"}${Math.abs(delta)}`:"";
-  if(delta){el.classList.remove("flash");void el.offsetWidth;el.classList.add("flash")}}
-}
-let prev={},mapN=0,lastScene="",lastSibs="";
-function buildMap(){mapN=0;lmap.innerHTML='<div class="lmap"></div>';growMap()}
-function growMap(){const g=lmap.firstChild,n=Math.max(Math.ceil(P.ex),P.age+1);for(;mapN<n;mapN++){const i=document.createElement("i");i.title=`${mapN}歲`;if(mapN>=P.ex)i.style.borderStyle="dashed";g.appendChild(i)}}
-function paintMap(a){const i=lmap.firstChild.children[a],v=P.hist[a]??P.hist.slice(0,a).filter(x=>x!=null).pop()??P.happy;if(i&&!i.dataset.p){if(a<P.age)i.dataset.p=1};if(i){i.style.background=`color-mix(in srgb,var(--ac) ${Math.round(15+v*.85)}%,transparent)`;i.title=`${a}歲 · 幸福 ${Math.round(v)}`}}
-function buildSurv(){surv.innerHTML=survivalSVG(P)+`<div class="mut" id="svtxt"></div>`}
-function render(){try{renderBoards()}catch(e){}
- // 和上一年比較，顯示每年重心帶來的增減
- const h=Math.round(P.health),hp=Math.round(P.happy),newYear=prev.age!==P.age,dh=prev.age<P.age?h-prev.h:0,dp=prev.age<P.age?hp-prev.hp:0;
- if(newYear)prev={age:P.age,h,hp};
- yr.textContent=`${P.c.y0+P.age} 年 · ${P.age} 歲`;
- $("stage").textContent=P.age<13?"童年":P.age<20?"青少年":P.age<40?"青年":P.age<65?"中年":"老年";
- $("pct").textContent=`當地平均壽命 ${Math.round(P.ex)} 歲`;
- if(!stats.firstChild)buildStats();
- setStat("健康",h,P.health,newYear?dh:undefined);setStat("幸福",hp,P.happy,newYear?dp:undefined);
- setStat("知識",Math.round(P.know),P.know);setStat("人際",Math.round(P.rel),P.rel);setStat("教育",EDU[P.edu]);
- setStat("工作",P.job||"—");setStat("薪水",P.job?`實領月薪 ${moneyShort(netPay(P)/(12+bonusMonths(P)))}`:P.age>=65&&P.workYears?`年金 ${moneyShort(pension(P)/12)}／月`:"—");{const m=P.liveCash??P.money;setStat("存款",m<0?"−"+moneyShort(-m):moneyShort(m))}
- setStat("家庭",(P.partner?"有伴侶":P.widowed?"喪偶":"單身")+(P.kids?` · ${P.kids}子女`:""));
- // 場景：有變才換，新出現的人物彈出來
- // 場景：家人組成或住所有變才重畫
- const sc=scene(P);if(sc!==lastScene){drawScene($("scenecv"),P);$("sceneTxt").textContent=(sc.match(/<div class="mut">(.*?)<\/div>/)||[])[1]||"";lastScene=sc}
- $("agebig").textContent=P.age;
- if(!$("stages").firstChild){const pct=a=>Math.min(100,a/Math.max(P.ex,100)*100);
-  $("hp").insertAdjacentHTML("beforeend",[13,20,40,65].map(a=>`<span class="tick" style="left:${pct(a)}%"></span>`).join("")+`<span class="avg" style="left:${pct(P.ex)}%"></span>`);
-  $("stages").innerHTML=[[6,"童年"],[16,"青少年"],[30,"青年"],[52,"中年"],[80,"老年"]].map(([a,t])=>`<span style="left:${pct(a)}%">${t}</span>`).join("")}
- if(!lmap.firstChild)buildMap();growMap();for(let a=0;a<=P.age;a++)paintMap(a);
- if(!surv.firstChild)buildSurv();
- const sv=P.surv||(P.surv=survival(P)),cx=P.age/100*300,cy=110-sv[Math.min(100,P.age)]*110,dot=null;
- $("svtxt").textContent=`現在 ${P.age} 歲 · 同年出生的人約 ${survivePct(P)}% 還活著`;
- const sb=S.map(s=>`<div class="sib"><b>${s.name}</b><br><span class="mut">${s.c.name} · ${s.sex}</span><br>${s.alive?s.age+" 歲 · "+(s.job||EDU[s.edu]):"✝ "+s.age+" 歲離世"}</div>`).join("");
- if(sb!==lastSibs){sibs.innerHTML=sb;lastSibs=sb}
-}
-
-// 抉擇：玩家會停下等待；同秒嬰兒自動
-// 選項格式：[文字, 動作, 說明?, 需要的存款(USD)?]；存款不夠的選項會反灰並寫出門檻
-// 剛做了重大決定（留學、北漂、外派、創業……）的這段期間，不會再冒出其他機會型的抉擇
-const MUST_ASK=/要找什麼樣的工作|生了一場病|癌症|兵役|孩子出生|結婚|嫁妝|聘禮|父母|爸媽|畢業|要考|暫停/;
-// 抉擇排隊：視窗一次只開一個；還沒選完時新的抉擇會排在後面，不會蓋掉
-let askQ=Promise.resolve(),askWait=0;
-function ask(L,q,opts,info){if(L!==P||auto)return askNow(L,q,opts,info);askWait++;const run=askQ.then(()=>{askWait--;return askNow(L,q,opts,info)});askQ=run.catch(()=>{});return run}
-function askNow(L,q,opts,info){
- if(L.lockUntil>L.age&&!MUST_ASK.test(q)){L.askSkipped=true;return Promise.resolve()} // 忙碌期間略過的抉擇：呼叫的一次性事件要把「已發生」的記號還原（askSkipped），之後才有機會再出現
- if(opts.length<3&&typeof EXTRA_OPTS!="undefined"&&EXTRA_OPTS[q])opts=opts.concat(EXTRA_OPTS[q].map(([a,fn,h])=>[a,()=>fn(L),h]));
- const ok=o=>!o[3]||L.money>=o[3],avail=opts.filter(ok);
- if(L!==P||auto){const o=pick(avail.length?avail:opts);if(L===P)say(L,q+" → "+o[0]);o[1]();return Promise.resolve()}
- if(ffwd){ffwd=false;$("ffwd").textContent="⏭︎ 下一個抉擇";$("ffwd").classList.remove("on")}render();
- return new Promise(res=>{openModal(`重大抉擇 · ${L.age} 歲 · ${L.c.y0+L.age} 年${askWait?`　·　還有 ${askWait} 個抉擇等你`:""}`);
-  choice.innerHTML=`<h2>${q}</h2>${info?`<p class="mut">${info}</p>`:""}`+opts.map((o,i)=>`<button class="opt" data-i="${i}" ${ok(o)?"":"disabled"}>${o[0]}${o[2]?`<small>${o[2]}</small>`:""}${ok(o)?"":`<small>存款不夠 · 需要約 ${money(o[3])}</small>`}</button>`).join("");
-  choice.querySelectorAll("button").forEach(b=>b.onclick=()=>{
-   const o=opts[b.dataset.i],before=snap(L);
-   choice.querySelectorAll("button").forEach(x=>{x.disabled=true;x.classList.add(x===b?"picked":"dim")});
-   say(L,q+" → "+o[0]);o[1]();const d=diffText(before,snap(L));
-   setTimeout(async()=>{await closeModal();render();toast(d?`${o[0]}：${d}`:`選擇了「${o[0]}」`);res()},420)})});
-}
-const QA={
- 5:[["和爸媽出去玩的那天",L=>{L.rel+=3;L.happy+=2},"人際↑"],["第一次交到好朋友",L=>{L.rel+=4},"人際↑"],["一本翻到爛的圖畫書",L=>{L.know+=4},"知識↑"],["生病時被照顧",L=>{L.health+=2;L.rel+=2},"健康↑"],["一直想要卻沒買到的玩具",L=>{L.happy-=1;L.know+=1},"幸福↓"]],
- 15:[["功課和考試",L=>{L.know+=4;L.happy-=2},"知識↑ 幸福↓"],["喜歡的人",L=>{L.happy+=2;L.rel+=2},"幸福↑"],["家裡的經濟",L=>{L.happy-=3;L.know+=2},"幸福↓"],["和朋友的關係",L=>{L.rel+=4},"人際↑"],["將來要做什麼",L=>{L.know+=3},"知識↑"]],
- 30:[["工作剛上軌道",L=>{L.inc*=1.03;L.happy+=1},"收入↑"],["還在找方向",L=>{L.happy-=2;L.know+=3},"知識↑ 幸福↓"],["忙著照顧家庭",L=>{L.rel+=4},"人際↑"],["身體開始發出警訊",L=>{L.health+=3},"健康↑"],["過得挺滿足",L=>{L.happy+=4},"幸福↑"]],
- 50:[["家人",L=>{L.rel+=4;L.happy+=2},"人際↑"],["健康",L=>{L.health+=4},"健康↑"],["存款",L=>{L.money+=L.inc*.05;L.happy-=1},"存款↑"],["工作和名聲",L=>{L.inc*=1.03;L.rel-=1},"收入↑"],["內心的平靜",L=>{L.happy+=4},"幸福↑"]],
- 70:[["伴侶",L=>{L.happy+=3},"幸福↑"],["孩子和孫子",L=>{L.rel+=4},"人際↑"],["老朋友",L=>{L.rel+=3;L.happy+=1},"人際↑"],["一個人也很好",L=>{L.happy+=2;L.rel-=2},"幸福↑ 人際↓"]],
-};
-const Q={5:"你五歲時，最記得的是什麼？",15:"十五歲的你，在煩惱什麼？",30:"三十歲時，你覺得人生走到哪裡了？",50:"如果你也活到五十歲，最想守住的是什麼？",70:"走到七十歲，你希望身邊有誰？"};
-function reflect(){
- if(auto)return Promise.resolve();
- if(ffwd){ffwd=false;$("ffwd").textContent="⏭︎ 下一個抉擇";$("ffwd").classList.remove("on")}render();
- return new Promise(res=>{openModal(`暫停片刻 · ${P.age} 歲`);choice.innerHTML=`<h2>${P.name}，${P.age} 歲</h2><p>同年在${P.c.name}出生的人，約 ${survivePct(P)}% 還活著。</p><p class="mut">同一秒出生的人：${S.map(s=>`${s.name}（${s.c.name}）${s.alive?P.age+"歲・"+(s.job||EDU[s.edu]):"已離世"}`).join("、")}</p><p>${Q[P.age]}</p>`+(QA[P.age]||[]).map((o,i)=>`<button class="opt" data-i="${i}">${o[0]}<small>${o[2]}</small></button>`).join("");
-  choice.querySelectorAll("button.opt").forEach(btn=>btn.onclick=async()=>{const o=QA[P.age][btn.dataset.i],before=snap(P);o[1](P);P.notes.push(`${P.age}歲：${Q[P.age]} → ${o[0]}`);say(P,`${Q[P.age]} → ${o[0]}`);
-   choice.querySelectorAll("button").forEach(x=>{x.disabled=true;x.classList.add(x===btn?"picked":"dim")});const d=diffText(before,snap(P));
-   setTimeout(async()=>{await closeModal();render();toast(d?`${o[0]}：${d}`:`選擇了「${o[0]}」`);res()},420)})});
-}
-// 死亡率：Gompertz，依國家與性別的出生時平均壽命 ex「數值校準」（2026-11 修：舊版把 ex 當眾數，平均死亡年齡比資料短 8～12 年）
-// 0 歲 = 嬰兒死亡率；1～4 歲每年 = 嬰兒死亡率 × 7.5%（5 歲前合計 ≈ IMR × 1.3，與出生登記卡一致）；5 歲起 Gompertz + 底噪
-// 基準健康 = statBase 的曲線（同齡同條件通常的健康），所以「健康剛好是平均」的人平均活到 ex，健康差活得短、好活得長
-const MORT_B=.085,MORT_CAL={},MORT_REFOFF=3;
-const u5Rate=im=>1-(1-im/1000)*Math.pow(1-im/1000*.075,4); // 5 歲前死亡機率（出生登記卡顯示的就是這個）
-const mortRef=(L,a)=>statBase({c:L.c,cls:L.cls,edu:L.edu,ex:L.ex,age:a}).health+MORT_REFOFF; // 實際遊玩時健康平均比基準線高約 3（偏差與每年的小幅回升），校準時一併算進去，才不會讓玩家比資料活得久
-const mortQ=(L,a,B,h,smoke)=>{
- if(a==0)return L.c.im/1000;
- if(a<5)return L.c.im/1000*.075;
- let q=Math.min(.6,B*Math.exp(MORT_B*a))+(a>14&&a<40?.0008:.0003);
- q*=Math.max(.3,1+(60-h)/80);if(smoke)q*=1.5;return Math.min(1,q);
-};
-function mortB(L){
- const k=L.c.name+"|"+L.ex.toFixed(1)+"|"+L.c.im.toFixed(1)+"|"+Math.round(L.c.gdp/100)+"|"+L.cls+"|"+(L.edu||0);if(MORT_CAL[k])return MORT_CAL[k];
- let lo=1e-7,hi=.05;
- for(let i=0;i<48;i++){const B=Math.sqrt(lo*hi);let s=1,e=0;for(let a=0;a<=125;a++){const q=mortQ(L,a,B,mortRef(L,a),false);e+=s*(1-q/2);s*=1-q}
-  if(e>L.ex)lo=B;else hi=B}
- return MORT_CAL[k]=Math.sqrt(lo*hi);
-}
-function mortality(L,h){
- if(L.age>=125)return 1;
- return mortQ(L,L.age,mortB(L),h==null?L.health:h,L.smoke);
-}
-// 職業特性：[收入倍率, 說明, 選了之後的影響]
-const JOB_INFO={
- // 大學畢業的職業：[收入倍率, 說明, 影響, "U"]
- 工程師:[1.3,"收入高、常加班",{health:-2},"U"],軟體工程師:[1.45,"收入高、要一直學新技術",{know:3,health:-2},"U"],資料分析師:[1.25,"看數字找答案",{know:3},"U"],產品經理:[1.35,"協調很多人、壓力大",{rel:2,happy:-1},"U"],
- 教師:[1,"穩定、有寒暑假",{happy:2},"U"],會計師:[1.2,"穩定、壓力大",{happy:-1},"U"],醫師:[1.6,"收入最高、非常忙",{health:-3,rel:-2},"U"],藥師:[1.2,"穩定、要輪班",{},"U"],
- 公務員:[.9,"最穩定",{happy:1},"U"],設計師:[1,"有創意、收入不穩",{happy:2},"U"],研究員:[.9,"一直在學新東西",{know:4},"U"],律師:[1.4,"收入高、壓力大",{happy:-2},"U"],
- 護理師:[1,"輪班辛苦、照顧人",{health:-2,rel:2},"U"],建築師:[1.15,"做出看得見的作品",{happy:2,health:-1},"U"],金融分析師:[1.5,"收入高、看盤看到失眠",{health:-2},"U"],行銷企劃:[.95,"點子多、常趕檔期",{rel:1},"U"],
- 記者:[.85,"到處跑新聞、截稿壓力",{know:2,health:-1},"U"],業務:[1.1,"收入看業績、常應酬",{rel:3,health:-1},"U"],社工師:[.8,"幫助人、情緒負擔大",{rel:2,happy:-1},"U"],心理師:[1,"傾聽別人的故事",{rel:2},"U"],
- 空服員:[1.05,"飛遍世界、作息亂",{happy:2,health:-2},"U"],翻譯:[.9,"在家接案、自由",{know:2},"U"],獸醫:[1.1,"照顧動物",{happy:2},"U"],內容創作者:[.8,"自由但收入起伏大",{happy:3,rel:1},"U"],
- // 不需大學學歷的職業
- 農民:[.7,"自由、看天吃飯",{health:2}],工廠作業員:[1,"穩定、單調",{}],技術員:[1.05,"操作機台、要輪班",{health:-1}],店員:[.85,"常和人接觸",{rel:2}],超商店員:[.8,"大夜班很累",{health:-1}],
- 司機:[1,"自由、久坐",{health:-1}],外送員:[.95,"時間自由、風吹日曬",{health:-1}],物流理貨員:[.95,"體力活、穩定",{health:1}],建築工人:[1.15,"收入不錯、體力活",{health:-2}],水電工:[1.2,"一技之長、到處跑",{know:1}],
- 廚師:[.95,"學一技之長",{know:1}],餐廳服務生:[.8,"忙起來腳很痠",{rel:1}],美髮師:[.9,"跟客人聊天",{rel:2}],美甲師:[.85,"細心的手藝",{happy:1}],看護:[.85,"照顧長輩、很辛苦",{rel:2,health:-1}],
- 保全:[.85,"值夜班、很安靜",{health:-1}],清潔工:[.75,"好找、辛苦",{}],攤販:[.9,"自己當老闆",{happy:1}],漁夫:[.85,"看海吃飯、危險",{health:-1}],木工:[1,"做出耐用的家具",{happy:1}],
- 電話客服:[.85,"常被客人罵",{happy:-1}],保險業務:[1,"收入看人脈",{rel:2}]};
-const JOBS_U=Object.keys(JOB_INFO).filter(j=>JOB_INFO[j][3]=="U"),JOBS=Object.keys(JOB_INFO).filter(j=>JOB_INFO[j][3]!="U");
-
-// 數值基準線：依國家、家境、年齡與學歷算出「同齡同條件的人通常是多少」
-// 每年數值會往基準線靠近，再加上自己的選擇與事件
-function statBase(L){
- const c=L.c,a=L.age,cls=L.cls-2,ex=L.ex||70,rich=Math.log10(Math.max(c.gdp,500))-4; // rich：-1.3 窮國 ～ +0.9 富國
- // 健康：嬰兒期較脆弱、20～30 歲最好，之後依當地壽命逐漸下降
- const peak=82+rich*6+cls*2-c.im*.08;
- const health=a<5?peak-12+a*2.4:a<=30?peak:Math.max(15,peak-Math.pow(Math.max(0,a-30)/Math.max(20,ex-30),1.6)*50);
- // 知識：隨年紀與學歷累積；沒上學的人上限低，老年慢慢退
- const cap=[30,45,62,80][L.edu||0]+rich*4+cls*2;
- const know=Math.min(cap,8+cap*(1-Math.exp(-a/9)))-(a>72?(a-72)*.6:0);
- // 人際：童年在家人身邊，青年最廣，老年朋友漸少
- const rel=(a<6?40+a*2:a<=40?52+Math.min(a,25)*.4:60-(a-40)*.25)+cls;
- // 幸福：富裕程度只帶來小幅差異
- const happy=58+rich*4+cls*1.5;
- return {health,know,rel,happy};
-}
-const clampStats=L=>{for(const k of ["health","happy","know","rel"])L[k]=Math.max(0,Math.min(100,Number.isFinite(L[k])?L[k]:50))};
-async function year(L){
- L.age++;const c=L.c,isP=L===P,f=isP&&!auto?focusSel:pick(FOCI),soft=$("soft").checked;L.focus=f;
- {const b=statBase(L),k=.25;for(const s of ["health","know","rel","happy"])L[s]+=(b[s]+(L.bias?.[s]||0)-L[s])*k}
- L.health+=(f=="健康"?1.5:0)+(R()-.5)*2;
- L.happy+=(["家人","愛情","享受"].includes(f)?1.5:0)+(R()-.5)*3+(L.job||L.age<22?0:-1);
- L.know+=(f=="學業"?1.5:0);L.rel+=(f=="家人"||f=="愛情"?1.5:0)+(R()-.5)*1.5;
- // 花錢習慣：節省多存錢但人際變差，大方反之
- const sp=isP?spend:1;
- if(L.job){L.jobYears++;if(L.jobYears<=15)L.inc*=1.012;L.rel+=(sp-1)*.8;L.happy+=(sp-1)*.5;if(f=="工作")L.inc*=1.005}
- // 沒收入又欠債，只能縮衣節食
- if(!L.job&&L.age>=18&&L.money<-L.c.gdp*.3){L.health-=3;L.happy-=3;if(R()<.3)say(L,"已經借不到錢了，只能少吃幾餐撐下去。")}
- L.know=Math.max(0,Math.min(100,L.know));L.rel=Math.max(0,Math.min(100,L.rel));
- L.health=Math.min(100,L.health);L.happy=Math.max(0,Math.min(100,L.happy));
- if(L.partner)L.partnerYears++;
- if(L.age<=4)await temperament(L);
- await familyEvents(L);
- if(L.age==6){if(R()<(c.tw?.98:(.55+c.gdp/150000+L.cls*.07)*girlSchool(L))){L.edu=1;say(L,"開始上小學。")}else say(L,L.sex=="女"&&girlSchool(L)<1?"家裡說女孩子不用讀書，留在家幫忙做家事。":"沒有機會上學，開始幫忙家裡。")}
- if(L.age==12&&L.edu>=1&&c.tw&&c.y0+12>=1968){L.edu=2;say(L,"升上國中。")}
- if(L.age==12&&L.edu>=1&&!c.tw&&R()<(.25+c.uni/150+L.cls*.08+L.know/400+(f=="學業"?.15:0))*girlSchool(L)){L.edu=2;say(L,"升上中學。")}
- if(L.age==12&&L.edu==1&&!c.tw&&L.sex=="女"&&girlSchool(L)<1)say(L,"小學畢業後，家裡讓哥哥弟弟繼續讀書，你留在家裡。");
- if(L.age==15&&R()<.03)say(L,`第一次接觸「${THEME[1]}」，留下深刻的印象。`);
- if(L.age==16&&R()<(.08+L.cls*.02)*(L.sex=="男"?(["華","韓","東南亞","中東","斯"].includes(REGION(c.name))||c.tw?2.5:1.5):.5)){L.smoke=true;say(L,"開始抽菸。")}
- if(L.age==18&&L.edu==2&&!c.tw){const fee=c.gdp*.3;
-  await ask(L,"高中畢業了，接下來呢？",[
-   ["考大學",()=>{if(R()<c.uni/100+(f=="學業"?.15:0)+L.cls*.05+L.know/300){L.edu=3;L.know+=8;if(L.cls>=3)say(L,"考上大學，學費由家裡負擔。");else{L.money-=fee;say(L,"考上大學，申請了助學貸款付學費。")}}else say(L,"沒考上大學。")},"知識↑ · 家境普通的話要背學貸"],
-   ["直接工作",()=>{L.money+=c.gdp*.05},"早點開始賺錢"],
-   ["出國讀大學",()=>{L.edu=3;L.know+=12;L.money-=fee*3;say(L,"出國讀大學。");sayHi(L,"曾出國留學。")},"知識↑↑ · 花費很高",fee*3]],`在${c.name}，大學就學率約 ${Math.round(c.uni)}%。`)}
- if(!L.job&&!L.twRetake&&(L.age==(L.edu==3?22:L.edu==2?(c.tw&&!L.twVoc?19:18):14)||L.age===L.jobRetry)){
-  const pool=(L.edu==3?JOBS_U:JOBS).slice().sort(()=>R()-.5).slice(0,3),start=c.gdp*.5*(L.edu==3?1.25:L.edu==2?.95*(L.twVoc?1.08:1):.7)*(1+(L.cls-2)*.04)*.85;
-  const take=j=>{const [pay,,e]=JOB_INFO[j]||[1,"",{}];L.job=j;L.inc=start*pay*(L.sex=="女"?1-payGap(L.c):1);for(const k in e)L[k]+=e[k];say(L,`開始當${j}。`)};
-  await ask(L,"要找什麼樣的工作？",pool.map(j=>[j,()=>take(j),`${(JOB_INFO[j]||[,"" ])[1]} · 起薪月薪約 ${money(start*(JOB_INFO[j]||[1])[0]*(L.sex=="女"?1-payGap(L.c):1)/13.5)}（年薪約 ${moneyShort(start*(JOB_INFO[j]||[1])[0]*(L.sex=="女"?1-payGap(L.c):1))}）`]).concat(L.jobRetry?[]:[["先不急，再找一年",()=>{L.jobRetry=L.age+1;L.know+=2;L.money-=c.gdp*.1},"知識↑ 晚一年有收入"]]));
-  if(!L.job&&L.jobRetry<L.age)take(pool[0]);
- }
- if(L.job&&L.age>28&&L.age<55&&R()<.03)await ask(L,"有個換工作的機會，要轉職嗎？",[["轉職",()=>{const j=pick(L.edu==3?JOBS_U.concat(["部門經理","小企業老闆"]):JOBS.concat(["小店老闆"]));L.job=j;L.jobYears=0;L.inc*=.9+R()*.6;say(L,`轉行當${j}。`)}],["留下",()=>{}]]);
- // 富裕地區晚婚（台灣初婚平均約 30 歲），年輕時遇到結婚對象的機率較低
- if(L.age>=18&&L.age<=45&&!L.partner&&!L.widowed&&R()<((f=="愛情"?.2:.08)+L.rel/1000)*(c.gdp>15000?(L.age<23?.2:L.age<27?.55:1):(L.age<20?.6:1))){
-  const ps=L.sex=="男"?"女":"男",pa=Math.max(18,L.age+Math.round((L.sex=="男"?-3:3)+(R()-.5)*8)),pj=pick(L.edu==3?JOBS_U:JOBS),pm=Math.round(L.c.gdp*(.1+R()*.8)),pn=pick(NAMES[REGION(L.raw)][ps].filter(n=>n!==L.fam?.father.name&&n!==L.fam?.mother.name));
-  const arranged=L.c.gdp<15000&&R()<.5;
-  await ask(L,arranged?"家裡長輩介紹了一個對象":"你遇見了一個人",[
-   ["在一起",()=>{newPartner(L,pn);L.happy+=10;L.rel+=5;say(L,`和${pn}結為伴侶。`)},"人際↑ 幸福↑"],
-   ["再相處看看",()=>{L.rel+=1},"先不決定"],
-   ["拒絕",()=>{if(arranged){L.rel-=4;say(L,"拒絕了這門親事，家裡氣氛僵了一陣子。")}},arranged?"可能和家人起衝突":"維持單身"]],
-   `${pn}，${pa} 歲${ps=="女"?"女性":"男性"}，職業：${pj}，存款約 ${money(pm)}。`)}
- if(L.partner&&L.age>=18&&L.age<44&&!L.twNoKid&&R()<.06+(f=="家人"?.05:0)+(c.gdp<5000?.06:0)){L.kids++;L.happy+=5;say(L,`第 ${L.kids} 個孩子出生了。`)}
- if(L.kids&&L.age>48&&R()<.05*L.kids){L.grand++;say(L,`第 ${L.grand} 個孫子女出生。`)}
- if(L.partner&&L.age>55&&R()<.025){L.partner=false;L.widowed=true;L.happy-=15;say(L,`與伴侶相伴 ${L.partnerYears} 年後，對方先離開了人世。`)}
- if(!L.abroad&&L.age>=22&&L.age<=45&&c.gdp<30000&&R()<.02)await ask(L,"有機會移居到更富裕的國家，要去嗎？",[["移居",()=>{L.lockUntil=L.age+2;L.abroad=pick(["美國","德國","加拿大","澳洲","英國","日本"]);L.inc*=2.2;L.happy-=4;say(L,`移居到${L.abroad}，重新開始。`)}],["留下",()=>{L.happy+=2}]]);
- if(L.age>30&&R()<.035){
-  // 醫療費依當地所得計；存款不夠時只能借錢或硬撐
-  const cost=c.gdp*(c.gdp>40000?.05:.25)*(L.ins&&L.ins.med?.3:1),broke=L.money<cost;
-  await ask(L,"生了一場病",[["自己付錢就醫",()=>{L.health+=12;L.money-=cost},"健康↑",cost],["借錢就醫",()=>{L.health+=12;L.money-=cost*1.2;say(L,"為了看病背上一筆債。")},"健康↑ · 背上債務（含利息）"],["撐著",()=>{L.health-=15},"健康↓↓"]],`醫藥費大約 ${money(cost)}。`)
- }
- if(L.smoke&&R()<.05)await ask(L,"要戒菸嗎？",[["戒菸",()=>{L.smoke=false;L.health+=5}],["繼續",()=>{}]]);
- if(!soft&&L.age>15&&R()<.004*(c.gdp<10000?2:1)){L.health-=20;L.happy-=15;say(L,"遭遇了暴力事件，身心受創。（求助：當地緊急電話）")}
- await lifeEvents(L,f);
- if(c.tw)await twYear(L,f);
- await storyYear(L);
- await foreshadowYear(L);
- if(L.age==65&&L.job){say(L,`從${L.job}退休，一共做了 ${L.jobYears} 年。`);L.lastJob=L.job;L.job=null;
-  if(L.money>L.inc*3){L.happy+=6;say(L,"存款足夠，退休生活過得安穩。")}else if(L.kids){say(L,"存款不多，退休後靠孩子接濟。")}else{L.happy-=10;L.health-=5;say(L,"存款不夠，退休後生活拮据，還得打零工。")}}
- if(L.kids&&L.age<55)L.money-=L.inc*.02*L.kids; // 養孩子的開銷
- survivalNote(L);
- if(isP&&Q[L.age])await reflect();
- L.hist[L.age]=L.happy;
- clampStats(L); // 事件、故事、擬真各階段加減分之後，統一把四項屬性夾回 0～100，再算死亡率
- if(R()<mortality(L)){L.alive=false;L.cause=causeOf(L);say(L,`因${L.cause}離開了人世。`)}
-}
-
-// 進度條：每一幀往目標值靠近，看起來是連續滑動
-let prog=0,shown=0;
-// 當下進度：年齡顯示到「幾歲幾個月」，人生地圖上正在過的那一格會逐漸填滿並閃爍
-function tickNow(t){if(!P)return;const m=Math.min(11,Math.floor(t*12));
- yr.textContent=`${P.c.y0+P.age} 年 ${m+1} 月 · ${P.age} 歲${m?` ${m} 個月`:""}`;
- const g=lmap.firstChild;if(!g)return;const cell=g.children[P.age+1];g.querySelectorAll("i.now").forEach(x=>{if(x!==cell)x.classList.remove("now")});
- if(cell){cell.classList.add("now");cell.style.setProperty("--fill",Math.round(t*100)+"%")}
- // 當歲進度條
- $("ybL").textContent=`${P.age} 歲`;$("ybR").textContent=`${P.age+1} 歲`;$("ybFill").style.width=(t*100).toFixed(1)+"%";
- // 存活曲線上的點：在今年與明年之間平滑移動
- const sv=P.surv||(P.surv=survival(P)),a=P.age+t,s0=sv[Math.min(100,P.age)],s1=sv[Math.min(100,P.age+1)],cx=a/100*300,cy=110-(s0+(s1-s0)*t)*110;
- surv.querySelectorAll(".svdot,.svpulse").forEach(c=>{c.setAttribute("cx",cx);c.setAttribute("cy",cy)})}
-// 年中存款的逐月變化（只是顯示；真正的結算在 year() 年底進行）
-function monthMoney(t){if(!P||P.age<18||!P.job&&P.age<22)return;const {income,total}=yearFlow(P),m=Math.min(12,Math.floor(t*12)+1),b=bonusMonths(P),mo=income/(12+b);
- // 每月 5 號發薪；第 12 個月加發年終
- // 卡片和看板都顯示同一個「現金存款」（投資另外列在資產看板）
- const v=P.money+m*mo+(m==12?b*mo:0)-t*total;P.liveCash=v;if(P._lastM!==m){P._lastM=m;try{renderBoards()}catch(e){}}
- if(m==12&&b&&!P.bonusShown){P.bonusShown=P.age;toast(`領到年終 ${b} 個月：${moneyShort(b*mo)}`)}if(m<12)P.bonusShown=0;setStat("存款",v<0?"−"+moneyShort(-v):moneyShort(v))}
-(function bar(){if(P){shown+=(prog-shown)*.18;if(Math.abs(prog-shown)<.001)shown=prog;$("lifebar").style.width=Math.min(100,shown/Math.max(P.ex,100)*100)+"%";drawAvatarLCD($("avatar"),P)}requestAnimationFrame(bar)})();
-async function loop(){renderShop();
- prog=shown=P.age;
- while(P.alive){
-  let w=0,last=performance.now(); // 每次都重算，讓加速與跳到結局立即生效
-  for(;;){const total=cfg.l*60000/P.ex/(ffwd?9999:mult);if(w>=total)break;
-   await new Promise(r=>setTimeout(r,ffwd||mult>999?16:50));const now=performance.now();if(!paused)w+=Math.min(250,now-last);last=now;
-   prog=P.age+Math.min(1,w/total);monthMoney(Math.min(1,w/total));tickNow(Math.min(1,w/total))}
-  prog=P.age+1;
-  await year(P);for(const s of S)if(s.alive)await year(s);render();renderShop();renderFocus();saveGame();
- }
- while(S.some(s=>s.alive))for(const s of S)if(s.alive)await year(s);
- setTimeout(finish,1200);
-}
-function story(L){
- const t=[`出生在${L.c.name}${L.fam&&!L.fam.urban?"的鄉村":L.c.city}一個${CLS[L.cls]}階層的家庭，是個${L.sex=="男"?"男孩":"女孩"}。`];
- t.push(L.edu==3?"讀完了大學。":L.edu==0?"一生沒有上過學。":`最高讀到${EDU[L.edu]}。`);
- const j=L.job||L.lastJob||L.lostJob;if(j)t.push(`當${j}${L.jobYears>5?"多年":""}。`);
- if(L.abroad)t.push(`後來移居${L.abroad}。`);
- if(L.widowed)t.push(`與伴侶相伴 ${L.partnerYears} 年後，對方先走了。`);else if(L.partner)t.push(`與伴侶相伴 ${L.partnerYears} 年。`);
- if(L.kids)t.push(`養育了 ${L.kids} 個孩子${L.grand?`，見到 ${L.grand} 個孫子女`:""}。`);
- if(L.highlights)t.push(...L.highlights);
- t.push(`${L.age} 歲時因${L.cause}離開了人世。`);return t.join("");
-}
-function title(L){const j=L.lastJob||L.job;return L.dreamDone?`實現夢想成為${L.dream}的人生`:L.politician?`一邊工作，一邊擔任地方議員的人生`:L.abroad?`從${L.c.name}移居${L.abroad}的人生`:j&&L.jobYears>10?`當了 ${L.jobYears} 年${j}的人生`:L.age<5?`在${L.c.name}出生，也在那裡長眠。`:`在${L.c.name}度過的 ${L.age} 年`}
-async function finish(){playHit("finish");
- clearSave();try{await playReview(P)}catch(e){}
- game.classList.add("hide");end.classList.remove("hide");scrollTo(0,0);
- setTimeout(()=>{const cv=$("endAvatar");if(cv)drawAvatarLCD(cv,P);$("msg").oninput=e=>{$("dcEpi").textContent=e.target.value.trim()?"「"+e.target.value.trim()+"」":"在下方留一句話給這個人，會刻在這裡。"}},0);
- summary.innerHTML=`${deathCard(P)}
- <p style="margin-top:14px">${story(P)}</p>${lifeReview(P)}
- <h2>人生地圖</h2><div class="mut">一格是一年 · 顏色越深那年越幸福</div>${lifeMap(P)}
- <h2 style="margin-top:12px">人生時間軸</h2><div class="tl">${P.events.filter(e=>MILESTONE.test(e)&&!/→|沒考上/.test(e)).map(e=>{const i=e.indexOf("：");return `<div><b>${e.slice(0,i)}</b>${e.slice(i+1)}</div>`}).join("")}</div>
- ${P.notes.length?"<p><b>你在路上留下的話</b><br>"+P.notes.map(esc).join("<br>")+"</p>":""}`;
- const h=$("homeC").value;
- if(h!==""){const m=world(C[h],"now");compare.innerHTML=`<h2>和你的出生地並排看</h2>
-  <div class="row"><span></span><b>${P.c.name}</b><b>${m.name}</b></div>
-  <div class="row"><span>平均壽命</span><span>${Math.round(P.ex)}</span><span>${Math.round(P.sex=="男"?m.mEx:m.fEx)}</span></div>
-  <div class="row"><span>人均所得（體感）</span><span>${money(P.c.gdp)}</span><span>${money(m.gdp)}</span></div>
-  <div class="row"><span>嬰兒死亡率</span><span>${Math.round(P.c.im)}‰</span><span>${Math.round(m.im)}‰</span></div>
-  <div class="row"><span>大學就學率</span><span>${Math.round(P.c.uni)}%</span><span>${Math.round(m.uni)}%</span></div>`}else compare.classList.add("hide");
- sibEnd.innerHTML=S.map(s=>`<div class="card"><b>${s.name}</b> <span class="mut">${s.c.name} · ${s.sex} · ${s.age}歲</span><p>${story(s)}</p></div>`).join("");
-}
-$("shareBtn").onclick=async()=>{
- const url="https://jackycheung0408.github.io/life-simulator/",text=`我在人生模擬器裡活了一次：${P.name}，${P.c.tw?"台灣"+P.c.tw.county:P.c.name}，${P.c.y0}–${P.c.y0+P.age}，享年 ${P.age} 歲。你會出生在哪裡？`;
- try{if(navigator.share){await navigator.share({title:"人生模擬器",text,url});return}await navigator.clipboard.writeText(text+" "+url);toast("已複製分享文字和網址")}catch{toast("可以複製網址分享："+url)}
-};
-save.onclick=()=>{
- if($("share").checked){
-  const d={name:P.name,y0:P.c.y0,y1:P.c.y0+P.age,c:P.c.name,sex:P.sex,age:P.age,title:title(P),story:story(P),msg:$("msg").value.trim().slice(0,200)};
-  save.disabled=true;save.textContent="送出中…";
-  sb("lives",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({name:d.name.slice(0,40),country:(P.c.tw?"台灣"+P.c.tw.county:d.c).slice(0,40),age:d.age,born:d.y0,words:d.msg||null,data:{title:d.title,story:d.story.slice(0,1500),sex:d.sex}})})
-   .then(()=>{toast("已留在追思館");setTimeout(()=>location.reload(),900)}).catch(()=>{toast("送出失敗，請稍後再試");save.disabled=false;save.textContent="送出並再活一次"});
-  return;
- }
- location.reload();
-};
-</script><button id="themeBtn" title="切換深色／淺色"></button>
-<script>
-// 深色／淺色主題：auto（跟系統）→ 淺色 → 深色；和足球員模擬器共用同一個設定
-(function(){const root=document.documentElement,btn=document.getElementById("themeBtn");
- const now=()=>root.dataset.theme||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");
- function apply(){let t="auto";try{t=localStorage.getItem("fb-theme")||"auto"}catch(e){}if(t=="auto")delete root.dataset.theme;else root.dataset.theme=t;root.dataset.resolved=now();btn.textContent={auto:"🌓 自動",light:"☀️ 淺色",dark:"🌙 深色"}[t]}
- btn.onclick=()=>{let t="auto";try{t=localStorage.getItem("fb-theme")||"auto"}catch(e){}t={auto:"light",light:"dark",dark:"auto"}[t];try{localStorage.setItem("fb-theme",t)}catch(e){}apply()};
- try{matchMedia("(prefers-color-scheme: light)").addEventListener("change",apply)}catch(e){}apply()})();
+const games=[...document.querySelectorAll('.game')];
+const go=g=>g.click();
+document.getElementById('random').addEventListener('click',()=>{
+  let i=0;const n=9+Math.floor(Math.random()*3);
+  const t=setInterval(()=>{
+    games.forEach(g=>g.classList.remove('pick'));
+    const g=games[i%games.length];g.classList.add('pick');
+    if(++i>n){clearInterval(t);setTimeout(()=>{g.classList.remove('pick');go(g)},450)}
+  },90);
+});
+addEventListener('keydown',e=>{const k=+e.key;if(k>=1&&k<=games.length&&!e.metaKey&&!e.ctrlKey)go(games[k-1])});
 </script>
-</body></html>
+</body>
+</html>

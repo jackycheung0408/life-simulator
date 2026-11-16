@@ -1,26 +1,12 @@
-# 人生模擬器
+# 小豬鎮與入口導覽頁
 
-隨機出生在世界上 173 個國家與地區之一，或選擇一段「台灣人生」，依真實統計走完只有一次的人生。
+和朋友住在同一個像素小鎮的多人遊戲，以及三個遊戲的入口導覽頁。
 
-**線上玩：https://jackycheung0408.github.io/life-simulator/**
+**小豬鎮：https://jackycheung0408.github.io/life-simulator/town/**
+**入口導覽頁：https://jackycheung0408.github.io/life-simulator/**
 
-## 兩種玩法
-- **世界：** 依各國出生人數（或人口）抽出生地，可選過去（1960 年代）、現在、未來的世界
-- **🇹🇼 台灣人生：** 選 1950～2025 年出生，依人口抽 22 縣市。會遇到台灣大事（解嚴、921、SARS、八八風災、疫情……），以及聯考／學測、當兵、北漂、22K、買房、少子化、長照等抉擇。每個人經歷大事的方式不同，住在受災縣市的人可能直接受影響
-
-## 特色
-- 出生登記：父母、兄弟姊妹、宗教、家境、5 歲前離世機率
-- 幼年性格抉擇、每年選重心、花錢習慣、借貸與利息
-- 孩子有名字、會長大；家人會老去
-- 同一秒出生的另外四個人，人生並列在旁邊
-- 人生地圖、存活曲線、地區統計
-- 存檔接續、分享到追思館
-
-## 資料來源
-- 世界：世界銀行 World Development Indicators（含 1960 年代平均值），更新腳本 `node tools/update-data.mjs`
-- 台灣：內政部、主計總處、衛福部公開統計的概略值；早期年份為估計
-
-數字僅供模擬體驗。死亡、疾病、貧窮等沉重的事也會依統計發生，不描寫畫面；心裡難受時請撥 1925 安心專線。
-
-## 追思館
-玩家走完一生後可以直接在網站內分享，不需要帳號；其他人可以點蠟燭。資料存在 Supabase 的 `lives` 資料表，公開金鑰只能讀取、新增和點蠟燭，不能修改或刪除。不恰當的內容請到 Supabase 後台的 Table Editor → `lives` 刪除該列。
+- 測試：`node town/test.js`（pre-push hook 會自動跑，`git config core.hooksPath .githooks` 啟用）
+- 改了 `town/` 的 js 要跑 `node tools/town-bump.mjs`
+- 後端 SQL 在 `supabase/town*.sql`，規則與檔案分工見 `CLAUDE.md`
+- 兄弟 repo：人生模擬器 `life-sim`（https://jackycheung0408.github.io/life-sim/）、足球員模擬器 `football-life`（https://jackycheung0408.github.io/football-life/）
+- `football/` 在這裡只剩一個轉址頁，舊網址不會 404

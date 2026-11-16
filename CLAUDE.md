@@ -1,46 +1,22 @@
-# life-simulator
+# 小豬鎮與入口導覽頁（life-simulator）
 
-純靜態網站，推到 main 就由 GitHub Pages 部署：https://jackycheung0408.github.io/life-simulator/
+純靜態網站，推到 main 就由 GitHub Pages 部署：https://jackycheung0408.github.io/life-simulator/（根目錄是三個遊戲的入口導覽頁 `index.html`／`hub/index.html`，小豬鎮在 `town/`，`football/` 只剩轉址頁）
 
-## 三個遊戲
-- **人生模擬器**（根目錄）：`index.html`（含死亡率、年度流程 `year()`），主要邏輯在 `life.js`、`events.js`、`events2.js`、`story.js`、`foreshadow.js`、`realism.js`、`pixel.js`（像素人物畫面）；國家資料 `countries.js`、`taiwan.js`；測試 `node tests/life.js`（解析式不變量＋逐年檢查，約幾秒）、`node tests/life.js --deep`（3000 段人生對照各所得層、性別的平均死亡年齡，約 1～2 分鐘）；詳見下方「人生模擬器：校準與不變量」
-- **足球員模擬器**（`football/`）：
-  - `js/data.js`：國家、聯賽、球會、能力（FACE／DPW 權重、ovr、rateAt、value）、發育曲線 `DEVC`／`devFrac`、存檔版本常數 `SAVE_VER`、`newPlayer`
-  - `js/events.js`：問答視窗 ask、關鍵時刻、機率動畫、訓練成長
-  - `js/career.js`：每季流程 season、轉會、國家隊、同世代球星（STARS、LEGENDS、STAR_BORN）、真實足壇大事（REAL_EV、REAL_WC）
-  - `js/auto.js`：自動抉擇（風格 `fb-autostyle`：平衡／穩健／進取／隨性／依性格；`autoScore` 依選項副標的成功率、實力差、年薪變化打分；重大抉擇 `autoIsMajor` 彈 8 秒倒數卡片 `autoCard`，`fb-automajor=quiet` 為全自動；回顧存 `p.autoLog`（上限 40）並顯示在結局證書 `autoReviewHtml`）。自動時機率與手動完全相同
-  - `js/ui.js`：畫面、陣容、場上意向、報表
-  - `js/home.js`：首頁（玩法、天賦卡 `RARITY` 與抽卡保底、搜尋 picker、捏人、出生年份、存檔與 `migrate`）
-  - 測試：`node football/test/run.js`（pre-push hook 會自動跑，要看到「✅ 全部通過」）
-- **小豬鎮**（`town/`）：多人小鎮，詳見下方「小豬鎮」一節
+> 這個遊戲和另外兩個已拆成各自的 GitHub repo（2026-11 拆分；原本同在 `jackycheung0408/life-simulator`）：
+> - 小豬鎮（含入口導覽頁）：`jackycheung0408/life-simulator`，網址 `https://jackycheung0408.github.io/life-simulator/town/`（網址不變，玩家從主畫面開 web app）
+> - 足球員模擬器：`jackycheung0408/football-life`，網址 `https://jackycheung0408.github.io/football-life/`
+> - 人生模擬器：`jackycheung0408/life-sim`，網址 `https://jackycheung0408.github.io/life-sim/`
+> 三個遊戲共用同一個 Supabase 專案 `gerqdagicybtyilihvvm`（各 repo 的 `supabase/` 只放自己那一份 SQL，見 `docs/supabase-shared.md`）和同一個網站網域（`jackycheung0408.github.io`，所以瀏覽器的 localStorage 存檔跨 repo 仍共用；各遊戲的鍵都有前綴 `life-`／`fb-`／`town-`，不要改名）。
 
 ## 規則
-- 足球發育曲線：新球員（`p.dev=1`）能力上限 = `p.pot × devFrac`（`data.js` 的 `DEVC`，13 歲 72% → 27 歲 100%，`bloom` 早熟晚熟平移 1.5×年），舊存檔沒有 `dev` 旗標維持原上限。天賦卡 `RARITY`：銅45%(52–65)／銀33%(63–75)／金17%(73–86)／傳奇5%(85–95)，3 張至少 1 張銀以上。
+- 改了 `town/` 的 js／css 後一律跑 `node tools/town-bump.mjs`（連 `version.json` 一起，見「自動更新」）
 - 改 CSS 後確認大括號有配對（曾因多一個 `.ctrl{` 讓後面所有樣式失效）
-- 改了 js／css，要把對應 `index.html` 裡所有的 `?v=N` 加 1（快取）；小豬鎮改用 `node tools/town-bump.mjs`（連 `version.json` 一起，見「自動更新」）
-- 舊存檔要能繼續玩；平衡改動用 `football/js/home.js` 的 migrate（`SAVE_VER` 常數在 `data.js`，`newPlayer` 建新角色直接寫成最新版，所以新角色不會被 migrate 補；要補舊存檔就把 `SAVE_VER` 加 1，並讓 migrate 的新規則只對 `ver` 比它小的存檔跑一次）
 - 互動一律用按鈕，不要用超連結
-- 球員一律用英文名字
 - 要擬真，不要偏袒玩家
 - 回覆用繁體中文，簡短
+- 需要使用者核准的步驟（套用正式站 SQL、對正式站資料庫寫入、建立或刪除 repo、推送別的 repo）一律用 AskUserQuestion 給按鈕（「可以，執行」「先不要」），不要要他打字；按鈕要由使用者本人點
 - 改了檔案分工、部署流程或規則，就順手更新這份 CLAUDE.md（使用者不想手動維護）
-- Supabase 專案 gerqdagicybtyilihvvm；SQL 放在 `supabase/`
-
-## 人生模擬器：校準與不變量（2026-11 審查後修復）
-- **死亡率已校準到資料**（`index.html` 的 `mortality`／`mortB`／`mortQ`／`mortRef`、`life.js` 的 `survival`）：0 歲 = 嬰兒死亡率、1～4 歲每年 = 嬰兒死亡率 × 7.5%（5 歲前合計 ≈ IMR × 1.3，`u5Rate` 同時是出生登記卡的數字）、5 歲起 Gompertz（b = .085）＋底噪；每個「國家＋性別＋家境＋學歷」用二分法解出 B，讓出生時平均壽命剛好等於 `countries.js` 的男壽／女壽（基準健康 = `statBase` 曲線 + `MORT_REFOFF` 3，因為實際遊玩時健康平均比基準高）。**不要再把 ex 當眾數用**（舊版平均死亡年齡比資料短 8～12 年）。改死亡率或 `statBase` 後要跑 `node tests/life.js --deep`，各層差距要 < 3 年。
-- 家人與人口（`life.js`）：手足最多讓最大的哥姊出生時母親 ≥ 16 歲；父母職業池 `jobPool(cls,low)` 先看家境再看國家貧富；總生育率 `fertOf(c)` = 每年出生數／人口 × 1.5（台灣用 `TW_YEARS` 的歷年值）；都市比例 `urbanOf(c)` 查 `URB_TAB`（新加坡、香港、澳門 100%）沒列才用所得公式。
-- **狀態不變量**：`tests/life.js` 的 `yearChecks`（逐年檢查，含台灣人生）：屬性 0～100（`clampStats` 在 `year()` 死亡判定前統一夾）、18 歲前不可有大學學歷或孩子、`twNoKid` 後不再有孩子、有伴侶就有名字且 `partnerYears` 合理、`caregiver` 在雙親過世後清除。新增狀態規則時往 `yearChecks` 加一條。
-- **新伴侶一律走 `newPartner(L,name)`**（`realism.js`：重設 `partnerYears`／`wedDone`／`loveDmg`／`pInc`，`divorced`／`widowed` 清除），離婚一律走 `divorce()`（財產對半）。
-- 照顧父母：三套事件（`events.js`、`taiwan.js`、`story.js`）共用 `L.careAsked`，一生只問一次；`L.caregiver` 照顧期間不會 rehire／jobHunt，雙親過世（`familyEvents`）清掉。
-- 事件的「已發生」記在陣列**索引**（`L.done[i]`、`L.moreSeen[i]`、realism 的 MISHAPS 同理）：**新增事件一律加在陣列最後**，不要中間插入或刪除（不要的事件把條件改成 `L=>false` 保留位置）。`ask` 在忙碌期間（`lockUntil`）會略過非 `MUST_ASK` 的抉擇並設 `L.askSkipped`，一次性事件看到就把 done／moreSeen 還原。孩子相關事件用 `kidIn(L,lo,hi)` 看孩子年齡，不要只看 `L.kids`。
-- 台灣：役期依**出生年次**（≤1970 兩到三年、1971–80 將近兩年、1981–93 一年、1994–2004 四個月、2005 起一年，2013／2024 兩次改制已查證）；`countries.js` 的台灣列要和 `taiwan.js` 的 `TW_YEARS`（2025、1960）一致（測試會比）；**世界模式抽到台灣時走 `twLife`**（`newLife` 開頭）；童婚最低 16 歲（2023 起 18）。
-- `isAfrica(n)`（`events.js`）用 `REGION` 的西非／東非／中非／非洲之角／南非加蘇丹、茅利塔尼亞，扣掉南非、波札那、史瓦帝尼、賴索托、納米比亞、模里西斯、維德角（瘧疾權重用）。HISTORY 的 `war:true` 事件會記 `L.warEnd`，`causeOf` 戰爭期間多一個「戰爭」死因。
-- 金錢：投資本金每年也被通膨吃掉（`investYear`）；朋友投資事件期望值略負；**開銷上限 76%～92% 收入的調適機制保留**（模擬過改成可赤字，1500 段人生 65 歲時 60～95% 的人負債 2～11 倍人均 GDP，不可行；目前 65 歲負債比：低所得 37～45%、中所得 24～32%、高所得 10～18%，改金錢機制前後用 `wealth` 類模擬對照）。
-- 還沒做（審查提到）：其他徵兵國家（以色列、新加坡、土耳其、北韓等）的兵役只有台灣與韓國有；`friends`（events.js 隨機好友）與 `pals`（realism.js 三位會疏遠過世的朋友）兩套朋友系統沒有合併，只讓「童年好友重逢」檢查 `pals`；事件沒有穩定 id（只靠索引規則）。
-
-## 改檔習慣
-- 中文 Python heredoc 容易出現編碼錯誤：先寫成 .py 檔，再用 `exec(compile(open(f,encoding="utf-8").read(),"p","exec"))` 執行
-- 小改動不用開瀏覽器驗證；邏輯改動才在推上去之後檢查線上版
+- Supabase 專案 gerqdagicybtyilihvvm（三個遊戲共用）；SQL 放在 `supabase/`
 
 ## 小豬鎮（`town/`）：多人類模擬市民小鎮
 - 前端：`town/index.html`（CSS 全在裡面）、`town/town.js`（地圖、面板、小遊戲）、`town/icons.js`（12×12 像素圖示，emoji → 圖示名對照）。
@@ -156,7 +132,7 @@
 ## 測試與部署（重要）
 - 前端路線測試：`node town/test.js`（所有房子數量下每個設施走得到）。
 - 改了 `town.js` 或 `icons.js`：跑 `node tools/town-bump.mjs`（`?v=` 加 1 並同步 `version.json`，icons 有改加 `--icons`）。
-- 推上去前先 `git pull --rebase`：另一個 session 也在改這個資料夾（足球）。pre-push 會跑足球測試，偶爾不穩，重跑即可。
+- 推上去前先 `git pull --rebase`（可能有別的 session 也在改這個資料夾）。pre-push（`.githooks/pre-push`，`git config core.hooksPath .githooks` 啟用）會跑 `node town/test.js`。
 - SQL 不會自動套用：到 Supabase SQL Editor，抓 `raw.githubusercontent.com/jackycheung0408/life-simulator/<commit>/supabase/town.sql`，用 `monaco.editor.getModels()[0].setValue(...)` 貼上，按 ⌘↵，確認「Potential issue」對話框後執行。
 - 資料庫實測：在同一段 SQL 後面接一個 `do $$ ... $$` 區塊（建測試鎮、呼叫 `town_act`、把結果寫進 `zz_town_test`、最後 `delete from town_towns`），看完結果就 `drop table zz_town_test`。plpgsql 變數不要和欄位／參數同名。
 - **改 SQL 要特別小心**：一個語法錯就讓正式站所有人動不了（出過一次）。有 `= any(...)` 這類寫法先用小函式包起來測。
@@ -394,14 +370,8 @@
 - **邀請一起做**：設施面板「邀請 X 一起…」（`inviteBtns`，活動文字 `JT`）。`send` 寫進對方 `items.iv = {f,at,p}`，1 分鐘內有效；對方畫面（`checkInvite`，每次 refresh 檢查）彈窗，`yes` 兩人加成＋好感 +1（`town_bond` 吃每日上限）、寫 `joint` 動態；同一對 30 分鐘一次（`items.cd['jt'||id]`）、發邀請對同一人 3 分鐘一次。不動擊掌／扁人／整蠱的冷卻。
 - 畫面測試：`tools/town-mock.js` 已加 `town_pevent`／`town_invite` 假回應；瀏覽器會快取 mock.js，改了要在 script 加 `?v=N`。
 
-## 足球：人生主線與排行榜上傳（2026-11-10）
-- `career.js` 末尾 `SAGA`／`sagaOf(p)`／`SAGA_EV`／`sagaYear`：依出道年齡、傷病、轉會、國家隊、背景、性格判定主線（青訓天才、大器晚成、傷病重生、浪子漂泊、忠誠一線隊、國家隊支柱、爭議人物、球場領袖、平凡之路，沒踢上職業則另有傷病夢碎、為家庭轉身等）；結局稱號前綴主線名（`finish()`），每人生同一事件不重複、每 3 年最多一件。
-- 排行榜上傳：`ui.js` 的 `uploadCareer`／`flushUp`，結局一律進佇列 `fb-upq`（含沒踢上職業的），`fb-upd` 以 `p.id` 去重，送太快（60 秒限制）等 62 秒、網路失敗 30 秒自動重試；進球／冠軍先依 SQL `fb_sane` 夾住。`playHit("finish")` 不再排除自動播放。
 
-### 2026-11-16 足球矛盾審查後的修正（排行榜 SQL 已套用到正式站並驗證）
-- **排行榜出生年範圍**：前端出生年 1950～2026、傳奇球星最早 1940，所以 `supabase/leaderboard.sql` 的 `born`／`died` 檢查放寬成 1900 起（`born` 1900～2100、`died` 1900～2250）；舊表的限制用 `do $$` 區塊從 `pg_constraint` 找出單欄位的 born／died 檢查再重建（名稱不一定叫 `fb_careers_born_check`）。**已在 2026-11-16 套用到正式站**（只跑檔案裡的 `do $$` 限制重建區塊和 `fb_guard` 函式；唯讀查詢確認 `born` 1900～2100、`died` 1900～2250、`fb_sane` 沒動、`fb_guard` 有 `duplicate`；在會 `raise exception` 回滾的 `do` 區塊裡寫入 1940 年出生的測試列成功、重複列被擋，表內仍是原本的 21 筆，沒有殘留測試資料）；前端被拒時的提示已改成「數字超出排行榜收錄範圍（不是你違規）」（`ui.js` `flushUp`，依 `e.code=="23514"`）。
-- **上傳列防壞數字**：`ui.js` 的 `upRow` 用 `upN` 把 NaN／undefined 換成 0 並取整（`score` 是 int 欄位，小數會被伺服器拒），`node football/test/run.js` 檢查每個欄位都在 SQL 限制內。已上傳清單 `fb-upd` 不再只留 200 筆（改 5000）；SQL 的 `fb_guard` 擋「同一裝置、名字、出生死亡年、出賽、進球、分數都一樣」的重複（例外訊息 `duplicate`），前端把 `duplicate` 當成已上傳；沒加 `pid` 欄位（避免前端比 SQL 先上線時整個上傳壞掉）。
-- **存檔版本**：`newPlayer` 的 `ver` 引用 `SAVE_VER`（定義在 `data.js`）。migrate 規則各自有版本：ver<2 才做「能力差距收斂＋年薪重算」、ver<3 才做「天賦能力平均化」，而且同一次載入裡 ver1 存檔做了差距收斂就不再疊加天賦平均化。測試在 `football/test/run.js`（取出 `home.js` 的 migrate 單獨跑）。
-- **能力邊界**：`rateAt` 夾在 1～99（換位置適應扣分最多 −6，剛起步的孩子可能減成負數）；`wageOf` 的「能力 − 球隊強度」夾在 ±30（避免極端指數）；`retireCheck` 的 `p.clubObj` 防空。
-- **主線**：`sagaOf` 對沒踢上職業的人（`!p.debut`）不套用職業主線（傷病重生、爭議人物…），只會落到傷病夢碎、為家庭轉身等結局型主線；分數相同時照 `prodigy > late > injury > nomad > loyal > hero > rebel > leader` 的宣告順序決定，不隨機。
-- **2026 世界盃**：`REAL_WC[2026]` 冠軍＝西班牙（決賽延長賽 1-0 擊敗阿根廷，ESPN、NPR 等報導一致）；`REAL_EV[2026]` 的文字也補了結果。`REAL_LAST` 仍是 2026（之後的年份走隨機的 `WORLD` 大事）。
+## 改檔習慣
+- 中文 Python heredoc 容易出現編碼錯誤：先寫成 .py 檔，再用 `exec(compile(open(f,encoding="utf-8").read(),"p","exec"))` 執行
+- 小改動不用開瀏覽器驗證；邏輯改動才在推上去之後檢查線上版
+
