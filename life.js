@@ -168,6 +168,7 @@ async function familyEvents(L){
   const q=Math.min(.5,.0004*Math.exp(.085*(a-20))*(L.c.gdp<8000?1.6:1));
   if(R()<q){p.alive=false;L.happy-=12;say(L,`${k=="mother"?"母親":"父親"}${p.name}在 ${a} 歲時離開了人世。`)}}
  L.parentAlive=f.mother.alive||f.father.alive;
+ if(!L.parentAlive&&L.caregiver){L.caregiver=false;L.careEnd=L.age} // 雙親都過世，照顧結束（不再顯示「和年邁的父母同住」，可以回職場）
  if(L.age>=6&&L.age<=17&&f.mother.alive&&f.father.alive&&R()<.04){L.happy-=4;say(L,`父母又吵了一架，你躲在房裡不敢出聲。（母親 ${f.mother.age+L.age} 歲・父親 ${f.father.age+L.age} 歲）`)}
  for(const s of f.sibs){const a=s.age+L.age;if(!s.married&&a>=20&&a<=35&&R()<.12){s.married=true;say(L,`${sibName(s)}結婚了，全家人一起拍了照。`)}}
  if(f.grand&&L.age<=30){if(R()<.05)say(L,pick(["外婆塞了一大袋自己做的點心給你。","爺爺教你一個他小時候玩的遊戲。","打電話給奶奶，她的聲音比以前虛弱了。"]));

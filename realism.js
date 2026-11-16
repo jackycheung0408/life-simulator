@@ -154,7 +154,7 @@ async function debtRelief(L){
 // 每年依序執行（在 storyYear 裡呼叫）
 // 沒有工作的成年人：每年都要決定要不要找工作（空窗越久越難找）
 async function jobHunt(L){
- if(L.job||L.age<22||L.age>=65||L.lockUntil>L.age||L.backAt||(L.age<23&&!L.jobRetry&&!L.lostJob&&L.edu==3))return;
+ if(L.job||L.age<22||L.age>=65||L.lockUntil>L.age||L.backAt||(L.caregiver&&L.parentAlive)||(L.age<23&&!L.jobRetry&&!L.lostJob&&L.edu==3))return;
  L.gap=(L.gap||0)+1;const g=L.c.gdp,base=g*.5*(L.edu==3?1.25:L.edu==2?.95:.7)*.85*Math.max(.7,1-L.gap*.05);
  const pool=Object.keys(JOB_INFO).filter(j=>(JOB_INFO[j][3]=="U")==(L.edu==3)||(L.edu==3&&R()<.2)).sort(()=>R()-.5).slice(0,3);
  const take=j=>()=>{const [pay,,e]=JOB_INFO[j];if(R()<.85-L.gap*.08){L.job=j;L.inc=base*pay*(L.sex=="女"?1-payGap(L.c):1);L.jobYears=0;L.lostJob=null;L.gap=0;for(const k in e)L[k]+=e[k];say(L,`找到${j}的工作。`)}else{L.happy-=3;say(L,`去應徵${j}，沒有被錄取。`)}};

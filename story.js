@@ -203,7 +203,7 @@ async function genderYear(L){
  // 女性 45～55 歲更年期
  if(!he&&L.age==50&&R()<.6){L.health-=3;L.happy-=2;say(L,"進入更年期，常常熱潮紅、睡不好。")}
  // 照顧父母：女兒常被期待放下工作
- if(!he&&L.parentAlive&&L.age>=45&&L.age<=60&&L.job&&!L.careSeen&&R()<.05){L.careSeen=true;await ask(L,"家人覺得照顧爸媽應該由女兒來",[["辭職照顧",()=>{L.lostJob=L.job;L.job=null;L.rel+=3;L.happy-=3},"沒收入"],["和兄弟輪流",()=>{L.rel+=1;L.happy-=1},"公平分擔"],["出錢請人照顧",()=>{L.money-=g*.2;ledger(L,"照顧費",-g*.2)},"每年開銷"]])}
+ if(!he&&L.parentAlive&&L.age>=45&&L.age<=60&&L.job&&!L.careSeen&&!L.careAsked&&R()<.05){L.careSeen=true;L.careAsked=true;await ask(L,"家人覺得照顧爸媽應該由女兒來",[["辭職照顧",()=>{L.lostJob=L.job;L.job=null;L.caregiver=true;L.rel+=3;L.happy-=3},"沒收入"],["和兄弟輪流",()=>{L.rel+=1;L.happy-=1},"公平分擔"],["出錢請人照顧",()=>{L.money-=g*.2;ledger(L,"照顧費",-g*.2)},"每年開銷"]])}
 }
 
 // 理財：每隔幾年可以決定閒錢怎麼放，有賺有賠

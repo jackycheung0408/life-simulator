@@ -146,7 +146,7 @@ async function twYear(L,f){
   await ask(L,"親戚介紹你認識一位來自越南的女生",[["交往看看",()=>{newPartner(L,pick(["阮氏玲","黎氏芳","陳氏秋"]));L.happy+=6;say(L,`和${L.partnerName}結婚，她努力學中文，很快就適應了台灣的生活。`)},"人際↑"],["不了",()=>{}]],"1990 至 2000 年代，台灣有大量來自東南亞的新住民。");
 
  // 長照：父母老了
- if(L.parentAlive&&L.age>=45&&L.age<=65&&!L.twCare&&R()<.06){L.twCare=true;
+ if(L.parentAlive&&L.age>=45&&L.age<=65&&!L.twCare&&!L.careAsked&&R()<.06){L.twCare=true;L.careAsked=true;
   await ask(L,"爸媽年紀大了，需要有人照顧",[["請外籍看護",()=>{const cost=c.gdp*.25;L.money-=cost;ledger(L,"外籍看護",-cost);say(L,"請了一位印尼看護照顧爸媽。")},"每年一筆開銷"],["自己辭職照顧",()=>{L.job=null;L.caregiver=true;L.happy-=6;L.rel+=4;say(L,"辭掉工作，搬回家照顧爸媽。");sayHi(L,"曾辭職回家照顧年邁的父母。")},"沒收入 · 人際↑"],
    ["送去安養機構",()=>{const cost=c.gdp*.35;L.money-=cost;ledger(L,"安養機構",-cost);L.happy-=2},"開銷較大"]],"台灣在 2025 年進入超高齡社會，65 歲以上人口超過兩成。")}
 }
