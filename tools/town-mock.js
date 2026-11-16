@@ -52,6 +52,22 @@ window.fetch=(url,o)=>{if(!String(url).includes("/rpc/"))return _fetch(url,o);co
   if(b.op=="propose"){c.vote=b.item=="poll"?{k:"poll",q:b.note,by:r.id,bn:r.name,at:now(),end:new Date(Date.now()+864e5).toISOString(),yn:0,nn:0,mine:null}:{k:"build",p:b.item,cost:15000,by:r.id,bn:r.name,at:now(),end:new Date(Date.now()+864e5).toISOString(),yn:0,nn:0,mine:null}}
   if(b.op=="vote"&&c.vote){if(b.item=="yes")c.vote.yn++;else c.vote.nn++;c.vote.mine=b.item}
   return ok({ok:true,fund:c.fund,flog:{rent:3200,tax:1500,lux:800,pk:50},ann:c.ann,proj:c.proj,hist:c.hist,mayor:!!r.mayor,vote:c.vote,quorum:2})}
+ if(fn=="town_power"){const r=R(b.rid);db.pw=db.pw||{};const p=db.pw[r.town_id]=db.pw[r.town_id]||{off:[],log:[],vote:null,hist:[]},res=db.res.filter(x=>x.town_id==r.town_id),tw=db.towns[r.town_id];tw.fund=tw.fund==null?12000:tw.fund;
+  if(p.vote&&Date.parse(p.vote.end)<Date.now()){p.vote=null}
+  const NAMES={jail:"關進監獄",free:"放人",fine:"罰款",grant:"發補助",impeach:"彈劾鎮長"};
+  if(b.op=="ack"){r.items=Object.assign({},r.items);delete r.items.pwn}
+  else if(b.op=="use"){const t=R(b.tg);if(!NAMES[b.pk])return bad("這個權力要到市政廳或設施面板行使");if(b.pk!="impeach"&&!r.mayor)return bad("只有鎮長可以行使這個權力");if(res.length<3&&["jail","fine","grant"].includes(b.pk))return bad("小鎮至少要有 3 位居民才能用這個權力（要有人能申訴、投票）");if(t&&t.id==r.id&&b.pk!="impeach")return bad("不能對自己行使");
+   if(b.pk=="impeach"){p.vote={id:"v1",kind:"power",k:"impeach",t:t.id,tn:t.name,by:r.id,bn:r.name,at:now(),end:new Date(Date.now()+864e5).toISOString(),y:[r.id],n:[]}}
+   else{const id="e"+(p.log.length+1);let n=b.num;if(b.pk=="fine"){n=Math.min(n,t.money);t.money-=n;tw.fund+=n}if(b.pk=="grant"){if(tw.fund<n)return bad("鎮基金不夠");tw.fund-=n;t.money+=n}
+    if(b.pk=="jail"){t.items=Object.assign({},t.items,{jl:new Date(Date.now()+n*6e4).toISOString()});t.place="jail"}if(b.pk=="free"){t.items=Object.assign({},t.items);delete t.items.jl}
+    p.log.unshift({id,k:b.pk,by:r.id,bn:r.name,t:t.id,tn:t.name,n,at:now(),via:"mayor",ap:["jail","fine"].includes(b.pk),undone:false});
+    t.items=Object.assign({},t.items,{pwn:[{id,k:b.pk,bn:r.name,m:`鎮長 ${r.name} 對你行使了「${NAMES[b.pk]}」${n||""}。覺得不公平可以申訴。`,at:now(),ap:["jail","fine"].includes(b.pk)}]});
+    ev(r.town_id,`${r.name} 以鎮長權力${NAMES[b.pk]} ${t.name}`,r.id,t.id,"mayor")}}
+  else if(b.op=="appeal"){p.vote={id:"v2",kind:"appeal",k:"jail",ref:b.note,tn:"乙",by:r.id,bn:r.name,mn:"鎮長",at:now(),end:new Date(Date.now()+432e5).toISOString(),y:[r.id],n:[]};const e=p.log.find(x=>x.id==b.note);if(e)e.appealed=true}
+  else if(b.op=="vote"&&p.vote){p.vote[b.note=="yes"?"y":"n"].push(r.id)}
+  else if(b.op=="toggle"){p.off=String(b.note||"").split(",").filter(Boolean)}
+  const v=p.vote;return ok({ok:true,msg:"完成",mayor:!!r.mayor,nres:res.length,off:p.off,fund:tw.fund,log:p.log,today:p.log.map(e=>({k:e.k,t:String(e.t)})),last:Object.fromEntries(p.log.map(e=>[e.k,Math.floor(Date.parse(e.at)/1e3)])),hist:p.hist,
+   vote:v?Object.assign({},v,{y:undefined,n:undefined,yn:v.y.length,nn:v.n.length,mine:v.y.includes(r.id)?"yes":v.n.includes(r.id)?"no":null}):null})}
  if(fn=="town_visit"){const r=R(b.rid);r.items=Object.assign({},r.items);if(b.op=="enter"){const t=R(b.target);if(r.place!="home:"+b.target)return bad("要先走到他家門口");if(t.place!="home:"+t.id||String(t.items&&t.items.dr)=="1")return bad(t.name+" 不在屋裡，只能在門口留言或放禮物");r.items.fv=b.target}else delete r.items.fv;return ok({ok:true,fv:r.items.fv||null})}
  if(fn=="town_mischief"){const r=R(b.rid),today=new Date(Date.now()+8*36e5).toISOString().slice(0,10);r.items=Object.assign({},r.items);if(b.act=="shield"||b.act=="unshield"){if(b.act=="shield")r.items.sh=today;else delete r.items.sh;return ok({msg:b.act=="shield"?"今天掛上免整牌了":"收起免整牌了"})}
   const t=R(b.target);if(t.items&&t.items.sh==today)return bad(t.name+" 今天掛了免整牌，改天再整他");t.items=Object.assign({},t.items);if(b.act=="sticker")t.items.sk={u:new Date(Date.now()+36e5).toISOString(),from:r.name};ev(r.town_id,`${r.name} 對 ${t.name} 用了「${b.act}」`,r.id,t.id,b.act=="photo"?"photo":b.act=="forgive"?"forgive":"mischief");return ok({msg:"對 "+t.name+" 用了 "+b.act,b:-1,rev:false})}

@@ -138,6 +138,15 @@
 - **市政廳**：新表 `town_civic`（RLS 全關）：`ann` 公告（鎮長發、最多 3 則、1～40 字）、`proj` 已蓋好的建設案、`vote` 進行中的投票（同時只有一個，24 小時）、`hist`。建設案（鎮長才能提，花**鎮基金**）：新長椅 15000（48,8）、路燈 20000（24,21）、涼亭 30000（35,21）、小豬雕像 50000（21,13）；居民一人一票，**贊成多於反對且總票數 ≥ 3（居民不到 5 人的小鎮 ≥ 2）**才通過，結算時基金不夠就否決；**基金只能花在建設案、不能轉給任何人**。居民也能發起「是非題」投票（1～20 字，只是民意調查，結果寫進動態，沒有自動效果）。結算是惰性的：每次有人呼叫 `town_civic` 就先結算到期的投票（`town_civic_close`），寫 `civic` 動態。建好的設施路邊 ≤ 2 格可用（`town_civic_use`，10 分鐘一次 `items.cd.c_代號`，只給心情／精力不給錢）；前端 `civSync()` 每分鐘問 `town_civic_proj_list` 取得已蓋好的清單，`drawCivic()` 每幀畫在地圖上。
 - 新增建設案：`town_civic_proj`（SQL，[費用,x,y,心情,精力]）＋前端 `CIVIC`＋`drawCivic` 畫圖；座標要非建築、非馬路（`node town/test.js` 檢查）。
 
+## 鎮長管理權（2026-11-16；SQL `supabase/town_powers.sql` **尚未套用到正式站**，實測 `supabase/town_powers_test.sql`（最後 rollback，結果在錯誤訊息 REPORT）**尚未在資料庫跑過**——本機沒有 Postgres，只過了 `node town/test.js`；套用順序接在 `town_civic.sql` 之後，要先套 SQL 再讓玩家用，否則按鈕會報錯）
+- 資料驅動：新增一個權力 = ① SQL `town_pw_def` 加一列＋`town_pw_name` 加名稱＋`town_pw_do`（與必要時 `town_pw_check`）加一個分支 ② 前端 `town.js` 的 `POWERS`／`PWORD` 加一列（`pwWhy`／`pwWhyT` 補原因）③ `town_powers_test.sql` 補實測。不改 `town_act`／`town_mayor`／`town_civic`。`node town/test.js` 比對 `def` 陣列、名稱、每個權力有執行分支與實測。
+- 登錄表 `def` = `[mode 0 鎮長／1 投票／2 鎮長可選, min, max, 全鎮每天, 每人每天, 冷卻分鐘, 要對象, 動用基金, 可申訴, 在別處行使(ext), 不能關]`。ext=1 的（公告 `announce`、建設案 `build`、設施開關 `feat`）只是登錄：前端 `go` 轉到 `civicModal`／`mayorPanel`，SQL 的 `town_pw_do` 不執行。
+- RPC `town_power(rid,pin,op,pk,tg,num,note)`：`view`（所有居民）／`use`／`appeal`（note = 紀錄 id）／`vote`（note = yes|no）／`toggle`（note = 逗號分隔要關的代號）／`ack`（清掉通知）。表 `town_powers`（RLS 全關）：`off` 被關掉的權力、`log` 最近 60 筆 `{id,k,by,bn,t,tn,n,at,via,ap,undone,appealed}`、`vote` 一次只有一個（申訴或彈劾）、`hist`。被行使的人 `items.pwn`（最多 5 則，缺值 = 沒有）。所有安全閥都在 `town_pw_check`／`town_pw_do`，直接下令、投票發起、投票通過三條路都會跑。
+- 安全閥數值：關人 10～120 分鐘、全鎮每天 3 人、每人每天 1 次、冷卻 10 分鐘，不能關自己／鎮長／睡覺或住院的人／已被關的人，不記前科（`jp.mj=1`），被關的人照常保釋、勞動、越獄、假釋；罰款 100～2000、全鎮每天 5 次、每人每天 1 次、付到 0 為止、進鎮基金、身上沒錢不能罰；補助 100～3000、花鎮基金、每人每天 1 次、不能給自己、`mode=2`（`note='vote'` 交居民投票）；放人要有人被關；**小鎮不到 3 人，關人／罰款／補助不能用**。
+- 申訴：任何居民（鎮長除外）24 小時內可對關人、罰款申訴，投票 12 小時，贊成多於反對、至少 2 票、而且多於「非鎮長居民」的一半才推翻；推翻關人 = 還在服那筆刑（`jp.mj`）才提前放人，推翻罰款 = 從鎮基金退回（基金不夠退多少算多少）；補助、放人不能申訴。彈劾：任何居民提名一位鎮民接任，24 小時，贊成多於反對、至少 3 票、多於全部居民一半才換人，3 天內只能發起一次。權力開關：鎮長可關 jail／free／fine／grant，彈劾與建設案（lock）關不掉。
+- 透明：每次寫 `town_events` kind `mayor`（公開）；前端選單「鎮長管理權」（`powBtn`，所有居民）與鎮長面板的按鈕都開 `powersModal`（權力清單、投票、使用紀錄、申訴）；被行使者上線時 `checkPwn` 彈窗（可直接申訴）；不能用的權力照樣顯示、灰掉並寫原因。`tools/town-mock.js` 有 `town_power` 假回應（簡化版）。
+- 教訓：`town_powers.sql` 裡 plpgsql 變數不要叫 `x`／`y`（和 `town_residents` 的位置欄撞名，已改 `en`）。
+
 ## 加一個新設施的清單（全都要改）
 1. `town.js`：`PLACES`（座標 r、door、block:1）、`HOURS`、`FEATS`（讓鎮長能開關）、面板按鈕、`buildMap` 的 `bld(...)` 與 `sign(...)`、`ACT_FX`。
 2. `town.sql`：`town_place_name`、`town_closed`（已取消營業時間，保留函式）、`town_feature`（對應開關）、`town_act` 的 move 白名單與位置上限（`px >`）、動作本身（冷卻存在 `items.cd`）、`town_features` 的白名單。

@@ -310,4 +310,27 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(/let CUR="\$";/.test(js)&&/CUR="\$";try\{fxFromEvents/.test(js)&&!/const CURS=/.test(js)&&!/id="mcs"/.test(js),"貨幣統一 $：前端不再讀鎮的貨幣、鎮長面板與建鎮表單沒有貨幣選項");
 }
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
+// 鎮長管理權（supabase/town_powers.sql）：登錄表前後端一致、每個權力都有 SQL 分支、安全閥數值、測試與 UI 掛得上
+{const fs=require("fs"),sql=fs.readFileSync(__dirname+"/../supabase/town_powers.sql","utf8"),tsql=fs.readFileSync(__dirname+"/../supabase/town_powers_test.sql","utf8"),tjs=fs.readFileSync(__dirname+"/town.js","utf8"),html=fs.readFileSync(__dirname+"/index.html","utf8");
+ check(M.PWORD.length==Object.keys(M.POWERS).length&&M.PWORD.every(k=>M.POWERS[k]),"PWORD 與 POWERS 要一致");
+ for(const k of M.PWORD){const P=M.POWERS[k],m=sql.match(new RegExp("when '"+k+"'\\s+then array\\[([^\\]]+)\\]"));
+  check(!!m,"權力 "+k+" 要在 town_pw_def 有一列");if(!m)continue;const a=m[1].split(",").map(Number);
+  check(a.length==11&&a.join()==P.def.join(),"權力 "+k+" 的登錄表前後端不一致："+a.join()+" ／ "+P.def.join());
+  check(sql.includes("when '"+k+"' then '"+P.n+"'"),"權力 "+k+" 的名稱要和 town_pw_name 一致："+P.n);
+  if(P.def[9]){check(!!P.go,"在別處行使的權力 "+k+" 要有 go（civic／mayor）")}
+  else{check(new RegExp("(if|elsif) pk = '"+k+"' then\\s*\\n\\s*(t := public.town_tick|t := public.town_tick|paid|update public|if )").test(sql.slice(sql.indexOf("function public.town_pw_do")))||sql.slice(sql.indexOf("function public.town_pw_do"),sql.indexOf("function public.town_pw_undo")).includes("pk = '"+k+"' then"),"權力 "+k+" 要有 town_pw_do 的執行分支");
+   check(tsql.includes("'"+k+"'"),"權力 "+k+" 要有實測")}}
+ // 安全閥數值
+ const J=M.POWERS.jail.def,F=M.POWERS.fine.def,G=M.POWERS.grant.def;
+ check(J[1]==10&&J[2]==120&&J[3]==3&&J[4]==1,"關人：10～120 分鐘、全鎮每天 3 人、每人每天 1 次");
+ check(F[1]==100&&F[2]==2000&&G[1]==100&&G[2]==3000&&G[0]==2,"罰款 100～2000、補助 100～3000 且補助 mode=2");
+ check(M.POWERS.impeach.def[0]==1&&M.POWERS.impeach.def[10]==1&&M.POWERS.build.def[10]==1,"彈劾要居民投票、彈劾與建設案不能被關掉");
+ for(const s of ["不能對自己行使","不能關鎮長","在睡覺或住院中","小鎮至少要有 3 位居民","'mj', 1","town_prior_set(t, now(), false)","least(num, greatest(0, t.money))","least(n, greatest(0, fnd)::int)","yn >= 2 and yn * 2 > nres - 1","yn >= 3 and yn * 2 > nres","interval '12 hours'","interval '24 hours'","revoke all on function public.town_power("])check(sql.includes(s),"town_powers.sql 缺安全閥："+s);
+ check(!/fund_add\(tid, 'grant'/.test(sql),"補助是花基金，不能 fund_add");
+ // 前端：選單、動態圖示、通知、更新、導出
+ check(html.includes('id="powBtn"')&&tjs.includes('$("powBtn").onclick')&&tjs.includes("function checkPwn()")&&tjs.includes("checkWoken();checkPwn()")&&tjs.includes('mayor:"🏛️"'),"選單按鈕、被行使通知 checkPwn、動態圖示要掛上");
+ check(tjs.includes('rpc("town_power"')&&tjs.includes("function powersModal()")==false||tjs.includes("async function powersModal()"),"powersModal 要在");
+ check(M.UPDATES.some(u=>u.id=="u44-powers"),"UPDATES 要有鎮長管理權一則");
+ // 頂層函式不可用 init() 裡的變數（powersModal 在 init 裡？確認放在 init 之後可存取 me／pin／R）
+ check(tjs.indexOf("async function powersModal")>tjs.indexOf("function init(){"),"powersModal 要在 init() 裡面（才拿得到 me／pin／R）")}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

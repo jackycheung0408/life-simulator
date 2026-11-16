@@ -55,6 +55,18 @@ const CIVIC={bench2:["新長椅",15000,48,8,3,15],lamp:["路燈",20000,24,21,4,0
 const CIVQ=[2,3,5];// 投票至少幾票：居民不到 5 人 2 票、5 人以上 3 票
 const hospIn=o=>!!o&&o.place=="hospital"&&!!o.items&&!!o.items.faint&&Date.parse(o.items.faint)>nowFn();// 住院中（昏倒的人）
 let CIV=null,CIVP=[],civT=0;// 市政廳資料快取、已建好的建設案代號、上次同步時間
+// 鎮長管理權（supabase/town_powers.sql 的 town_pw_def；def = [mode 0 鎮長／1 投票／2 鎮長可選, min, max, 全鎮每天, 每人每天, 冷卻分, 要對象, 動用基金, 可申訴, 在別處行使, 不能關]）。新增權力：這裡加一列＋SQL 的 town_pw_def／town_pw_do
+const POWERS={
+ jail:{n:"關進監獄",d:"把一位居民關 10～120 分鐘，不記前科；他可以保釋、勞動、越獄、假釋，居民可以申訴推翻",def:[0,10,120,3,1,10,1,0,1,0,0],unit:"分鐘",pre:[15,30,60,120]},
+ free:{n:"放人",d:"提前放走關在監獄的居民",def:[0,0,0,5,1,0,1,0,0,0,0]},
+ fine:{n:"罰款",d:"罰一位居民 $100～2000，付到身上沒錢為止、不欠款，錢進鎮基金；居民可以申訴，推翻會退錢",def:[0,100,2000,5,1,10,1,0,1,0,0],unit:"$",pre:[100,300,500,1000,2000]},
+ grant:{n:"發補助",d:"從鎮基金發 $100～3000 給一位居民，不能給自己；可以直接發，也可以交給居民投票",def:[2,100,3000,5,1,5,1,1,0,0,0],unit:"$",pre:[200,500,1000,3000]},
+ announce:{n:"公告",d:"在市政廳公告欄貼公告，最多 3 則",def:[0,0,0,0,0,0,0,0,0,1,0],go:"civic"},
+ build:{n:"建設案",d:"提出建設案，花鎮基金，居民投票通過才蓋",def:[1,0,0,0,0,0,0,1,0,1,1],go:"civic"},
+ feat:{n:"設施開關",d:"在鎮長管理裡開關設施",def:[0,0,0,0,0,0,0,0,0,1,0],go:"mayor"},
+ impeach:{n:"彈劾鎮長",d:"任何居民都能提名一位鎮民接任，投票 24 小時，要多於全鎮一半、至少 3 票才換人；3 天內只能發起一次",def:[1,0,0,1,1,4320,1,0,0,0,1]}
+};
+const PWORD=["jail","free","fine","grant","announce","build","feat","impeach"];
 const HOURS={}; // 營業時間已取消，全天營業
 // 監獄與砍人（和 supabase/town_jail.sql 一致）：勞動 [收入, 精力, 心情, 縮短刑期分鐘]；保釋金 = max(300, 剩餘分鐘 ×10)；砍人 對方精力 −35 心情 −20、自己精力 −10 心情 −8、被抓 45%（倒地 80%）關 1～3 小時
 let nowFn=()=>Date.now();// 頂層函式用的時鐘；init() 裡的 now() 建好後會指到它（含和伺服器的時差）
@@ -204,6 +216,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u44-powers",date:"11/16",title:"鎮長管理權",items:["鎮長多了「管理權」：可以把人關進監獄（10～120 分鐘）、放人、罰款、從鎮基金發補助，還有公告、建設案、設施開關","每次行使都會公開寫進動態，被行使的人上線會看到說明；居民覺得不公平可以申訴，投票推翻就放人、退罰款","有上限：關人每天最多 3 人、每人每天一次，不能關自己或睡覺、住院的人；小鎮不到 3 人不能用","居民也能發起「彈劾鎮長」投票，多於全鎮一半、至少 3 票就換人","選單「鎮長管理權」大家都看得到紀錄與投票"]},
   {id:"u43-pigcoin",date:"11/16",title:"全小鎮統一用「$ 豬幣」",items:["所有小鎮的錢都改成「$」，名字叫豬幣，鎮長不用也不能再選別的貨幣","金額沒有變，只是換了符號","股票：價格變成純隨機漫步，不會再自己「拉回」基準價；買賣沒有上限，但低買高賣也不再穩賺"]},
   {id:"u41-zombie",date:"11/16",title:"街上有喪屍豬！",items:["全天隨機會有綠色的喪屍豬出現在街上、廣場、公園，晚上更多","牠會慢慢追過來，碰到會掉精力、心情、清潔，但不會死，也不會扣錢","站在牠旁邊按「打喪屍豬」，打倒領 €20～60，一天最多 €600，還可能掉生豬肉，到超市可賣 €30","躲進屋裡、店裡、醫院、監獄，或是睡著，牠都打不到你；每隻只會待一陣子就消失","鎮長可以在設施開關裡關掉喪屍豬"]},
   {id:"u42-nocd",date:"11/16",title:"取消冷卻、取消免整牌、任務獎金 10 倍",items:["打工、設施互動、街機和單機遊戲、擂台、路邊物件，不用再等冷卻時間","為了不被一直刷錢：吃喝休息補回的精力一天最多 200，屠宰場一天最多 3 次，單機遊戲的心情獎勵一天 10 次","免整牌拿掉了；每天最多被整 6 次、報復不扣好感、可以原諒，這些不變","每日任務獎金變 10 倍：每個 €500，三個全做完再 +€1000","股票買賣沒有金額上限，價格還是每 10 分鐘變一次","比大小：A 最小、K 最大"]},
@@ -279,7 +292,7 @@ const fin=r=>!!r&&!!r.items&&!!ROOMS[r.place]&&(r.items.fi===r.place||(r.place==
 // 現在在哪個室內：設施裡面（fin）或自己家屋裡（inside）；都不是就 null
 const visitHost=(r,RR)=>{const h=RR&&r&&r.place&&r.place.startsWith("home:")&&r.place!="home:"+r.id?RR[r.place.slice(5)]:null;return h&&inside(h)?h:null};// 在朋友家門口、他人在屋裡 → 看得到他家室內
 const roomOf=(r,RR)=>!r?null:fin(r)?ROOMS[r.place]:(r.place=="home:"+r.id&&inside(r))?homeRoom(r):visitHost(r,RR)?{...homeRoom(visitHost(r,RR)),visit:true,inn:vin(r)}:null;// RR = 居民表（頂層函式拿不到 init 裡的 R，由呼叫的人傳進來）
-if(typeof module!=="undefined")module.exports={HOSP,POLICE,CIVIC,CIVQ,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
+if(typeof module!=="undefined")module.exports={HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
 
 function init(){
 const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -354,7 +367,7 @@ $("lg").innerHTML=`${LP.top(list)}
   catch(e){$("cerr").textContent=e.message;$("create").disabled=false}}}
 
 // ── 鎮內登入：我住在這裡，或用邀請碼搬進來 ──
-async function refresh(){const st=await rpc("town_state",{tid:TID});apply(st);if(me)try{checkInvite();checkPk();checkWoken()}catch(e){}if(Date.now()-civT>6e4)civSync()}
+async function refresh(){const st=await rpc("town_state",{tid:TID});apply(st);if(me)try{checkInvite();checkPk();checkWoken();checkPwn()}catch(e){}if(Date.now()-civT>6e4)civSync()}
 const seenLuck=new Set();
 function apply(st){S=st;POOPS=st.poops||[];CUR="$";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>(e.kind=="luck"||e.kind=="rent"||e.kind=="ticket"||e.kind=="crash")&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
  st.residents.forEach(r=>{R[r.id]=r;const w=walkers[r.id];
@@ -450,11 +463,12 @@ async function mayorPanel(){let inv="",cta=[],fund=null;try{fund=await rpc("town
  const draw=()=>{$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>🏛️ 鎮長</h2><p>邀請碼：<b class="code">${esc(inv)}</b></p>
   <div class="row" style="justify-content:flex-start"><button class="pri" id="msh">邀請朋友</button><button id="mni">換一組新邀請碼</button></div>
   ${fund?`<h2 style="margin-top:16px">鎮基金</h2><div class="mrow"><span><b>€${fund.fund}</b> <small class="mut">房租 5%、財產稅、奢侈品 5% 累積而來（還不能花）</small></span></div><p class="mut">累計流入：房租 €${(fund.log||{}).rent||0} · 財產稅 €${(fund.log||{}).tax||0} · 奢侈品 €${(fund.log||{}).lux||0}</p>`:""}
+  <h2 style="margin-top:16px">管理權</h2><p class="mut">關人、放人、罰款、發補助、公告、建設案、彈劾——全部公開，居民可以申訴</p><div class="row" style="justify-content:flex-start"><button class="pri" id="mpw">鎮長管理權與使用紀錄</button></div>
   <h2 style="margin-top:16px">小鎮特色</h2>${featChecks([...OFF])}<div class="row" style="justify-content:flex-start"><button class="pri" id="mfs">儲存設施</button></div>
   <h2 style="margin-top:16px">建議下一步統計</h2>${ctaHTML()}
   <h2 style="margin-top:16px">鎮民（${Object.keys(R).length}/12）</h2><div class="list">${Object.values(R).sort((a,b)=>a.slot-b.slot).map(r=>`<div class="mrow"><span><b>${esc(r.name)}</b> <small class="mut">${houseName(r.slot)}${r.mayor?" · 鎮長":""}</small></span>${r.id==me?"":`<button data-k="${r.id}">請他搬走</button>`}</div>`).join("")}</div>
   <div class="row"><button id="mc">關閉</button></div>`;
-  $("mc").onclick=()=>$("modal").classList.add("hide");$("msh").onclick=()=>shareModal(inv);
+  $("mc").onclick=()=>$("modal").classList.add("hide");$("msh").onclick=()=>shareModal(inv);$("mpw").onclick=()=>powersModal();
   $("mfs").onclick=async()=>{try{await rpc("town_features",{rid:me,pin,off:readFeats()});await refresh();toast("設施更新好了");draw()}catch(e){toast(e.message)}};
   $("mni").onclick=async()=>{if(!confirm("換新邀請碼後，舊的就不能用了。確定嗎？"))return;try{inv=(await rpc("town_mayor",{rid:me,pin,act:"newinvite"})).invite;toast("換好了");draw()}catch(e){toast(e.message)}};
   $("mbody").querySelectorAll("[data-k]").forEach(b=>b.onclick=async()=>{const r=R[b.dataset.k];if(!confirm(`確定請 ${r.name} 搬離小鎮？他的資料會被刪除，不能復原。`))return;
@@ -681,7 +695,7 @@ function lifeModal(){const r=R[me],c=career(r),w=(r.items&&r.items.wish)||{},k=W
 function wishModal(){$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>選一個人生願望</h2><p class="mut">每達成一個里程碑，有獎金、稱號和動態公告。可以先跳過。</p><div class="list">${Object.entries(WISHES).map(([k,v])=>`<button data-wk="${k}" style="width:100%;text-align:left;margin-bottom:6px"><b>${v[0]}</b><br><small>${v[1]}：${v[2].join("、")}</small></button>`).join("")}</div><div class="row"><button id="wskip">先跳過</button></div>`;
  const pick=async k=>{try{apply(await rpc("town_wish",{rid:me,pin,k}));$("modal").classList.add("hide");if(k!="skip"){toast("願望訂好了");lifeModal()}}catch(e){toast(e.message)}};
  $("mbody").querySelectorAll("[data-wk]").forEach(b=>b.onclick=()=>pick(b.dataset.wk));$("wskip").onclick=()=>pick("skip")}
-const KIND_ICON={callout:"🚪",calloutfail:"🙅",hospital:"🩺",visithosp:"🤝",report:"📜",civic:"🏛️",mischief:"😈",photo:"📸",forgive:"🤝",pk:"🥊",pkno:"🙅",kick:"🚪",level:"⭐",encounter:"💬",promo:"📈",wish:"🎯",duel:"✊",feed:"🍚",wash:"🛁",visit:"🏠",note:"📱",call:"📞",delivery:"🛵",gift:"🎁",thank:"💗",greet:"🙌",fight:"👊",egg:"🥚",prank:"💨",makeup:"🤝",wakeup:"⏰",wakefail:"⏰",cowork:"💼",feast:"🍖",tier:"💞",look:"✨",join:"🏡",found:"🏛️",expand:"🛣️",leave:"📦",meet:"👋",together:"🎉",crash:"💥",accident:"💦",passout:"😵",luck:"🍀",rent:"🧾",slash:"🔪",jail:"🚔",bail:"💰",visitjail:"🤝",jaillabor:"💼",escape:"🚔",parole:"🪪"};
+const KIND_ICON={callout:"🚪",calloutfail:"🙅",hospital:"🩺",visithosp:"🤝",report:"📜",civic:"🏛️",mayor:"🏛️",mischief:"😈",photo:"📸",forgive:"🤝",pk:"🥊",pkno:"🙅",kick:"🚪",level:"⭐",encounter:"💬",promo:"📈",wish:"🎯",duel:"✊",feed:"🍚",wash:"🛁",visit:"🏠",note:"📱",call:"📞",delivery:"🛵",gift:"🎁",thank:"💗",greet:"🙌",fight:"👊",egg:"🥚",prank:"💨",makeup:"🤝",wakeup:"⏰",wakefail:"⏰",cowork:"💼",feast:"🍖",tier:"💞",look:"✨",join:"🏡",found:"🏛️",expand:"🛣️",leave:"📦",meet:"👋",together:"🎉",crash:"💥",accident:"💦",passout:"😵",luck:"🍀",rent:"🧾",slash:"🔪",jail:"🚔",bail:"💰",visitjail:"🤝",jaillabor:"💼",escape:"🚔",parole:"🪪"};
 const GOOD=["visithosp","feed","wash","visit","note","call","delivery","gift","thank","greet","makeup","cowork","feast"],BADK=["fight","egg","prank","wakeup","crash"];
 let feedFilter="all",feedSeen=0;
 function renderFeed(){renderRank();renderPeople();const all=((S&&S.events)||[]).filter(e=>e.kind!="rent"||e.actor==me).slice().sort((a,b)=>b.at.localeCompare(a.at)||b.id-a.id);
@@ -1021,6 +1035,72 @@ async function civicModal(){$("modal").classList.remove("hide");$("mbody").inner
  const an=$("mbody").querySelector("[data-an]");if(an)an.onclick=()=>askText("貼新公告","全鎮都看得到，最多 3 則，舊的會被擠掉",40,t=>go("announce",t));
  const pl=$("mbody").querySelector("[data-poll]");if(pl)pl.onclick=()=>askText("發起投票","一個是非題，例如「要不要辦廣場派對？」，24 小時結束",20,t=>go("propose","poll",t));
  const bd=$("mbody").querySelector("[data-build]");if(bd)bd.onclick=()=>choiceModal("要提哪個建設案？",`花鎮基金（現在 ${CUR}${(+c.fund).toLocaleString()}），居民投票 24 小時，過半且至少 ${c.quorum} 票才蓋。蓋好後路邊會多一個設施，大家都能用`,Object.entries(CIVIC).filter(([k])=>!(c.proj||[]).includes(k)).map(([k,o])=>[`${o[0]} ${CUR}${o[1].toLocaleString()}`,`心情 +${o[4]}${o[5]?`、精力 +${o[5]}`:""} · 蓋在地圖 (${o[2]},${o[3]}) 附近`,()=>(c.fund<o[1]?toast("鎮基金不夠"):go("propose",k))]).concat([["先不要","",()=>civicModal()]]))}
+// ── 鎮長管理權：所有權力一個視窗（登錄表 POWERS，SQL town_power）。所有居民都看得到紀錄與投票；鎮長才能行使 ──
+let PWS=null;
+const pwTime=at=>{const m=Math.max(0,Math.round((now()-Date.parse(at))/6e4));return m<1?"剛剛":m<60?`${m} 分鐘前`:m<1440?`${Math.round(m/60)} 小時前`:`${Math.round(m/1440)} 天前`};
+const pwLine=e=>{const n=POWERS[e.k]?POWERS[e.k].n:e.k,u=POWERS[e.k]&&POWERS[e.k].unit,tn=e.tn?esc(e.tn):"";
+ return `${esc(e.bn)} ${n}${tn?" "+tn:""}${e.n&&u?`（${u=="$"?CUR+e.n:e.n+" 分鐘"}）`:""}${e.via=="vote"?"（居民投票）":""}`};
+// 這個權力現在能不能用；回傳不能的原因（空字串 = 可以）
+function pwWhy(k,st){const P=POWERS[k],d=P.def,r=R[me],td=(st.today||[]).filter(x=>x.k==k).length,last=(st.last||{})[k];
+ if(P.go)return "";
+ if((st.off||[]).includes(k)&&!d[10])return "鎮長把它關掉了";
+ if(d[0]!=1&&!r.mayor)return "只有鎮長能用";
+ if(k=="impeach"&&r.mayor)return "鎮長不能彈劾自己";
+ if(["jail","fine","grant"].includes(k)&&st.nres<3)return "小鎮要有 3 位以上居民才能用";
+ if(k=="free"&&st.nres<2)return "小鎮只有一個人";
+ if(jailed(r))return "你被關著";
+ if(d[3]&&td>=d[3])return `今天用完了（全鎮每天 ${d[3]} 次）`;
+ if(d[5]&&last&&last*1e3+d[5]*6e4>now())return `冷卻中，還要 ${fmtLeft(last*1e3+d[5]*6e4-now())}`;
+ if(k=="grant"&&st.fund<d[1])return `鎮基金不夠（現在 ${CUR}${(+st.fund).toLocaleString()}）`;
+ if(d[0]!=0&&st.vote&&(k=="impeach"||k=="build"))return "已經有一個投票在進行";
+ return ""}
+// 這個對象現在能不能被施行；回傳原因
+function pwWhyT(k,t,st){const d=POWERS[k].def,r=R[t.id];
+ if(t.id==me&&k!="impeach")return "不能對自己";
+ if(d[4]&&(st.today||[]).some(x=>x.k==k&&x.t==t.id))return "今天已經被施行過了";
+ if(k=="jail"){if(t.mayor)return "不能關鎮長";if(jailed(r))return "已經被關著";if(r.sleeping||r.place=="hospital")return "睡覺或住院中";if(!isOn("jail"))return "監獄被關掉了"}
+ if(k=="free"&&!jailed(r))return "沒有被關著";
+ if(k=="fine"&&(+r.money||0)<=0)return "身上沒有錢";
+ if(k=="impeach"&&t.mayor)return "已經是鎮長"; return ""}
+function pwRows(rows){choiceModal.apply(null,rows);document.querySelectorAll("#mbody button.act").forEach((b,i)=>{if(rows[2][i]&&rows[2][i][3])b.style.opacity=".45"})}
+async function pwCall(k,tg,num,note){const j=await civAct("town_power",{op:"use",pk:k,tg:tg||null,num:num==null?null:num,note:note||null});powersModal();return j}
+function pwPick(k,st){const P=POWERS[k],d=P.def,cands=Object.values(R).filter(t=>k=="impeach"?!t.mayor:t.id!=me).sort((a,b)=>a.slot-b.slot);
+ pwRows([`${P.n}：選一位居民`,P.d,cands.map(t=>{const w=pwWhyT(k,t,st);return [esc(t.name),w||(k=="fine"?`身上 ${CUR}${(+t.money||0).toLocaleString()}`:k=="free"?"關在監獄裡":t.mayor?"鎮長":houseName(t.slot)),()=>w?toast(w):pwNum(k,t,st),w]}).concat([["先不要","",()=>powersModal()]])])}
+function pwNum(k,t,st){const P=POWERS[k],d=P.def;
+ if(!d[2]){const go=note=>pwCall(k,t.id,null,note);
+  return pwRows([`${P.n}：${esc(t.name)}`,k=="impeach"?"提名他接任鎮長，居民投票 24 小時":"確定嗎？",[["確定","",()=>go()],["先不要","",()=>powersModal()]]])}
+ const f=n=>P.unit=="$"?CUR+n.toLocaleString():n>=60&&n%60==0?`${n/60} 小時`:`${n} 分鐘`,
+  opts=P.pre.filter(n=>n>=d[1]&&n<=d[2]);
+ pwRows([`${P.n}：${esc(t.name)}`,P.unit=="$"?(k=="fine"?"他的錢不夠就罰到 0 為止，進鎮基金；居民可以申訴":`花鎮基金（現在 ${CUR}${(+st.fund).toLocaleString()}）`):"他被關進監獄；居民可以申訴推翻，他也可以保釋、勞動、越獄",
+  opts.map(n=>[f(n),k=="grant"&&n>st.fund?"鎮基金不夠":"",()=>(k=="grant"&&n>st.fund)?toast("鎮基金不夠"):d[0]==2?pwMode(k,t,n):pwCall(k,t.id,n),k=="grant"&&n>st.fund]).concat([["先不要","",()=>powersModal()]])])}
+function pwMode(k,t,n){pwRows([`${POWERS[k].n}：${esc(t.name)} ${CUR}${n}`,"可以直接發，或交給居民投票（24 小時）",[["鎮長直接發","馬上生效",()=>pwCall(k,t.id,n)],["交居民投票","贊成多於反對、至少 3 票、多於全鎮一半才發",()=>pwCall(k,t.id,n,"vote")],["先不要","",()=>powersModal()]]])}
+async function pwVote(v){await civAct("town_power",{op:"vote",note:v});powersModal()}
+async function pwAppeal(id){if(!confirm("確定要申訴嗎？居民會投票決定要不要推翻這個決定（12 小時）。"))return;await civAct("town_power",{op:"appeal",note:id});powersModal()}
+async function powersModal(){$("modal").classList.remove("hide");$("mbody").innerHTML='<p class="mut">載入中…</p>';
+ let st;try{st=PWS=await rpc("town_power",{rid:me,pin,op:"view"})}catch(e){$("mbody").innerHTML=`<p class="err">${esc(e.message)}</p><div class="row"><button id="mc">關閉</button></div>`;$("mc").onclick=()=>$("modal").classList.add("hide");return}
+ const r=R[me],mayor=!!st.mayor,v=st.vote,age=at=>now()-Date.parse(at);
+ let vh="";if(v){const left=Math.max(0,Date.parse(v.end)-now()),ap=v.kind=="appeal",what=ap?`申訴：推翻鎮長「${POWERS[v.k]?POWERS[v.k].n:v.k}」${esc(v.tn||"")}`:`${POWERS[v.k]?POWERS[v.k].n:v.k}：${esc(v.tn||"")}${v.n&&POWERS[v.k]&&POWERS[v.k].unit=="$"?" "+CUR+v.n:""}`;
+  vh=`<h3>投票中</h3><p><b>${what}</b></p><p class="mut">${esc(v.bn)} 發起 · 贊成 ${v.yn} ／ 反對 ${v.nn} · 還有 ${fmtLeft(left)} · ${ap?"贊成多於反對、至少 2 票、多於非鎮長居民的一半才推翻":"贊成多於反對、至少 3 票、多於全鎮一半才通過"}</p>`+
+   (v.mine?`<p class="mut">你投了${v.mine=="yes"?"贊成":"反對"}</p>`:ap&&mayor?'<p class="mut">鎮長不能對申訴投票</p>':`<div class="row"><button class="pri" data-pv="yes">${ap?"推翻":"贊成"}</button><button data-pv="no">${ap?"不推翻":"反對"}</button></div>`)}
+ const pows=PWORD.map(k=>{const P=POWERS[k],w=pwWhy(k,st),tag=P.def[0]==0?"鎮長下令":P.def[0]==1?"居民投票":"鎮長或投票";
+  return `<button class="act" data-pw="${k}" ${w?`data-dis="${esc(w)}" style="opacity:.45"`:""}><b>${P.n}</b><small>${tag} · ${P.d}${w?`<br>現在不能用：${esc(w)}`:""}</small></button>`}).join("");
+ const log=(st.log||[]).map(e=>{const can=!mayor&&e.ap&&!e.undone&&!e.appealed&&age(e.at)<864e5&&!v;
+  return `<div class="mrow"><span>${pwLine(e)} <small class="mut">${pwTime(e.at)}${e.undone?" · 已推翻":e.appealed?" · 申訴過":""}</small></span>${can?`<button data-ap="${e.id}">申訴</button>`:""}</div>`}).join("")||'<p class="mut">還沒有人使用過管理權</p>';
+ const hist=(st.hist||[]).map(h=>`<p class="mut">· ${esc(h.m)}</p>`).join("");
+ $("mbody").innerHTML=`<h2>鎮長管理權</h2><p class="mut">鎮基金 ${CUR}${(+st.fund).toLocaleString()} · 鎮長${mayor?"（你）":""}行使的每件事都會公開寫進動態；覺得不公平的居民可以申訴，投票推翻。鎮長不能對自己行使</p>${vh}<h3>權力</h3>${pows}${mayor?`<h3>開關</h3><p class="mut">鎮長可以關掉關人、放人、罰款、補助（彈劾與建設案關不掉）</p><div class="list">${["jail","free","fine","grant"].map(k=>`<label class="mrow" style="cursor:pointer"><span><b>${POWERS[k].n}</b></span><input type="checkbox" data-po="${k}" ${(st.off||[]).includes(k)?"":"checked"} style="width:22px;height:22px"></label>`).join("")}</div><div class="row" style="justify-content:flex-start"><button class="pri" id="pos">儲存開關</button></div>`:""}<h3>使用紀錄</h3><div class="list">${log}</div>${hist?`<h3>投票結果</h3>${hist}`:""}<div class="row"><button id="mc">關閉</button></div>`;
+ pxify($("mbody"));
+ $("mc").onclick=()=>$("modal").classList.add("hide");
+ $("mbody").querySelectorAll("[data-pv]").forEach(b=>b.onclick=()=>pwVote(b.dataset.pv));
+ $("mbody").querySelectorAll("[data-ap]").forEach(b=>b.onclick=()=>pwAppeal(b.dataset.ap));
+ $("mbody").querySelectorAll("[data-pw]").forEach(b=>b.onclick=()=>{const k=b.dataset.pw,P=POWERS[k];if(b.dataset.dis)return toast(b.dataset.dis);
+  if(P.go=="civic")return civicModal();if(P.go=="mayor")return mayorPanel();
+  if(P.def[6])return pwPick(k,st);pwCall(k)});
+ const so=$("pos");if(so)so.onclick=async()=>{const off=[...document.querySelectorAll("[data-po]")].filter(c=>!c.checked).map(c=>c.dataset.po);await civAct("town_power",{op:"toggle",note:off.join(",")});powersModal()}}
+// 被行使管理權的人上線時看到說明（items.pwn，SQL 的 town_pw_pwn）
+let pwShown={};
+function checkPwn(){const r=R[me];if(!r||!r.items||!Array.isArray(r.items.pwn)||!r.items.pwn.length||modalOpen()||!S)return;const p=r.items.pwn[0];if(pwShown[p.id+p.at])return;pwShown[p.id+p.at]=1;
+ const ack=()=>rpc("town_power",{rid:me,pin,op:"ack"}).then(()=>refresh()).catch(()=>{});
+ choiceModal(`鎮長 ${esc(p.bn)} 對你行使了權力`,esc(p.m),(p.ap?[["申訴","請居民投票推翻這個決定",()=>{ack();pwAppeal(p.id)}]]:[]).concat([["知道了","",()=>ack()]]))}
 function noteModal(id){const t=R[id];$("modal").classList.remove("hide");const quick=["記得吃飯！🍚","晚安 🌙","今天加油！💪","想你了 🥺","快去洗澡 🛁","下次一起吃飯？"];
  $("mbody").innerHTML=`<h2>📱 傳訊息給 ${esc(t.name)}</h2><div class="houses">${quick.map(q=>`<button class="sw" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div><input id="ntx" maxlength="30" placeholder="或自己寫（最多 30 字）" style="margin-top:10px"><p class="err" id="nerr"></p>
   <div class="row"><button id="mc">取消</button><button class="pri" id="ms">傳送</button></div>`;
@@ -1282,7 +1362,7 @@ $("menuBtn").onclick=()=>{const r=R[me];if(r){$("bagN").textContent=bagCount(r)?
 $("menuBack").onclick=closeMenu;$("menuClose").onclick=closeMenu;
 document.querySelectorAll("[data-go-tab]").forEach(b=>b.onclick=()=>{const t=b.dataset.goTab;document.querySelector(`[data-tab=${t}]`).click();if(isMob())document.body.classList.add("social");else $("social").scrollIntoView({behavior:"smooth"})});
 $("feedBtn").onclick=()=>{document.body.classList.add("social");markSeen()};$("socialClose").onclick=()=>document.body.classList.remove("social");$("menu").addEventListener("click",e=>{if(e.target.closest("button"))closeMenu()});
-$("life").onclick=lifeModal;$("taskBtn").onclick=()=>{closeMenu();taskModal()};$("updBtn").onclick=()=>{closeMenu();updModal(true)};$("bagBtn").onclick=()=>{closeMenu();bagModal()};
+$("life").onclick=lifeModal;$("powBtn").onclick=()=>{closeMenu();powersModal()};$("taskBtn").onclick=()=>{closeMenu();taskModal()};$("updBtn").onclick=()=>{closeMenu();updModal(true)};$("bagBtn").onclick=()=>{closeMenu();bagModal()};
 $("relook").onclick=()=>{let look=normLook(R[me].look);$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>換造型</h2><div id="lk2"></div><div class="row"><button id="mc">取消</button><button class="pri" id="ms">儲存</button></div>`;
  lookPicker($("lk2"),look,l=>look=l,R[me].items||{});$("mc").onclick=()=>$("modal").classList.add("hide");$("ms").onclick=async()=>{try{await rpc("town_login",{rid:me,pin,new_look:look});mapKey="";await refresh();$("modal").classList.add("hide");toast("換好了")}catch(e){toast(e.message)}}};
 $("report").onclick=report;
