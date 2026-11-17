@@ -346,7 +346,7 @@ body.ingame #toast.on{transform:none;opacity:1}
 body.ingame #wev{top:calc(var(--hud) + 56px + 36px);left:var(--g);right:auto;max-width:calc(100vw - 72px)}
 body.ingame #upd{top:calc(var(--hud) + var(--g))}
 /* 面板 */
-body.ingame #panel{display:flex;flex-direction:column;max-height:min(32vh,300px);overflow:hidden;padding:0 var(--g) calc(env(safe-area-inset-bottom) + var(--g));border-radius:16px 16px 0 0;box-shadow:0 -2px 0 var(--ink),0 -8px 24px rgba(0,0,0,.35);animation:pup .18s ease-out}
+body.ingame #panel{display:flex;flex-direction:column;max-height:calc(min(32vh,300px) + env(safe-area-inset-bottom));overflow:hidden;padding:0 var(--g) calc(env(safe-area-inset-bottom) + var(--g));border-radius:16px 16px 0 0;box-shadow:0 -2px 0 var(--ink),0 -8px 24px rgba(0,0,0,.35);animation:pup .18s ease-out}
 body.ingame #panel.max{max-height:72vh}
 @keyframes pup{from{transform:translateY(12px);opacity:.6}}
 body.ingame #grip{flex:none;min-height:16px;height:16px;font-size:0;overflow:hidden;padding:0;margin:2px 0;background:none;border:0;box-shadow:none;position:relative}
@@ -359,7 +359,7 @@ body.ingame #ptabs{display:flex;gap:4px;margin:var(--g) 0 0;overflow-x:auto;scro
 body.ingame .ptab{flex:1 0 auto;min-height:44px;padding:0 10px;font-size:11px;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:12px;background:#26306a;box-shadow:none;border:2px solid var(--ink);white-space:nowrap}
 body.ingame .ptab i{font-style:normal;font-size:11px;min-width:16px;height:16px;line-height:16px;border-radius:8px;background:rgba(255,255,255,.18);text-align:center}
 body.ingame .ptab.z{opacity:.5}body.ingame .ptab.on{background:#ff4f7e}body.ingame .ptab.on i{background:rgba(0,0,0,.25)}
-body.ingame #acts{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;margin-top:var(--g);gap:var(--g);grid-template-columns:repeat(2,minmax(0,1fr))!important;align-content:start;-webkit-overflow-scrolling:touch}
+body.ingame #acts{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;margin-top:var(--g);gap:var(--g);grid-template-columns:repeat(2,minmax(0,1fr))!important;align-content:start;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(#000 calc(100% - 14px),transparent);mask-image:linear-gradient(#000 calc(100% - 14px),transparent);padding-bottom:14px}
 body.ingame #acts .act,body.ingame #tipbox .act{min-height:44px;border-radius:12px;padding:4px 8px;gap:6px}
 body.ingame #acts .at{flex:1;min-width:0}body.ingame #acts .at b{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.ingame #tipbox .at b{font-size:16.5px}
