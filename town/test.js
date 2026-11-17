@@ -411,4 +411,5 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  for(const f of ["recovery_status","recovery_bind","recovery_unbind","recovery_list","recovery_claim"])check(js.includes("town_"+f),"town.js 要呼叫 town_"+f);
  check(js.includes("function recFind")&&js.includes("function recBindModal")&&js.includes("auth/v1/")&&ih.includes('id="cRec"')&&ih.includes('id="recBtn"'),"帳號救援入口（首頁 cRec、選單 recBtn、recFind、recBindModal）要在");
  check(fs.existsSync(__dirname+"/../supabase/town_recovery_test.sql"),"要有 town_recovery_test.sql")}
+{const h=require("fs").readFileSync(__dirname+"/index.html","utf8");for(const m of h.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g)){try{new Function(m[1])}catch(e){check(false,"index.html 內嵌 script 語法錯誤："+e.message)}}}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
