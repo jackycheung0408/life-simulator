@@ -217,13 +217,14 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u48-balance2",date:"11/17",title:"打工不遞減，錢花得更有感",items:["打工薪水不再遞減，每次都是全額","存款超過 5 萬就要繳財產稅，越有錢稅率越高（0.3%～3%）","特調咖啡漲到 €300","喪屍豬打倒改領 €60～140，一天最多 €600"]},
   {id:"u47-landing",date:"11/16",title:"首頁換新裝",items:["首頁加了像素豬 Logo 與大標題","主按鈕改成粉紅立體按鈕，按下去有手感","卡片圓角與陰影統一，進場有淡入動畫","手機瀏海與底部安全區不再被擋住"]},
   {id:"u46-nolimit",date:"11/16",title:"取消互動限制、能力屬性、隨機互動",items:["朋友互動、惡趣味、設施、打工賺錢的次數與冷卻上限全部取消，只剩精力、飽足等五條需求、入獄與睡覺會擋","新增能力屬性：力量、敏捷、魅力、智力、運氣，第一次進遊戲分配 10 點，之後升級每級 +1 點（選單「能力屬性」）","面對面多了「隨機互動」「隨機惡趣味」兩顆骰子鈕，系統幫你抽一個現在做得到的","因為沒有上限，賺錢只靠精力限制，打工遞減與財產稅仍在"]},
   {id:"u45-world",date:"11/16",title:"鎮上隨機事件",items:["全鎮會不定時出現事件：市集日、景氣好、景氣差、停電、小鎮慶典，畫面上方會顯示影響與剩餘時間","事件期間吃喝價格或打工薪水會跟著變，結束後恢復","在街上、廣場、公園走動時，偶爾會遇到個人小事件：撿到錢、被推銷、踩水坑、遇到街頭藝人","個人事件每天最多 10 次，不會讓你欠錢"]},
   {id:"u43-balance",date:"11/16",title:"收入與物價調整",items:["每日任務獎金維持每個 €500、全勤 +€1000","每天打工前 12 次全額，13～24 次 50%，之後 10%","存款很多的人，財產稅改成階梯（100 萬以上 1%、500 萬以上 2%）","你現有的錢都不會被動"]},
   {id:"u44-powers",date:"11/16",title:"鎮長管理權",items:["鎮長多了「管理權」：可以把人關進監獄（10～120 分鐘）、放人、罰款、從鎮基金發補助，還有公告、建設案、設施開關","每次行使都會公開寫進動態，被行使的人上線會看到說明；居民覺得不公平可以申訴，投票推翻就放人、退罰款","有上限：關人每天最多 3 人、每人每天一次，不能關自己或睡覺、住院的人；小鎮不到 3 人不能用","居民也能發起「彈劾鎮長」投票，多於全鎮一半、至少 3 票就換人","選單「鎮長管理權」大家都看得到紀錄與投票"]},
   {id:"u43-pigcoin",date:"11/16",title:"全小鎮統一用「$ 豬幣」",items:["所有小鎮的錢都改成「$」，名字叫豬幣，鎮長不用也不能再選別的貨幣","金額沒有變，只是換了符號","股票：價格變成純隨機漫步，不會再自己「拉回」基準價；買賣沒有上限，但低買高賣也不再穩賺"]},
-  {id:"u41-zombie",date:"11/16",title:"街上有喪屍豬！",items:["全天隨機會有綠色的喪屍豬出現在街上、廣場、公園，晚上更多","牠會慢慢追過來，碰到會掉精力、心情、清潔，但不會死，也不會扣錢","站在牠旁邊按「打喪屍豬」，打倒領 €20～60，一天最多 €600，還可能掉生豬肉，到超市可賣 €30","躲進屋裡、店裡、醫院、監獄，或是睡著，牠都打不到你；每隻只會待一陣子就消失","鎮長可以在設施開關裡關掉喪屍豬"]},
+  {id:"u41-zombie",date:"11/16",title:"街上有喪屍豬！",items:["全天隨機會有綠色的喪屍豬出現在街上、廣場、公園，晚上更多","牠會慢慢追過來，碰到會掉精力、心情、清潔，但不會死，也不會扣錢","站在牠旁邊按「打喪屍豬」，打倒領 €60～140，一天最多 €600，還可能掉生豬肉，到超市可賣 €30","躲進屋裡、店裡、醫院、監獄，或是睡著，牠都打不到你；每隻只會待一陣子就消失","鎮長可以在設施開關裡關掉喪屍豬"]},
   {id:"u42-nocd",date:"11/16",title:"取消冷卻、取消免整牌、任務獎金 10 倍",items:["打工、設施互動、街機和單機遊戲、擂台、路邊物件，不用再等冷卻時間","為了不被一直刷錢：吃喝休息補回的精力一天最多 200，屠宰場一天最多 3 次，單機遊戲的心情獎勵一天 10 次","免整牌拿掉了；每天最多被整 6 次、報復不扣好感、可以原諒，這些不變","每日任務獎金變 10 倍：每個 €500，三個全做完再 +€1000","股票買賣沒有金額上限，價格還是每 10 分鐘變一次","比大小：A 最小、K 最大"]},
   {id:"u31-stageroom",date:"11/10",title:"進到室內，主畫面就是室內",items:["走進設施、自己家、朋友家時，主畫面直接換成放大的室內，不用看面板上的小圖","點室內的物件就會做對應的事，點裡面的人可以選他互動；要離開按下面的「出門」","住院的人躺在醫院的病床上，坐牢的人睡上下鋪","在門外叫醒離線的朋友後，他真的會站在門口，不會又馬上被送回屋裡睡"]},
   {id:"u30-civic",date:"11/10",title:"新增醫院、警察局、市政廳",items:["醫院：昏倒、車禍、被砍倒地的人會送到這裡，醒來按「出院」；平常可以掛號看診，朋友也能來探病","警察局：罰單在這裡繳九折；被通緝可以自首（關 30 分鐘、不加刑）；被整被砍可以報案，對方記報案點但不會入獄；還能看今日治安","市政廳：看鎮基金、貼公告、發起投票；鎮長可以提建設案，居民投票通過才花鎮基金蓋長椅、路燈、涼亭、雕像","地圖往右加寬，三棟新建築都能走進去看看"]},
@@ -267,7 +268,7 @@ const UPDATES=[
 ];
 // 設施互動表（和 supabase/town_fac.sql 一致，test.js 會比對）
 const FAC={special:["今日特餐",200,"飽足 +40 · 心情 +12",["restaurant"],0],takeout:["打包帶走",120,"一份零食放進背包",["restaurant"],0],
- latte:["特調咖啡",110,"精力 +45 · 心情 +4 · 集點卡 +1",["cafe"],0],redeem:["集點卡換一杯",0,"集滿 8 點免費換一杯 · 精力 +45 · 心情 +6",["cafe"],0],
+ latte:["特調咖啡",300,"精力 +45 · 心情 +4 · 集點卡 +1",["cafe"],0],redeem:["集點卡換一杯",0,"集滿 8 點免費換一杯 · 精力 +45 · 心情 +6",["cafe"],0],
  treat:["請客",200,"請在場的人喝咖啡：對方心情 +10、你 +4、好感 +3",["cafe"],1],song:["點歌",50,"你心情 +6，在場的人心情 +3",["cafe"],0],
  film:["看今日片",280,"",["cinema"],0],popcorn:["爆米花",80,"飽足 +12 · 心情 +4",["cinema"],0],
  spar:["對練",0,"雙方精力 −12、心情 +6、好感 +2 · 雙方精力要 ≥25",["gym"],1],checkin:["每日簽到",0,"心情 +3 · 連續 3 天 +€60、7 天 +€200",["gym"],0],
@@ -587,7 +588,7 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  if(!r.sleeping&&["plaza","restaurant","market","park","office"].includes(p)&&!(walkers[me]&&walkers[me].path.length)){const here=Object.values(R).filter(o=>o.id!=me&&o.place==p&&!o.sleeping);
   if(here.length&&!(sel&&R[sel]))note=(note?note+" · ":"")+`${here.map(o=>o.name).join("、")} 也在這裡：一起做事大家心情都 +5，點他可以擊掌或扁他`}
  if(!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const q of POOPS)if(Math.abs(q.x-walkers[me].x)+Math.abs(q.y-walkers[me].y)<=2)list.push(btn("清掉便便 💩","領 €30",()=>act("sweep",{item:String(q.id)}),"place"));
- if(zbOut(r)&&walkers[me]&&!walkers[me].path.length){const zd=z=>Math.abs(z.x-walkers[me].x)+Math.abs(z.y-walkers[me].y),zn=ZB.filter(z=>zd(z)<=3);for(const z of zn)list.push(btn("打喪屍豬",`精力 −5 · 牠還有 ${z.hp} 點血 · 打倒領 €20～60（一天最多 €600）`,()=>zbHit(z.id),"place"));if(!zn.length&&ZB.some(z=>zd(z)<=14))list.push({...btn("附近有喪屍豬","牠正慢慢追過來，走近一點才打得到，或躲進屋裡、店裡",()=>toast("走近一點才打得到，或躲進屋裡、店裡"),"place"),dis:"牠還有一段距離，等牠靠近再打，或躲進屋裡、店裡"})}
+ if(zbOut(r)&&walkers[me]&&!walkers[me].path.length){const zd=z=>Math.abs(z.x-walkers[me].x)+Math.abs(z.y-walkers[me].y),zn=ZB.filter(z=>zd(z)<=3);for(const z of zn)list.push(btn("打喪屍豬",`精力 −5 · 牠還有 ${z.hp} 點血 · 打倒領 €60～140（一天最多 €600）`,()=>zbHit(z.id),"place"));if(!zn.length&&ZB.some(z=>zd(z)<=14))list.push({...btn("附近有喪屍豬","牠正慢慢追過來，走近一點才打得到，或躲進屋裡、店裡",()=>toast("走近一點才打得到，或躲進屋裡、店裡"),"place"),dis:"牠還有一段距離，等牠靠近再打，或躲進屋裡、店裡"})}
  if(p=="market"&&((r.items||{}).zp||0)>0)list.push(btn(`賣生豬肉 ${r.items.zp} 塊`,`每塊 €30 · 共 €${30*r.items.zp}`,zbSell,"place"));
  if(p=="street"&&!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const k of CIVP){const o=CIVIC[k];if(o&&Math.abs(walkers[me].x-o[2])+Math.abs(walkers[me].y-o[3])<=2)list.push(dbtn(`在${o[0]}旁休息`,`心情 +${o[4]}${o[5]?` · 精力 +${o[5]}`:""} · 10 分鐘一次`,()=>civicUse(k),cdLeft(r,"c_"+k,10)))}
  if(!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const k in OBJS)if(objNear(k,walkers[me].x,walkers[me].y,p))for(const [l,sub,v] of OBJS[k].acts)if(v!="feed"||((r.items||{}).snack))list.push(btn(l,`${OBJS[k].name} · ${sub}`,()=>act("obj",{item:k,note:v||null}),"place"));
@@ -653,20 +654,20 @@ const jobLv=n=>JOBS.reduce((a,j,i)=>n>=j[1]?i:a,0);
 const career=r=>{const n=(r.items&&r.items.works)||0,lv=jobLv(n),nx=JOBS[lv+1];return{n,lv,name:JOBS[lv][0],wage:JOBS[lv][2],next:nx?nx[0]:null,left:nx?nx[1]-n:0}};
 const dayKey=(o=0)=>new Date(now()+8*36e5+o*864e5).toISOString().slice(0,10);
 const workToday=r=>{const d=r.items&&r.items.dc;return d&&d.d==dayKey()?(d.work||0):0};
-const workPct=n=>n<12?100:n<24?50:10;// 每天打工：前 12 次全額、13～24 次 50%、之後 10%（台灣時間 0 點重置，與 SQL town_work_pct 一致）// 薪水不再遞減，改用 10 分鐘冷卻 wkLeft（所有打工共用）
+const workPct=n=>100;// 每天打工：前 12 次全額、13～24 次 50%、之後 10%（台灣時間 0 點重置，與 SQL town_work_pct 一致）// 薪水不再遞減，改用 10 分鐘冷卻 wkLeft（所有打工共用）
 // 活躍天數等級（資料 items.al = {n,d,s}；數值要和 town.sql 的 town_lv_of／wk_min／bag_max／rent_pct／al_touch 一致）
 const AL=[[0,"新居民",10,20,0,0],[3,"熟面孔",10,24,5,30],[10,"老鄰居",9,26,8,60],[30,"鎮上名人",8,28,12,100],[60,"小鎮元老",8,30,15,150]];// [門檻天,稱號,打工冷卻分,背包上限,房租折扣%,登入禮]
 const alN=r=>((r.items&&r.items.al)||{}).n||0;
 const lvOf=n=>{let l=0;AL.forEach((a,i)=>{if(n>=a[0])l=i});return l};// 0..4
 const alOf=r=>AL[lvOf(alN(r))];
 const wkLeft=r=>0;
-const taxOf=m=>Math.floor(Math.max(0,Math.min(m,1e6)-1e5)*0.005+Math.max(0,Math.min(m,5e6)-1e6)*0.01+Math.max(0,m-5e6)*0.02);const RENT=[400,800,1500,3000];const rentOf=r=>{const b=RENT[Math.min(3,Math.max(0,((r.items&&r.items.hl)||1)-1))];return b-Math.floor(b*alOf(r)[4]/100)};
+const taxOf=m=>Math.floor(Math.max(0,Math.min(m,1e5)-5e4)*0.003+Math.max(0,Math.min(m,1e6)-1e5)*0.008+Math.max(0,Math.min(m,5e6)-1e6)*0.015+Math.max(0,m-5e6)*0.03);const RENT=[400,800,1500,3000];const rentOf=r=>{const b=RENT[Math.min(3,Math.max(0,((r.items&&r.items.hl)||1)-1))];return b-Math.floor(b*alOf(r)[4]/100)};
 // 其他工作（和 town.sql 的 town_pjob_* 一致）：[名稱, 地點, 底薪, [精力,飽足,心情,清潔], SQL 的 act 營業鍵]；熟練 15 次 ×1.15、40 次 ×1.3；拉菲底薪 320／450／650，要先升到「員工」
 const pjN=(r,k)=>((r.items&&r.items.jw)||{})[k]||0;
 const pjPay=(k,r)=>Math.floor(payOf(pjWage(k,pjN(r,k)),r)*workPct(workToday(r))/100);
 const pjFx=k=>["精力","飽足","心情","清潔"].map((l,i)=>`${l} ${PJ[k][3][i]}`).join(" · ");
 const pjBtn=(k,r)=>{const n=pjN(r,k);if(k=="rafi"&&((r.items&&r.items.works)||0)<10)return btn("應徵（還不夠資格）","先在公司升到「員工」（累計打工 10 次）",()=>toast("先在公司打工 10 次升到員工，再來應徵"));return btn(`打工：${pjName(k,n)} 💼`,(wkLeft(r)?`休息中，${fmtLeft(wkLeft(r))}後可再打 · `:"")+`+€${pjPay(k,r)} · ${pjFx(k)}`,()=>act("job",{item:k}))};
-const pjNote=(k,r)=>{const n=pjN(r,k),nx=n<15?15:n<40?40:0;return `${pjName(k,n)} · 這裡已做 ${n} 次${nx?`，再 ${nx-n} 次升「${pjName(k,nx)}」`:"，已是最高職位"} · 今天全部打工共 ${workToday(r)} 次 · 薪水 ${workPct(workToday(r))}%（前 12 次全額，和公司共用次數）`};
+const pjNote=(k,r)=>{const n=pjN(r,k),nx=n<15?15:n<40?40:0;return `${pjName(k,n)} · 這裡已做 ${n} 次${nx?`，再 ${nx-n} 次升「${pjName(k,nx)}」`:"，已是最高職位"} · 今天全部打工共 ${workToday(r)} 次 · 薪水全額、不遞減`};
 const myWage=()=>Math.floor(payOf(career(R[me]).wage,tickLocal(R[me],now()))*workPct(workToday(R[me]))/100);
 const WISHES={rich:["首富","持有金錢",[30000,100000,300000],["小富翁","大富翁","小豬首富"],r=>r.money],pop:["人氣王","好朋友以上的人數",[5,10,20],["交友廣闊","萬人迷","人氣王"],r=>(S.bonds||[]).filter(b=>(b.a==r.id||b.b==r.id)&&b.s>=10).length],
  fight:["格鬥冠軍","擂台最高連勝",[3,7,15],["擂台新秀","擂台猛將","格鬥冠軍"],r=>(r.items&&r.items.best)||0],food:["美食家","累計吃飯／大餐",[30,100,300],["老饕","美食家","食神"],r=>(r.items&&r.items.meals)||0],
@@ -703,7 +704,7 @@ function lvUpModal(l){const a=AL[l],p=AL[l-1];$("modal").classList.remove("hide"
 function lifeModal(){const r=R[me],c=career(r),w=(r.items&&r.items.wish)||{},k=WISHES[w.k],m=w.m||0,t=titlesOf(r);$("modal").classList.remove("hide");
  let wh;if(k){const v=k[4](r),ms=k[2],cur=ms[Math.min(m,2)];wh=`<div class="mrow"><span><b>${k[0]}</b> <small class="mut">${m>=3?"三個里程碑都達成了":w.k=="work"?`第 ${m+1} 關：升到「${JOBS[cur][0]}」（現在${c.name}）`:`第 ${m+1} 關：${k[1]} ${Math.min(v,cur)} / ${cur}`}</small></span></div><div class="list">${ms.map((x,i)=>`<div class="mrow"><span>${i<m?"✔":"・"} ${w.k=="work"?"升到「"+JOBS[x][0]+"」":k[1]+" "+x}　<small class="mut">稱號「${k[3][i]}」＋€${WISH_BONUS[i]}</small></span></div>`).join("")}</div>`;if(m>=3)wh+=`<div class="row" style="justify-content:flex-start"><button id="lwNew">換一個新願望</button></div>`}
  else wh=`<p class="mut">${w.k=="none"?"你選擇先不訂願望。":"還沒選願望。"}</p><div class="row" style="justify-content:flex-start"><button id="lwNew" class="pri">選一個願望</button></div>`;
- $("mbody").innerHTML=`<h2>我的人生</h2><div class="mrow"><span><b>${c.name}</b> <small class="mut">每次打工 €${payOf(c.wage,tickLocal(r,now()))} · 已打工 ${c.n} 次</small></span></div><p class="mut">今天已打工 ${workToday(r)} 次，薪水全額、每 ${alOf(r)[2]} 分鐘可打一次 · 每天房租水電 €${rentOf(r)}${taxOf(r.money)?`、財產稅 €${taxOf(r.money)}（存款超過 100000 的部分 0.5%）`:""}${alOf(r)[4]?`（已含 ${alOf(r)[4]}% 折扣）`:""}（每天第一次上線扣）</p>${Object.keys(PJ).some(k=>pjN(r,k))?`<p class="mut">其他工作：${Object.keys(PJ).filter(k=>pjN(r,k)).map(k=>pjName(k,pjN(r,k))+" "+pjN(r,k)+" 次").join("、")}</p>`:""}<p class="mut">${c.next?`再打工 ${c.left} 次升「${c.next}」`:"已經是最高職位了"}</p>
+ $("mbody").innerHTML=`<h2>我的人生</h2><div class="mrow"><span><b>${c.name}</b> <small class="mut">每次打工 €${payOf(c.wage,tickLocal(r,now()))} · 已打工 ${c.n} 次</small></span></div><p class="mut">今天已打工 ${workToday(r)} 次，薪水全額、每 ${alOf(r)[2]} 分鐘可打一次 · 每天房租水電 €${rentOf(r)}${taxOf(r.money)?`、財產稅 €${taxOf(r.money)}（存款超過 50000 的部分，階梯 0.3%～3%）`:""}${alOf(r)[4]?`（已含 ${alOf(r)[4]}% 折扣）`:""}（每天第一次上線扣）</p>${Object.keys(PJ).some(k=>pjN(r,k))?`<p class="mut">其他工作：${Object.keys(PJ).filter(k=>pjN(r,k)).map(k=>pjName(k,pjN(r,k))+" "+pjN(r,k)+" 次").join("、")}</p>`:""}<p class="mut">${c.next?`再打工 ${c.left} 次升「${c.next}」`:"已經是最高職位了"}</p>
  ${statLine(r)?`<div class="mrow"><span><b>案底</b> <small class="mut">${statLine(r)}</small></span></div>`:""}
  ${alHtml(r)}
  <h3>個性與心情</h3><p><span class="sw on">${MOOD[moodOf(tickLocal(r,now()))][0]} ${MOOD[moodOf(tickLocal(r,now()))][1]}</span> <small class="mut">${MOOD[moodOf(tickLocal(r,now()))][2]}</small></p>${(r.items&&r.items.tr&&r.items.tr.length)?r.items.tr.map(k=>`<div class="mrow"><span><b>${TRAITS[k][0]}</b> <small class="mut">${TRAITS[k][1]}</small></span></div>`).join(""):`<p class="mut">還沒有個性特質。</p><div class="row" style="justify-content:flex-start"><button id="ltNew" class="pri">選個性</button></div>`}
@@ -1629,7 +1630,7 @@ function checkWoken(){const r=R[me];if(!r||!r.items||!r.items.wo||modalOpen()||!
  if(age>10*60e3||age<0||woSeen==w.at||!f)return;let key="town_wo_"+me;try{if(localStorage.getItem(key)==w.at)return;localStorage.setItem(key,w.at)}catch(e){}woSeen=w.at;
  choiceModal(`${f.name} 把你叫醒了`,"你現在站在家門口，他就在門外 · 可以直接和他面對面互動；想繼續睡，進屋就好",[["知道了","去跟他打招呼",()=>{}]])}
 let pkTimer=null;
-// ── 喪屍豬（supabase/town_tweaks.sql）：全天隨機刷出（夜間機率較高、數量較多），每隻活 8～16 分鐘；綠皮小豬，緩慢追向最近的戶外玩家；碰到精力 −8、心情 −8、清潔 −10（不會死、不扣錢）；打倒領 €20～60（一天最多 €600），35% 掉生豬肉（超市收購 €30）；屋裡、店裡、醫院、監獄、睡覺都安全 ──
+// ── 喪屍豬（supabase/town_tweaks.sql）：全天隨機刷出（夜間機率較高、數量較多），每隻活 8～16 分鐘；綠皮小豬，緩慢追向最近的戶外玩家；碰到精力 −8、心情 −8、清潔 −10（不會死、不扣錢）；打倒領 €60～140（一天最多 €600），35% 掉生豬肉（超市收購 €30）；屋裡、店裡、醫院、監獄、睡覺都安全 ──
 let ZB=[],ZR={},zbLast=0,zbBusy=false;
 const zbOut=r=>!!r&&!r.sleeping&&!jailed(r)&&["street","plaza","park"].includes(r.place)&&!fin(r);
 async function zbCall(op,target){if(!me||!S)return null;try{return await rpc("town_zombie",{rid:me,pin,op,target:target||null})}catch(e){if(op!="poll")toast(e.message);return null}}

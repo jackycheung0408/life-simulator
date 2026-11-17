@@ -102,7 +102,7 @@ begin
   end if;
   ckey := 'f_' || act || case when pair then target::text else '' end;
   cdm := 0;  -- 2026-11 使用者決定：設施互動不再有時間冷卻（好感每日上限、每日精力補充上限、各自的每日獎勵仍在）
-  base := case act when 'special' then 200 when 'takeout' then 120 when 'latte' then 110 when 'treat' then 200 when 'song' then 50
+  base := case act when 'special' then 200 when 'takeout' then 120 when 'latte' then 300 when 'treat' then 200 when 'song' then 50
     when 'film' then 280 when 'popcorn' then 80 when 'fish' then 30 when 'picnic' then 150
     when 'feast' then 3000 when 'trip' then 8000 when 'spa' then 2000 else 0 end;
   fqn := coalesce((r.items->'fq'->>pl)::int, 0);

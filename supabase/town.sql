@@ -772,13 +772,13 @@ create or replace function public.town_pjob_name(k text, n int) returns text lan
     else (case k when 'cafe' then '咖啡師' when 'rest' then '服務生' when 'gym' then '健身教練' when 'shop' then '店員' end) || (case when n >= 40 then '（資深）' when n >= 15 then '（熟手）' else '' end) end
 $$;
 revoke all on function public.town_pjob_place(text), public.town_pjob_key(text), public.town_pjob_fx(text), public.town_pjob_wage(text,int), public.town_pjob_name(text,int) from public, anon, authenticated;
--- 打工遞減（2026-11-16 起）：每天前 12 次全額、13～24 次 50%、之後 10%；沒有時間冷卻
+-- 打工薪水不遞減（2026-11-17 使用者決定：沒有次數與收入上限，改靠出口平衡）；保留函式簽名
 create or replace function public.town_work_pct(n int) returns int language sql immutable as $$
-  select case when n < 12 then 100 when n < 24 then 50 else 10 end
+  select 100
 $$;
--- 財產稅（階梯，每天）：10 萬～100 萬 0.5%、100 萬～500 萬 1%、500 萬以上 2%（前端 taxOf 要一致）
+-- 財產稅（階梯，每天；2026-11-17 加強）：5～10 萬 0.3%、10～100 萬 0.8%、100～500 萬 1.5%、500 萬以上 3%（前端 taxOf 要一致）
 create or replace function public.town_tax(m numeric) returns int language sql immutable as $$
-  select floor(greatest(0, least(m, 1000000) - 100000) * 0.005 + greatest(0, least(m, 5000000) - 1000000) * 0.01 + greatest(0, m - 5000000) * 0.02)::int
+  select floor(greatest(0, least(m, 100000) - 50000) * 0.003 + greatest(0, least(m, 1000000) - 100000) * 0.008 + greatest(0, least(m, 5000000) - 1000000) * 0.015 + greatest(0, m - 5000000) * 0.03)::int
 $$;
 revoke all on function public.town_tax(numeric) from public, anon, authenticated;
 -- ── 活躍天數等級（items.al = {n:累計活躍天, d:最後活躍台灣日, s:連續天數, lv}）；只給便利，前端 AL 表要一致 ──

@@ -4,7 +4,7 @@
 --   每隻活 8～16 分鐘（依 id 不同）就消失（取代天亮燒掉）。
 --   緩慢（約 1.2 格／秒）追向最近的戶外玩家；碰到（≤ 1.5 格）：精力 −8、心情 −8、清潔 −10，同一人 60 秒最多一次。不會死、不扣錢。
 --   在屋裡、設施室內、醫院、監獄、睡覺、昏倒、離線 10 分鐘以上的人不會被打。鎮長可用 FEATS 的 zombie 關掉。
---   玩家可以「打」：精力 −5，牠有 3 點血，25% 反擊（心情 −3）；打倒領 €20～60（每人每天最多 €600，items.zk={d,m}），35% 掉「生豬肉」items.zp +1，到超市賣 €30／塊。
+--   玩家可以「打」：精力 −5，牠有 3 點血，25% 反擊（心情 −3）；打倒領 €60～140（每人每天最多 €600，items.zk={d,m}），35% 掉「生豬肉」items.zp +1，到超市賣 €30／塊。
 --   資料：town_zombies（RLS 全關，只走這個 RPC）。除了領獎和被打的資料，不動任何人原有的錢。
 create table if not exists public.town_zombies (
   id bigint generated always as identity primary key, town_id text not null, x real not null, y real not null,
@@ -82,7 +82,7 @@ begin
     if z.hp <= 1 then
       delete from public.town_zombies where id = z.id; killed := true;
       zk := case when (r.items->'zk'->>'d') = today then r.items->'zk' else jsonb_build_object('d', today, 'm', 0) end;
-      got := coalesce((zk->>'m')::int, 0); rew := greatest(0, (20 + floor(random() * 41)::int));
+      got := coalesce((zk->>'m')::int, 0); rew := greatest(0, (60 + floor(random() * 81)::int));
       r.money := r.money + rew; r.items := jsonb_set(r.items, '{zk}', jsonb_build_object('d', today, 'm', got + rew));
       msg := '打倒了一隻喪屍豬' || case when rew > 0 then '，掉了 €' || rew else '（今天領的獎勵已達上限 €600）' end;
       if random() < .35 then r.items := jsonb_set(r.items, '{zp}', to_jsonb(coalesce((r.items->>'zp')::int, 0) + 1)); msg := msg || '，還掉了一塊生豬肉'; end if;
