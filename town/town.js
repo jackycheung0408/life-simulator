@@ -793,7 +793,7 @@ function renderFeed(){renderRank();renderPeople();const all=((S&&S.events)||[]).
  $("feed").querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>act("thank",{target:+b.dataset.t}));
  $("feed").querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{walkToPerson(+b.dataset.g);toast("走過去找他算帳，到了就能扁他（報仇有加成）");$("stage").scrollIntoView({behavior:"smooth"})})}
 // 面對面才能做的事：擊掌、扁他、和好
-function faceActs(id){const t=R[id],r=R[me],roll=[];if(t&&r&&!t.sleeping&&!r.sleeping&&!jailed(r)&&!jailed(t)){roll.push({...btn("隨機互動 🎲","系統抽 5 件事給你選一個",()=>rollDraw(id),"face"),g:"face"});roll.push({...btn("隨機惡趣味 🎲","系統抽一個現在做得到的惡趣味",()=>rollDo("mis",id),"mis")})}return [...faceActs0(id).map(b=>({...b,g:"face"})),...roll,...misActs(id)]}
+function faceActs(id){const roll=[];return [...faceActs0(id).map(b=>({...b,g:"face"})),...roll,...misActs(id)]}
 // ── 惡趣味（town_mischief.sql）：全部不會死、有冷卻、每人每天最多被整 6 次、對方可掛免整牌；報復不扣好感、也可以原諒 ──
 const MIS={splash:["潑水 💦","他清潔 −15、心情 −3 · 好感 −1",30],sticker:["貼「踢我」紙條 🦶","他名牌掛 1 小時「踢我」 · 好感 −1",60],fakelove:["假裝告白 💘","一半他害羞（好感 +1）、一半他氣炸（好感 −2）",60],snack:["偷零食 🍪","55% 被抓賠 €60、沒被抓到手一包 · 他要有零食",60],photo:["拍醜照貼到動態 📸","全鎮看得到 · 他心情 −5、好感 −2",60],swapseat:["換掉他的座位 🪑","只能在咖啡廳、餐廳裡面 · 好感 −1",30],doorbell:["按門鈴逃跑 🔔","站在他家門口 · 睡著的會被吵醒 · 好感 −1",30],fakepoop:["門口擺假便便 💩","站在他家門口 · 好感 −1",60]};
 const todayTW=()=>new Date(now()+8*36e5).toISOString().slice(0,10);
