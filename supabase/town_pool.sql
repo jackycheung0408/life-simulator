@@ -67,6 +67,9 @@ create or replace function public.town_pl_res(sg text, t int) returns text langu
               else (array['沒什麼大不了。','有點倒楣…','真是倒楣的一刻。'])[t + 1] end $$;
 
 -- 加權抽 A：回傳 eid（1～320 = (場景-1)*8 + 開場）
+-- 開場與場景矛盾的組合（開場編號 → 不能搭的場景編號）：夜裡不見彩虹／太陽、大太陽下不下雨、清晨不午睡、剛下過小雨不再「突然下雨」
+create or replace function public.town_pl_clash(o int, sn int) returns boolean language sql immutable as $$
+  select case o when 4 then sn in (13,23,24,32,33) when 7 then sn in (11,13,22,23) when 6 then sn in (11) when 5 then sn in (4) when 1 then sn in (32) else false end $$;
 create or replace function public.town_pl_pickA(r public.town_residents, recent int[]) returns int language plpgsql stable as $$
 declare sc text[] := public.town_pl_scenes(); op text[] := public.town_pl_open(); ok text := public.town_pl_okind(r.place);
   i int; s int; o int; pa text[]; po text[]; w real; hr int := extract(hour from now() at time zone 'Asia/Taipei')::int; lk int := public.town_at(r, 'lk');
@@ -76,10 +79,12 @@ begin
     if ((s - 1) * 8 + o) = any(recent) then continue; end if;
     pa := string_to_array(sc[s], '|'); po := string_to_array(op[o], '|');
     if pa[1] <> 'a' and pa[1] is distinct from ok then continue; end if;
+    if public.town_pl_clash(o, s) then continue; end if;
     w := 1;
     if hr < po[1]::int or hr >= po[2]::int then w := w * 0.4; end if;
-    if pa[3] = '+' then w := w * (1 + 0.04 * lk) * (case when r.fun < 30 then 1.4 else 1 end);
-    else w := w * (case when r.fun < 30 then 0.7 else 1 end); end if;
+    -- 賺錢場景不吃運氣與心情加權，錢的期望才保證 ≤ 0
+    if pa[3] = '+' and pa[2] <> 'money' then w := w * (1 + 0.04 * lk) * (case when r.fun < 30 then 1.4 else 1 end);
+    elsif pa[3] = '-' then w := w * (case when r.fun < 30 then 0.7 else 1 end); end if;
     if random() * 2 < w then return (s - 1) * 8 + o; end if;
   end loop;
   return 1;
@@ -142,11 +147,11 @@ begin
 end $$;
 create or replace function public.town_pl_btext(eid int, wn text) returns text[] language sql immutable as $$
   select array[(public.town_pl_tw())[(eid - 1001) % 3 + 1] || '・' || split_part((public.town_pl_acts())[(eid - 1001) / 3 + 1], '|', 1),
-    replace(split_part((public.town_pl_acts())[(eid - 1001) / 3 + 1], '|', 2), '{w}', wn), (public.town_pl_twh())[(eid - 1001) % 3 + 1]] $$;
+    replace(split_part((public.town_pl_acts())[(eid - 1001) / 3 + 1], '|', 2), '{w}', wn) || (array['','這次想玩點不一樣的。','你決定放手一搏！'])[(eid - 1001) % 3 + 1], (public.town_pl_twh())[(eid - 1001) % 3 + 1]] $$;
 
 -- C：13 個設施各 6 個人物（順序同 town_pl_places）
 create or replace function public.town_pl_subj(pn int) returns text[] language sql immutable as $$
-  select array(select jsonb_array_elements_text(('[["隔壁桌的客人","老闆阿福","新來的服務生","帶小孩的家庭","一位老先生","外送員"],["理貨的店員","結帳的阿姨","試吃攤的小姐","推著推車的大叔","一位小朋友","搶特價的客人"],["咖啡師小咪","窗邊的作家","排隊的上班族","打瞌睡的學生","抱著筆電的人","常客大叔"],["賣爆米花的店員","前排的情侶","影癡先生","剪票員","睡著的觀眾","看第三遍的影迷"],["教練阿力","正在喘氣的壯漢","瑜伽墊上的阿姨","跑步機上的人","剛辦會員的新手","舉鐵的老先生"],["遛狗的人","長椅上的老爺爺","慢跑的少年","野餐的一家人","打太極的阿嬤","玩飛盤的孩子"],["賣氣球的小販","表演的魔術師","噴水池旁的小孩","發傳單的人","看報紙的爺爺","逛街的情侶"],["加班的同事","茶水間的前輩","抱著文件的實習生","打電話的主管","送快遞的人","睡著的同事"],["練拳的選手","裁判叔叔","賣水的小販","場邊的老觀眾","綁頭巾的少年","拿著毛巾的教練"],["盯盤的阿伯","拿著報紙的老先生","興奮的散戶","穿西裝的分析師","打瞌睡的警衛","愁眉苦臉的投資人"],["拉菲的祕書","在影印的職員","打領帶的業務","路過的經理","端咖啡的助理","看報表的會計"],["業務員","修車師傅","看車的客人","試乘的大叔","洗車的小弟","抱著機油的學徒"],["守衛","磨刀的師傅","抱著豬肉的工人","路過的貓","老闆娘","打掃的阿伯"]]'::jsonb) -> (pn - 1))) $$;
+  select array(select jsonb_array_elements_text(('[["隔壁桌的客人","老闆阿福","新來的服務生","帶小孩的家庭","一位老先生","外送員"],["理貨的店員","結帳的阿姨","試吃攤的小姐","推著推車的大叔","抱著零食的大學生","搶特價的客人"],["咖啡師小咪","窗邊的作家","排隊的上班族","剛睡醒的學生","抱著筆電的人","常客大叔"],["賣爆米花的店員","前排的情侶","影癡先生","剪票員","剛睡醒的觀眾","看第三遍的影迷"],["教練阿力","正在喘氣的壯漢","瑜伽墊上的阿姨","跑步機上的人","剛辦會員的新手","舉鐵的老先生"],["遛狗的人","長椅上的老爺爺","慢跑的少年","野餐的一家人","打太極的阿嬤","玩飛盤的少年"],["賣氣球的小販","表演的魔術師","噴水池旁的少年","發傳單的人","看報紙的爺爺","逛街的情侶"],["加班的同事","茶水間的前輩","抱著文件的實習生","打電話的主管","送快遞的人","剛睡醒的同事"],["練拳的選手","裁判叔叔","賣水的小販","場邊的老觀眾","綁頭巾的少年","拿著毛巾的教練"],["盯盤的阿伯","拿著報紙的老先生","興奮的散戶","穿西裝的分析師","剛換班的警衛","愁眉苦臉的投資人"],["拉菲的祕書","在影印的職員","打領帶的業務","路過的經理","端咖啡的助理","看報表的會計"],["業務員","修車師傅","看車的客人","試乘的大叔","洗車的小弟","抱著機油的學徒"],["守衛","磨刀的師傅","抱著豬肉的工人","值夜班的大叔","老闆娘","打掃的阿伯"]]'::jsonb) -> (pn - 1))) $$;
 -- C：8 種情節。格式 標題|說明|選項A|A提示|選項B|B提示（{S} = 人物）
 create or replace function public.town_pl_arch_t() returns text[] language sql immutable as $$
   select array[
@@ -345,7 +350,7 @@ end $$;
 revoke all on function public.town_pool(bigint,text,text,bigint,text) from public;
 grant execute on function public.town_pool(bigint,text,text,bigint,text) to anon, authenticated;
 revoke all on function public.town_pl_scale(int), public.town_pl_tier(int), public.town_pl_places(), public.town_pl_open(), public.town_pl_scenes(), public.town_pl_okind(text), public.town_pl_res(text,int),
-  public.town_pl_pickA(public.town_residents,int[]), public.town_pl_prog(public.town_residents,text), public.town_pl_fx(int,int,int,int,int,int,text,text), public.town_pl_acts(), public.town_pl_tw(), public.town_pl_twh(),
+  public.town_pl_pickA(public.town_residents,int[]), public.town_pl_clash(int,int), public.town_pl_prog(public.town_residents,text), public.town_pl_fx(int,int,int,int,int,int,text,text), public.town_pl_acts(), public.town_pl_tw(), public.town_pl_twh(),
   public.town_pl_bfx(int), public.town_pl_btext(int,text), public.town_pl_subj(int), public.town_pl_arch_t(), public.town_pl_arch_e(int,int), public.town_pl_cprog(text), public.town_pl_ct(int), public.town_pl_ceff(int,int),
   public.town_pl_ctext(int), public.town_pl_rc(public.town_residents), public.town_pl_rc_add(public.town_residents,int[]) from public, anon, authenticated;
 grant execute on function public.town_pool(bigint,text,text,bigint,text) to anon, authenticated;
