@@ -218,6 +218,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u52-cop",date:"11/17",title:"街上有巡警了",items:["一位巡警會沿著馬路來回巡邏","騎車開車的人經過他身邊，頭上會閃紅色驚嘆號","只是提醒，罰單與抓人的機率沒有改變"]},
   {id:"u52-bk",date:"11/17",title:"登入更穩了",items:["手機清掉網站資料後，會自動還原登入，不用重輸邀請碼","登入鑰匙另外備份一份在瀏覽器裡，只存必要資訊","按「登出」或搬離小鎮會一併刪掉備份","同時請求瀏覽器保留資料，降低被清掉的機會"]},
   {id:"u51-npc2",date:"11/17",title:"流動商人來了",items:["每天會有一段時間，流動商人出現在廣場或公園","賣特調補品、小豬玩偶、訓練手冊，限量奇貨、價格偏貴","每種每天限買一次，錢不夠不能買","靠近商人，面板會出現「找流動商人」"]},
   {id:"u50-npc",date:"11/17",title:"店裡有店員了",items:["咖啡廳、餐廳、健身房、醫院、警察局、市政廳裡多了固定店員","店員頭上會冒對話，依時段與店內人數換台詞","點店員可以打招呼、問今日價格（含小鎮事件）、聽八卦","店員只是陪你聊天，不影響任何數值"]},
@@ -1293,6 +1294,9 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
  // 公園的流浪貓：在公園裡慢慢走來走去
  {const cx=(25.5+4*(1+Math.sin(t/7000)))*T,cy=(18.6+.8*Math.sin(t/3100))*T;g.fillStyle="#555";g.fillRect(cx-8,cy-4,16,8);g.fillRect(cx+6,cy-10,8,8);g.fillRect(cx+6,cy-12,2,3);g.fillRect(cx+12,cy-12,2,3);g.fillRect(cx-12,cy-8+Math.sin(t/300)*2,4,8);g.fillStyle="#ffd23f";g.fillRect(cx+8,cy-8,2,2);g.fillRect(cx+11,cy-8,2,2)}
  for(const q of POOPS){const im=cimgP("💩");if(im.complete)g.drawImage(im,q.x*T+2,q.y*T+2,T-4,T-4)}
+ {const rr=[];for(let y=0;y<mapRows();y++)if(roadRowsAt(y))rr.push(y);if(rr.length>2){const py=rr[2]+.4,span=COLS-6,ph=(Date.now()/1000*1.5)%(span*2),px=3+(ph<span?ph:span*2-ph),dir=ph<span?1:-1;
+  drawChar(g,px*T,py*T-6,1.6,{hair:'#1b2a6b'},{moving:true},Math.floor(Date.now()/120));g.fillStyle='#2e4aa8';g.fillRect(px*T+2,py*T-14,14,3);g.font="11px 'Cubic 11',monospace";g.textAlign='center';g.lineWidth=3;g.strokeStyle='#1b1b2f';g.strokeText('巡警',px*T+10,py*T-18);g.fillStyle='#9fc5ff';g.fillText('巡警',px*T+10,py*T-18);
+  if(Math.floor(Date.now()/250)%2)for(const id in walkers){const w=walkers[id],o=R[id];if(!o||!w.path||!w.path.length||!vehOf(o))continue;if(Math.abs(w.x-px)<1.6&&Math.abs(w.y-py)<1.6){g.fillStyle='#e43b44';g.fillRect(w.x*T+8,w.y*T-24,5,10);g.fillRect(w.x*T+8,w.y*T-11,5,4)}}}}
  if(NPCV&&NPCV.here&&Date.parse(NPCV.until)>Date.now()){const mp=NPCV.place=='plaza'?[20,12]:[33,19];drawChar(g,mp[0]*T,mp[1]*T-6,1.6,{hair:'#8e44ad'},{moving:false},0);g.font="11px 'Cubic 11',monospace";g.textAlign='center';g.lineWidth=3;g.strokeStyle='#1b1b2f';g.strokeText('流動商人',mp[0]*T+10,mp[1]*T-14);g.fillStyle='#ffd166';g.fillText('流動商人',mp[0]*T+10,mp[1]*T-14)}
  {const tt=performance.now(),dt=Math.min(.1,(tt-(zbLast||tt))/1000);zbLast=tt;for(const z of ZB){const q=ZR[z.id]||(ZR[z.id]={x:z.x,y:z.y});const dx=z.x-q.x,dy=z.y-q.y,d=Math.hypot(dx,dy);if(d>.02){const st=Math.min(d,1.3*dt);q.x+=dx/d*st;q.y+=dy/d*st}drawZpig(g,q.x*T,q.y*T,tt)}}
  // 預計路徑：只畫自己的；一點一點的小方塊從腳下排到目的地，走過的自然消失；終點有閃動的黃框
@@ -1718,7 +1722,7 @@ const slow=setTimeout(()=>{const x=document.querySelector("#lg .ld small");if(x)
 (async()=>{if(!TID){clearTimeout(slow);const l=mine();if(standalone&&l.length==1){go(l[0].tid);return}landing();return}
  try{await refresh()}catch(e){clearTimeout(slow);$("lg").innerHTML=`<h2>進不去這個小鎮</h2><p class="err">${esc(e.message)}</p><p class="mut">網路正常的話，可能是小鎮代碼打錯了。</p><div class="row" style="justify-content:flex-start"><button class="pri" id="retry3">再試一次</button><button id="home3">回小豬鎮首頁</button></div>`;$("home3").onclick=()=>go("");$("retry3").onclick=()=>location.reload();return}clearTimeout(slow);
  const a=mine().find(x=>x.tid==TID);
- if(a&&R[a.rid]){try{const res=await rpc("town_login",{rid:a.rid,pin:a.pin});me=a.rid;pin=a.pin;lastSeen=res.last_seen;await enter()}catch(e){townLogin()}}else townLogin();
+ if(a&&R[a.rid]){try{const res=await rpc("town_login",{rid:a.rid,pin:a.pin});me=a.rid;pin=a.pin;lastSeen=res.last_seen;await enter()}catch(e){if(me||/連不上|網路|fetch|Failed|Load failed/i.test(e.message||"")){$("login").classList.remove("hide");$("lg").innerHTML=`<h2>暫時進不去</h2><p class="err">${esc(e.message||e)}</p><p class="mut">你的登入還在，不用重輸邀請碼，再試一次就好。</p><div class="row" style="justify-content:flex-start"><button class="pri" id="retry4">再試一次</button></div>`;$("retry4").onclick=()=>location.reload()}else townLogin()}}else townLogin();
  setInterval(()=>{if(document.visibilityState=="visible"&&S){touchMine();refresh().catch(()=>{})}},15000);setInterval(pePoll,20000)})();
 }
 
