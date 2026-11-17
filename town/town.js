@@ -90,7 +90,7 @@ const untilLeft=(r,k)=>{const v=r.items[k],u=v&&typeof v=="object"?v.u:v;return 
 const escP=()=>{const h=new Date(nowFn()+8*36e5).getUTCHours();return h>=23||h<5?JAILX.escP[1]:JAILX.escP[0]};
 const fmtH=ms=>ms>=36e5?`${Math.round(ms/36e4)/10} 小時`:`${Math.max(1,Math.round(ms/6e4))} 分鐘`;
 const statLine=r=>[wantedOn(r)?`通緝中（還有 ${fmtH(untilLeft(r,"wt"))}）：出門被巡警抓回牢裡的機率很高，躲在家最安全`:"",paroleOn(r)?`假釋中（還有 ${fmtH(untilLeft(r,"pl"))}）：再犯事刑期加倍`:"",priorOn(r)?`有前科（還有 ${fmtH(untilLeft(r,"pr"))}）：薪水 −${100-JAILX.prior[1]}%、巡警抓人機率 ×${JAILX.prior[2]}`:""].filter(Boolean).join("。");
-const paroleWhy=r=>{const jp=jpOf(r);if(!jp||!jp.t||!jp.e)return"沒有服刑紀錄，先做牢裡勞動、表現好才能假釋";if(jp.bad)return"你在牢裡惹過事（或假釋中犯事），這次不能假釋";if((jp.n||0)<JAILX.parole[0])return`表現還不夠，要做滿 ${JAILX.parole[0]} 次牢裡勞動（已 ${jp.n||0} 次）`;const need=Date.parse(jp.t)+(Date.parse(jp.e)-Date.parse(jp.t))/2-nowFn();return need>0?`要服滿一半刑期才能申請，還要等 ${fmtLeft(need)}`:""};
+const paroleWhy=r=>{const jp=jpOf(r);if(!jp||!jp.t||!jp.e)return"沒有服刑紀錄";if(jp.bad)return"惹過事，不能假釋";if((jp.n||0)<JAILX.parole[0])return`勞動還差 ${JAILX.parole[0]-(jp.n||0)} 次`;const need=Date.parse(jp.t)+(Date.parse(jp.e)-Date.parse(jp.t))/2-nowFn();return need>0?`還要等 ${fmtLeft(need)}`:""};
 // 獄友事件（牢裡）：[標題,說明,A,A提示,B,B提示]，順序和 town_jail.sql 的 town_jail_ev_eff 一致
 const JE=[["放風時間，有人搭話","隔壁牢房的獄友隔著鐵窗跟你聊起來。","聽他聊聊","心情 +6 · 好感 +1","講講自己的故事","七成心情 +10 · 冷場心情 −4 · 精力 −3"],
  ["有人想欺負你","一個大塊頭獄友擋住你的路，要你把飯讓給他。","忍下來","心情 −8 · 什麼事都沒有","反擊","45% 嚇退他：心情 +8、精力 −5 · 失敗：心情 −12、精力 −12、加刑 15 分鐘 · 都算惹事（不能假釋）· 好感 −1"],
@@ -596,15 +596,15 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  else if(p=="jail"){title="監獄";const inm=Object.values(R).filter(o=>o.id!=me&&o.place=="jail"&&jailed(o)),stat=statLine(r),dz=(b,m)=>m?{...b,dis:m}:b;
   if(jailed(r)){const jp=jpOf(r)||{},ps=paroleWhy(r),eL=cdLeft(r,"esc",JAILX.esc[4]);
    note=`你被關著，還有 ${fmtLeft(jlLeft(r))}。勞動能賺錢、減刑；表現好可以申請假釋；也可以付保釋金，或冒險越獄。牢裡偶爾會發生獄友的事${jp.bad?"。你惹過事，這次不能假釋":""}`;
-   list.push(dz(dbtn("做牢裡的勞動 💼",`€${JAIL.labor[0]} · 精力 −${JAIL.labor[1]} · 刑期 −${JAIL.labor[3]} 分鐘 · 假釋要做滿 ${JAILX.parole[0]} 次（已 ${jp.n||0} 次）`,()=>doJail("labor"),wkLeft(r)),!wkLeft(r)&&r.energy<JAIL.labor[1]?`精力不夠，至少要 ${JAIL.labor[1]}`:""),
+   list.push(dz(dbtn("做牢裡的勞動 💼",`€${JAIL.labor[0]} · 精力 −${JAIL.labor[1]} · 刑期 −${JAIL.labor[3]} 分鐘 · 假釋要做滿 ${JAILX.parole[0]} 次（已 ${jp.n||0} 次）`,()=>doJail("labor"),wkLeft(r)),!wkLeft(r)&&r.energy<JAIL.labor[1]?`精力要 ≥ ${JAIL.labor[1]}`:""),
     dbtn("放風 ☀️",`心情 +${JAILX.yard[0]} · 精力 −${JAILX.yard[1]} · ${JAILX.yard[2]} 分鐘一次`,()=>doJail("yard"),cdLeft(r,"yard",JAILX.yard[2])),
     dz(btn("申請假釋 🪪",ps||`表現良好就能提早出去 · 免費 · ${JAILX.parole[1]} 小時內別再犯事，否則刑期加倍`,()=>doJail("parole")),ps),
-    dz(dbtn("越獄 🕳️",`成功約 ${escP()}%：逃出去但被通緝 ${JAILX.wanted[0]} 小時 · 失敗加刑 ${JAILX.esc[2]} 分鐘、罰款最多 €${JAILX.esc[3]}、不能假釋 · 精力 ≥ ${JAILX.esc[0]} · 1 小時一次`,()=>escapeModal(),eL),!eL&&r.energy<JAILX.esc[0]?`精力不夠，越獄至少要 ${JAILX.esc[0]}`:""),
+    dz(dbtn("越獄 🕳️",`成功約 ${escP()}%：逃出去但被通緝 ${JAILX.wanted[0]} 小時 · 失敗加刑 ${JAILX.esc[2]} 分鐘、罰款最多 €${JAILX.esc[3]}、不能假釋 · 精力 ≥ ${JAILX.esc[0]} · 1 小時一次`,()=>escapeModal(),eL),!eL&&r.energy<JAILX.esc[0]?`精力要 ≥ ${JAILX.esc[0]}`:""),
     btn("付保釋金出去 💰",`€${bailCost(jlLeft(r))} · 錢不夠就保不了`,()=>doJail("bail")))}
   else{note=(inm.length?`${inm.map(o=>o.name).join("、")} 被關在這裡，可以探望或幫他保釋`:"現在沒有人被關著。在路上砍人被巡警抓到，就會關進這裡")+(stat?"。"+stat:"");for(const o of inm)list.push(btn(`探望 ${o.name} 🤝`,"他心情 +10 · 你心情 +3 · 好感 +2 · 1 小時一次",()=>doJail("visit",o.id)),btn(`替 ${o.name} 保釋 💰`,`€${bailCost(jlLeft(o))} · 好感 +4`,()=>doJail("bail",o.id)))}}
 else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!=me&&hospIn(o)),mine=hospIn(r),dz=(b,m)=>m?{...b,dis:m}:b;
   note=mine?"你在住院，好好躺著，醒來就能出院。醫藥費照原規則：車禍當下結清、被砍由砍人的人付、餓昏倒醒來 "+CUR+"1500，付到 0 為止、不欠款。角色不會死":(pat.length?`${pat.map(o=>o.name).join("、")} 在住院，可以探病`:"現在沒有人住院。昏倒、車禍、被砍倒地的人會被送到這裡");
-  list.push(dz(btn("掛號看診 🩺",`${CUR}${HOSP.fee} · 精力 +${HOSP.consult[0]}、清潔 +${HOSP.consult[1]}、傷好了 · 一天一次`,()=>hospAct("consult")),mine?"你還在住院":(r.items.hp||{}).d==todayTW()?"今天已經看過診了":r.money<HOSP.fee?`錢不夠，掛號費 ${CUR}${HOSP.fee}`:""),
+  list.push(dz(btn("掛號看診 🩺",`${CUR}${HOSP.fee} · 精力 +${HOSP.consult[0]}、清潔 +${HOSP.consult[1]}、傷好了 · 一天一次`,()=>hospAct("consult")),mine?"你還在住院":(r.items.hp||{}).d==todayTW()?"今天已經看過診了":r.money<HOSP.fee?`要 ${CUR}${HOSP.fee}`:""),
    dz(btn("出院 🚪","回到醫院門口外的路上",()=>hospAct("discharge")),mine&&r.sleeping?"還在住院，醒來才能出院":""));
   for(const o of pat)list.push(btn(`探病 ${o.name} 🤝`,`他心情 +${HOSP.visit[0]} · 你心情 +${HOSP.visit[1]} · 好感 +${HOSP.visit[3]} · ${HOSP.visitCd} 分鐘一次`,()=>hospAct("visit",o.id)))}
  else if(p=="police"){title="警察局";const tk=(r.items||{}).tk||[],sum=tk.reduce((a,x)=>a+x.a,0),sum9=tk.reduce((a,x)=>a+Math.floor(x.a*(100-POLICE.disc)/100),0),wan=wantedOn(r),dz=(b,m)=>m?{...b,dis:m}:b;
@@ -626,7 +626,7 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  if(!r.sleeping&&["plaza","restaurant","market","park","office"].includes(p)&&!(walkers[me]&&walkers[me].path.length)){const here=Object.values(R).filter(o=>o.id!=me&&o.place==p&&!o.sleeping);
   if(here.length&&!(sel&&R[sel]))note=(note?note+" · ":"")+`${here.map(o=>o.name).join("、")} 也在這裡：一起做事大家心情都 +5，點他可以擊掌或扁他`}
  if(!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const q of POOPS)if(Math.abs(q.x-walkers[me].x)+Math.abs(q.y-walkers[me].y)<=2)list.push(btn("清掉便便 💩","領 €30",()=>act("sweep",{item:String(q.id)}),"place"));
- if(zbOut(r)&&walkers[me]&&!walkers[me].path.length){const zd=z=>Math.abs(z.x-walkers[me].x)+Math.abs(z.y-walkers[me].y),zn=ZB.filter(z=>zd(z)<=3);for(const z of zn)list.push(btn("打喪屍豬",`精力 −5 · 牠還有 ${z.hp} 點血 · 打倒領 €60～140（一天最多 €600）`,()=>zbHit(z.id),"place"));if(!zn.length&&ZB.some(z=>zd(z)<=14))list.push({...btn("附近有喪屍豬","牠正慢慢追過來，走近一點才打得到，或躲進屋裡、店裡",()=>toast("走近一點才打得到，或躲進屋裡、店裡"),"place"),dis:"牠還有一段距離，等牠靠近再打，或躲進屋裡、店裡"})}
+ if(zbOut(r)&&walkers[me]&&!walkers[me].path.length){const zd=z=>Math.abs(z.x-walkers[me].x)+Math.abs(z.y-walkers[me].y),zn=ZB.filter(z=>zd(z)<=3);for(const z of zn)list.push(btn("打喪屍豬",`精力 −5 · 牠還有 ${z.hp} 點血 · 打倒領 €60～140（一天最多 €600）`,()=>zbHit(z.id),"place"));if(!zn.length&&ZB.some(z=>zd(z)<=14))list.push({...btn("附近有喪屍豬","牠正慢慢追過來，走近一點才打得到，或躲進屋裡、店裡",()=>toast("走近一點才打得到，或躲進屋裡、店裡"),"place"),dis:"牠還太遠"})}
  if(p=="market"&&((r.items||{}).zp||0)>0)list.push(btn(`賣生豬肉 ${r.items.zp} 塊`,`每塊 €30 · 共 €${30*r.items.zp}`,zbSell,"place"));
  if(p=="street"&&!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const k of CIVP){const o=CIVIC[k];if(o&&Math.abs(walkers[me].x-o[2])+Math.abs(walkers[me].y-o[3])<=2)list.push(dbtn(`在${o[0]}旁休息`,`心情 +${o[4]}${o[5]?` · 精力 +${o[5]}`:""} · 10 分鐘一次`,()=>civicUse(k),cdLeft(r,"c_"+k,10)))}
  if(!r.sleeping&&!(walkers[me]&&walkers[me].path.length))for(const k in OBJS)if(objNear(k,walkers[me].x,walkers[me].y,p))for(const [l,sub,v] of OBJS[k].acts)if(v!="feed"||((r.items||{}).snack))list.push(btn(l,`${OBJS[k].name} · ${sub}`,()=>act("obj",{item:k,note:v||null}),"place"));
@@ -1134,12 +1134,12 @@ function pwWhy(k,st){const P=POWERS[k],d=P.def,r=R[me],td=(st.today||[]).filter(
  if((st.off||[]).includes(k)&&!d[10])return "鎮長把它關掉了";
  if(d[0]!=1&&!r.mayor)return "只有鎮長能用";
  if(k=="impeach"&&r.mayor)return "鎮長不能彈劾自己";
- if(["jail","fine","grant"].includes(k)&&st.nres<3)return "小鎮要有 3 位以上居民才能用";
+ if(["jail","fine","grant"].includes(k)&&st.nres<3)return "要 3 位以上居民";
  if(k=="free"&&st.nres<2)return "小鎮只有一個人";
  if(jailed(r))return "你被關著";
- if(d[3]&&td>=d[3])return `今天用完了（全鎮每天 ${d[3]} 次）`;
+ if(d[3]&&td>=d[3])return `今天用完了（${d[3]} 次）`;
  if(d[5]&&last&&last*1e3+d[5]*6e4>now())return `冷卻中，還要 ${fmtLeft(last*1e3+d[5]*6e4-now())}`;
- if(k=="grant"&&st.fund<d[1])return `鎮基金不夠（現在 ${CUR}${(+st.fund).toLocaleString()}）`;
+ if(k=="grant"&&st.fund<d[1])return "鎮基金不夠";
  if(d[0]!=0&&st.vote&&(k=="impeach"||k=="build"))return "已經有一個投票在進行";
  return ""}
 // 這個對象現在能不能被施行；回傳原因
