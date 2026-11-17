@@ -324,7 +324,7 @@ body.ingame{--hud:calc(env(safe-area-inset-top) + 40px);--tb:0px;--g:8px}
 body.ingame #needs{height:var(--hud);padding:calc(env(safe-area-inset-top) + 4px) 8px 4px;gap:6px;border-bottom:2px solid var(--ink);right:0;grid-template-columns:repeat(5,minmax(0,1fr)) minmax(0,1.5fr);align-items:center}
 body.ingame .need{background:transparent;border:0;box-shadow:none;padding:0;display:grid;grid-template-columns:16px 1fr;grid-template-rows:16px 6px;column-gap:4px;align-items:center;height:28px;min-width:0}
 body.ingame .need span{grid-row:1/3;width:16px;height:16px;font-size:11px;display:flex;align-items:center;justify-content:center}
-body.ingame .need i{height:6px;margin:0;grid-column:2;grid-row:1/3;align-self:center}
+body.ingame .need i{height:10px;background:#0f1530;margin:0;grid-column:2;grid-row:1/3;align-self:center}
 body.ingame .need small{display:none}body.ingame .need.low{animation:lowp 1s steps(2) infinite}body.ingame .need.low i{outline:2px solid var(--bad)}
 body.ingame .need.money{grid-template-columns:16px 1fr;grid-template-rows:auto}body.ingame .need.money span{grid-row:1}
 body.ingame .need.money small{display:block;grid-column:2;grid-row:1;text-align:left;font-size:11px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
@@ -333,15 +333,14 @@ body.ingame .need.money small br{display:none}
 body.ingame #stage::before{display:none}
 body.ingame #stage{top:var(--hud)}
 body.ingame .bar{top:calc(var(--hud) + var(--g));right:var(--g)}
-body.ingame #menuBtn,body.ingame .tools button{font-size:0;width:44px;height:44px;min-width:44px;padding:0;border-radius:22px;background:rgba(20,26,58,.82);border:2px solid #fff;box-shadow:0 2px 0 var(--ink);display:flex;align-items:center;justify-content:center}
+body.ingame #menuBtn,body.ingame .tools button{font-size:11px;line-height:1;width:52px;height:52px;min-width:52px;padding:0;border-radius:14px;flex-direction:column;gap:3px;color:#fff;background:rgba(20,26,58,.82);border:2px solid #fff;box-shadow:0 2px 0 var(--ink);display:flex;align-items:center;justify-content:center}
 body.ingame #menuBtn img.px,body.ingame .tools button img.px{width:22px;height:22px;vertical-align:0}
-body.ingame #menuBtn::before{content:"☰";font-size:22px;line-height:1}
-body.ingame .tools{position:fixed;top:calc(var(--hud) + var(--g) + 52px);right:var(--g);left:auto;height:auto;padding:0;background:none;border:0;flex-direction:column;gap:var(--g);z-index:21}
-body.ingame #strip{top:calc(var(--hud) + var(--g));left:var(--g);right:64px;width:auto;height:auto;padding:0;background:none;border:0;-webkit-mask-image:none;mask-image:none;pointer-events:none}
+body.ingame .tools{position:fixed;top:calc(var(--hud) + var(--g) + 60px);right:var(--g);left:auto;height:auto;padding:0;background:none;border:0;flex-direction:column;gap:var(--g);z-index:21}
+body.ingame #strip{top:calc(var(--hud) + var(--g));left:var(--g);right:68px;width:auto;height:auto;padding:0;background:none;border:0;-webkit-mask-image:none;mask-image:none;pointer-events:none}
 body.ingame #strip button{pointer-events:auto;height:44px;border-radius:22px;background:rgba(20,26,58,.82)}
-body.ingame #tips,body.ingame #away{top:calc(var(--hud) + 60px)}
+body.ingame #tips,body.ingame #away{top:calc(var(--hud) + 60px)}body.ingame,html:has(body.ingame){background:var(--box,#1d2350)}
 /* 訊息槽：HUD 下方一行，toast 一次一則 */
-body.ingame #toast{top:calc(var(--hud) + 56px);bottom:auto;left:var(--g);right:64px;max-width:none;transform:translateY(-16px);opacity:0;transition:transform .2s,opacity .2s;text-align:left;pointer-events:none;z-index:40;font-size:11px;padding:6px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.ingame #toast{top:calc(var(--hud) + 56px);bottom:auto;left:var(--g);right:68px;max-width:none;transform:translateY(-16px);opacity:0;transition:transform .2s,opacity .2s;text-align:left;pointer-events:none;z-index:40;font-size:11px;padding:6px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.ingame #toast.on{transform:none;opacity:1}
 body.ingame #wev{top:calc(var(--hud) + 56px + 36px);left:var(--g);right:auto;max-width:calc(100vw - 72px)}
 body.ingame #upd{top:calc(var(--hud) + var(--g))}
@@ -353,7 +352,7 @@ body.ingame #grip{flex:none;min-height:16px;height:16px;font-size:0;overflow:hid
 body.ingame #grip::after{content:"";position:absolute;left:50%;top:6px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:#b9c2e8;opacity:.6}
 body.ingame #here{flex:none;font-size:16.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.ingame #note{flex:none;font-size:11px;line-height:1.3;max-height:2.6em;overflow:hidden;margin:2px 0}
-body.ingame #fb,body.ingame #tipbox,body.ingame #ptabs{flex:none}
+body.ingame #fb,body.ingame #tipbox,body.ingame #ptabs{flex:none}body.ingame #fb{position:absolute;left:var(--g);top:-44px;z-index:3;pointer-events:none}
 body.ingame #tipbox{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--g);margin:var(--g) 0 0}body.ingame #tipbox .act:only-child{grid-column:1/-1}
 body.ingame #ptabs{display:flex;gap:4px;margin:var(--g) 0 0;overflow-x:auto;scrollbar-width:none}body.ingame #ptabs::-webkit-scrollbar{display:none}
 body.ingame .ptab{flex:1 0 auto;min-height:44px;padding:0 10px;font-size:11px;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:12px;background:#26306a;box-shadow:none;border:2px solid var(--ink);white-space:nowrap}
@@ -1706,7 +1705,7 @@ function roomTap(fx,fy){const r=R[me],rm=roomOf(r,R);if(!rm)return;if(rm.visit&&
 function stageRoom(){const r=R[me];if(!r)return null;const wk=walkers[me];if(wk&&wk.path.length)return null;const rm=roomOf(r,R);if(!rm)return null;if(rm.visit&&!vin(r))return null;return rm}
 let roomRect=null;
 function drawRoomStage(){const rm=stageRoom(),rc=$("room");if(!rm||!rc){roomRect=null;return false}drawRoom();if(!rc.width||!rc.height)return false;
- const mob=isMob(),pt=mob?($("needs").offsetHeight||0)+8:8,pb=mob?($("panel").offsetHeight||0)+8:8,aw=W-16,ah=Math.max(60,Hh-pt-pb),s=Math.max(1,Math.min(aw/rc.width,ah/rc.height)),dw=Math.round(rc.width*s),dh=Math.round(rc.height*s),x=Math.round((W-dw)/2),y=Math.round(pt+(ah-dh)/2);
+ const mob=isMob(),pt=mob?($("needs").offsetHeight||0)+60:8,pb=mob?($("panel").offsetHeight||0)+8:8,aw=W-16-(mob?60:0),ah=Math.max(60,Hh-pt-pb),s=Math.max(1,Math.min(aw/rc.width,ah/rc.height)),dw=Math.round(rc.width*s),dh=Math.round(rc.height*s),x=Math.round(8+(aw-dw)/2),y=Math.round(pt+(ah-dh)/2);
  g.setTransform(dpr,0,0,dpr,0,0);g.imageSmoothingEnabled=false;g.fillStyle="#1b1b2f";g.fillRect(0,0,W,Hh);
  g.fillStyle="#0b0b14";g.fillRect(x-6,y-6,dw+12,dh+12);g.drawImage(rc,x,y,dw,dh);g.strokeStyle="#fff";g.lineWidth=2;g.strokeRect(x-4,y-4,dw+8,dh+8);
  roomRect={x,y,w:dw,h:dh};return true}
