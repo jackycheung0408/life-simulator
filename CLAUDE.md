@@ -9,6 +9,7 @@
 > 三個遊戲共用同一個 Supabase 專案 `gerqdagicybtyilihvvm`（各 repo 的 `supabase/` 只放自己那一份 SQL，見 `docs/supabase-shared.md`）和同一個網站網域（`jackycheung0408.github.io`，所以瀏覽器的 localStorage 存檔跨 repo 仍共用；各遊戲的鍵都有前綴 `life-`／`fb-`／`town-`，不要改名）。
 
 ## 規則
+- 全遊戲（含入口導覽頁）維持像素風：Cubic 11（11／16.5／22px）、不用圓角（`clip-path` 4px 階梯）、不用模糊陰影與漸層，詳見「像素風規則」
 - 改了 `town/` 的 js／css 後一律跑 `node tools/town-bump.mjs`（連 `version.json` 一起，見「自動更新」）
 - 改 CSS 後確認大括號有配對（曾因多一個 `.ctrl{` 讓後面所有樣式失效）
 - 互動一律用按鈕，不要用超連結
@@ -477,3 +478,18 @@
 
 ## 打工動畫（2026-11-17，純前端）
 - `town.js` 的 `WORK_FX`／`wkKey`／`wkPlay`：`act()` 在 RPC 成功後、`apply` 前 `await wkPlay`（約 1.8 秒，`busy` 擋重複按；動畫完才更新數值、浮動金額與 toast；無冷卻可連點接續）。公司／共同加班／超市／拉菲在地圖畫（`spawnFx` 的 `wk_desk`／`wk_scan`／`wk_docs`，書桌電腦打字、掃描收銀叮、文件翻頁，結尾 +$）；咖啡廳／餐廳／健身房在室內（`roomFxDraw` 的 `wk_cafe`／`wk_serve`／`wk_lift`）。牢裡勞動仍是 `ROOM_ACT.labor`。新增打工種類要補 `WORK_FX`。未在內建瀏覽器實際看過（窗格 0x0）。
+
+
+## 登入備份（2026-11-17）
+- iOS 會清主畫面 web app 的 localStorage，登入鑰匙（`town-mine`，裝置金鑰就是裡面的 `pin`）另存 IndexedDB `town-bk`/`k`/`mine`，只存 `tid,name,rid,pin,me,at`。`index.html` 的 `LP.bk(list)` 寫入（空清單 = 刪除，並嘗試 `navigator.storage.persist()`），`town.js` 的 `saveMine`／`dropMine` 都呼叫它，所以登出、搬離會刪備份、不會被還原。
+- 啟動：localStorage 有 `town-mine` 就照舊同步畫首頁（3 秒後補備份）；沒有才讀 IndexedDB，有備份先還原再畫（最多等 700ms），沒備份就立刻畫。首頁主體包在 `main()`。
+
+
+## 登入備份（2026-11-17）
+- iOS 會清主畫面 web app 的 localStorage，登入鑰匙（`town-mine`，裝置金鑰就是裡面的 `pin`）另存 IndexedDB `town-bk`/`k`/`mine`，只存 `tid,name,rid,pin,me,at`。`index.html` 的 `LP.bk(list)` 寫入（空清單 = 刪除，並嘗試 `navigator.storage.persist()`），`town.js` 的 `saveMine`／`dropMine` 都呼叫它，所以登出、搬離會刪備份、不會被還原。
+- 啟動：localStorage 有 `town-mine` 就照舊同步畫首頁（3 秒後補備份）；沒有才讀 IndexedDB，有備份先還原再畫（最多等 700ms），沒備份就立刻畫。首頁主體包在 `main()`。
+
+
+## 登入備份（2026-11-17）
+- iOS 會清主畫面 web app 的 localStorage，登入鑰匙（`town-mine`，裝置金鑰就是裡面的 `pin`）另存 IndexedDB `town-bk`/`k`/`mine`，只存 `tid,name,rid,pin,me,at`。`index.html` 的 `LP.bk(list)` 寫入（空清單 = 刪除，並嘗試 `navigator.storage.persist()`），`town.js` 的 `saveMine`／`dropMine` 都呼叫它，所以登出、搬離會刪備份、不會被還原。
+- 啟動：localStorage 有 `town-mine` 就照舊同步畫首頁（3 秒後補備份）；沒有才讀 IndexedDB，有備份先還原再畫（最多等 700ms），沒備份就立刻畫。首頁主體包在 `main()`。
