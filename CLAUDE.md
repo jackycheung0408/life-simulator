@@ -136,7 +136,7 @@
 - **能力屬性**：`items.at={st,ag,ch,iq,lk,init,sp}`（缺值 = 0），`town_at(r,k)` 夾 0～5、`town_agm(r)` 在 `town.sql`。效果：力量 打架／PK／擂台 +1／點、敏捷 巡警抓人與車禍機率 ×(1−2%)／點、魅力 好感增加 +2%／點（乘進 `town.bm`）、智力 打工薪水 +1%／點、運氣 `town_world` 的壞事件 1%／點改好事件。**越獄成功率與考駕照容錯沒做**（越獄在 `town_jail.sql`，它比 `town.sql` 先套用，不能呼叫 `town_at`）。RPC `town_stats(rid,pin,op,note)`（view／set 10 點、各 0～5、不能改／spend 每升一級活躍等級 +1 點），前端 `statsModal`、選單「能力屬性」、第一次進遊戲會彈。
 - **隨機互動**：`town_roll(rid,pin,kind,target)`（fun = 擊掌／道謝／傳訊息、mis = 8 種惡趣味），洗牌後依序呼叫原本的 `town_act`／`town_mischief`，第一個成功的就是結果（數值是原規則，**沒有 ±20% 隨機**），多一句隨機 flavor；前端 `rollDo`，面對面面板「隨機互動 🎲」「隨機惡趣味 🎲」。
 
-## 能力屬性的獲得與減少（2026-11-17；SQL **尚未套用正式站**：`supabase/town_stats2.sql`＋`town.sql` 的新版 `town_at`／`town_agm`（改 stable），順序 `town.sql` → `town_social.sql` → `town_stats.sql` → `town_stats2.sql`；實測 `supabase/town_stats2_test.sql`，最後 rollback，結果在錯誤訊息 REPORT，**還沒跑**）
+## 能力屬性的獲得與減少（2026-11-17；SQL **已套用正式站（2026-11-17，只貼 town_at／town_agm 片段＋town_stats2.sql，沒整份重貼 town.sql）**：`supabase/town_stats2.sql`＋`town.sql` 的新版 `town_at`／`town_agm`（改 stable），順序 `town.sql` → `town_social.sql` → `town_stats.sql` → `town_stats2.sql`；實測 `supabase/town_stats2_test.sql`，最後 rollback，結果在錯誤訊息 REPORT，**已跑並通過**：舉重 6 次 $4100、力量 +1、各種擋、暫時減益與解除都對；每日 8 進度上限因測試被精力先擋，未直接驗到）
 - 獨立 RPC `town_train(rid,pin,kind)`（kind = view／lift／run／read／chat／pray），不改 `town_act`。累積「進度」`items.at.p`，滿 `need = 6 + 3×目前點數` 就 +1 永久點（每項仍 ≤ 5）；每天全部合計最多 +8 進度（`items.at.td`）。
 - 情境：舉重（健身房，€150，精力 −15）力量、慢跑（公園，精力 −12）敏捷、讀書（自家屋裡，精力 −6 心情 −3）智力、聊天（廣場／咖啡廳，要有人醒著在場，精力 −3）魅力、許願池（廣場，€100 只出不進）運氣。入獄、睡著、錢不夠、精力不足擋住。
 - **減少一律暫時、不存資料**：`town_at` 即時扣——鼻青臉腫 力量 −1 敏捷 −1、心情低落 魅力 −2、發臭 魅力 −1、精力 < 10 智力 −2、事故欠款 運氣 −1；狀態解除就恢復，永久點不動。
