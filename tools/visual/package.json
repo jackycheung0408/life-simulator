@@ -1,0 +1,1 @@
+{"name":"town-visual","private":true,"type":"module","scripts":{"visual":"node run.mjs","update":"node run.mjs --update"},"dependencies":{"playwright":"^1.49.0","pixelmatch":"^6.0.0","pngjs":"^7.0.0"}}

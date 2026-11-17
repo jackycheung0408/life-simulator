@@ -158,6 +158,12 @@
 - **改 SQL 要特別小心**：一個語法錯就讓正式站所有人動不了（出過一次）。有 `= any(...)` 這類寫法先用小函式包起來測。
 - 畫面測試：`tools/town-mock.js` 是假資料庫。複製 `town/` 到暫存資料夾，在 `index.html` 內嵌腳本的 `add("icons.js?v=…")` 前面加 `add("mock.js?v=N")`（首頁腳本是動態載入的，見「首頁與登入畫面」），用 `python3 -m http.server` 開，網址 `?t=MOCK01`。不要在正式站建帳號或填密碼。**2026-11-17 補充：首頁內嵌腳本會先用真的 `fetch` 預取 `town_state`，所以 mock 要放在複本 `index.html` 的 `<head>` 最前面當阻塞腳本（`<script src="mock.js?v=N"></script>`），只放在 `add("icons.js")` 前面會來不及接手、顯示「找不到這個小鎮」；進去後選角色、邀請碼填 `ABC123`。**
 
+## 自動畫面測試（`tools/visual/`，2026-11-17）
+- **改版面（town.js／index.html 的 CSS、面板、HUD）後必跑**：`cd tools/visual && npm run visual`（首次要 `npm install && npx playwright install chromium`，約 10MB＋150MB，只裝在該資料夾；`node_modules`／`out` 已 gitignore）。pre-push 仍只跑 `node town/test.js`（畫面測試較慢，不強制）。
+- 做法：把 `town/` 複本＋`tools/town-mock.js` 注入 `<head>` 最前面，6 種尺寸（390x844、375x667、430x932、768x1024、1366x768、1920x1080）× 13 種畫面（街上、設施門口、咖啡廳裡、家裡、朋友家門口、朋友面板、打工動畫、動態／選單／更新紀錄／21 點彈窗、睡覺、入獄；情境改 mock 的 sessionStorage 後重載）。
+- 檢查：橫向溢出、按鈕出視窗、手機按鈕 ≥44px、導覽列五顆等寬、訊息不壓 HUD、舞台占比、底部空白、字型 Cubic 11、字級 11／16.5／22、圓角、模糊陰影、漸層、`…` 截字、console／pageerror，並用 pixelmatch 對 `tools/visual/baseline/`（差異 >1.5% 才報）。截圖在 `out/<日期>/`。
+- 旗標：`--update` 更新基準（版面改好、確認截圖沒問題後才更新並 commit）、`--only 情境`、`--size 390x844`、`--head`（用 git HEAD 的 town/ 而非工作目錄）。已知限制：沒模擬 iOS safe-area（桌面 Chromium 的 `env()` 為 0）；21 點情境找不到按鈕時略過。
+
 ## 建議下一步（CTA）統計
 `town_cta` 表記錄「建議下一步」的顯示與點擊（`town_track`），鎮長面板用 `town_mayor(act='stats')` 看近 7 天各建議的顯示／點擊／點擊率。前端在 `renderPanel` 顯示時記 show、在按鈕點擊時記 click。
 
