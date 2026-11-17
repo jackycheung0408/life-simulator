@@ -390,7 +390,7 @@
 - **進屋**：`items.dr = 1` 表示站在自家門口（SQL `town_inside(r)`、前端 `inside(r)`）；沒有 `dr` 的舊角色視為在屋裡。走到自己家 `move` 會設 `dr=1`，`act='enter'` 清掉、`act='exit'` 設回；離開 `home:` 或半夜離線自動回家睡會清掉。吃飯／廁所／洗澡／電視／睡覺／快速睡／快速休息／家具／升級／裝潢都要在屋裡。朋友的 `feed/wash/wakeup/visit/prank` 要求對方在屋裡（在門口只能留言、放禮物、丟雞蛋）。膀胱歸零：在屋裡才是「弄髒房間」，在門口算路上便便。地圖上在屋裡的人不畫、窗戶亮燈。
 - **路上壞事**（`town_tick`）：`place='street'`、醒著、上線中（距 `seen_at` <30 分鐘），每 15 分鐘約 20%（幸運兒 10%）：野狗（精力 −10）、鳥大便（清潔 −15）、大雨（清潔 −10、心情 −8）、小偷（現金 3～8%，上限 €500）、機車擦撞（鼻青臉腫 30 分鐘、心情 −10、精力 −5），寫 `luck` 動態。已有的「走到外面地點 12% 隨機事件」不變。面板在路上會提醒。
 
-## 職階擴大（2026-11-17；SQL **尚未套用正式站**：改在 `town.sql`（`town_job_lv／name／wage`、`town_pjob_tier／rafi_tier／wage／name`、`town_rank_title`、`town_act` 的 work／job 分支），套用整份 `town.sql`（順序不變）；實測 `supabase/town_ranks_test.sql`，最後 rollback，結果在錯誤訊息 REPORT，**還沒跑**）
+## 職階擴大（2026-11-17；SQL **已套用正式站 2026-11-17（回滾實測通過：各階薪水單調、最高 ×1.875、舊角色缺值正常、249→250 得「資深主管」、cafe 79→80 得「咖啡廳領班」、重複不重複給稱號、錢不為負）**：改在 `town.sql`（`town_job_lv／name／wage`、`town_pjob_tier／rafi_tier／wage／name`、`town_rank_title`、`town_act` 的 work／job 分支），套用整份 `town.sql`（順序不變）；實測 `supabase/town_ranks_test.sql`，最後 rollback，結果在錯誤訊息 REPORT，**已跑並通過**）
 - 舊職階、門檻、薪水完全不動，只往上加。公司 9 階：…主管 150／800、資深主管 250／920、協理 400／1050、副總 650／1250、總經理 1000／1500（最高 ×1.875 主管）。咖啡師／服務生／健身教練／店員 7 階：累計 0／15／40／80／140／220／350 次，倍率 100／115／130／140／152／165／180%（前 3 階名稱「（熟手）（資深）」不變；之後 咖啡廳領班／副店長／店長／區經理、餐廳領班／副理／經理／餐飲總監、健身房領班／副理／經理／區總監、超市領班／副店長／店長／區經理）。拉菲 6 階：0／15／40／80／150／260 次，320／450／650／740／840／950（行政專員／企劃／業務經理／部門主任／協理／總監）。
 - 升階寫 `promo` 動態；公司 ≥ 資深主管、其他工作 ≥ 第 4 階（領班等）送同名稱號（`town_rank_title`，不重複）；**沒有一次性獎金**。薪水疊加（個性、心情、事件、前科、智力）沿用，沒重複套。前端 `JOBS／PJT／PJM／PJN／RFT／RFW／pjTier`（`town.js` 頂層），`pjNote` 顯示下一階門檻與薪水；`node town/test.js` 比對 SQL。
 
@@ -444,7 +444,7 @@
 - RPC `town_quest(rid,pin,op,item)`（view／claim）：每人每天一個額外委託（`hashtext('q'||日期||id)%3`）：打工今天達 3 次（300×Lv）、交 1 包零食（200×Lv）、交 2 塊生豬肉（300×Lv）；Lv 由 `items.works` 門檻 0／10／30／70／150。要在市政廳交付，`items.qd={d,a}`，**不動每日任務板（仍 $500）**。前端入口：市政廳櫃員（`npcModal` 的「公告欄委託」）。
 
 
-## 大量事件池（2026-11-17；SQL **尚未套用正式站**：`supabase/town_pool.sql`，在 `town.sql`、`town_social.sql`、`town_stats2.sql` 之後，可重複執行；實測 `supabase/town_pool_test.sql`，最後 rollback，結果在錯誤訊息 REPORT，**還沒跑**）
+## 大量事件池（2026-11-17；SQL **已套用正式站 2026-11-17（`b3e2faa`，回滾實測通過：池 320／120／624、C 標題不重複、錢期望 ≤ 0 且不為負、不重複抽、睡覺／入獄被擋）**：`supabase/town_pool.sql`，在 `town.sql`、`town_social.sql`、`town_stats2.sql` 之後，可重複執行；實測 `supabase/town_pool_test.sql`，最後 rollback，結果在錯誤訊息 REPORT，**已跑並通過**）
 - 取代「只骰 8 種／6 取 1」：文字與效果全由伺服器用模板＋變數產生並回傳，前端只顯示字串（`town.js` 的 `PEV` 只剩地點清單）。獨立 RPC `town_pool(rid,pin,op,target,item)`，不改 `town_act`／`town_world`／`town_pevent`（舊函式保留不用）。
 - 三池（id 範圍）：**A 個人突發 320 種**（id 1～320＝40 場景 × 8 開場，op=`luck`，戶外 50%、5 分鐘一次、每天 ≤ 15）；**B 朋友互動 120 種**（id 1001～1120＝40 活動 × 輕鬆／冒險／大膽，op=`draw` 抽 5 個不同活動 → `do` 選一個，面板「隨機互動」開 choiceModal；對方要同地點醒著）；**C 設施情境 624 種**（id 2001～2624＝13 設施 × 6 人物 × 8 情節，每個 2 選項，op=`fpoll`／`fpick`，取代 `town_pevent` 每地點 3 個）。合計 1064。
 - **分級表只在一處**：`town_pl_scale`（小 100%／中 170%／大 260%）與 `town_pl_tier`（機率 60／30／10）；基準值在 A 的 `amt` 那段（心情 4、精力 4、飽足 5、清潔 6、錢 25、好感 1）、B 的 `town_pl_bfx`、C 的 `town_pl_arch_e`（情節效果表）。文字在 `town_pl_scenes／open／acts／subj／arch_t`。
