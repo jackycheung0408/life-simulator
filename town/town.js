@@ -1,3 +1,4 @@
+// ui2 樣式放這裡（index.html 有 45KB 上限）；遊戲中畫面專用
 // 小豬鎮：任何人都能建立自己的小鎮，拿邀請碼的朋友搬進來；需求隨現實時間下降，所有改動都經過 Supabase 的資料庫函式
 const SB="https://gerqdagicybtyilihvvm.supabase.co/rest/v1/rpc/",SBK="sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y";
 const rpcF=(fn,body={})=>{const b=JSON.stringify(body),p=window.LP&&LP.pre&&LP.pre[fn];if(p&&!p.used&&p.b==b&&Date.now()-p.t<2e4){p.used=1;return p.f}return fetch(SB+fn,{method:"POST",keepalive:true,headers:{apikey:SBK,"Content-Type":"application/json"},body:b})};
@@ -218,6 +219,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u56-ui2",date:"11/17",title:"畫面大改版：地圖更大、更好找",items:["上方只剩一條細細的狀態列，快沒了才會閃紅","我、看全鎮、動態、選單變成右邊的圓形按鈕","下面按鈕分成「這裡／社交／玩樂／工作」分頁，建議下一步固定在最上面","提示訊息一次一則，統一放在狀態列下面，不再蓋住按鈕"]},
   {id:"u55-pool",date:"11/17",title:"隨機事件大量增加",items:["街上、公園、廣場的突發事件有 320 種","設施裡的情境有 600 多種，每次都不一樣","面對面按「隨機互動」，系統抽 5 件事讓你挑一個（共 120 種）","最近遇過的不會馬上重複","賺錢的事很少、花錢的事比較多，不會讓你變有錢"]},
   {id:"u54-roomy",date:"11/17",title:"畫面不再那麼擠",items:["地圖變大，下面的按鈕面板變矮（可拉高）","按鈕變矮，說明只留一行，灰掉的才寫原因","分組標題可點開收合（記住你的選擇，建議下一步永遠展開）","提示訊息移到上方，不再蓋住按鈕"]},
   {id:"u54-quest",date:"11/17",title:"市政廳有公告欄委託了",items:["點市政廳的櫃員，選「公告欄委託」","每天一個額外委託：打工 3 次、交零食或交生豬肉","獎金依職稱，Lv1 到 Lv5 越高越多","每天一次，和每日任務板各算各的"]},
@@ -317,7 +319,58 @@ const visitHost=(r,RR)=>{const h=RR&&r&&r.place&&r.place.startsWith("home:")&&r.
 const roomOf=(r,RR)=>!r?null:fin(r)?ROOMS[r.place]:(r.place=="home:"+r.id&&inside(r))?homeRoom(r):visitHost(r,RR)?{...homeRoom(visitHost(r,RR)),visit:true,inn:vin(r)}:null;// RR = 居民表（頂層函式拿不到 init 裡的 R，由呼叫的人傳進來）
 if(typeof module!=="undefined")module.exports={HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
 
-function init(){
+function init(){(()=>{const st=document.createElement("style");st.id="ui2css";st.textContent=`/* ui2 2026-11-17：地圖優先。HUD 單列、工具變浮動圓鈕、面板=建議置頂＋分頁籤＋圖示磚、訊息統一在 HUD 下方 */
+body.ingame{--hud:calc(env(safe-area-inset-top) + 40px);--tb:0px;--g:8px}
+body.ingame #needs{height:var(--hud);padding:calc(env(safe-area-inset-top) + 4px) 8px 4px;gap:6px;border-bottom:2px solid var(--ink);right:0;grid-template-columns:repeat(5,minmax(0,1fr)) minmax(0,1.5fr);align-items:center}
+body.ingame .need{background:transparent;border:0;box-shadow:none;padding:0;display:grid;grid-template-columns:16px 1fr;grid-template-rows:16px 6px;column-gap:4px;align-items:center;height:28px;min-width:0}
+body.ingame .need span{grid-row:1/3;width:16px;height:16px;font-size:11px;display:flex;align-items:center;justify-content:center}
+body.ingame .need i{height:6px;margin:0;grid-column:2;grid-row:1/3;align-self:center}
+body.ingame .need small{display:none}body.ingame .need.low{animation:lowp 1s steps(2) infinite}body.ingame .need.low i{outline:2px solid var(--bad)}
+body.ingame .need.money{grid-template-columns:16px 1fr;grid-template-rows:auto}body.ingame .need.money span{grid-row:1}
+body.ingame .need.money small{display:block;grid-column:2;grid-row:1;text-align:left;font-size:11px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
+body.ingame .need.money small br{display:none}
+@keyframes lowp{50%{opacity:.55}}
+body.ingame #stage::before{display:none}
+body.ingame #stage{top:var(--hud)}
+body.ingame .bar{top:calc(var(--hud) + var(--g));right:var(--g)}
+body.ingame #menuBtn,body.ingame .tools button{font-size:0;width:44px;height:44px;min-width:44px;padding:0;border-radius:22px;background:rgba(20,26,58,.82);border:2px solid #fff;box-shadow:0 2px 0 var(--ink);display:flex;align-items:center;justify-content:center}
+body.ingame #menuBtn img.px,body.ingame .tools button img.px{width:22px;height:22px;vertical-align:0}
+body.ingame #menuBtn::before{content:"☰";font-size:22px;line-height:1}
+body.ingame .tools{position:fixed;top:calc(var(--hud) + var(--g) + 52px);right:var(--g);left:auto;height:auto;padding:0;background:none;border:0;flex-direction:column;gap:var(--g);z-index:21}
+body.ingame #strip{top:calc(var(--hud) + var(--g));left:var(--g);right:64px;width:auto;height:auto;padding:0;background:none;border:0;-webkit-mask-image:none;mask-image:none;pointer-events:none}
+body.ingame #strip button{pointer-events:auto;height:44px;border-radius:22px;background:rgba(20,26,58,.82)}
+body.ingame #tips,body.ingame #away{top:calc(var(--hud) + 60px)}
+/* 訊息槽：HUD 下方一行，toast 一次一則 */
+body.ingame #toast{top:calc(var(--hud) + 56px);bottom:auto;left:var(--g);right:64px;max-width:none;transform:translateY(-16px);opacity:0;transition:transform .2s,opacity .2s;text-align:left;pointer-events:none;z-index:40;font-size:11px;padding:6px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.ingame #toast.on{transform:none;opacity:1}
+body.ingame #wev{top:calc(var(--hud) + 56px + 36px);left:var(--g);right:auto;max-width:calc(100vw - 72px)}
+body.ingame #upd{top:calc(var(--hud) + var(--g))}
+/* 面板 */
+body.ingame #panel{display:flex;flex-direction:column;max-height:min(32vh,300px);overflow:hidden;padding:0 var(--g) calc(env(safe-area-inset-bottom) + var(--g));border-radius:16px 16px 0 0;box-shadow:0 -2px 0 var(--ink),0 -8px 24px rgba(0,0,0,.35);animation:pup .18s ease-out}
+body.ingame #panel.max{max-height:72vh}
+@keyframes pup{from{transform:translateY(12px);opacity:.6}}
+body.ingame #grip{flex:none;min-height:16px;height:16px;font-size:0;overflow:hidden;padding:0;margin:2px 0;background:none;border:0;box-shadow:none;position:relative}
+body.ingame #grip::after{content:"";position:absolute;left:50%;top:6px;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:#b9c2e8;opacity:.6}
+body.ingame #here{flex:none;font-size:16.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.ingame #note{flex:none;font-size:11px;line-height:1.3;max-height:2.6em;overflow:hidden;margin:2px 0}
+body.ingame #fb,body.ingame #tipbox,body.ingame #ptabs{flex:none}
+body.ingame #tipbox{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--g);margin:var(--g) 0 0}body.ingame #tipbox .act:only-child{grid-column:1/-1}
+body.ingame #ptabs{display:flex;gap:4px;margin:var(--g) 0 0;overflow-x:auto;scrollbar-width:none}body.ingame #ptabs::-webkit-scrollbar{display:none}
+body.ingame .ptab{flex:1 0 auto;min-height:44px;padding:0 10px;font-size:11px;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:12px;background:#26306a;box-shadow:none;border:2px solid var(--ink);white-space:nowrap}
+body.ingame .ptab i{font-style:normal;font-size:11px;min-width:16px;height:16px;line-height:16px;border-radius:8px;background:rgba(255,255,255,.18);text-align:center}
+body.ingame .ptab.z{opacity:.5}body.ingame .ptab.on{background:#ff4f7e}body.ingame .ptab.on i{background:rgba(0,0,0,.25)}
+body.ingame #acts{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;margin-top:var(--g);gap:var(--g);grid-template-columns:repeat(2,minmax(0,1fr))!important;align-content:start;-webkit-overflow-scrolling:touch}
+body.ingame #acts .act,body.ingame #tipbox .act{min-height:44px;border-radius:12px;padding:4px 8px;gap:6px}
+body.ingame #acts .at{flex:1;min-width:0}body.ingame #acts .at b{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.ingame #tipbox .at b{font-size:16.5px}
+body.ingame #acts .pc{font-style:normal;font-size:11px;color:#ffe08a;flex:none}
+body.ingame #acts .act small,body.ingame #tipbox .act small{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;-webkit-line-clamp:unset}
+body.ingame #acts .ai{width:24px;font-size:16.5px}body.ingame #acts .ai img.px{width:24px;height:24px}
+body.ingame #panel.min #tipbox,body.ingame #panel.min #ptabs{display:none}
+@media (max-height:700px){body.ingame #panel{max-height:34vh}body.ingame #note{display:none}body.ingame #tipbox,body.ingame #ptabs,body.ingame #acts{margin-top:4px}}
+@media (prefers-reduced-motion:reduce){body.ingame #panel,body.ingame #toast{animation:none;transition:none}body.ingame .need.low{animation:none}}
+`;document.head.appendChild(st)})();
+
 const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const PXC={};
 const KEEP=[];function preloadIcons(){if(!window.PIXICON)return;Object.keys(window.PIXICON_MAP||{}).forEach(e=>{const i=new Image();i.src=pxIcon(e);KEEP.push(i)})}
@@ -330,7 +383,7 @@ function pxify(root){if(!root)return;const w=document.createTreeWalker(root,Node
 // 畫面任何地方新增的 emoji 都自動變成像素圖示（選單、彈窗、首頁、需求列）
 {let q=new Set(),pend=false;new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)q.add(n.nodeType==3?n.parentElement:n);if(!pend){pend=true;requestAnimationFrame(()=>{pend=false;const l=[...q];q.clear();l.forEach(el=>el&&el.isConnected&&pxify(el))})}}).observe(document.body,{childList:true,subtree:true,characterData:false});
  if(document.readyState==="complete")setTimeout(()=>pxify(document.body),0);else addEventListener("load",()=>pxify(document.body))}// 這支程式是晚載入的：頁面 load 早就過了，改成 init() 跑完（CUR 等變數宣告好）再 pxify
-const toast=t=>{const el=$("toast");el.textContent=t;el.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove("on"),2600)};
+const toast=t=>{const q=toast.q||(toast.q=[]);if(q[q.length-1]===t||(toast.cur===t&&q.length==0))return;q.push(t);if(q.length>3)q.shift();if(!toast.run)toast.next()};toast.next=()=>{const el=$("toast"),t=toast.q.shift();if(t==null){toast.run=0;toast.cur=null;el.classList.remove("on");return}toast.run=1;toast.cur=t;el.textContent=t;el.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>{el.classList.remove("on");setTimeout(toast.next,180)},toast.q.length?1500:2400)};
 const SKIN=["#f1c9a5","#e0ac7e","#c68a5a","#8d5a3a"],HAIR=["#222222","#5a3a1a","#a0522d","#d9b26a","#c0c0c0","#c0392b"],SHIRT=["#d9534f","#3b7dd8","#b45cc4","#8b5a2b","#2e9e5b","#d8901a","#333a44","#f0f0f0"],STYLE=["短髮","長髮","光頭","帽子"];
 const rp=a=>a[Math.floor(Math.random()*a.length)];
 const randLook=()=>({skin:rp(SKIN),hair:rp(HAIR),shirt:rp(SHIRT),style:rp(["短髮","長髮","馬尾","捲髮","瀏海"]),eyes:rp(["圓眼","瞇眼","眼鏡"]),top:rp(["T恤","帽T","襯衫"]),pants:rp(["#2b2b3a","#3b5a8a","#6b4a2b"]),bottom:rp(["長褲","短褲","裙子"]),acc:"無"});
@@ -635,17 +688,23 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  // 內容沒變就不重畫，避免按到一半按鈕被換掉
  if(!sel){const t=nextStep(r,p);if(t){list.unshift({...t,g:"tip"});track("show",t.label)}}
  const dg=inside(r)?"self":p&&p.startsWith("home:")&&p!=="home:"+me?"friend":"place";list.forEach(b=>{if(!b.g)b.g=/^(走|去 |取消)/.test(b.label)?"move":/^(打工|應徵)/.test(b.label)?"work":dg});
- const GORD=["tip","self","place","eat","fun","soc","work","home","friend","face","mis","online","move"],order=[...new Set(list.map(b=>b.g))].sort((a,b)=>GORD.indexOf(a)-GORD.indexOf(b)),multi=order.length>1;
- const html=order.map(g=>(multi?(g=="tip"?`<div class="grp">${GROUP[g]}</div>`:`<button class="grp${gcol(g)?" c":""}" data-g="${g}">${GROUP[g]}</button>`):"")+list.map((b,i)=>{if(b.g!=g)return "";
-   // 圖示放大在左邊；壞事用紅色；錢不夠就標出來
-   const m=b.label.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u)||b.label.match(/^(.*?)\s*(\p{Extended_Pictographic}\uFE0F?)$/u),txt=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[1]:m[2]):b.label,ic=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[2]:m[1]):(ACT_ICON[b.label]||(b.g=="move"?"🚶":"•"));
-   const cost=+((b.sub||"").match(/€(\d+)(?!\d)/)||[])[1]||0,dis=b.dis||"",poor=dis||(cost&&/€\d+/.test(b.sub)&&!/\+€/.test(b.sub)&&r.money<cost),bad=/扁|砍|雞蛋|臭屁|惡作劇|叫醒/.test(b.label);
-   return `<button data-i="${i}" data-g="${b.g}" title="${esc(b.sub||"")}" class="act${multi&&gcol(b.g)?" gh":""}${b.g=="tip"?" cta":""}${bad?" bad":""}${poor?" poor":""}${b.g=="move"?" ghost":""}"><span class="ai">${ic}</span><span class="at"><b>${esc(txt)}</b>${b.sub||poor?`<small>${poor?(dis?esc(dis):`錢不夠（要 €${cost}）`):b.sub}</small>`:""}</span></button>`}).join("")).join("");
- panelFns=list;if(html!=lastPanel){lastPanel=html;patchList($("acts"),html)}drawRoom()}
-let GC={mis:1,online:1};try{Object.assign(GC,JSON.parse(localStorage.getItem("town-gc")||"{}"))}catch(e){}
-function gcol(g){return g!="tip"&&!!GC[g]}
-$("acts").addEventListener("click",ev=>{const gb=ev.target.closest("button.grp");if(gb){const g=gb.dataset.g;GC[g]=GC[g]?0:1;try{localStorage.setItem("town-gc",JSON.stringify(GC))}catch(e){}gb.classList.toggle("c",!!GC[g]);$("acts").querySelectorAll(`.act[data-g="${g}"]`).forEach(x=>x.classList.toggle("gh",!!GC[g]));lastPanel="";return}
-const b=ev.target.closest("button[data-i]");if(!b||busy)return;const f=panelFns[b.dataset.i];if(f){if(f.dis){toast(f.dis);return}if(f.g=="tip")track("click",f.label);press(b,f.fn)}});
+ const GORD=["tip","self","place","eat","fun","soc","work","home","friend","face","mis","online","move"],TABS=[["care","照顧"],["here","這裡"],["social","社交"],["fun","玩樂"],["work","工作"],["move","移動"]];
+ const tile=(b,i)=>{
+   const m=b.label.match(/^(\p{Extended_Pictographic}️?)\s*(.*)$/u)||b.label.match(/^(.*?)\s*(\p{Extended_Pictographic}️?)$/u),txt=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[1]:m[2]):b.label,ic=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[2]:m[1]):(ACT_ICON[b.label]||(b.g=="move"?"🚶":"•"));
+   const cost=+((b.sub||"").match(/€(\d+)(?!\d)/)||[])[1]||0,dis=b.dis||"",poor=dis||(cost&&/€\d+/.test(b.sub)&&!/\+€/.test(b.sub)&&r.money<cost),bad=/扁|砍|雞蛋|臭屁|惡作劇|叫醒/.test(b.label),cta=b.g=="tip";
+   return `<button data-i="${i}" data-g="${b.g}" title="${esc(b.sub||"")}" class="act${cta?" cta":""}${bad?" bad":""}${poor?" poor":""}${b.g=="move"?" ghost":""}"><span class="ai">${ic}</span><span class="at"><b>${esc(txt)}</b>${poor?`<small>${dis?esc(dis):`錢不夠（要 €${cost}）`}</small>`:cta&&b.sub?`<small>${b.sub}</small>`:""}</span>${cost&&!poor&&!cta&&!/\+€/.test(b.sub||"")?`<em class="pc">€${cost}</em>`:""}</button>`};
+ const idx=list.map((b,i)=>[b,i]),tips=idx.filter(x=>x[0].g=="tip").slice(0,2),rest=idx.filter(x=>x[0].g!="tip");
+ const tabsHave=TABS.filter(t=>rest.some(x=>TABOF[x[0].g]==t[0])),pk=p+"|"+(sel||"");
+ if(pk!==ptabKey){ptabKey=pk;ptab=""}if(!tabsHave.some(t=>t[0]==ptab))ptab=(tabsHave.find(t=>t[0]=="here")||tabsHave[0]||[""])[0];
+ const tabHtml=tabsHave.length>1?tabsHave.map(t=>{const its=rest.filter(x=>TABOF[x[0].g]==t[0]),n=its.filter(x=>!x[0].dis).length;return `<button class="ptab${t[0]==ptab?" on":""}${n?"":" z"}" data-t="${t[0]}">${t[1]}<i>${n}</i></button>`}).join(""):"";
+ const cur=rest.filter(x=>TABOF[x[0].g]==ptab).sort((a,b)=>GORD.indexOf(a[0].g)-GORD.indexOf(b[0].g));
+ const tipH=tips.map(x=>tile(x[0],x[1])).join(""),html=cur.map(x=>tile(x[0],x[1])).join("");
+ const all=tipH+"§"+tabHtml+"§"+html;
+ panelFns=list;if(all!=lastPanel){lastPanel=all;patchList($("tipbox"),tipH);patchList($("ptabs"),tabHtml);patchList($("acts"),html);$("tipbox").classList.toggle("hide",!tipH);$("ptabs").classList.toggle("hide",!tabHtml)}drawRoom()}
+const TABOF={self:"care",eat:"care",place:"here",home:"here",friend:"here",face:"social",soc:"social",mis:"social",online:"social",fun:"fun",work:"work",move:"move"};let ptab="",ptabKey="";function panelFnTab(f){ptab=TABOF[f.g]||ptab;lastPanel="";renderPanel()}
+const actClick=ev=>{const tb=ev.target.closest("button.ptab");if(tb){ptab=tb.dataset.t;lastPanel="";renderPanel();return}
+const b=ev.target.closest("button[data-i]");if(!b||busy)return;const f=panelFns[b.dataset.i];if(f){if(f.dis){toast(f.dis);return}if(f.g=="tip")track("click",f.label);press(b,f.fn)}};
+$("acts").addEventListener("click",actClick);$("tipbox").addEventListener("click",actClick);$("ptabs").addEventListener("click",actClick);
 let lastNeeds="";
 function renderNeeds(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now());
  const html=NEEDS.map(k=>{const v=Math.round(r[k]),[ic,nm]=NEED_INFO[k];return `<div class="need${v<20?" low":""}" title="${nm} ${v}"><span>${ic}</span><i><b style="width:${v}%;background:${v<20?"var(--bad)":v<50?"var(--warn)":"var(--good)"}"></b></i><small><em>${nm} </em>${v}</small></div>`}).join("")+`<div class="need money"><span>${MOOD[moodOf(r)][0]}</span><small title="€${r.money}"><u class="cu">€</u>${r.money>=10000?(r.money/1000).toFixed(1).replace(/\.0$/,"")+"k":r.money}${(r.items||{}).gift||(r.items||{}).snack?"<br>":""}${(r.items||{}).gift?`🎁${r.items.gift}`:""}${(r.items||{}).gift&&(r.items||{}).snack?" ":""}${(r.items||{}).snack?`🍪${r.items.snack}`:""}</small></div>`;
@@ -711,13 +770,13 @@ function statsModal(first){const r=R[me];if(!r)return;let at={},avail=0,ini=true
   const done=async note=>{try{const j=await rpc("town_stats",{rid:me,pin,op:"set",note});at=j.at;ini=true;await refresh().catch(()=>{});$("modal").classList.add("hide");toast("能力分配好了")}catch(e){$("serr").textContent=e.message}};
   if($("sok"))$("sok").onclick=()=>done(STATS.map(k=>at[k[0]]||0).join(","));if($("sskip"))$("sskip").onclick=()=>done("0,0,0,0,0");if($("sclose"))$("sclose").onclick=()=>$("modal").classList.add("hide")};
  rpc("town_stats",{rid:me,pin,op:"view"}).then(j=>{at=j.at;avail=j.avail;ini=j.init;if(first&&ini)return;rpc("town_train",{rid:me,pin,kind:"view"}).then(t=>{tr=t}).catch(()=>{}).then(draw)}).catch(e=>toast(e.message))}
+async function rollDraw(id){try{const j=await rpc("town_pool",{rid:me,pin,op:"draw",target:id});const rows=j.list.map(x=>[x.title,x.desc+" · "+x.hint+(x.cost?` · 要花 €${x.cost}`:""),async()=>{try{const k=await rpc("town_pool",{rid:me,pin,op:"do",target:id,item:String(x.id)});await refresh();spawnFx(k.hit?"sparkle":"coins",me,id);toast(`${k.msg} ${k.fx||""}`);feedback(k.hit,k.fx||"")}catch(e){toast(e.message)}renderPanel()}]);choiceModal(`隨機互動：和 ${j.who}`,"系統抽了 5 件事，選一個來做",rows)}catch(e){toast(e.message)}}
 async function rollDo(kind,id){try{const j=await rpc("town_roll",{rid:me,pin,kind,target:id});await refresh();const a=j.act;if(kind=="mis"){spawnFx(MIS_FX[a]||"sparkle",me,id);playRoomFx(a,id)}const m=(j.res&&j.res.msg)||"";toast(`${j.flavor} ${m}`);feedback(true,m)}catch(e){toast(e.message)}}
 function traitModal(){const sel=[];$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>選 2 個個性</h2><p class="mut">只有加成，沒有壞處。選了就不能改，也可以先跳過。</p><div class="list">${Object.entries(TRAITS).map(([k,v])=>`<button data-tk="${k}" style="width:100%;text-align:left;margin-bottom:6px"><b>${v[0]}</b><br><small>${v[1]}</small></button>`).join("")}</div><p class="err" id="terr"></p><div class="row"><button id="tskip">先跳過</button><button class="pri" id="tok" disabled>選好了</button></div>`;
  const bs=[...$("mbody").querySelectorAll("[data-tk]")],upd=()=>{bs.forEach(b=>b.classList.toggle("pri",sel.includes(b.dataset.tk)));$("tok").disabled=sel.length!=2;$("tok").textContent=sel.length==2?"選好了":`再選 ${2-sel.length} 個`};
  bs.forEach(b=>b.onclick=()=>{const k=b.dataset.tk,i=sel.indexOf(k);if(i>=0)sel.splice(i,1);else if(sel.length<2)sel.push(k);upd()});upd();
  const go=async ks=>{try{apply(await rpc("town_traits",{rid:me,pin,ks}));$("modal").classList.add("hide");if(ks.length)toast("個性訂好了");if(!(R[me].items&&R[me].items.wish))setTimeout(wishModal,300);else if(ks.length)lifeModal()}catch(e){$("terr").textContent=e.message}};
  $("tok").onclick=()=>go(sel);$("tskip").onclick=()=>go([])}
-async function rollDraw(id){try{const j=await rpc("town_pool",{rid:me,pin,op:"draw",target:id});const rows=j.list.map(x=>[x.title,x.desc+" · "+x.hint+(x.cost?` · 要花 €${x.cost}`:""),async()=>{try{const k=await rpc("town_pool",{rid:me,pin,op:"do",target:id,item:String(x.id)});await refresh();spawnFx(k.hit?"sparkle":"coins",me,id);toast(`${k.msg} ${k.fx||""}`);feedback(k.hit,k.fx||"")}catch(e){toast(e.message)}renderPanel()}]);choiceModal(`隨機互動：和 ${j.who}`,"系統抽了 5 件事，選一個來做",rows)}catch(e){toast(e.message)}}
 function alHtml(r){const n=alN(r),l=lvOf(n),a=AL[l],nx=AL[l+1],s=((r.items.al||{}).s)||0;
  const pct=nx?Math.round((n-a[0])/(nx[0]-a[0])*100):100;
  return `<h3>小鎮居民等級</h3><div class="mrow"><span><b>Lv${l+1} ${a[1]}</b> <small class="mut">活躍 ${n} 天${s>1?` · 連續 ${s} 天`:""}${nx?` · 再活躍 ${nx[0]-n} 天升 Lv${l+2}「${nx[1]}」`:" · 已是最高等級"}</small><i class="bond"><b style="left:0;width:${pct}%;background:var(--good)"></b></i><small class="mut">每天有上線動作就算活躍一天，只給便利，不影響打工薪水。斷了不會掉級、不扣東西。</small></span></div><div class="list">${AL.map((x,i)=>`<div class="mrow"><span>${i<=l?"✔":"・"} Lv${i+1} ${x[1]}（${x[0]} 天）<br><small class="mut">打工冷卻 ${x[2]} 分 · 背包 ${x[3]} · 房租 −${x[4]}%${x[5]?` · 每日登入禮 €${x[5]}`:""}</small></span></div>`).join("")}</div>`}
@@ -1641,7 +1700,7 @@ function roomTap(fx,fy){const r=R[me],rm=roomOf(r,R);if(!rm)return;if(rm.visit&&
  if(rm.npc&&!rm.home&&cx==rm.npc[0]&&(cy==rm.npc[1]||cy==rm.npc[1]-1)){npcModal(r.place);return}
  if(pid){sel=sel==+pid?null:+pid;renderPanel();return}const o=rm.items.find(o=>o[1]==cx&&o[2]==cy);if(!o){if(rm.home&&!r.sleeping&&!rm.visit)interiorModal(me);return}
  const d=rm.home?[0,(FURN.find(a=>a[0]==o[0])||[0,o[0]])[1],HACT[o[0]]?HACT[o[0]][0]:null]:ITEM[o[0]];if(!d[2]){if(rm.home)interiorModal(me);else toast(d[1]);return}
- const i=panelFns.findIndex(f=>d[2].test(f.label)),el=i<0?null:$("acts").querySelector(`button[data-i="${i}"]`);if(el)el.click();else toast(`${d[1]}現在不能用`)}
+ const i=panelFns.findIndex(f=>d[2].test(f.label));let el=i<0?null:document.querySelector(`#panel button[data-i="${i}"]`);if(i>=0&&!el){panelFnTab(panelFns[i]);el=document.querySelector(`#panel button[data-i="${i}"]`)}if(el)el.click();else toast(`${d[1]}現在不能用`)}
 {const cv=typeof document!=="undefined"&&document.getElementById("room");if(cv)cv.addEventListener("click",ev=>{const b=cv.getBoundingClientRect();roomTap((ev.clientX-b.left)/b.width,(ev.clientY-b.top)/b.height)})}
 // 主畫面帶屋內：自己人在室內（設施裡、自己家屋裡、朋友家屋裡；醫院住院的人也算）而且沒在走路時，主畫面改畫室內（放大），不再畫地圖；點物件、點人和面板按鈕一樣用
 function stageRoom(){const r=R[me];if(!r)return null;const wk=walkers[me];if(wk&&wk.path.length)return null;const rm=roomOf(r,R);if(!rm)return null;if(rm.visit&&!vin(r))return null;return rm}
