@@ -1304,9 +1304,9 @@ function person(x,y,look,tk,moving,label,isMe,state){const u=1.6;
  g.fillStyle="rgba(0,0,0,.25)";g.fillRect(x-5*u,y+10*u,10*u,3*u);if(state.veh&&state.veh!="car")vdraw(state.veh,x,y,state.fx);drawChar(g,x,y,u,look,{...state,moving},tk);if(state.veh=="car")vdraw("car",x,y,state.fx);
  if(state.sleeping){g.font="16.5px Cubic11,monospace";g.fillStyle="#fff";g.fillText("Zz",x+14*u,y-6*u+Math.sin(tk/20)*3)}
  if(state.stink){g.strokeStyle="#7bd36b";g.lineWidth=2;for(let k=-1;k<=1;k++){g.beginPath();for(let s=0;s<10;s++)g.lineTo(x+k*8*u+Math.sin(tk/6+s)*2,y-16*u-s*2.2);g.stroke()}}
- g.font="11px Cubic11,monospace";g.textAlign="center";g.textBaseline="middle";const tag=label+(state.bruised?" 🤕":"")+(state.hungry?" 🍚":""),w=textIcons(tag,0,0,14,true)+10,ty=y-32*u-(state.ly||0);g.fillStyle=isMe?"rgba(160,110,0,.9)":"rgba(0,0,0,.65)";g.fillRect(x-w/2,ty,w,18);g.fillStyle="#fff";textIcons(tag,x,ty+9,14);
+ const k=1/cam.s;g.font=11*k+"px Cubic11,monospace";g.textAlign="center";g.textBaseline="middle";const tag=label+(state.bruised?" 🤕":"")+(state.hungry?" 🍚":""),w=textIcons(tag,0,0,14*k,true)+10*k,ty=y-32*u-(state.ly||0);g.fillStyle=isMe?"#a06e00":"#2a2a2a";g.fillRect(x-w/2,ty,w,18*k);g.fillStyle="#fff";textIcons(tag,x,ty+9*k,14*k);
  // 心情泡泡
- if(state.bubble){g.font="11px Cubic11,monospace";const bw=textIcons(state.bubble,0,0,13,true)+14,by=ty-26;g.fillStyle="#fff";g.beginPath();g.rect(x-bw/2,by,bw,22);g.fill();g.beginPath();g.moveTo(x-5,by+22);g.lineTo(x+5,by+22);g.lineTo(x,by+28);g.fill();g.fillStyle="#2c2620";textIcons(state.bubble,x,by+11,13)}}
+ if(state.bubble){g.font=11*k+"px Cubic11,monospace";const bw=textIcons(state.bubble,0,0,13*k,true)+14*k,by=ty-26*k;g.fillStyle="#fff";g.beginPath();g.rect(x-bw/2,by,bw,22*k);g.fill();g.beginPath();g.moveTo(x-5*k,by+22*k);g.lineTo(x+5*k,by+22*k);g.lineTo(x,by+28*k);g.fill();g.fillStyle="#2c2620";textIcons(state.bubble,x,by+11*k,13*k)}}
 function miniPerson(c,L){const m=c.getContext("2d"),u=c.height/30;m.clearRect(0,0,c.width,c.height);drawChar(m,c.width/2,17.5*u,u,L,{},0)}
 let W=0,Hh=0,dpr=1;const snapS=s=>{const e=s*dpr;return e>=1?Math.max(1,Math.round(e))/dpr:s};
 const isMob=()=>matchMedia("(max-width:700px)").matches;const isPC=()=>matchMedia("(min-width:900px)").matches;
