@@ -12,7 +12,7 @@
 <link rel="icon" href="favicon.png" type="image/png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#f6a5c0">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preload" as="font" type="font/woff2" crossorigin href="https://cdn.jsdelivr.net/gh/ACh-K/Cubic-11@1.500/fonts/web/Cubic_11.woff2">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="小豬鎮"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="小豬鎮"><meta name="apple-mobile-web-app-status-bar-style" content="black">
 <style>
 :root{--bg:#f3efe6;--fg:#2c2620;--mut:#7a6d60;--card:#fffaf2;--line:#e3d9c8;--btn:#fff;--btnh:#f6ecdc;--ac:#e0779b;--good:#3fa34d;--warn:#e0a020;--bad:#d9453f}
 @media (prefers-color-scheme:dark){:root{--bg:#1c1a17;--fg:#f1ebe0;--mut:#a89c8d;--card:#27241f;--line:#3a352e;--btn:#2f2b25;--btnh:#3a352e;--ac:#f08bb0}}
@@ -261,7 +261,7 @@ var m=/[?&]t=([A-Za-z0-9]+)/.exec(location.search),T=m?m[1]:"",loaded=0,LP=windo
 function mine(){try{return JSON.parse(localStorage.getItem("town-mine")||"[]")}catch(e){return[]}}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function add(src){var s=document.createElement("script");s.src=src;s.async=false;document.body.appendChild(s)}
-function load(){if(loaded)return;loaded=1;add("icons.js?v=15");add("town.js?v=172")}
+function load(){if(loaded)return;loaded=1;add("icons.js?v=15");add("town.js?v=174")}
 function ago(t){if(!t)return"";var s=(Date.now()-t)/1e3;return s<90?"剛剛上線":s<3600?Math.round(s/60)+" 分鐘前上線":s<86400?Math.round(s/3600)+" 小時前上線":Math.round(s/86400)+" 天前上線"}
 var R=function(x,y,w,h,f){return'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+f+'"/>'};
 var HOUSE='<svg viewBox="0 0 12 12" shape-rendering="crispEdges">'+R(3,1,6,1,"#d9534f")+R(2,2,8,1,"#d9534f")+R(1,3,10,1,"#d9534f")+R(2,4,8,7,"#f4ead6")+R(5,7,2,4,"#8b5a2b")+R(3,5,2,2,"#9fd8ff")+R(7,5,2,2,"#9fd8ff")+'</svg>';
