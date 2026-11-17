@@ -224,7 +224,7 @@ begin
     if ki = 'fun' then f := amt; r.fun := r.fun + f;
     elsif ki = 'energy' then e := amt; r.energy := r.energy + e;
     elsif ki = 'hunger' then h := amt; r.hunger := r.hunger + h;
-    elsif ki = 'hygiene' then hy := amt; r.hygiene := r.hygiene + y;
+    elsif ki = 'hygiene' then hy := amt; r.hygiene := r.hygiene + hy;
     elsif ki = 'money' then m := case when amt < 0 then -least(-amt, r.money) else amt end; r.money := r.money + m;
     elsif ki = 'bond' then
       select o2.id, o2.name into xid, xname from public.town_residents o2 where o2.town_id = r.town_id and o2.id <> rid and o2.place = r.place and not o2.sleeping and not public.town_jailed(o2) order by random() limit 1;
