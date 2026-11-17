@@ -285,7 +285,7 @@ LP.top=function(list){
  var one=!list.length;
  h+='<div class="'+(one?"choose":"lpgo")+'"><button class="big'+(one?" pri":"")+'" id="cJoin"><span class="hi">'+MAIL+'</span><span><b>加入朋友的小鎮</b><small>用朋友給的邀請碼或連結</small></span></button>'
   +'<button class="big" id="cNew"><span class="hi">'+FLAG+'</span><span><b>建立新小鎮</b><small>自己當鎮長</small></span></button></div>';
- h+='<p class="lpfoot2"><button class="ghost" id="cRec">找回我的角色</button></p>';return h+'<p class="lpfoot">小豬鎮 · 和朋友一起生活<br>'+'<button class="lpl" data-h="terms.html" onclick="location.href='terms.html'">條款</button> · <button class="lpl" data-h="privacy.html" onclick="location.href='privacy.html'">隱私</button>'+'</p>'};
+ h+='<p class="lpfoot2"><button class="ghost" id="cRec">找回我的角色</button></p>';return h+'<p class="lpfoot">小豬鎮 · 和朋友一起生活<br>'+'<button class="lpl" data-h="terms.html" onclick="location.href=\'terms.html\'">條款</button> · <button class="lpl" data-h="privacy.html" onclick="location.href=\'privacy.html\'">隱私</button>'+'</p>'};
 /* 備份：iOS 會清 localStorage，登入鑰匙（town-mine，含裝置金鑰 pin）另存 IndexedDB；只存必要欄位，登出／搬離會同步刪。 */
 var DB="town-bk";
 function idb(f){try{var q=indexedDB.open(DB,1);q.onupgradeneeded=function(){q.result.createObjectStore("k")};q.onsuccess=function(){try{f(q.result)}catch(e){}};q.onerror=function(){}}catch(e){}}
