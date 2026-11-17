@@ -217,6 +217,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u49-wev",date:"11/17",title:"小鎮事件橫幅變小了",items:["橫幅縮成右上角小標籤，不再擋住地圖","點一下就能收起，下一個事件才會再出現"]},
   {id:"u48-train",date:"11/17",title:"能力屬性可以練了",items:["健身房舉重練力量、公園慢跑練敏捷、在家讀書練智力、廣場或咖啡廳聊天練魅力、許願池投幣練運氣","每項要累積訓練進度才 +1 點，越高越難，每天最多 8 點進度，最高仍是 5","鼻青臉腫、心情低落、發臭、精力太低、欠事故款會暫時減能力，狀態好了就恢復","「能力屬性」裡看得到進度與暫時減益"]},
   {id:"u48-balance2",date:"11/17",title:"打工不遞減，錢花得更有感",items:["打工薪水不再遞減，每次都是全額","存款超過 5 萬就要繳財產稅，越有錢稅率越高（0.3%～3%）","特調咖啡漲到 €300","喪屍豬打倒改領 €60～140，一天最多 €600"]},
   {id:"u47-landing",date:"11/16",title:"首頁換新裝",items:["首頁加了像素豬 Logo 與大標題","主按鈕改成粉紅立體按鈕，按下去有手感","卡片圓角與陰影統一，進場有淡入動畫","手機瀏海與底部安全區不再被擋住"]},
@@ -1654,8 +1655,9 @@ setInterval(zbPoll,4000);
 // 鎮上隨機事件：全鎮事件橫幅（每 60 秒問一次）與個人突發事件（戶外每 ~3 分鐘）
 const WEV={market:["市集日","吃喝價格 85%"],boom:["景氣好","打工薪水 115%"],bust:["景氣差","打工薪水 90%、吃喝價格 110%"],blackout:["停電","打工薪水 95%"],festival:["小鎮慶典","吃喝價格 90%、打工薪水 105%"]};
 let wevK=null,wevUntil=0,wevBusy=false;
-function wevDraw(){let b=$("wev");if(!wevK||wevUntil<Date.now()){if(b)b.classList.remove("on");return}
- if(!b){b=document.createElement("div");b.id="wev";document.body.appendChild(b)}
+let wevHide=null;
+function wevDraw(){let b=$("wev");if(!wevK||wevUntil<Date.now()||wevHide===wevK){if(b)b.classList.remove("on");return}
+ if(!b){b=document.createElement("div");b.id="wev";b.onclick=()=>{wevHide=wevK;b.classList.remove("on")};document.body.appendChild(b)}
  const m=Math.max(1,Math.ceil((wevUntil-Date.now())/6e4));b.textContent=`小鎮事件：${WEV[wevK][0]}（${WEV[wevK][1]}），剩 ${m} 分鐘`;b.classList.add("on")}
 async function wevPoll(){if(wevBusy||document.visibilityState!="visible"||!me||!S)return;wevBusy=true;try{const j=await rpc("town_world",{rid:me,pin,op:"poll"});const ev=j&&j.ev&&WEV[j.ev.k]?j.ev:null;const k=ev?ev.k:null;if(k!==wevK){if(k)toast(`小鎮事件：${WEV[k][0]}，${WEV[k][1]}`);else if(wevK)toast("小鎮事件結束了");}wevK=k;wevUntil=ev?Date.parse(ev.until):0;wevDraw()}catch(e){}finally{wevBusy=false}}
 async function luckPoll(){if(document.visibilityState!="visible"||!me||!S||updBusy())return;const r=R[me];if(!r||r.sleeping||!["street","plaza","park"].includes(r.place))return;try{const j=await rpc("town_world",{rid:me,pin,op:"luck"});if(j&&j.msg)await refresh().catch(()=>{})}catch(e){}}
