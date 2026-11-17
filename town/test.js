@@ -398,4 +398,17 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 {const t2=require("fs").readFileSync(__dirname+"/town.js","utf8");check(t2.includes("@media (min-width:900px){body.ingame{--L:")&&t2.includes("id=\"pccss\"")&&t2.includes("addEventListener(\"keydown\",e=>{if(!isPC()"),"PC 版：要有 min-width:900px 規則與鍵盤處理")}
 {const fs=require("fs");for(const f of ["index.html","hub/index.html"]){const h=fs.readFileSync(__dirname+"/../"+f,"utf8");check(h.includes("Cubic_11")&&!/border-radius:\s*[1-9]/.test(h)&&!/Silkscreen|Noto Sans TC\",\"PingFang/.test(h.replace(/"PingFang TC","Noto Sans TC"/g,"")),"入口頁 "+f+"：要用 Cubic 11、沒有非 0 圓角")}}
 {const fs=require("fs");const hs=fs.readFileSync(__dirname+"/index.html","utf8");for(const f of ["terms.html","privacy.html"]){const h=fs.readFileSync(__dirname+"/"+f,"utf8");check(h.includes("Cubic_11")&&!/border-radius:\s*[1-9]/.test(h)&&!/gradient/.test(h)&&h.includes("viewport")&&h.includes("2026-11-17")&&h.includes("回到遊戲"),f+" 要有 Cubic 11、無圓角漸層、viewport、日期、回到遊戲");check(hs.includes('data-h="'+f+'"'),"首頁要有 "+f+" 連結");check(fs.readFileSync(__dirname+"/sw.js","utf8").includes(f),"sw.js 快取清單要有 "+f)}}
+{const fs=require("fs"),sf=fs.readFileSync(__dirname+"/sfx.js","utf8"),tj=fs.readFileSync(__dirname+"/town.js","utf8"),ih=fs.readFileSync(__dirname+"/index.html","utf8");
+ check(sf.length<=12288,"sfx.js 要 ≤ 12KB");try{new Function(sf)}catch(e){check(false,"sfx.js 語法錯："+e.message)}
+ const defs=new Set([...sf.matchAll(/^ ([a-z_0-9]+):function\(t\)/gm)].map(m=>m[1]));check(defs.size>=22,"sfx.js 音效至少 22 種");
+ const used=new Set([...(sf+tj).matchAll(/SFX\.play\("([a-z_0-9]+)"/g)].map(m=>m[1]));for(const n of used)check(defs.has(n),"SFX.play 用到沒定義的音效 "+n);
+ check(/sfx\.js\?v=\d+/.test(ih)&&(ih.match(/sfx\.js\?v=/g)||[]).length==1,"index.html 要載入 sfx.js?v=（只能一次）");check(tj.includes('id="sndBtn"')||ih.includes('id="sndBtn"'),"選單要有聲音按鈕")}
+{const fs=require("fs");const sq=fs.readFileSync(__dirname+"/../supabase/town_recovery.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8"),ih=fs.readFileSync(__dirname+"/index.html","utf8");
+ check(sq.split("\n").slice(0,6).every(l=>l.startsWith("-- ")),"town_recovery.sql 檔頭每行要是註解");
+ check(/enable row level security/.test(sq)&&/revoke all on public\.town_recovery from anon, authenticated/.test(sq),"town_recovery 要 RLS 全關");
+ check(!/email text|email_hash text not null,\s*email/.test(sq)&&sq.includes("digest(em, 'sha256')"),"town_recovery 不存 Email 明碼");
+ check(/grant execute on function public\.town_recovery_bind\(bigint,text\), public\.town_recovery_list\(\), public\.town_recovery_claim\(bigint,text\) to authenticated/.test(sq),"bind／list／claim 只給 authenticated");
+ for(const f of ["recovery_status","recovery_bind","recovery_unbind","recovery_list","recovery_claim"])check(js.includes("town_"+f),"town.js 要呼叫 town_"+f);
+ check(js.includes("function recFind")&&js.includes("function recBindModal")&&js.includes("auth/v1/")&&ih.includes('id="cRec"')&&ih.includes('id="recBtn"'),"帳號救援入口（首頁 cRec、選單 recBtn、recFind、recBindModal）要在");
+ check(fs.existsSync(__dirname+"/../supabase/town_recovery_test.sql"),"要有 town_recovery_test.sql")}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

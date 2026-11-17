@@ -226,6 +226,8 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"sound-1117",date:"11/17",title:"新增 8-bit 音效",items:["點擊、賺錢、打工、走路都有聲音","選單「聲音」可開音樂、調音量、試聽"]},
+  {id:"recovery-1117",date:"11/17",title:"帳號救援",items:["選單可綁定 Email","換手機：首頁找回角色"]},
   {id:"legal-1117",date:"11/17",title:"新增條款與隱私",items:["選單可看服務條款","選單可看隱私權政策"]},
   {id:"pc-layout-1117",date:"11/17",title:"電腦版改版",items:["電腦上左邊地圖、右邊面板","滾輪縮放、滑過顯示名稱","方向鍵走路、1-9 按按鈕"]},
   {id:"u63-pixel",date:"11/17",title:"全面像素風",items:["地圖與文字邊緣更銳利","圓角、模糊陰影改成像素方塊"]},
@@ -347,7 +349,7 @@ function pxify(root){if(!root)return;const w=document.createTreeWalker(root,Node
 // 畫面任何地方新增的 emoji 都自動變成像素圖示（選單、彈窗、首頁、需求列）
 {let q=new Set(),pend=false;new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)q.add(n.nodeType==3?n.parentElement:n);if(!pend){pend=true;requestAnimationFrame(()=>{pend=false;const l=[...q];q.clear();l.forEach(el=>el&&el.isConnected&&pxify(el))})}}).observe(document.body,{childList:true,subtree:true,characterData:false});
  if(document.readyState==="complete")setTimeout(()=>pxify(document.body),0);else addEventListener("load",()=>pxify(document.body))}// 這支程式是晚載入的：頁面 load 早就過了，改成 init() 跑完（CUR 等變數宣告好）再 pxify
-const toast=t=>{const q=toast.q||(toast.q=[]);if(q[q.length-1]===t||(toast.cur===t&&q.length==0))return;q.push(t);if(q.length>3)q.shift();if(!toast.run)toast.next()};toast.next=()=>{const el=$("toast"),t=toast.q.shift();if(t==null){toast.run=0;toast.cur=null;el.classList.remove("on");return}toast.run=1;toast.cur=t;el.textContent=t;el.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>{el.classList.remove("on");setTimeout(toast.next,180)},toast.q.length?1500:2400)};
+const toast=t=>{window.SFX&&SFX.toast(t);const q=toast.q||(toast.q=[]);if(q[q.length-1]===t||(toast.cur===t&&q.length==0))return;q.push(t);if(q.length>3)q.shift();if(!toast.run)toast.next()};toast.next=()=>{const el=$("toast"),t=toast.q.shift();if(t==null){toast.run=0;toast.cur=null;el.classList.remove("on");return}toast.run=1;toast.cur=t;el.textContent=t;el.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>{el.classList.remove("on");setTimeout(toast.next,180)},toast.q.length?1500:2400)};
 const SKIN=["#f1c9a5","#e0ac7e","#c68a5a","#8d5a3a"],HAIR=["#222222","#5a3a1a","#a0522d","#d9b26a","#c0c0c0","#c0392b"],SHIRT=["#d9534f","#3b7dd8","#b45cc4","#8b5a2b","#2e9e5b","#d8901a","#333a44","#f0f0f0"],STYLE=["短髮","長髮","光頭","帽子"];
 const rp=a=>a[Math.floor(Math.random()*a.length)];
 const randLook=()=>({skin:rp(SKIN),hair:rp(HAIR),shirt:rp(SHIRT),style:rp(["短髮","長髮","馬尾","捲髮","瀏海"]),eyes:rp(["圓眼","瞇眼","眼鏡"]),top:rp(["T恤","帽T","襯衫"]),pants:rp(["#2b2b3a","#3b5a8a","#6b4a2b"]),bottom:rp(["長褲","短褲","裙子"]),acc:"無"});
@@ -395,7 +397,7 @@ $("lg").innerHTML=`${LP.top(list)}
   <div id="lk"></div><p class="err" id="cerr"></p><div class="row"><button class="pri" id="create">建立小鎮，當鎮長</button></div></div>
   ${standalone?"":`<p style="margin-top:14px"><button class="ghost" id="inst2" style="width:100%">📲 加到主畫面，像 App 一樣打開</button></p>`}`;
  const show=k=>{$("fJoin").classList.toggle("hide",k!="j");$("fNew").classList.toggle("hide",k!="n");$("cJoin").classList.toggle("on",k=="j");$("cNew").classList.toggle("on",k=="n");(k=="j"?$("code"):$("tn")).focus()};
- $("cJoin").onclick=()=>show("j");$("cNew").onclick=()=>show("n");if(LP.want){show(LP.want);LP.want=""}
+ if($("cRec"))$("cRec").onclick=()=>recFind();$("cJoin").onclick=()=>show("j");$("cNew").onclick=()=>show("n");if(LP.want=="r"){LP.want="";recFind();return}if(LP.want){show(LP.want);LP.want=""}
  $("lg").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));if($("inst2"))$("inst2").onclick=installHelp;
  $("join").onclick=async()=>{const c=$("code").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.length<4){$("jerr").textContent="邀請碼是 6 個英文或數字，檢查有沒有少打";return}
   // 小鎮代碼或邀請碼都可以；輸入的是邀請碼就記起來，等一下自動填好
@@ -418,6 +420,37 @@ function apply(st){S=st;setTimeout(popCheck,0);POOPS=st.poops||[];CUR="$";try{fx
  $("title").textContent="🐷 "+st.town.name;if(me&&!R[me]){toast("你已經搬離這個小鎮");dropMine(TID);setTimeout(()=>go(""),1200)}
  renderFeed();renderPanel();renderNeeds();if(me)renderStrip();pxify($("feed"));pxify($("tab-rank"));pxify($("tab-ppl"))}
 let mapKey="";
+// ── 帳號救援（supabase/town_recovery.sql）：Email 驗證碼由 Supabase Auth 寄出，驗證成功的 JWT 帶去呼叫救援函式
+const AUTH=SB.replace("/rest/v1/rpc/","/auth/v1/"),recFail=()=>{try{return JSON.parse(localStorage.getItem("town-recf")||"{}")}catch(e){return{}}};
+const recLockLeft=em=>{const f=recFail()[em];return f&&f.u>Date.now()?Math.ceil((f.u-Date.now())/6e4):0};
+const recBad=em=>{const o=recFail(),f=o[em]&&o[em].u<Date.now()?{n:0}:(o[em]||{n:0});f.n=(f.n||0)+1;if(f.n>=5){f.u=Date.now()+18e5;f.n=0}o[em]=f;try{localStorage.setItem("town-recf",JSON.stringify(o))}catch(e){}};
+const authPost=async(p,b)=>{let r;try{r=await fetch(AUTH+p,{method:"POST",headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify(b)})}catch(e){throw new Error("連不上小鎮，檢查網路後再按一次")}const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(r.status==429?"這個 Email 寄太多次了，請 1 小時後再試":"驗證碼不對或已過期，請檢查後再試，或按「重寄驗證碼」");e.st=r.status;throw e}return j};
+const recRpc=async(fn,body,tok)=>{let r;try{r=await fetch(SB+fn,{method:"POST",headers:{apikey:SBK,Authorization:"Bearer "+tok,"Content-Type":"application/json"},body:JSON.stringify(body)})}catch(e){throw new Error("連不上小鎮，檢查網路後再按一次")}const j=await r.json().catch(()=>null);if(!r.ok)throw new Error((j&&j.message)||"小鎮暫時沒回應，過一下再按一次");if(j&&j.error)throw new Error(j.error);return j};
+// 兩步驟表單：輸入 Email → 輸入 6 位驗證碼 → done(token)；host 是放表單的元素
+function recAsk(host,title,done){let em="";const s1=()=>{host.innerHTML=`<h2>${title}</h2><label class="lpcode">Email<input id="rem" type="email" inputmode="email" autocomplete="email" maxlength="80" placeholder="you@example.com" value="${esc(em)}"></label><p class="mut">我們會寄 6 位數驗證碼給你，10 分鐘內有效。</p><p class="err" id="rerr"></p><div class="row"><button class="pri" id="rsend">寄驗證碼</button></div>`;$("rem").focus();$("rsend").onclick=send};
+ const send=async()=>{em=$("rem").value.trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){$("rerr").textContent="Email 格式不對，檢查有沒有少打 @ 或網域";return}
+  const lk=recLockLeft(em);if(lk){$("rerr").textContent=`驗證碼錯太多次，請 ${lk} 分鐘後再試`;return}
+  $("rsend").disabled=true;try{await authPost("otp",{email:em,create_user:true});s2()}catch(e){$("rerr").textContent=e.message;$("rsend").disabled=false}};
+ const s2=()=>{host.innerHTML=`<h2>輸入驗證碼</h2><p class="mut">如果這個 Email 能收信，幾分鐘內會收到 6 位數驗證碼（沒收到請看垃圾信匣）。</p><label class="lpcode">驗證碼<input id="rtk" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 位數字"></label><p class="err" id="rerr"></p><div class="row"><button id="rback">換 Email／重寄</button><button class="pri" id="rok">確認</button></div>`;$("rtk").focus();$("rback").onclick=s1;
+  $("rok").onclick=async()=>{const tk=$("rtk").value.trim();if(!/^\d{6}$/.test(tk)){$("rerr").textContent="驗證碼是 6 位數字";return}const lk=recLockLeft(em);if(lk){$("rerr").textContent=`驗證碼錯太多次，請 ${lk} 分鐘後再試`;return}
+   $("rok").disabled=true;try{const j=await authPost("verify",{type:"email",email:em,token:tk});if(!j.access_token)throw new Error("驗證碼不對或已過期，請檢查後再試");done(j.access_token,em)}catch(e){recBad(em);$("rerr").textContent=e.message;$("rok").disabled=false}}};
+ s1()}
+// 首頁「找回我的角色」：驗證 → 列出綁定的角色 → 選一個 → 這台裝置取得新金鑰
+function recFind(){document.body.classList.remove("ingame");$("login").classList.remove("hide");$("game").classList.add("hide");const host=$("lg");host.innerHTML="";const box=document.createElement("div");host.appendChild(box);
+ const back=()=>{const b=document.createElement("div");b.className="row";b.style.justifyContent="flex-start";b.innerHTML='<button id="rhome">← 小豬鎮首頁</button>';host.appendChild(b);$("rhome").onclick=()=>go("")};
+ recAsk(box,"找回我的角色",async tok=>{box.innerHTML="<p class=\"mut\">查詢中…</p>";try{const r=await recRpc("town_recovery_list",{},tok),l=r.list||[];
+  if(!l.length){box.innerHTML=`<h2>找不到綁定的角色</h2><p class="mut">這個 Email 還沒綁過角色。請用邀請碼加入小鎮，進遊戲後在選單「帳號救援」綁定。</p>`;back();return}
+  box.innerHTML=`<h2>選要找回的角色</h2><div class="list">${l.map((x,i)=>`<button class="big" data-i="${i}"><span><b>${esc(x.town_name)}</b><small>${esc(x.me)}</small></span></button>`).join("")}</div><p class="err" id="rerr"></p>`;
+  box.querySelectorAll("[data-i]").forEach(b=>b.onclick=async()=>{const x=l[+b.dataset.i];b.disabled=true;try{const k=newKey();const c=await recRpc("town_recovery_claim",{rid:x.rid,key:k},tok);saveMine({tid:c.town_id,name:x.town_name,rid:x.rid,pin:k,me:x.me});location.search="?t="+c.town_id}catch(e){$("rerr").textContent=e.message;b.disabled=false}})}catch(e){box.innerHTML=`<p class="err">${esc(e.message)}</p>`;back()}});back()}
+// 選單「帳號救援」：綁定 Email
+function recBindModal(){$("modal").classList.remove("hide");$("mbody").innerHTML='<h2>帳號救援</h2><p class="mut">查詢中…</p>';
+ const shut=()=>$("modal").classList.add("hide");
+ recRpc2("town_recovery_status",{rid:me,pin}).then(st=>{const hs=st.hints||[];$("mbody").innerHTML=`<div id="rbox"></div><div class="row"><button id="rx">關閉</button></div>`;$("rx").onclick=shut;
+  const intro=hs.length?`<p class="mut">已綁定：${hs.map(esc).join("、")}。換手機時，在首頁按「找回我的角色」就能回來。</p>`:`<p class="mut">綁定 Email 後，換手機或被清掉資料也能找回這個角色。每個小鎮可綁一個角色。</p>`;
+  const rb=$("rbox");rb.innerHTML=intro+'<div class="row" style="justify-content:flex-start"><button class="pri" id="rgo">'+(hs.length?"再綁另一個 Email":"綁定 Email")+'</button></div>'+(hs.length?'<div class="row" style="justify-content:flex-start"><button id="runb">解除綁定</button></div>':"");
+  $("rgo").onclick=()=>recAsk(rb,"綁定 Email",async tok=>{rb.innerHTML='<p class="mut">綁定中…</p>';try{const r=await recRpc("town_recovery_bind",{rid:me,pin},tok);rb.innerHTML=`<h2>綁定成功</h2><p class="mut">${esc(r.hint)} 已綁定這個角色。換手機時在首頁按「找回我的角色」。</p>`}catch(e){rb.innerHTML=`<p class="err">${esc(e.message)}</p>`}});
+  if($("runb"))$("runb").onclick=async()=>{if(!confirm("解除後，這個角色就不能用 Email 找回了。確定嗎？"))return;try{await rpc("town_recovery_unbind",{rid:me,pin});toast("已解除綁定");shut()}catch(e){toast(e.message)}}}).catch(e=>{$("mbody").innerHTML=`<h2>帳號救援</h2><p class="err">${esc(e.message)}</p><div class="row"><button id="rx">關閉</button></div>`;$("rx").onclick=shut})}
+const recRpc2=(fn,b)=>rpc(fn,b);
 function townLogin(){document.body.classList.remove("ingame");$("login").classList.remove("hide");$("game").classList.add("hide");const res=Object.values(R),full=res.length>=12;
  $("lg").innerHTML=`${LP.scene(1)}${LP.stepBar(2)}<h2>${esc(S.town.name)}</h2><p class="mut">住了 ${res.length} 人${savedInv()?" · 邀請碼已自動填好":""}</p>
   ${res.length?`<h2>選你的角色</h2><div class="who">${res.map(r=>`<button data-id="${r.id}"><canvas width="40" height="44" data-look='${esc(JSON.stringify(r.look||{}))}'></canvas><b>${esc(r.name)}</b><small>${r.mayor?"鎮長":houseName(r.slot)}</small></button>`).join("")}</div>`:""}
@@ -528,7 +561,7 @@ const ACT_FX={stock:"coins",vbuy:"coins",coffee:"can",movie:"sparkle",workout:"f
 const FAC_FX={special:"eat",takeout:"bag",latte:"steam",redeem:"sparkle",treat:"hearts",song:"notes",film:"tv",popcorn:"eat",spar:"fight",checkin:"check",frisbee:"disc",fish:"fishing",picnic:"eat",photo:"flash",photo2:"flash",feast:"eat",spa:"bubbles",trip:"sparkle",sit:"zzz",up:"sparkle"}; // 設施互動的地圖動畫（沒有列的用金錢／閃光）
 const OBJ_FX={dummy:"fight",bench:"zzz",cooler:"bubbles",pwc:"toilet",mailbox:"sparkle",news:"sparkle",claw:"hearts",lottery:"coins",busker:"hearts",pond:"hearts",vend:"can",trash:"sparkle",stall:"eat",well:"coin",swing:"hearts",cat:"hearts"};
 const EV_FX={mischief:["fart","t"],photo:["flash","t"],forgive:["hearts","both"],pk:["fight","mid"],level:["sparkle","a"],feed:["eat","t"],wash:["bubbles","t"],visit:["hearts","both"],gift:["gift","fly"],note:["msg","fly"],call:["phone","both"],delivery:["scooter","fly"],thank:["hearts","fly"],greet:["clap","mid"],fight:["fight","mid"],egg:["egg","fly"],prank:["fart","t"],makeup:["hearts","mid"],cowork:["coins","both"],promo:["sparkle","a"],wish:["sparkle","a"],feast:["eat","both"],wakeup:["alarm","t"],wakefail:["alarm","t"],luck:["sparkle","a"],tier:["hearts","both"],look:["sparkle","a"],meet:["clap","a"],together:["hearts","a"],crash:["crash","a"],joint:["hearts","both"],slash:["fight","mid"],jail:["crash","a"],bail:["coins","a"],visitjail:["hearts","both"],jaillabor:["coins","a"],escape:["crash","a"],parole:["sparkle","a"]};
-const spawnFx=(type,a,b)=>{if(!walkers[a])return;fxs.push({type,a,b:b&&walkers[b]?b:null,born:performance.now(),dur:type.startsWith("wk_")?1800:type=="crash"?2000:type=="fight"?1800:type=="scooter"?2200:1500})};
+const spawnFx=(type,a,b)=>{if(!walkers[a])return;window.SFX&&!type.startsWith("wk_")&&SFX.fx(type,a==me);fxs.push({type,a,b:b&&walkers[b]?b:null,born:performance.now(),dur:type.startsWith("wk_")?1800:type=="crash"?2000:type=="fight"?1800:type=="scooter"?2200:1500})};
 let lastEvId=null;
 function fxFromEvents(evs){const mx=Math.max(0,...evs.map(e=>e.id));if(lastEvId==null){lastEvId=mx;return}
  evs.filter(e=>e.id>lastEvId).forEach(e=>{const f=EV_FX[e.kind];if(!f)return;const [t,mode]=f;
@@ -553,7 +586,7 @@ function feedback(ok,msg){clearWorking();const b=pressed!=null&&$("acts").queryS
 async function act(a,extra={}){if(busy)return;busy=true;spotsBefore={...lastSpots};$("acts").classList.add("busy");const b0=tickLocal(R[me],now());try{const st=await rpc("town_act",{rid:me,pin,act:a,...extra});await wkPlay(a,extra);apply(st);
   if(ACT_FX[a])spawnFx(ACT_FX[a],me);playRoomFx(a,extra.target);if(a=="buy"){spawnFx("bag",me);toast("已放進背包")}if(a=="obj"&&OBJ_FX[extra.item])spawnFx(OBJ_FX[extra.item],me);
   const b1=tickLocal(R[me],now()),ic={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"€"};let k=0;
-    if(a!="move")feedback(true,sumChanges(b0,b1,ic))}
+    window.SFX&&SFX.act(a,extra,b1.money-b0.money);if(a!="move")feedback(true,sumChanges(b0,b1,ic))}
  catch(e){toast(e.message);feedback(false,e.message)}busy=false;$("acts").classList.remove("busy");renderPanel()}
 function sumChanges(b0,b1,ic){const o=[];for(const f of ["money",...NEEDS]){const d=Math.round(b1[f]-b0[f]);if(Math.abs(d)>=1)o.push(f=="money"?`${d>0?"+":"−"}€${Math.abs(d)}`:`${ic[f]}${d>0?"+":""}${d}`)}return o.join(" ")||"完成"}
 let pendingThen=null;
@@ -754,6 +787,10 @@ const TRAITS={foodie:["吃貨","吃東西的飽足效果 +30%"],athlete:["運動
  nightowl:["夜貓子","晚上 10 點到早上 6 點，醒著精力掉得慢"],clean:["愛乾淨","清潔掉得比較慢"],lucky:["幸運兒","路上壞事少、路邊好事多"],romantic:["浪漫","送出的禮物效果加倍"]};
 // ── 能力屬性（supabase/town_stats.sql）：力量、敏捷、魅力、智力、運氣；建角色後分配 10 點，之後升級每級 +1 點
 const STATS=[["st","力量","打架、PK、擂台力量 +1／點"],["ag","敏捷","被巡警抓、車禍機率 −2%／點"],["ch","魅力","好感增加 +2%／點"],["iq","智力","打工薪水 +1%／點"],["lk","運氣","隨機事件壞結果 1%／點變好結果"]];
+function sndModal(){const g=window.SFX;if(!g){toast("聲音還沒載入");return}const c=g.get(),VN=["小","中","大"];
+ $("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>聲音</h2><div class="row"><button id="sdS">音效：${c.s?"開":"關"}</button><button id="sdM">音樂：${c.m?"開":"關"}</button><button id="sdV">音量：${VN[c.v]}</button></div><p class="mut">音樂預設關閉；白天輕快、晚上 8 點到早上 6 點安靜。切到別的畫面會自動靜音。</p><div class="dsec">聲音測試</div><div class="row" style="flex-wrap:wrap">${g.names.map(n=>`<button data-sn="${n}">${n}</button>`).join("")}</div><div class="row"><button id="sdX" class="pri">好</button></div>`;
+ $("sdS").onclick=()=>{g.sound(!c.s);sndModal()};$("sdM").onclick=()=>{g.music(!c.m);sndModal()};$("sdV").onclick=()=>{g.vol((c.v+1)%3);sndModal();g.play("coin",1)};$("sdX").onclick=()=>$("modal").classList.add("hide");
+ $("mbody").querySelectorAll("[data-sn]").forEach(b=>b.onclick=()=>g.play(b.dataset.sn,1));pxify($("mbody"))}
 function statsModal(first){const r=R[me];if(!r)return;let at={},avail=0,ini=true,tr=null;
  const draw=()=>{const sel=first&&!ini;const tot=STATS.reduce((s,k)=>s+(at[k[0]]||0),0);
   $("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>能力屬性</h2><p class="mut">${sel?`有 10 點可以分配（每項 0～5），選了就不能改，也可以先跳過。已用 ${tot}／10`:`每項最高 5 點。升級後每級得 1 點，可用點數：${avail}`}</p><div class="list">${STATS.map(k=>{const tp=tr&&tr.tmp?tr.tmp[k[0]]||0:0,pg=tr&&tr.p?tr.p[k[0]]||0:0,nd=tr&&tr.need?tr.need[k[0]]||0:0;return `<div class="act" style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="flex:1"><b>${k[1]}</b> ${at[k[0]]||0}／5${tp?` <small class="mut">（暫時 −${tp}）</small>`:""}<br><small>${k[2]}</small>${!sel&&nd?`<br><small class="mut">訓練進度 ${pg}/${nd}</small>`:""}</span>${sel?`<button data-m="${k[0]}">−</button><button data-p="${k[0]}">＋</button>`:`<button data-s="${k[0]}"${avail>0&&(at[k[0]]||0)<5?"":" disabled"}>加 1 點</button>`}</div>`}).join("")}</div>${!sel&&tr?`<p class="mut"><small>練習：健身房舉重（力量）、公園慢跑（敏捷）、在家讀書（智力）、廣場／咖啡廳聊天（魅力）、許願池投幣（運氣）。今天進度 ${tr.td}/${tr.max}。暫時減益：鼻青臉腫、心情低落、發臭、精力不足、事故欠款，狀態解除就恢復。</small></p>`:""}<p class="err" id="serr"></p><div class="row">${sel?'<button id="sskip">先跳過</button><button class="pri" id="sok">選好了</button>':'<button id="sclose">關閉</button>'}</div>`;
@@ -774,7 +811,7 @@ function alHtml(r){const n=alN(r),l=lvOf(n),a=AL[l],nx=AL[l+1],s=((r.items.al||{
  const pct=nx?Math.round((n-a[0])/(nx[0]-a[0])*100):100;
  return `<h3>小鎮居民等級</h3><div class="mrow"><span><b>Lv${l+1} ${a[1]}</b> <small class="mut">活躍 ${n} 天${s>1?` · 連續 ${s} 天`:""}${nx?` · 再活躍 ${nx[0]-n} 天升 Lv${l+2}「${nx[1]}」`:" · 已是最高等級"}</small><i class="bond"><b style="left:0;width:${pct}%;background:var(--good)"></b></i><small class="mut">每天有上線動作就算活躍一天，只給便利，不影響打工薪水。斷了不會掉級、不扣東西。</small></span></div><div class="list">${AL.map((x,i)=>`<div class="mrow"><span>${i<=l?"✔":"・"} Lv${i+1} ${x[1]}（${x[0]} 天）<br><small class="mut">打工冷卻 ${x[2]} 分 · 背包 ${x[3]} · 房租 −${x[4]}%${x[5]?` · 每日登入禮 €${x[5]}`:""}</small></span></div>`).join("")}</div>`}
 let lastLv=null;
-function lvUpModal(l){const a=AL[l],p=AL[l-1];$("modal").classList.remove("hide");
+function lvUpModal(l){window.SFX&&SFX.play("levelup");const a=AL[l],p=AL[l-1];$("modal").classList.remove("hide");
  $("mbody").innerHTML=`<h2>升級了！</h2><div class="lvup"><img class="px" alt="" src="${window.PIXICON_NAME?PIXICON_NAME("star"):""}"><img class="px" alt="" src="${window.PIXICON_NAME?PIXICON_NAME("star"):""}"><img class="px" alt="" src="${window.PIXICON_NAME?PIXICON_NAME("star"):""}"></div><p style="text-align:center"><b>Lv${l+1} ${a[1]}</b></p><p class="mut">新福利：${a[2]<p[2]?`打工冷卻 ${a[2]} 分鐘 · `:""}${a[3]>p[3]?`背包上限 ${a[3]} · `:""}${a[4]>p[4]?`房租 −${a[4]}% · `:""}${a[5]>p[5]?`每日登入禮 €${a[5]}`:""}</p><p class="mut">獲得稱號「${a[1]}」</p><div class="row"><button id="lvok" class="pri">好</button></div>`;
  $("lvok").onclick=()=>$("modal").classList.add("hide")}
 function lifeModal(){const r=R[me],c=career(r),w=(r.items&&r.items.wish)||{},k=WISHES[w.k],m=w.m||0,t=titlesOf(r);$("modal").classList.remove("hide");
@@ -1339,7 +1376,7 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
   if(rule){vm=Math.min(vm,zoneLim(Math.round(w.y)));const cx=Math.round(w.x),cy=Math.round(w.y);
    if(Math.abs(w.x-cx)<.01&&Math.abs(w.y-cy)<.01&&isInter(nx,ny)&&!isInter(cx,cy)&&lightG(now(),ny)!=(dy==0?0:1)){w.moving=false;continue}}
   const sp=4.5*vm*dt;w.moving=true;if(Math.abs(dx)>.01)w.fx=dx<0?-1:1;
-  if(d<=sp){w.x=nx;w.y=ny;w.path.shift();if(!w.path.length){w.moving=false;if(id==me&&w.dest)arrived(w)}}else{w.x+=dx/d*sp;w.y+=dy/d*sp}}
+  if(d<=sp){w.x=nx;w.y=ny;w.path.shift();if(id==me&&((w.sc=(w.sc|0)+1)&1)&&window.SFX)SFX.play("step");if(!w.path.length){w.moving=false;if(id==me&&w.dest)arrived(w)}}else{w.x+=dx/d*sp;w.y+=dy/d*sp}}
  const mw=walkers[me];if(!camFree){const off=0;cam.x+=((mw.x+.5)*T-cam.x)*.12;cam.y+=((mw.y+.5)*T+off-cam.y)*.12}
  // 慣性：放手後繼續滑，慢慢停下
  if(!down&&!pinch&&(Math.abs(cam.vx||0)>.01||Math.abs(cam.vy||0)>.01)){cam.x+=cam.vx*dt*1000;cam.y+=cam.vy*dt*1000;const f=Math.pow(.92,dt*60);cam.vx*=f;cam.vy*=f}
@@ -1473,7 +1510,7 @@ const kb=document.createElement("div");kb.id="kbh";kb.textContent="方向鍵移�
 }
 $("home").onclick=()=>{camFree=false;sel=null;lastPanel="";renderPanel()};
 $("logout").onclick=()=>{if(!confirm("登出後要再輸入一次邀請碼才能進來。確定嗎？"))return;dropMine(TID);me=null;pin=null;townLogin()};
-$("towns").onclick=()=>go("");
+$("towns").onclick=()=>go("");$("recBtn").onclick=()=>{closeMenu();recBindModal()};
 $("invite").onclick=async()=>{if(R[me].mayor){try{shareModal((await rpc("town_mayor",{rid:me,pin,act:"invite"})).invite)}catch(e){toast(e.message)}}else{const text=`來「${S.town.name}」當鄰居！🐷\n${townURL()}\n（邀請碼請問鎮長）`;try{await navigator.clipboard.writeText(text);toast("已複製網址，邀請碼請鎮長給")}catch(e){toast(townURL())}}};
 $("mayor").onclick=mayorPanel;// 抽屜：點一下在「一般 → 拉高 → 收起」之間切換；也可以上下滑
 const gripLabel=()=>{const p=$("panel");$("grip").textContent=p.classList.contains("min")?"▲ 展開":"▼ 收起"};
@@ -1491,7 +1528,7 @@ $("menuBtn").onclick=()=>{const r=R[me];if(r){$("bagN").textContent=bagCount(r)?
 $("menuBack").onclick=closeMenu;$("menuClose").onclick=closeMenu;
 document.querySelectorAll("[data-go-tab]").forEach(b=>b.onclick=()=>{const t=b.dataset.goTab;document.querySelector(`[data-tab=${t}]`).click();if(isMob())document.body.classList.add("social");else $("social").scrollIntoView({behavior:"smooth"})});
 $("friendBtn").onclick=()=>document.body.classList.toggle("fr");$("strip").addEventListener("click",()=>setTimeout(()=>document.body.classList.remove("fr"),50));$("feedBtn").onclick=()=>{document.body.classList.add("social");markSeen()};$("socialClose").onclick=()=>document.body.classList.remove("social");$("menu").addEventListener("click",e=>{if(e.target.closest("button"))closeMenu()});
-$("life").onclick=lifeModal;$("powBtn").onclick=()=>{closeMenu();powersModal()};$("taskBtn").onclick=()=>{closeMenu();taskModal()};$("statBtn").onclick=()=>{closeMenu();statsModal()};$("updBtn").onclick=()=>{closeMenu();updModal(true)};$("legalBtn").onclick=()=>{closeMenu();$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>條款與隱私</h2><p class="mut">白話版，一分鐘讀完。</p><div class="row"><button id="lgT">服務條款</button><button id="lgP">隱私權政策</button></div><div class="row"><button id="lgX" class="pri">關閉</button></div>`;$("lgT").onclick=()=>window.open("terms.html","_blank");$("lgP").onclick=()=>window.open("privacy.html","_blank");$("lgX").onclick=()=>$("modal").classList.add("hide")};$("bagBtn").onclick=()=>{closeMenu();bagModal()};
+$("life").onclick=lifeModal;$("powBtn").onclick=()=>{closeMenu();powersModal()};$("taskBtn").onclick=()=>{closeMenu();taskModal()};$("statBtn").onclick=()=>{closeMenu();statsModal()};$("sndBtn").onclick=()=>{closeMenu();sndModal()};$("updBtn").onclick=()=>{closeMenu();updModal(true)};$("legalBtn").onclick=()=>{closeMenu();$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>條款與隱私</h2><p class="mut">白話版，一分鐘讀完。</p><div class="row"><button id="lgT">服務條款</button><button id="lgP">隱私權政策</button></div><div class="row"><button id="lgX" class="pri">關閉</button></div>`;$("lgT").onclick=()=>window.open("terms.html","_blank");$("lgP").onclick=()=>window.open("privacy.html","_blank");$("lgX").onclick=()=>$("modal").classList.add("hide")};$("bagBtn").onclick=()=>{closeMenu();bagModal()};
 $("relook").onclick=()=>{let look=normLook(R[me].look);$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>換造型</h2><div id="lk2"></div><div class="row"><button id="mc">取消</button><button class="pri" id="ms">儲存</button></div>`;
  lookPicker($("lk2"),look,l=>look=l,R[me].items||{});$("mc").onclick=()=>$("modal").classList.add("hide");$("ms").onclick=async()=>{try{await rpc("town_login",{rid:me,pin,new_look:look});mapKey="";await refresh();$("modal").classList.add("hide");toast("換好了")}catch(e){toast(e.message)}}};
 $("report").onclick=report;
@@ -1637,7 +1674,7 @@ const ROOMIMG={};
 function roomImg(n){if(!ROOMIMG[n]){const i=new Image();i.onload=()=>{try{drawRoom()}catch(e){}};i.src=window.PIXICON_NAME(n);ROOMIMG[n]=i}return ROOMIMG[n]}
 async function enterFriend(id){try{await rpc("town_visit",{rid:me,pin,op:"enter",target:id});await refresh()}catch(e){toast(e.message)}renderPanel()}
 async function exitFriend(){const r=R[me];if(vin(r)){r.items={...r.items};delete r.items.fv}try{await rpc("town_visit",{rid:me,pin,op:"exit"});await refresh()}catch(e){toast(e.message)}renderPanel()}
-async function enterRoom(pl,quiet){try{await rpc("town_fi",{rid:me,pin,op:"enter",pl});await refresh()}catch(e){if(!quiet)toast(e.message)}renderPanel()}
+async function enterRoom(pl,quiet){try{await rpc("town_fi",{rid:me,pin,op:"enter",pl});window.SFX&&SFX.play("door");await refresh()}catch(e){if(!quiet)toast(e.message)}renderPanel()}
 async function exitRoom(){leaveRoomLocal();try{await rpc("town_fi",{rid:me,pin,op:"exit"});await refresh()}catch(e){toast(e.message)}renderPanel()}
 function leaveRoomLocal(){const r=R[me];if(vin(r)){r.items={...r.items};delete r.items.fv}if(!fin(r))return false;r.items={...r.items};delete r.items.fi;rpc("town_fi",{rid:me,pin,op:"exit"}).catch(()=>{});return true}
 // 室內互動動畫：角色走到對應物件旁（約 0.4 秒）→ 播動畫（約 0.9 秒）→ 走回來（約 0.3 秒），共 1.7 秒；只畫在 12×5 的小畫布，手機不卡
@@ -1645,7 +1682,7 @@ function leaveRoomLocal(){const r=R[me];if(vin(r)){r.items={...r.items};delete r
 const WORK_FX={work:[null,null,"wk_desk"],cowork:[null,null,"wk_desk"],job_cafe:["coffee","wk_cafe","wk_desk"],job_rest:["kitchen","wk_serve","wk_desk"],job_gym:["rack","wk_lift","wk_desk"],job_shop:[null,null,"wk_scan"],job_rafi:[null,null,"wk_docs"]};
 const wkKey=(a,x)=>a=="work"||a=="cowork"?a:a=="job"&&x&&x.item?"job_"+x.item:null;
 let wkBusy=false;
-function wkPlay(a,x){const k=wkKey(a,x),W=k&&WORK_FX[k];if(!W||wkBusy||!R[me])return Promise.resolve();wkBusy=true;const D=1800;
+function wkPlay(a,x){const k=wkKey(a,x),W=k&&WORK_FX[k];if(!W||wkBusy||!R[me])return Promise.resolve();wkBusy=true;window.SFX&&SFX.fx(W[1]||W[2],1);const D=1800;
  const rm=roomOf(R[me],R),it=W[0]&&rm&&!rm.home?rm.items.find(o=>o[0]==W[0]):null;
  if(it){roomAnim={code:W[1],it,tv:null,home:false,w:rw(rm),h:rh(rm),born:performance.now(),dur:D,age:0};loopRoom()}
  else{spawnFx(W[2],me);if(a=="cowork"&&x.target&&walkers[x.target])spawnFx(W[2],x.target)}
@@ -1774,7 +1811,7 @@ let pkTimer=null;
 let ZB=[],ZR={},zbLast=0,zbBusy=false;
 const zbOut=r=>!!r&&!r.sleeping&&!jailed(r)&&["street","plaza","park"].includes(r.place)&&!fin(r);
 async function zbCall(op,target){if(!me||!S)return null;try{return await rpc("town_zombie",{rid:me,pin,op,target:target||null})}catch(e){if(op!="poll")toast(e.message);return null}}
-function zbSet(j){const old=ZB;ZB=j.z||[];for(const z of ZB)if(!ZR[z.id])ZR[z.id]={x:z.x,y:z.y};for(const k of Object.keys(ZR))if(!ZB.some(z=>z.id==k))delete ZR[k];if(R[me]&&R[me].items&&j.pork!=null)R[me].items.zp=j.pork}
+function zbSet(j){const old=ZB;ZB=j.z||[];if(window.SFX&&ZB.length>old.length&&old.length==0)SFX.play("zombie");for(const z of ZB)if(!ZR[z.id])ZR[z.id]={x:z.x,y:z.y};for(const k of Object.keys(ZR))if(!ZB.some(z=>z.id==k))delete ZR[k];if(R[me]&&R[me].items&&j.pork!=null)R[me].items.zp=j.pork}
 let zbTick=0;
 async function zbPoll(){if(zbBusy||document.visibilityState!="visible"||!me||!S||!isOn("zombie"))return;if(!ZB.length&&(++zbTick)%3)return;// 沒有喪屍時每 12 秒問一次，有的時候每 4 秒
 zbBusy=true;try{const j=await zbCall("poll");if(j){zbSet(j);if(j.hit){toast("喪屍豬打到你了！精力 −8、心情 −8、清潔 −10");spawnFx("flash",me);refresh().catch(()=>{})}renderPanel()}}finally{zbBusy=false}}

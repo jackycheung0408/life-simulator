@@ -493,3 +493,13 @@
 ## 登入備份（2026-11-17）
 - iOS 會清主畫面 web app 的 localStorage，登入鑰匙（`town-mine`，裝置金鑰就是裡面的 `pin`）另存 IndexedDB `town-bk`/`k`/`mine`，只存 `tid,name,rid,pin,me,at`。`index.html` 的 `LP.bk(list)` 寫入（空清單 = 刪除，並嘗試 `navigator.storage.persist()`），`town.js` 的 `saveMine`／`dropMine` 都呼叫它，所以登出、搬離會刪備份、不會被還原。
 - 啟動：localStorage 有 `town-mine` 就照舊同步畫首頁（3 秒後補備份）；沒有才讀 IndexedDB，有備份先還原再畫（最多等 700ms），沒備份就立刻畫。首頁主體包在 `main()`。
+
+
+## 帳號救援（Email，2026-11-17；SQL 尚未套用正式站，要先在 Dashboard 設定，見 side-session-notes `town-email-design.md`）
+- Supabase Auth Email OTP 驗證 Email，JWT 帶去呼叫 `supabase/town_recovery.sql`（`town_recovery_status／bind／unbind／list／claim`，只存 Email SHA-256 雜湊與遮蔽提示，RLS 全關，同鎮一個角色）。實測 `town_recovery_test.sql`（回滾，REPORT）。不動免密碼裝置金鑰與邀請碼；救援成功＝多一把裝置金鑰。
+- 前端 `town.js`：`recAsk`（Email→6 位碼）、`recFind`（首頁「找回我的角色」`#cRec`，`LP.want="r"`）、`recBindModal`（選單「帳號救援」`#recBtn`）；錯 5 次鎖 30 分鐘存 localStorage `town-recf`。mock 的驗證碼是 `123456`。
+- 上線前提：Dashboard 開 Email OTP（6 位、600 秒）、範本顯示 `{{ .Token }}`、設 Custom SMTP（內建 SMTP 只寄團隊成員）。
+
+## 8-bit 音效與音樂（2026-11-17，純前端）
+- `town/sfx.js`（≤12KB，Web Audio 合成，無音檔）由 `index.html` 的 `load()` 在 town.js 後載入（`sfx.js?v=N`，改了跑 `node tools/town-bump.mjs --sfx`）。`SFX.play(name)`、`music(on)`、`vol(0~2)`、`mute(b)`；22 種音效（≤0.4 秒、同名 80ms 去重）、2 首音樂（白天輕快、台灣 20～6 點安靜）。第一次點擊才解鎖 AudioContext，之前靜默；頁面隱藏自動靜音。設定 `localStorage town-snd`，預設音效開、音樂關；選單「聲音」（`sndModal`）有開關、音量三檔、逐一試聽。
+- 掛接都在既有入口：`toast`、`spawnFx`、走路 `path.shift`、`wkPlay`、`act` 成功／失敗、`enterRoom`、`lvUpModal`、`zbSet`；彈窗與按鈕點擊音由 sfx.js 自己監聽。呼叫一律 `window.SFX&&…`。**沒有真人聽過**，只以假 AudioContext 驗證不丟錯。
