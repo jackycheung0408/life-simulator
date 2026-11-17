@@ -392,4 +392,5 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(t.includes('enterFriend(id),"pin"')&&t.includes('exitFriend(),"pin"')&&t.includes('enterRoom(p),"pin"')&&t.includes('exitRoom(),"pin"'),"進去／出門（朋友家、設施）要置頂（g:pin）");
  check(["work","cowork","job_cafe","job_rest","job_gym","job_shop","job_rafi"].every(k=>t.includes(k+":[")||t.includes("\""+k+"\"")),"打工動畫：每種打工在 WORK_FX 都要有對應");
  check(t.includes('pins=idx.filter(x=>x[0].g=="pin")'),"renderPanel：pin 按鈕要置頂")}
+{const t2=require("fs").readFileSync(__dirname+"/town.js","utf8");check(t2.includes("@media (min-width:900px){body.ingame{--L:")&&t2.includes("id=\"pccss\"")&&t2.includes("addEventListener(\"keydown\",e=>{if(!isPC()"),"PC 版：要有 min-width:900px 規則與鍵盤處理")}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

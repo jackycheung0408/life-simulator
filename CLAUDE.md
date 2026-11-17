@@ -226,6 +226,12 @@
 - **狀態條的「條」不能被壓扁**：`body.ingame .need` 是固定高度（`--hud`）的直排 flex，圖示格 `span` 曾因行高 24.75px（16.5px×1.5）擠掉 `i` 條，條被壓成 2px、填色 0px，看起來像「能力條不見」。現在 `span` 固定 16px 高、`i` `flex:none` 6px；錢格在遊戲中（`body.ingame`）只顯示數字（貨幣符號 `u.cu` 隱藏、完整金額在 title），手機 `--hud` 為 64px 才放得下第二行禮物／零食；`#strip` 右緣用 mask 淡出提示可滑動；面板分組標題自己家門口不是「在他家」（`dg` 排除 `home:`+自己）。改狀態列內容或字級後要用 `getBoundingClientRect` 量 `.need i` 高度，`node town/test.js` 會檢查這兩條 CSS 還在。
 - 手機觸控：按鈕高度 ≥ 44px（工具列 `--tb:52px`、`#strip` 與 `.tools` 的按鈕 44px、`#grip`、`#menuClose`）；`#strip` 寬度要預留 `.tools` 的寬（目前 `calc(100% - 184px)`），改了工具列按鈕要重量。modal 裡用 `class="act"` 的選項按鈕（`choiceModal`）由 `#mbody button.act` 排版，標題與說明上下兩行。字距一律 0（`.dsec` 已改）。狀態列錢格（`.need.money`）寬只有約 49px：≥10000 顯示 `12.3k`，禮物／零食數量換行顯示，格子用 `minmax(0,1fr)` 防止撐開。iPhone Safari 底部工具列區域會露出頁面底色，不是排版錯誤。
 
+## PC 版（2026-11-17，≥ 900px；手機 ≤ 700px 完全不動）
+- 規則全在 `town.js` 第 3 行注入的 `#pccss`（`@media (min-width:900px)`）：整體最大寬 1600px 置中（`--L`），右側欄 `--sw`＝clamp(380,28vw,420) 放面板（頂到底、內部可捲）＋底部 24px 按鍵提示 `#kbh`＋56px 導覽列；左邊 `#stage` 改 `position:fixed` 撐滿剩餘寬高；`#needs` HUD 最大 720px 在舞台上方置中；modal 最大 520px。`resize()` 在 PC 也用舞台實際高度（`isPC()`）。700～900px 維持舊版。
+- 地圖滑鼠：滾輪直接縮放（以游標為中心，室內不縮）、拖曳平移（原本就有）、hover 人物／建築／房子／路邊物件顯示 `#tip2` 名稱並變 pointer。
+- 鍵盤（無輸入框聚焦、無 modal、非社交頁才作用）：方向鍵／WASD 走一格、`E`／`Enter` 建議第一顆、`1`～`9` 目前分頁第 N 顆、`Esc` 關 modal；`Tab` 不攔。
+- 改版後手機數字（390x844）：`#stage` 390x378、`#panel` 390x354，與改前相同。
+
 ## 遊戲中版面 ui2（2026-11-17，地圖優先；設計稿見 side-session-notes `town-ui-design.md`）
 - 樣式放在 `town.js` 的 `init()` 開頭注入的 `<style id="ui2css">`（index.html 有 45KB 上限），覆蓋下面舊的減擠規則。HUD `--hud`＝安全區＋40px 單列（需求只有圖示＋迷你條，<20 紅框閃；錢留數字）；`.tools` 與 `#menuBtn` 是右側浮動 44px 圓鈕（文字用 `font-size:0` 隱藏，靠 `aria-label`），`#strip` 人物條浮在地圖左上，沒有第二列工具列。
 - 面板 `#panel` 高度 ≤ min(32vh,300px)（矮螢幕 34vh、隱藏 `#note`）：`#tipbox`（建議置頂）→ `#ptabs`（分頁籤＋可做數量，`TABOF`／`TABS`，預設「這裡」，換地點或換選人時重設）→ `#acts`（唯一可捲動區，2 欄圖示磚，價格 `.pc`、灰掉的只顯示原因一行）。`roomTap` 若按鈕在別的分頁會先 `panelFnTab` 切過去。舊的分組收合（`town-gc`）已不用。
@@ -236,6 +242,11 @@
 
 - **2026-11-17 晚改成「實心分列」**（覆蓋上面 HUD／圓鈕敘述）：由上到下全是不透明獨立列、互不重疊——狀態列 `#needs`（0～安全區＋46px）→ 人物頁籤 `#strip`（52px）→ 訊息槽（28px，`#wev` 事件橫幅與 `#toast` 共用同一個位置，toast 蓋過橫幅）→ 地圖 `#stage`（`top:var(--top)`，`bottom:phpx+56px`，**canvas 只有這塊可視範圍，鏡頭置中、`pt/pb` 只留 8px**；`resize()` 由 ResizeObserver 觸發）→ 工具列（選單／我／看全鎮／動態，4 等寬鈕，56px，`.bar`＋`.tools`）→ 面板（固定高度 `--ph`，整體可捲、`#panel>*{flex-shrink:0}`、置頂的 `pin`／`tip` 按鈕 sticky）。不用 backdrop-filter／filter／漸層。面板內的小室內畫布 `#room` 遊戲中一律隱藏（改看主畫面）；進去／出門（朋友家、設施）是 `g:"pin"` 置頂。灰色「❯」是 iOS 系統的邊緣返回提示，不是遊戲元素。
 - **2026-11-17 深夜「手機遊戲標準版型」（覆蓋上面的列結構）**：頂 `#needs` 44px 實心 HUD（＋安全區）→ 舞台 `#stage`（地圖／室內，`top:hud`，`bottom:phpx+nav`，canvas 只用這塊）→ 面板 `#panel`（`bottom:var(--nav)`，高 `--ph=clamp(250px,32vh,340px)`；`--phpx` 由 `fit()`／ResizeObserver 寫入實際高度，**注意舊規則 `max-height:30vh` 已用 `max-height:none` 蓋掉**）→ 底部導覽列 56px（選單、我、看全鎮、朋友、動態；`.bar`＋`.tools`，背景是 `body::after`）。人物頁籤 `#strip` 平常隱藏，按「朋友」才顯示在面板上緣（`body.fr`）。面板結構：標題單行（`#here`，進去／出門 `#pinbox` 在右側）→ 一行小字 `#note` → 建議 `#tipbox`（≤2）→ 分類頁籤 `#ptabs`（不隨內容捲）→ 按鈕區 `#acts`（3 欄、`grid-auto-rows:60px`、`fit()` 把高度裁成整排、scroll-snap、底部淡出 `.more`）。訊息 `#toast`／`#wev` 是舞台上緣的實心膠囊（toast 蓋過橫幅）。`#room` 小畫布遊戲中隱藏。尺寸實測（mock）：390x844 地圖 56%、375x667 48%、430x932 57%，各尺寸按鈕區都是整排。
+## 像素風規則（2026-11-17）
+- 全遊戲維持像素風：字型只 Cubic 11（11／16.5／22px、不用粗體、字距 0），`-webkit-font-smoothing:none`；canvas 文字也用 Cubic 11，`fillText` 座標取整，`strokeText` 被改成 1px 四向硬描邊（`town.js` 開頭 `pxcss` 與 prototype 補丁）。
+- canvas 一律 `imageSmoothingEnabled=false`＋`image-rendering:pixelated`；地圖縮放 `snapS` 對齊整數裝置像素，鏡頭偏移 `ox/oy` 取整到裝置像素。
+- CSS：不用 `border-radius`（`pxcss` 全域設 0，按鈕／面板用 `clip-path` 4px 階梯角）、不用模糊陰影（blur 一律 0）、不用漸層遮罩、不用 `backdrop-filter`、動畫用 `steps()`。新增樣式要遵守。
+
 ## 按鈕分類（2026-11-17 整理；`GORD`／`TABOF`／`btn(...,g)`）
 | 分頁（標籤） | 內含的 g | 內容 |
 |---|---|---|
