@@ -463,3 +463,6 @@
 - **分級表只在一處**：`town_pl_scale`（小 100%／中 170%／大 260%）與 `town_pl_tier`（機率 60／30／10）；基準值在 A 的 `amt` 那段（心情 4、精力 4、飽足 5、清潔 6、錢 25、好感 1）、B 的 `town_pl_bfx`、C 的 `town_pl_arch_e`（情節效果表）。文字在 `town_pl_scenes／open／acts／subj／arch_t`。
 - 抽樣：每人最近 20 個 id 存 `items.rc`（缺值＝空）會避開；A 依地點類（街上／公園／廣場）、時段（不合 ×0.4）、運氣（好事 +4%／點）、心情（< 30 好事 ×1.4）加權；C 低心情少抽挑戰／偷看／賭。
 - 平衡：錢期望 ≤ 0（A 賺錢場景 2／40 且小額、花錢 3／40；B 只花錢；C 賭局 30%×+100 對 70%×−60）、錢不變負、不欠款、不會死；入獄／睡覺擋；能力只給進度（`town_pl_prog`，沿用 town_stats2：每天合計 ≤ 8、每項 ≤ 5）；好感走 `town_bond`。`node town/test.js` 檢查池大小、格式、錢場景比例。
+
+## 打工動畫（2026-11-17，純前端）
+- `town.js` 的 `WORK_FX`／`wkKey`／`wkPlay`：`act()` 在 RPC 成功後、`apply` 前 `await wkPlay`（約 1.8 秒，`busy` 擋重複按；動畫完才更新數值、浮動金額與 toast；無冷卻可連點接續）。公司／共同加班／超市／拉菲在地圖畫（`spawnFx` 的 `wk_desk`／`wk_scan`／`wk_docs`，書桌電腦打字、掃描收銀叮、文件翻頁，結尾 +$）；咖啡廳／餐廳／健身房在室內（`roomFxDraw` 的 `wk_cafe`／`wk_serve`／`wk_lift`）。牢裡勞動仍是 `ROOM_ACT.labor`。新增打工種類要補 `WORK_FX`。未在內建瀏覽器實際看過（窗格 0x0）。

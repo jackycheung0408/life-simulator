@@ -390,5 +390,6 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(t.includes("body.ingame #room{display:none!important}"),"ui2：遊戲中面板內的小室內畫布要隱藏（會擠掉按鈕）");
  check(/body\.ingame #panel\{overflow-y:auto/.test(t)&&t.includes("body.ingame #panel>*{flex-shrink:0}"),"ui2：面板整體要可捲、子區塊不可被壓縮");
  check(t.includes('enterFriend(id),"pin"')&&t.includes('exitFriend(),"pin"')&&t.includes('enterRoom(p),"pin"')&&t.includes('exitRoom(),"pin"'),"進去／出門（朋友家、設施）要置頂（g:pin）");
+ check(["work","cowork","job_cafe","job_rest","job_gym","job_shop","job_rafi"].every(k=>t.includes(k+":[")||t.includes("\""+k+"\"")),"打工動畫：每種打工在 WORK_FX 都要有對應");
  check(t.includes('pins=idx.filter(x=>x[0].g=="pin")'),"renderPanel：pin 按鈕要置頂")}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

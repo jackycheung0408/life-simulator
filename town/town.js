@@ -224,6 +224,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+{id:"workfx1",date:"2026-11-17",title:"打工有動畫了",items:["公司打工：門口出現書桌和電腦，打字、螢幕閃爍","咖啡廳煮咖啡、餐廳端盤子、健身房舉啞鈴","超市掃商品收銀、拉菲的辦公室翻文件","共同加班兩人各有一份動畫","動畫約 2 秒，結束後才顯示賺到的錢"]},
   {id:"u55-openwalk",date:"11/17",title:"廣場和公園可以點哪走哪",items:["點廣場或公園裡的任何一格，會直接走到你點的位置，不再繞去門口","建築、房子、噴水池照舊走到門口","睡著時點地圖不會走，要先按「起床」"]},
   {id:"u59-ranks",date:"11/17",title:"打工職階擴大",items:["公司在「主管」之後多了：資深主管、協理、副總、總經理（累計打工 250／400／650／1000 次）","咖啡廳、餐廳、健身房、超市各多了領班、副店長（副理）、店長（經理）、區經理（總監）","拉菲的辦公室在「業務經理」之後多了部門主任、協理、總監","原本的職階、門檻、薪水都沒變，新職階只是往上加","升到領班以上或資深主管以上會得到同名稱號，沒有一次性獎金"]},
   {id:"u54-tapdbg",date:"11/17",title:"回報點地圖沒反應用的除錯資訊",items:["長按最上方狀態列 1 秒，除錯資訊多一行「最後一次點地圖」的格子位置與結果","如果點某處沒反應，請點一次後立刻長按狀態列截圖給我","一般玩家不受影響"]},
@@ -529,7 +530,7 @@ const ACT_FX={stock:"coins",vbuy:"coins",coffee:"can",movie:"sparkle",workout:"f
 const FAC_FX={special:"eat",takeout:"bag",latte:"steam",redeem:"sparkle",treat:"hearts",song:"notes",film:"tv",popcorn:"eat",spar:"fight",checkin:"check",frisbee:"disc",fish:"fishing",picnic:"eat",photo:"flash",photo2:"flash",feast:"eat",spa:"bubbles",trip:"sparkle",sit:"zzz",up:"sparkle"}; // 設施互動的地圖動畫（沒有列的用金錢／閃光）
 const OBJ_FX={dummy:"fight",bench:"zzz",cooler:"bubbles",pwc:"toilet",mailbox:"sparkle",news:"sparkle",claw:"hearts",lottery:"coins",busker:"hearts",pond:"hearts",vend:"can",trash:"sparkle",stall:"eat",well:"coin",swing:"hearts",cat:"hearts"};
 const EV_FX={mischief:["fart","t"],photo:["flash","t"],forgive:["hearts","both"],pk:["fight","mid"],level:["sparkle","a"],feed:["eat","t"],wash:["bubbles","t"],visit:["hearts","both"],gift:["gift","fly"],note:["msg","fly"],call:["phone","both"],delivery:["scooter","fly"],thank:["hearts","fly"],greet:["clap","mid"],fight:["fight","mid"],egg:["egg","fly"],prank:["fart","t"],makeup:["hearts","mid"],cowork:["coins","both"],promo:["sparkle","a"],wish:["sparkle","a"],feast:["eat","both"],wakeup:["alarm","t"],wakefail:["alarm","t"],luck:["sparkle","a"],tier:["hearts","both"],look:["sparkle","a"],meet:["clap","a"],together:["hearts","a"],crash:["crash","a"],joint:["hearts","both"],slash:["fight","mid"],jail:["crash","a"],bail:["coins","a"],visitjail:["hearts","both"],jaillabor:["coins","a"],escape:["crash","a"],parole:["sparkle","a"]};
-const spawnFx=(type,a,b)=>{if(!walkers[a])return;fxs.push({type,a,b:b&&walkers[b]?b:null,born:performance.now(),dur:type=="crash"?2000:type=="fight"?1800:type=="scooter"?2200:1500})};
+const spawnFx=(type,a,b)=>{if(!walkers[a])return;fxs.push({type,a,b:b&&walkers[b]?b:null,born:performance.now(),dur:type.startsWith("wk_")?1800:type=="crash"?2000:type=="fight"?1800:type=="scooter"?2200:1500})};
 let lastEvId=null;
 function fxFromEvents(evs){const mx=Math.max(0,...evs.map(e=>e.id));if(lastEvId==null){lastEvId=mx;return}
  evs.filter(e=>e.id>lastEvId).forEach(e=>{const f=EV_FX[e.kind];if(!f)return;const [t,mode]=f;
@@ -551,7 +552,7 @@ const clearWorking=()=>$("acts").querySelectorAll(".working").forEach(x=>x.class
 function feedback(ok,msg){clearWorking();const b=pressed!=null&&$("acts").querySelector(`[data-i="${pressed}"]`);pressed=null;
  if(b){b.classList.remove("ok","err");void b.offsetWidth;b.classList.add(ok?"ok":"err");setTimeout(()=>b.classList.remove("ok","err"),700)}
  const f=$("fb");if(f&&msg){f.textContent=(ok?"✓ ":"✗ ")+msg;f.className=ok?"good":"bad";pxify(f);clearTimeout(fbTimer);fbTimer=setTimeout(()=>{f.className="hide"},3200)}}
-async function act(a,extra={}){if(busy)return;busy=true;spotsBefore={...lastSpots};$("acts").classList.add("busy");const b0=tickLocal(R[me],now());try{const st=await rpc("town_act",{rid:me,pin,act:a,...extra});apply(st);
+async function act(a,extra={}){if(busy)return;busy=true;spotsBefore={...lastSpots};$("acts").classList.add("busy");const b0=tickLocal(R[me],now());try{const st=await rpc("town_act",{rid:me,pin,act:a,...extra});await wkPlay(a,extra);apply(st);
   if(ACT_FX[a])spawnFx(ACT_FX[a],me);playRoomFx(a,extra.target);if(a=="buy"){spawnFx("bag",me);toast("已放進背包")}if(a=="obj"&&OBJ_FX[extra.item])spawnFx(OBJ_FX[extra.item],me);
   const b1=tickLocal(R[me],now()),ic={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"€"};let k=0;
     if(a!="move")feedback(true,sumChanges(b0,b1,ic))}
@@ -1374,6 +1375,11 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
    const up=(em,n=1,spread=14)=>{for(let j=0;j<n;j++)icon(em,ax+(j-(n-1)/2)*spread+Math.sin(k*9+j)*3,ay-50-k*40-j*4,24)};
    const fly=(em,arc=60)=>{const x=ax+(bx-ax)*k,y=ay+(by-ay)*k-50-Math.sin(k*Math.PI)*arc;icon(em,x,y,26)};
    switch(f.type){
+    case "wk_desk":case "wk_scan":case "wk_docs":{const fl=Math.floor(nowp/110)%2,X=ax+10,Y=ay;g.fillStyle="#1b1b2f";g.fillRect(X-1,Y+6,30,2);
+     if(f.type=="wk_desk"){g.fillStyle="#8a5a2b";g.fillRect(X,Y+2,28,5);g.fillRect(X+2,Y+7,3,9);g.fillRect(X+23,Y+7,3,9);g.fillStyle="#1b1b2f";g.fillRect(X+9,Y-14,15,12);g.fillStyle=fl?"#6fc6ff":"#bfe6ff";g.fillRect(X+11,Y-12,11,8);g.fillStyle="#9aa5b8";g.fillRect(X+14,Y-2,5,3);g.fillStyle="#d9d9d9";g.fillRect(X+4,Y,12,2);g.fillStyle="#f5c9a0";g.fillRect(X+2,Y-1-fl*2,4,3)}
+     else if(f.type=="wk_scan"){g.fillStyle="#6b7280";g.fillRect(X,Y+2,30,6);g.fillStyle="#1b1b2f";g.fillRect(X+2,Y+8,3,8);g.fillRect(X+25,Y+8,3,8);const px2=X+2+((k*70)%22);g.fillStyle="#c9833a";g.fillRect(px2,Y-6,7,8);g.fillStyle="#e74c3c";g.fillRect(X+12,Y+2,5,1);if(Math.floor(k*10)%3==0){g.fillStyle="#fff";g.fillRect(X+14,Y-12,2,6);g.fillRect(X+10,Y-9,10,1)}g.fillStyle="#fee761";g.fillRect(X+20,Y-8,9,7);g.fillStyle="#1b1b2f";g.fillRect(X+22,Y-6,5,2);if(k>.6&&k<.75){g.font="11px 'Cubic 11',monospace";g.fillStyle="#fee761";g.fillText("叮",X+24,Y-14)}}
+     else{g.fillStyle="#8a5a2b";g.fillRect(X,Y+2,28,5);g.fillRect(X+2,Y+7,3,9);g.fillRect(X+23,Y+7,3,9);g.fillStyle="#fff";g.fillRect(X+3,Y-6,10,8);g.fillRect(X+14,Y-6,10,8);g.fillStyle="#1b1b2f";for(let j=0;j<3;j++){g.fillRect(X+5,Y-4+j*2,6,1);g.fillRect(X+16,Y-4+j*2,6,1)}const fp=(k*3)%1;g.fillStyle="#e6e6e6";g.fillRect(X+14-Math.round(fp*10),Y-8,Math.round(fp*10)+1,9);g.fillStyle="#f5c9a0";g.fillRect(X+2,Y-1-fl*2,4,3)}
+     if(k>.75){g.font="700 15px sans-serif";g.textAlign="center";g.lineWidth=4;g.strokeStyle="rgba(0,0,0,.6)";g.fillStyle="#7CFC8A";g.strokeText("+$",ax,ay-52-(k-.75)*60);g.fillText("+$",ax,ay-52-(k-.75)*60)}break}
     case "eat":up("🍚");if(k>.3)for(let j=0;j<4;j++){g.fillStyle="#f5e6b8";g.fillRect(ax-10+j*6,ay-30+((k*60+j*7)%20),3,3)}break;
     case "toilet":up("🚽");break;
     case "bubbles":for(let j=0;j<6;j++){const bx2=ax+Math.sin(j*2.1+k*6)*18,by2=ay-20-((k*80+j*15)%50);g.strokeStyle="#bfe6ff";g.lineWidth=2;g.beginPath();g.arc(bx2,by2,3+j%3,0,7);g.stroke()}up("🛁");break;
@@ -1602,6 +1608,15 @@ async function enterRoom(pl,quiet){try{await rpc("town_fi",{rid:me,pin,op:"enter
 async function exitRoom(){leaveRoomLocal();try{await rpc("town_fi",{rid:me,pin,op:"exit"});await refresh()}catch(e){toast(e.message)}renderPanel()}
 function leaveRoomLocal(){const r=R[me];if(vin(r)){r.items={...r.items};delete r.items.fv}if(!fin(r))return false;r.items={...r.items};delete r.items.fi;rpc("town_fi",{rid:me,pin,op:"exit"}).catch(()=>{});return true}
 // 室內互動動畫：角色走到對應物件旁（約 0.4 秒）→ 播動畫（約 0.9 秒）→ 走回來（約 0.3 秒），共 1.7 秒；只畫在 12×5 的小畫布，手機不卡
+// 打工動畫：種類 → [room 室內物件代號, 室內動畫碼, 地圖動畫碼]；室內沒有物件或不在室內時用地圖動畫（書桌、掃描、文件）
+const WORK_FX={work:[null,null,"wk_desk"],cowork:[null,null,"wk_desk"],job_cafe:["coffee","wk_cafe","wk_desk"],job_rest:["kitchen","wk_serve","wk_desk"],job_gym:["rack","wk_lift","wk_desk"],job_shop:[null,null,"wk_scan"],job_rafi:[null,null,"wk_docs"]};
+const wkKey=(a,x)=>a=="work"||a=="cowork"?a:a=="job"&&x&&x.item?"job_"+x.item:null;
+let wkBusy=false;
+function wkPlay(a,x){const k=wkKey(a,x),W=k&&WORK_FX[k];if(!W||wkBusy||!R[me])return Promise.resolve();wkBusy=true;const D=1800;
+ const rm=roomOf(R[me],R),it=W[0]&&rm&&!rm.home?rm.items.find(o=>o[0]==W[0]):null;
+ if(it){roomAnim={code:W[1],it,tv:null,home:false,w:rw(rm),h:rh(rm),born:performance.now(),dur:D,age:0};loopRoom()}
+ else{spawnFx(W[2],me);if(a=="cowork"&&x.target&&walkers[x.target])spawnFx(W[2],x.target)}
+ return new Promise(r=>setTimeout(()=>{wkBusy=false;r()},D))}
 const ROOM_ACT={latte:"coffee",coffee:"coffee",special:"kitchen",dine:"bar",takeout:"pack",song:"jukebox",treat:"bar",redeem:"cake",spar:"bag",checkin:"locker",workout:"treadmill",spa:"spa",feast:"menu",labor:"work",yard:"yard",visit:"glass",escape:"vent",parole:"gate",bail:"bailDesk",consult:"reg",discharge:"reg",hvisit:"hbed",pay:"pdesk",surrender:"pboard",report:"prep",stats:"pstat",civic:"annb"};
 let lastSpots={},spotsBefore=null;let roomAnim=null;
 const HOME_ACT={toilet:"toilet",shower:"shower",eat:"fridge",tv:"tvcab",nap:"massage",qsleep:"bed",sleep:"bed",feed:"fridge",wakeup:"bed",visit:"sofa"};// 家裡：互動 → 家具（沒有那件家具就在房間中央演）
@@ -1630,6 +1645,9 @@ function roomFxDraw(c){const A=roomAnim,C=RC,k=Math.max(0,Math.min(1,(A.age-.25)
   case "steal":{const tx=(A.tgt[0]+.5)*C,ty=A.tgt[1]*C+8,f=Math.min(1,Math.max(0,(k-.2)/.6));P(tx+(ox-tx)*f-2,ty+(oy-ty)*f-2,5,5,"#c9833a");P(tx+(ox-tx)*f-1,ty+(oy-ty)*f-1,1,1,"#6b4a2b");break}
   case "snap":{const tx=(A.tgt[0]+.5)*C,ty=A.tgt[1]*C;if(k>.25&&k<.5){c.fillStyle="rgba(255,255,255,.55)";c.fillRect(0,0,A.w*C,A.h*C)}P(tx-9,ty-12,8,6,"#1b1b2f");P(tx-7,ty-11,4,4,"#6fc6ff");break}
   case "puff":{const tx=(A.tgt[0]+.5)*C,ty=A.tgt[1]*C+C*.6;for(let j=0;j<5;j++){const y=ty-((k*30+j*7)%24),x=tx-8+j*4+Math.sin(k*9+j)*2;P(x,y,4,4,j%2?"#9ccf6e":"#6fa34a")}break}
+  case "wk_cafe":{const fl=Math.floor(k*16)%2;for(let j=0;j<4;j++)P(ox-6+j*4+Math.sin(k*9+j)*2,oy-10-((k*60+j*9)%20),3,3,`rgba(255,255,255,${.85-j*.12})`);const cy=py-14;P(ox-4,cy,8,7,"#fff");P(ox-3,cy+1,6,2,"#6b4a2b");P(ox+4,cy+2,2,3,"#fff");P(ox-1,oy+2,2,Math.max(0,Math.min(8,k*12)),"#6b4a2b");if(fl)P(ox+8,oy-2,2,2,"#e74c3c");break}
+  case "wk_serve":{const f=(Math.sin(k*9)+1)/2,sx=C*1.5+f*(A.w-3)*C*.6;P(sx-7,py-20,14,2,"#c9c9c9");P(sx-5,py-24,10,4,"#fff");P(sx-1,py-27,2,3,"#e74c3c");P(sx-9,py-12,4,4,"#f5c9a0");P(sx+5,py-12,4,4,"#f5c9a0");break}
+  case "wk_lift":{const u=Math.abs(Math.sin(k*10)),y=py-30-u*14;P(ox-12,y,24,2,"#9aa5b8");P(ox-14,y-4,4,10,"#1b1b2f");P(ox+10,y-4,4,10,"#1b1b2f");if(u>.9)for(let j=0;j<3;j++)P(ox-8+j*8,py-12,2,2,"#fff");break}
   case "coffee":for(let j=0;j<4;j++)P(ox-8+j*5+Math.sin(k*9+j)*2,oy-8-((k*60+j*9)%18),3,3,`rgba(255,255,255,${.85-j*.12})`);break;
   case "jukebox":for(let j=0;j<3;j++){const x=ox+(j-1)*9+Math.sin(k*8+j)*3,y=oy-6-((k*50+j*12)%26);P(x,y,4,3,"#fee761");P(x+3,y-7,1,8,"#fee761")}break;
   case "kitchen":case "bar":case "pack":case "menu":im("plate",px,py-32-Math.abs(Math.sin(k*9))*4,14);for(let j=0;j<3;j++)P(px-8+j*7,py-22+((k*50+j*8)%12),2,2,"#f5e6b8");break;
