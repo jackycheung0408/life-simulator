@@ -426,5 +426,5 @@
 ## 訪客旅人 NPC（2026-11-17；SQL **已套用正式站 2026-11-17（回滾實測通過：不同地點擋、買藏寶圖 250→350 錢算對、重複擋）**：`supabase/town_traveler.sql`（只新增一個函式、不建表），在 `town.sql` 之後；實測 `supabase/town_traveler_test.sql`，最後 rollback，結果在錯誤訊息 REPORT，要台灣 8～22 點才有旅人）
 - RPC `town_traveler(rid,pin,op,item)`（view／pick）：每人每天一位旅人，8～22 點，單日出現在廣場、雙日公園；題目 `hashtext(日期||角色id)%4`：問路、賣藏寶圖（€200，一半挖到 €300，期望 −50）、說故事、請喝一杯（€100）。只動心情與錢、錢不夠擋、不欠款、不會死；`items.vz={d,a}`。前端 `TRV`／`trvPoll`／`TRQ`／`trvTalk`，地圖畫在廣場（14,13）或公園（29,20），同地點面板出現「和旅人聊聊」；題目文字順序要和 SQL 一致。
 
-## 公告欄委託（任務發布者 NPC，2026-11-17；SQL **尚未套用正式站**：`supabase/town_quest.sql`（只新增一個函式），在 `town.sql` 之後；實測 `supabase/town_quest_test.sql`，最後 rollback，結果在錯誤訊息 REPORT，**還沒跑**）
+## 公告欄委託（任務發布者 NPC，2026-11-17；SQL **已套用正式站 2026-11-17（回滾實測通過：不在市政廳擋、未達成擋、達成領 €600（Lv2）且豬肉 −2、重複擋）**：`supabase/town_quest.sql`（只新增一個函式），在 `town.sql` 之後；實測 `supabase/town_quest_test.sql`，最後 rollback，結果在錯誤訊息 REPORT）
 - RPC `town_quest(rid,pin,op,item)`（view／claim）：每人每天一個額外委託（`hashtext('q'||日期||id)%3`）：打工今天達 3 次（300×Lv）、交 1 包零食（200×Lv）、交 2 塊生豬肉（300×Lv）；Lv 由 `items.works` 門檻 0／10／30／70／150。要在市政廳交付，`items.qd={d,a}`，**不動每日任務板（仍 $500）**。前端入口：市政廳櫃員（`npcModal` 的「公告欄委託」）。
