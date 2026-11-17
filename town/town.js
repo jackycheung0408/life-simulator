@@ -219,6 +219,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u51-tags",date:"11/17",title:"重疊的人名牌不再糊成一團",items:["好幾個人站在同一個位置時，名牌會往上一層一層疊開","面對面按鈕的名字拆成兩行，不再被切掉","長按最上方狀態列 1 秒可看除錯資訊（回報畫面問題用）"]},
   {id:"u50-statusbar",date:"11/17",title:"頂部不再糊",items:["iPhone 狀態列改成純黑實心，狀態條不會再被系統模糊","如果還是糊：把桌面圖示刪掉，用 Safari 重新「加入主畫面」一次","畫面頂部從狀態列下方開始算"]},
   {id:"u58-door",date:"11/17",title:"進去才能用設施",items:["咖啡廳、餐廳、健身房等：站在門口只能「進去」，進去後才有設施的按鈕","店裡最上面固定有「出門」","室內畫面的空白改成牆壁與地板延伸，看起來更滿","上方狀態列往下移，避開 iPhone 瀏海的模糊"]},
   {id:"u57-pop",date:"11/17",title:"做完事會跳出變化",items:["吃、玩、打工、訓練…做完就在畫面浮出增減的數字","例：🍚 +48、💰 −$30","上方狀態列不再被 iPhone 瀏海模糊（改成不固定在最上緣）","下面按鈕改成方塊，少的時候不分頁","鄰居欄可以左右滑了"]},
@@ -1281,7 +1282,7 @@ function person(x,y,look,tk,moving,label,isMe,state){const u=1.6;
  g.fillStyle="rgba(0,0,0,.25)";g.fillRect(x-5*u,y+10*u,10*u,3*u);if(state.veh&&state.veh!="car")vdraw(state.veh,x,y,state.fx);drawChar(g,x,y,u,look,{...state,moving},tk);if(state.veh=="car")vdraw("car",x,y,state.fx);
  if(state.sleeping){g.font="bold 16px sans-serif";g.fillStyle="#fff";g.fillText("Zz",x+14*u,y-6*u+Math.sin(tk/20)*3)}
  if(state.stink){g.strokeStyle="#7bd36b";g.lineWidth=2;for(let k=-1;k<=1;k++){g.beginPath();for(let s=0;s<10;s++)g.lineTo(x+k*8*u+Math.sin(tk/6+s)*2,y-16*u-s*2.2);g.stroke()}}
- g.font="600 13px sans-serif";g.textAlign="center";g.textBaseline="middle";const tag=label+(state.bruised?" 🤕":"")+(state.hungry?" 🍚":""),w=textIcons(tag,0,0,14,true)+10,ty=y-32*u;g.fillStyle=isMe?"rgba(160,110,0,.9)":"rgba(0,0,0,.65)";g.fillRect(x-w/2,ty,w,18);g.fillStyle="#fff";textIcons(tag,x,ty+9,14);
+ g.font="600 13px sans-serif";g.textAlign="center";g.textBaseline="middle";const tag=label+(state.bruised?" 🤕":"")+(state.hungry?" 🍚":""),w=textIcons(tag,0,0,14,true)+10,ty=y-32*u-(state.ly||0);g.fillStyle=isMe?"rgba(160,110,0,.9)":"rgba(0,0,0,.65)";g.fillRect(x-w/2,ty,w,18);g.fillStyle="#fff";textIcons(tag,x,ty+9,14);
  // 心情泡泡
  if(state.bubble){g.font="500 12px sans-serif";const bw=textIcons(state.bubble,0,0,13,true)+14,by=ty-26;g.fillStyle="rgba(255,255,255,.95)";g.beginPath();g.roundRect?g.roundRect(x-bw/2,by,bw,22,8):g.rect(x-bw/2,by,bw,22);g.fill();g.beginPath();g.moveTo(x-5,by+22);g.lineTo(x+5,by+22);g.lineTo(x,by+28);g.fill();g.fillStyle="#2c2620";textIcons(state.bubble,x,by+11,13)}}
 function miniPerson(c,L){const m=c.getContext("2d"),u=c.height/30;m.clearRect(0,0,c.width,c.height);drawChar(m,c.width/2,17.5*u,u,L,{},0)}
@@ -1343,8 +1344,8 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
   const [ex,ey]=wm.path[wm.path.length-1],EX=Math.round(ex*T),EY=Math.round(ey*T),pu=2+Math.round(Math.sin(tk/8)*2);g.globalAlpha=1;g.strokeStyle="#2a2a3a";g.lineWidth=7;g.strokeRect(EX+5-pu,EY+5-pu,T-10+pu*2,T-10+pu*2);g.strokeStyle="#ffd23f";g.lineWidth=3;g.strokeRect(EX+5-pu,EY+5-pu,T-10+pu*2,T-10+pu*2);g.restore()}}
  // 人：依 y 排序，前面的蓋住後面的；在家睡覺的人在屋裡看不到，改在屋頂畫 💤；晚上有人在家的窗戶亮燈
  const list=Object.values(R).map(r=>({id:r.id,w:walkers[r.id],r:tickLocal(r,now())})).filter(o=>!(inside(o.r)&&!o.w.path.length)&&!(fin(o.r)&&!o.w.path.length)&&!(vin(o.r)&&!o.w.path.length&&R[+o.r.items.fv]&&inside(R[+o.r.items.fv]))).sort((a,b)=>a.w.y-b.w.y);
- const nowMs=Date.now();for(const o of list){const bb=bubbles[o.id]||(bubbles[o.id]={next:nowMs+2e3+Math.random()*15e3});if(nowMs>bb.next){bb.text=togetherAt(o.r.place)&&!o.r.sleeping&&Math.random()<.5?rp(TOGETHER_LINES):Math.random()<.6?moodLine(o.id,o.r):null;bb.until=nowMs+4500;bb.next=nowMs+18e3+Math.random()*25e3}
-  person((o.w.x+.5)*T,(o.w.y+.5)*T,o.r.look,tk,o.w.moving,nameTag(o.r),o.id==me,{veh:vehOf(o.r),fx:o.w.fx,sleeping:o.r.sleeping&&!o.w.path.length,stink:o.r.hygiene<25,dirty:o.r.hygiene<25,hungry:o.r.hunger<20,bruised:o.r.bruised,bubble:o.r.sleeping?null:o.r.bladder<20?"快憋不住 🚽":bb.text&&nowMs<bb.until?bb.text:null})}
+ const nowMs=Date.now(),seen=[];for(const o of list){const lyN=seen.filter(q=>Math.abs(q.x-o.w.x)<1.6&&Math.abs(q.y-o.w.y)<1.3).length;seen.push({x:o.w.x,y:o.w.y});const bb=bubbles[o.id]||(bubbles[o.id]={next:nowMs+2e3+Math.random()*15e3});if(nowMs>bb.next){bb.text=togetherAt(o.r.place)&&!o.r.sleeping&&Math.random()<.5?rp(TOGETHER_LINES):Math.random()<.6?moodLine(o.id,o.r):null;bb.until=nowMs+4500;bb.next=nowMs+18e3+Math.random()*25e3}
+  person((o.w.x+.5)*T,(o.w.y+.5)*T,o.r.look,tk,o.w.moving,nameTag(o.r),o.id==me,{veh:vehOf(o.r),ly:lyN*20,fx:o.w.fx,sleeping:o.r.sleeping&&!o.w.path.length,stink:o.r.hygiene<25,dirty:o.r.hygiene<25,hungry:o.r.hunger<20,bruised:o.r.bruised,bubble:o.r.sleeping?null:o.r.bladder<20?"快憋不住 🚽":bb.text&&nowMs<bb.until?bb.text:null})}
  // 有人在設施裡面：兩扇窗戶亮燈
  for(const k in ROOMS){if(!isOn(k))continue;if(!Object.values(R).some(o=>fin(o)&&o.place==k&&!(walkers[o.id]&&walkers[o.id].path.length)))continue;const [x,y,w]=PLACES[k].r;g.fillStyle="rgba(255,215,106,.5)";g.fillRect(x*T+14,y*T+34,26,24);g.fillRect((x+w)*T-40,y*T+34,26,24)}
  for(const r of Object.values(R)){if(!inside(r))continue;const [hx,hy]=homeXY(r.slot);if(night){g.fillStyle="rgba(255,215,106,.35)";g.fillRect(hx*T+16,hy*T+T+22,24,22);g.fillRect(hx*T+5*T-40,hy*T+T+22,24,22)}
