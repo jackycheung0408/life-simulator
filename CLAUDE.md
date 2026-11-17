@@ -503,3 +503,16 @@
 ## 8-bit 音效與音樂（2026-11-17，純前端）
 - `town/sfx.js`（≤12KB，Web Audio 合成，無音檔）由 `index.html` 的 `load()` 在 town.js 後載入（`sfx.js?v=N`，改了跑 `node tools/town-bump.mjs --sfx`）。`SFX.play(name)`、`music(on)`、`vol(0~2)`、`mute(b)`；22 種音效（≤0.4 秒、同名 80ms 去重）、2 首音樂（白天輕快、台灣 20～6 點安靜）。第一次點擊才解鎖 AudioContext，之前靜默；頁面隱藏自動靜音。設定 `localStorage town-snd`，預設音效開、音樂關；選單「聲音」（`sndModal`）有開關、音量三檔、逐一試聽。
 - 掛接都在既有入口：`toast`、`spawnFx`、走路 `path.shift`、`wkPlay`、`act` 成功／失敗、`enterRoom`、`lvUpModal`、`zbSet`；彈窗與按鈕點擊音由 sfx.js 自己監聽。呼叫一律 `window.SFX&&…`。**沒有真人聽過**，只以假 AudioContext 驗證不丟錯。
+
+## 點擊即互動（2026-11-17，純前端，無 SQL）
+點地圖目標 → `walkTo` 帶 `pendingThen`，走到後自動做；點空地或點別的目標會取消前一個（`walkTo` 開頭消耗 `pendingThen`）。函式 `tapPlace／tapObj／tapNpc／tapConfirm／tapTab`（`town.js`，`arrived` 後面）；資料 `TAP_DEF`（`OBJS` 後面，物件主要動作與花費；`ok:1` 直接做、沒有 `ok` 且有 `cost` 的（夾娃娃 $30、刮刮樂 $100、街頭藝人 $50）先跳確認條 `#tapc`［做］［取消］；餵鴨／餵貓要有零食）。`node town/test.js` 檢查 `TAP_DEF` 涵蓋全部 `OBJS`、價格與 OBJS 說明一致、> $60 一定要確認。
+| 目標 | 走到哪 | 到了自動做 |
+|---|---|---|
+| 路邊物件、噴水池 | 物件旁 | `act('obj')` 主要動作（見 TAP_DEF） |
+| 有室內的設施 | 門口（`arrived` 自動進去） | 面板切「地點」頁，不花錢 |
+| 公司、拉菲 | 門口 | 面板切「賺錢」頁，不自動打工 |
+| 自己的家 | 門口 | 自動進屋 |
+| 朋友的家 | 他家門口 | 面板切「地點」頁（進去／叫醒等） |
+| 朋友 | 他旁邊 | 選他並切「朋友」頁 |
+| 旅人／流動商人 | 旁邊 | 開對話／購買視窗 |
+睡著、入獄不自動做。**未做**：建議下一步（`nextStep`）還沒改用 `TAP_DEF`；面板置頂「擊掌」／「打工：職稱」高亮；在屋裡點門出門；巡警與店員點擊維持原樣。

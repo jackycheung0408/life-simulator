@@ -412,4 +412,5 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(js.includes("function recFind")&&js.includes("function recBindModal")&&js.includes("auth/v1/")&&ih.includes('id="cRec"')&&ih.includes('id="recBtn"'),"帳號救援入口（首頁 cRec、選單 recBtn、recFind、recBindModal）要在");
  check(fs.existsSync(__dirname+"/../supabase/town_recovery_test.sql"),"要有 town_recovery_test.sql")}
 {const h=require("fs").readFileSync(__dirname+"/index.html","utf8");for(const m of h.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g)){try{new Function(m[1])}catch(e){check(false,"index.html 內嵌 script 語法錯誤："+e.message)}}}
+{for(const [k,o] of Object.entries(M.OBJS)){const d=M.TAP_DEF[k];check(!!d,"TAP_DEF 缺物件 "+k);if(!d)continue;const m=(o.acts[0][1].match(/€(\d+)/)||[])[1];check((d.cost||0)==(m?+m:0),`TAP_DEF.${k} 價格要和 OBJS 說明一致`);if(d.cost>60)check(!d.ok,k+" 超過 $60 要確認條")}}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

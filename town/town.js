@@ -55,6 +55,8 @@ const OBJS={vend:{x:19,y:5,name:"自動販賣機",acts:[["投一罐飲料 🥤",
  mailbox:{x:34,y:5,name:"郵筒",acts:[["查信箱 💌","免費 · 偶爾收到退款 "]]},news:{x:14,y:19,name:"報攤",acts:[["買份報紙 📰","€20 · 心情 +8"]]},claw:{x:33,y:14,name:"夾娃娃機",acts:[["夾娃娃 🎁","€30 · 兩成夾到禮物"]]},lottery:{x:8,y:19,name:"刮刮樂攤",acts:[["刮一張 🍀","€100 · 有機會中大獎"]]},
  busker:{place:"plaza",name:"街頭藝人",acts:[["打賞 🎸","€50 · 心情 +15"]]},pond:{place:"park",name:"池塘",acts:[["餵鴨子 🐦","用一包零食 · 心情 +12","feed"]]},
  swing:{place:"park",name:"鞦韆",acts:[["盪鞦韆","心情 +12"]]},cat:{place:"park",name:"流浪貓",acts:[["摸摸貓 🐱","心情 +8 · 可能被抓"],["餵貓吃零食","用一包零食 · 心情 +15","feed"]]}};
+// 點擊即互動：走到物件旁自動做主要動作。cost = 花費（與 OBJS 說明、SQL 一致）、ok = 免確認、需要確認的會跳確認條、feed 要有零食
+const TAP_DEF={vend:{cost:30,ok:1},trash:{ok:1},stall:{cost:60,ok:1},well:{cost:10,ok:1},dummy:{ok:1},bench:{ok:1},cooler:{ok:1},pwc:{ok:1},mailbox:{ok:1},news:{cost:20,ok:1},claw:{cost:30},lottery:{cost:100},busker:{cost:50},pond:{feed:1,ok:1},swing:{ok:1},cat:{ok:1}};
 // 公共建設（和 supabase/town_civic.sql 一致，node town/test.js 會比對）：
 //  醫院 HOSP＝[掛號費, 探病冷卻分鐘, 病人心情, 探病者心情, 探病者精力, 好感]；警察局 POLICE＝[繳罰單折扣%, 自首關幾分鐘, 報案點有效天數, 最多幾點, 每點巡警機率 +%]
 //  市政廳 CIVIC＝建設案 [名稱, 費用, x, y, 心情, 精力]（鎮長提案、居民投票 24 小時、過半且至少 3 票（不到 5 人的小鎮 2 票）才扣鎮基金；在路上走到旁邊 ≤ 2 格可用，10 分鐘一次）
@@ -165,7 +167,7 @@ const route=(from,to,veh)=>veh?bfs(from,to,veh):freePath(from,to);
 // 點到的格子是哪裡：{slot} 房子、{dest} 公共地點或路上
 function placeAt(x,y){const pp=POOPS.find(q=>q.x==x&&q.y==y);if(pp){const c=[[x,y+1],[x+1,y],[x-1,y],[x,y-1]].find(d=>!blocked(...d));if(c)return {dest:"street",door:c}}for(const k in OBJS){const o=OBJS[k];if(o.x!=null&&x==o.x&&y==o.y)return {dest:"street",door:[x,y+(y==5?1:0)],obj:k}}let s=slotAt(x,y);if(s<0)for(let i=0;i<NR*3;i++){const d=door(i);if(d[0]==x&&d[1]==y)s=i}if(s>=0)return {slot:s};
  for(const k in PLACES)if(isOn(k)&&inRect(x,y,PLACES[k].r)){if((k=="plaza"||k=="park")&&!blocked(x,y))return {dest:k,door:[x,y]};return {dest:k,door:PLACES[k].door}}
- if(inRect(x,y,FOUNTAIN))return {dest:"plaza",door:PLACES.plaza.door};
+ if(inRect(x,y,FOUNTAIN))return {dest:"plaza",door:PLACES.plaza.door,obj:"well"};
  return blocked(x,y)?null:{dest:"street",door:[x,y]}}
 
 // ── 需求：和資料庫同一套算法，只用來即時顯示（真正的數字以資料庫為準）──
@@ -226,6 +228,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"tap-1117",date:"11/17",title:"點了就做",items:["點物件、建築，走過去自動互動","花錢的會先問你"]},
   {id:"sound-1117",date:"11/17",title:"新增 8-bit 音效",items:["點擊、賺錢、打工、走路都有聲音","選單「聲音」可開音樂、調音量、試聽"]},
   {id:"recovery-1117",date:"11/17",title:"帳號救援",items:["選單可綁定 Email","換手機：首頁找回角色"]},
   {id:"legal-1117",date:"11/17",title:"新增條款與隱私",items:["選單可看服務條款","選單可看隱私權政策"]},
@@ -333,7 +336,7 @@ const fin=r=>!!r&&!!r.items&&!!ROOMS[r.place]&&(r.items.fi===r.place||(r.place==
 // 現在在哪個室內：設施裡面（fin）或自己家屋裡（inside）；都不是就 null
 const visitHost=(r,RR)=>{const h=RR&&r&&r.place&&r.place.startsWith("home:")&&r.place!="home:"+r.id?RR[r.place.slice(5)]:null;return h&&inside(h)?h:null};// 在朋友家門口、他人在屋裡 → 看得到他家室內
 const roomOf=(r,RR)=>!r?null:fin(r)?ROOMS[r.place]:(r.place=="home:"+r.id&&inside(r))?homeRoom(r):visitHost(r,RR)?{...homeRoom(visitHost(r,RR)),visit:true,inn:vin(r)}:null;// RR = 居民表（頂層函式拿不到 init 裡的 R，由呼叫的人傳進來）
-if(typeof module!=="undefined")module.exports={HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,JOBS,PJT,PJM,PJN,RFT,RFW,pjTier,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
+if(typeof module!=="undefined")module.exports={HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,TAP_DEF,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,JOBS,PJT,PJM,PJN,RFT,RFW,pjTier,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
 
 function init(){
 
@@ -593,6 +596,22 @@ let pendingThen=null;
 function walkTo(dest,d){if(jailed(R[me])){pendingThen=null;toast(`你被關在監獄裡，還有 ${fmtLeft(jlLeft(R[me]))}`);return}leaveRoomLocal();const w=walkers[me],p=route([Math.round(w.x),Math.round(w.y)],d,vehOf(R[me])),th=pendingThen;pendingThen=null;if(!p){toast("走不到那裡，路被擋住了");return}
  w.path=p.slice(1);w.dest=dest;w.then=th;w.goal=d;camFree=false;if(!w.path.length)arrived(w);renderPanel()}
 function arrived(w){const d=w.dest,th=w.then;w.dest=null;w.then=null;act("move",{px:w.goal[0],py:w.goal[1],dest:d}).then(async()=>{if(ROOMS[d]&&R[me]&&!jailed(R[me]))await enterRoom(d,true);if(th)th()})}
+// ── 點擊即互動 ──
+const WORKPL=["office","rafi"];
+function tapTab(t){ptab=t;lastPanel="";renderPanel()}
+function tapObj(k){const r=R[me],d=TAP_DEF[k],o=OBJS[k];if(!r||!d)return;if(r.sleeping||jailed(r)){toast("現在不能這樣做");return}
+ if(d.feed&&!(r.items||{}).snack){toast("沒有零食可以餵");tapTab("here");return}
+ const go=()=>act("obj",{item:k,note:d.feed?"feed":null});
+ if(d.ok){go();return}
+ tapConfirm(`${o.name} $${d.cost}`,go)}
+function tapConfirm(txt,fn){let c=$("tapc");if(c)c.remove();c=document.createElement("div");c.id="tapc";c.style.cssText="position:fixed;left:50%;top:40%;transform:translateX(-50%);z-index:60;background:#fff7d6;border:3px solid #2b2b2b;padding:12px;display:flex;gap:8px;align-items:center;font:16.5px 'Cubic 11',monospace;color:#2b2b2b";c.innerHTML=`<span>${esc(txt)}</span>`;
+ for(const [l,f] of [["做",()=>{c.remove();fn()}],["取消",()=>c.remove()]]){const b=document.createElement("button");b.textContent=l;b.style.cssText="min-height:44px;padding:0 16px;font:inherit;border:3px solid #2b2b2b;background:#f6a5c0;color:#2b2b2b";b.onclick=f;c.appendChild(b)}document.body.appendChild(c);setTimeout(()=>c.isConnected&&c.remove(),8000)}
+function tapPlace(p){const w=walkers[me];if(p.slot!=null){const o=bySlot(p.slot);if(o&&o.id==me){if(inside(R[me])&&!(w.path.length))return;pendingThen=async()=>{await act("enter")};goHouse(p.slot);return}pendingThen=()=>tapTab("here");goHouse(p.slot);return}
+ if(p.obj){const k=p.obj;pendingThen=()=>tapObj(k);walkTo(p.dest,p.door);return}
+ pendingThen=()=>tapTab(WORKPL.includes(p.dest)?"work":"here");walkTo(p.dest,p.door)}
+function tapNpc(tx,ty){const near=(q)=>q&&Math.abs(q[0]-tx)<=1&&Math.abs(q[1]-ty)<=1;
+ if(TRV&&TRV.here&&near(TRV.place=="plaza"?[14,13]:[29,20])){pendingThen=()=>trvTalk();walkTo(TRV.place,[tx,ty]);return true}
+ if(NPCV&&NPCV.here&&Date.parse(NPCV.until)>Date.now()&&near(NPCV.place=="plaza"?[20,12]:[33,19])){pendingThen=()=>npcShop();walkTo(NPCV.place,[tx,ty]);return true}return false}
 const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀請朋友搬進來吧`);return}if(o.id==me&&inside(R[me])&&!(walkers[me]&&walkers[me].path.length)){interiorModal(me);return}walkTo("home:"+o.id,o.id==me?door(s):visitSpot(s))};
 
 // ── 下方面板：依所在地點顯示可以做的事 ──
@@ -1478,9 +1497,9 @@ cv.addEventListener("pointerup",e=>{const wasPinch=ptrs.size>=2||!down;endPtr(e)
  // 停在原地才放手就不要慣性
  if(d.moved&&performance.now()-(d.lt||0)>80){cam.vx=cam.vy=0}if(d.moved||!S)return;const rc=cv.getBoundingClientRect(),wx=(e.clientX-rc.left)/cam.s+cam.ox,wy=(e.clientY-rc.top)/cam.s+cam.oy,tx=Math.floor(wx/T),ty=Math.floor(wy/T);
  const hit=Object.values(R).find(r=>r.id!=me&&Math.hypot((walkers[r.id].x+.5)*T-wx,(walkers[r.id].y+.2)*T-wy)<T*.8);
- if(hit){sel=sel==hit.id?null:hit.id;renderPanel();return}sel=null;
+ if(hit){if(R[me].sleeping||jailed(R[me])){sel=hit.id;renderPanel();return}pendingThen=()=>{sel=hit.id;tapTab("social")};walkToPerson(hit.id);return}sel=null;if(!R[me].sleeping&&!blocked(tx,ty)&&tapNpc(tx,ty))return;
  if(R[me].sleeping){toast("先起床才能出門");return}
- const p=placeAt(tx,ty);window.__tap=`tap ${tx},${ty} scale ${cam.s.toFixed(2)} blocked ${blocked(tx,ty)} place ${p?(p.slot!=null?'house':p.dest):'none'} t ${new Date().toLocaleTimeString()}`;if(!p){toast("那裡走不過去");return}if(p.slot!=null){goHouse(p.slot);return}walkTo(p.dest,p.door)});
+ const p=placeAt(tx,ty);window.__tap=`tap ${tx},${ty} scale ${cam.s.toFixed(2)} blocked ${blocked(tx,ty)} place ${p?(p.slot!=null?'house':p.dest):'none'} t ${new Date().toLocaleTimeString()}`;if(!p){toast("那裡走不過去");return}tapPlace(p)});
 $("zoom").onclick=()=>{zoomFar=!zoomFar;cam.user=false;$("zoom").textContent=zoomFar?"🔍 拉近":"🗺️ 看全鎮";camFree=zoomFar;resize()};
 // ── PC：游標 hover 提示、鍵盤（≥900px） ──
 {const inf=document.createElement("div");inf.id="info";document.body.appendChild(inf);
