@@ -155,7 +155,7 @@
 - SQL 不會自動套用：到 Supabase SQL Editor，抓 `raw.githubusercontent.com/jackycheung0408/life-simulator/<commit>/supabase/town.sql`，用 `monaco.editor.getModels()[0].setValue(...)` 貼上，按 ⌘↵，確認「Potential issue」對話框後執行。
 - 資料庫實測：在同一段 SQL 後面接一個 `do $$ ... $$` 區塊（建測試鎮、呼叫 `town_act`、把結果寫進 `zz_town_test`、最後 `delete from town_towns`），看完結果就 `drop table zz_town_test`。plpgsql 變數不要和欄位／參數同名。
 - **改 SQL 要特別小心**：一個語法錯就讓正式站所有人動不了（出過一次）。有 `= any(...)` 這類寫法先用小函式包起來測。
-- 畫面測試：`tools/town-mock.js` 是假資料庫。複製 `town/` 到暫存資料夾，在 `index.html` 內嵌腳本的 `add("icons.js?v=…")` 前面加 `add("mock.js?v=N")`（首頁腳本是動態載入的，見「首頁與登入畫面」），用 `python3 -m http.server` 開，網址 `?t=MOCK01`。不要在正式站建帳號或填密碼。
+- 畫面測試：`tools/town-mock.js` 是假資料庫。複製 `town/` 到暫存資料夾，在 `index.html` 內嵌腳本的 `add("icons.js?v=…")` 前面加 `add("mock.js?v=N")`（首頁腳本是動態載入的，見「首頁與登入畫面」），用 `python3 -m http.server` 開，網址 `?t=MOCK01`。不要在正式站建帳號或填密碼。**2026-11-17 補充：首頁內嵌腳本會先用真的 `fetch` 預取 `town_state`，所以 mock 要放在複本 `index.html` 的 `<head>` 最前面當阻塞腳本（`<script src="mock.js?v=N"></script>`），只放在 `add("icons.js")` 前面會來不及接手、顯示「找不到這個小鎮」；進去後選角色、邀請碼填 `ABC123`。**
 
 ## 建議下一步（CTA）統計
 `town_cta` 表記錄「建議下一步」的顯示與點擊（`town_track`），鎮長面板用 `town_mayor(act='stats')` 看近 7 天各建議的顯示／點擊／點擊率。前端在 `renderPanel` 顯示時記 show、在按鈕點擊時記 click。
