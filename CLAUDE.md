@@ -414,3 +414,6 @@
 ## 登入備份（2026-11-17）
 - iOS 會清主畫面 web app 的 localStorage，登入鑰匙（`town-mine`，裝置金鑰就是裡面的 `pin`）另存 IndexedDB `town-bk`/`k`/`mine`，只存 `tid,name,rid,pin,me,at`。`index.html` 的 `LP.bk(list)` 寫入（空清單 = 刪除，並嘗試 `navigator.storage.persist()`），`town.js` 的 `saveMine`／`dropMine` 都呼叫它，所以登出、搬離會刪備份、不會被還原。
 - 啟動：localStorage 有 `town-mine` 就照舊同步畫首頁（3 秒後補備份）；沒有才讀 IndexedDB，有備份先還原再畫（最多等 700ms），沒備份就立刻畫。首頁主體包在 `main()`。
+
+## 巡警 NPC（2026-11-17，純前端表現）
+- `town.js` 畫地圖處（流動商人那段前面）：一位巡警沿第 3 條橫路（`roadRowsAt`）以 1.5 格／秒時間決定位置來回走（所有人畫面同步、不存資料）；騎車開車中的人（`vehOf` 且在走）經過他 1.6 格內，頭上閃紅色驚嘆號。只是提示，罰單、抓人的機率判定仍在伺服器（`town_traffic`），沒改任何數值，沒有 SQL。
