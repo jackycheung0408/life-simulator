@@ -218,6 +218,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u55-pool",date:"11/17",title:"隨機事件大量增加",items:["街上、公園、廣場的突發事件有 320 種","設施裡的情境有 600 多種，每次都不一樣","面對面按「隨機互動」，系統抽 5 件事讓你挑一個（共 120 種）","最近遇過的不會馬上重複","賺錢的事很少、花錢的事比較多，不會讓你變有錢"]},
   {id:"u54-roomy",date:"11/17",title:"畫面不再那麼擠",items:["地圖變大，下面的按鈕面板變矮（可拉高）","按鈕變矮，說明只留一行，灰掉的才寫原因","分組標題可點開收合（記住你的選擇，建議下一步永遠展開）","提示訊息移到上方，不再蓋住按鈕"]},
   {id:"u54-quest",date:"11/17",title:"市政廳有公告欄委託了",items:["點市政廳的櫃員，選「公告欄委託」","每天一個額外委託：打工 3 次、交零食或交生豬肉","獎金依職稱，Lv1 到 Lv5 越高越多","每天一次，和每日任務板各算各的"]},
   {id:"u53-trv",date:"11/17",title:"旅人來鎮上了",items:["每天白天有一位旅人在廣場或公園（單日廣場、雙日公園）","走近按「和旅人聊聊」，會遇到問路、賣地圖、說故事、請喝一杯其中一題","選一個選項，影響心情，有的要花錢","每人每天一次，錢不夠不能選"]},
@@ -716,6 +717,7 @@ function traitModal(){const sel=[];$("modal").classList.remove("hide");$("mbody"
  bs.forEach(b=>b.onclick=()=>{const k=b.dataset.tk,i=sel.indexOf(k);if(i>=0)sel.splice(i,1);else if(sel.length<2)sel.push(k);upd()});upd();
  const go=async ks=>{try{apply(await rpc("town_traits",{rid:me,pin,ks}));$("modal").classList.add("hide");if(ks.length)toast("個性訂好了");if(!(R[me].items&&R[me].items.wish))setTimeout(wishModal,300);else if(ks.length)lifeModal()}catch(e){$("terr").textContent=e.message}};
  $("tok").onclick=()=>go(sel);$("tskip").onclick=()=>go([])}
+async function rollDraw(id){try{const j=await rpc("town_pool",{rid:me,pin,op:"draw",target:id});const rows=j.list.map(x=>[x.title,x.desc+" · "+x.hint+(x.cost?` · 要花 €${x.cost}`:""),async()=>{try{const k=await rpc("town_pool",{rid:me,pin,op:"do",target:id,item:String(x.id)});await refresh();spawnFx(k.hit?"sparkle":"coins",me,id);toast(`${k.msg} ${k.fx||""}`);feedback(k.hit,k.fx||"")}catch(e){toast(e.message)}renderPanel()}]);choiceModal(`隨機互動：和 ${j.who}`,"系統抽了 5 件事，選一個來做",rows)}catch(e){toast(e.message)}}
 function alHtml(r){const n=alN(r),l=lvOf(n),a=AL[l],nx=AL[l+1],s=((r.items.al||{}).s)||0;
  const pct=nx?Math.round((n-a[0])/(nx[0]-a[0])*100):100;
  return `<h3>小鎮居民等級</h3><div class="mrow"><span><b>Lv${l+1} ${a[1]}</b> <small class="mut">活躍 ${n} 天${s>1?` · 連續 ${s} 天`:""}${nx?` · 再活躍 ${nx[0]-n} 天升 Lv${l+2}「${nx[1]}」`:" · 已是最高等級"}</small><i class="bond"><b style="left:0;width:${pct}%;background:var(--good)"></b></i><small class="mut">每天有上線動作就算活躍一天，只給便利，不影響打工薪水。斷了不會掉級、不扣東西。</small></span></div><div class="list">${AL.map((x,i)=>`<div class="mrow"><span>${i<=l?"✔":"・"} Lv${i+1} ${x[1]}（${x[0]} 天）<br><small class="mut">打工冷卻 ${x[2]} 分 · 背包 ${x[3]} · 房租 −${x[4]}%${x[5]?` · 每日登入禮 €${x[5]}`:""}</small></span></div>`).join("")}</div>`}
@@ -755,7 +757,7 @@ function renderFeed(){renderRank();renderPeople();const all=((S&&S.events)||[]).
  $("feed").querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>act("thank",{target:+b.dataset.t}));
  $("feed").querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{walkToPerson(+b.dataset.g);toast("走過去找他算帳，到了就能扁他（報仇有加成）");$("stage").scrollIntoView({behavior:"smooth"})})}
 // 面對面才能做的事：擊掌、扁他、和好
-function faceActs(id){const t=R[id],r=R[me],roll=[];if(t&&r&&!t.sleeping&&!r.sleeping&&!jailed(r)&&!jailed(t)){roll.push({...btn("隨機互動 🎲","系統抽一個現在做得到的：擊掌、道謝或傳訊息",()=>rollDo("fun",id),"face"),g:"face"});roll.push({...btn("隨機惡趣味 🎲","系統抽一個現在做得到的惡趣味",()=>rollDo("mis",id),"mis")})}return [...faceActs0(id).map(b=>({...b,g:"face"})),...roll,...misActs(id)]}
+function faceActs(id){const t=R[id],r=R[me],roll=[];if(t&&r&&!t.sleeping&&!r.sleeping&&!jailed(r)&&!jailed(t)){roll.push({...btn("隨機互動 🎲","系統抽 5 件事給你選一個",()=>rollDraw(id),"face"),g:"face"});roll.push({...btn("隨機惡趣味 🎲","系統抽一個現在做得到的惡趣味",()=>rollDo("mis",id),"mis")})}return [...faceActs0(id).map(b=>({...b,g:"face"})),...roll,...misActs(id)]}
 // ── 惡趣味（town_mischief.sql）：全部不會死、有冷卻、每人每天最多被整 6 次、對方可掛免整牌；報復不扣好感、也可以原諒 ──
 const MIS={splash:["潑水 💦","他清潔 −15、心情 −3 · 好感 −1",30],sticker:["貼「踢我」紙條 🦶","他名牌掛 1 小時「踢我」 · 好感 −1",60],fakelove:["假裝告白 💘","一半他害羞（好感 +1）、一半他氣炸（好感 −2）",60],snack:["偷零食 🍪","55% 被抓賠 €60、沒被抓到手一包 · 他要有零食",60],photo:["拍醜照貼到動態 📸","全鎮看得到 · 他心情 −5、好感 −2",60],swapseat:["換掉他的座位 🪑","只能在咖啡廳、餐廳裡面 · 好感 −1",30],doorbell:["按門鈴逃跑 🔔","站在他家門口 · 睡著的會被吵醒 · 好感 −1",30],fakepoop:["門口擺假便便 💩","站在他家門口 · 好感 −1",60]};
 const todayTW=()=>new Date(now()+8*36e5).toISOString().slice(0,10);
@@ -1488,11 +1490,11 @@ function jeModal(ev){const d=JE[ev.k];if(!d)return;
  choiceModal(d[0],d[1],[[d[2],d[3],pick(0)],[d[4],d[5],pick(1)]])}
 async function jePoll(){peBusy=true;try{const j=await rpc("town_jail_ev",{rid:me,pin,op:"poll"}),ev=j&&j.ev;if(ev&&JE[ev.k]&&peSeen!=ev.at&&!modalOpen()){peSeen=ev.at;jeModal(ev)}}catch(e){}peBusy=false}
 function fxText(j){const o=[];if(j.f)o.push(`心情 ${j.f>0?"+":""}${j.f}`);if(j.e)o.push(`精力 ${j.e>0?"+":""}${j.e}`);if(j.m)o.push(`${j.m>0?"+":"−"}€${Math.abs(j.m)}`);if(j.b)o.push(`${j.who} 好感 ${j.b>0?"+":""}${j.b}`);if(j.tg)o.push("一起加成 +2");return o.join(" · ")||"沒事發生"}
-function pevModal(ev){const d=PEV[ev.pl]&&PEV[ev.pl][ev.k];if(!d)return;
- const pick=o=>async()=>{try{const j=await rpc("town_pevent",{rid:me,pin,op:"pick",item:String(o)});await refresh();spawnFx(j.m<0?"coins":"sparkle",me);toast(`${d[0]}：${fxText(j)}`);feedback(true,fxText(j))}catch(e){toast(e.message)}renderPanel()};
- choiceModal(d[0],d[1],[[d[2],d[3],pick(0)],[d[4],d[5],pick(1)]])}
+function pevModal(ev){
+ const pick=o=>async()=>{try{const j=await rpc("town_pool",{rid:me,pin,op:"fpick",item:String(o)});await refresh();spawnFx(j.m<0?"coins":"sparkle",me);toast(`${j.msg}：${j.fx||"沒事發生"}`);feedback(true,j.fx||"")}catch(e){toast(e.message)}renderPanel()};
+ choiceModal(ev.title,ev.desc,[[ev.a,ev.ah,pick(0)],[ev.b,ev.bh,pick(1)]])}
 async function pePoll(){if(!me||!pin||peBusy||document.visibilityState!="visible"||modalOpen())return;const r=R[me];if(r&&!r.sleeping&&r.place=="jail"&&jailed(r)){jePoll();return}if(!r||r.sleeping||!PEV[r.place]||(walkers[me]&&walkers[me].path.length))return;
- peBusy=true;try{const j=await rpc("town_pevent",{rid:me,pin,op:"poll"}),ev=j&&j.ev;if(ev&&PEV[ev.pl]&&peSeen!=ev.at&&!modalOpen()){peSeen=ev.at;pevModal(ev)}}catch(e){}peBusy=false}
+ peBusy=true;try{const j=await rpc("town_pool",{rid:me,pin,op:"fpoll"}),ev=j&&j.ev;if(ev&&ev.title&&peSeen!=ev.at&&!modalOpen()){peSeen=ev.at;pevModal(ev)}}catch(e){}peBusy=false}
 // 同地點「正在一起」：同一個設施有 2 人以上醒著
 // ── 各設施更多互動、每日任務板、常客、坐下逗留（town_fac；價格與數值要和 supabase/town_fac.sql 一致）──
 const FACP=["restaurant","cafe","cinema","gym","park","plaza"];
@@ -1702,7 +1704,7 @@ function trvTalk(){const q=TRQ[TRV.q];choiceModal(q[0],q[1],[q[2],q[3]].map((a,i
 setInterval(trvPoll,6e4);setTimeout(trvPoll,6000);
 setInterval(npcPoll,6e4);setTimeout(npcPoll,5000);
 async function wevPoll(){if(wevBusy||document.visibilityState!="visible"||!me||!S)return;wevBusy=true;try{const j=await rpc("town_world",{rid:me,pin,op:"poll"});const ev=j&&j.ev&&WEV[j.ev.k]?j.ev:null;const k=ev?ev.k:null;if(k!==wevK){if(k)toast(`小鎮事件：${WEV[k][0]}，${WEV[k][1]}`);else if(wevK)toast("小鎮事件結束了");}wevK=k;wevUntil=ev?Date.parse(ev.until):0;wevDraw()}catch(e){}finally{wevBusy=false}}
-async function luckPoll(){if(document.visibilityState!="visible"||!me||!S||updBusy())return;const r=R[me];if(!r||r.sleeping||!["street","plaza","park"].includes(r.place))return;try{const j=await rpc("town_world",{rid:me,pin,op:"luck"});if(j&&j.msg)await refresh().catch(()=>{})}catch(e){}}
+async function luckPoll(){if(document.visibilityState!="visible"||!me||!S||updBusy())return;const r=R[me];if(!r||r.sleeping||!["street","plaza","park"].includes(r.place))return;try{const j=await rpc("town_pool",{rid:me,pin,op:"luck"});if(j&&j.title)await refresh().catch(()=>{})}catch(e){}}
 setInterval(wevPoll,6e4);setInterval(wevDraw,3e4);setInterval(luckPoll,18e4);setTimeout(wevPoll,4000);
 function drawZpig(g,X,Y,t){const b=Math.round(Math.sin(t/220)*1.5),R0=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(X+x,Y+y+b,w,h)};g.fillStyle="rgba(0,0,0,.25)";g.fillRect(X+4,Y+22,22,4);
  R0(8,-6,14,12,"#7fb069");R0(8,-6,14,3,"#5a8a4a");R0(6,0,6,5,"#a6d49f");R0(8,-2,3,3,"#c0392b");R0(15,-2,3,3,"#c0392b");R0(10,6,12,12,"#7fb069");R0(10,12,12,3,"#4b5e2d");R0(10,18,12,4,"#5a3a1a");R0(4,6,6,3,"#7fb069");R0(22,6,6,3,"#7fb069");R0(11,22,4,6,"#5a8a4a");R0(17,22,4,6,"#5a8a4a")}

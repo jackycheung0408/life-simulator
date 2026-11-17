@@ -428,3 +428,11 @@
 
 ## 公告欄委託（任務發布者 NPC，2026-11-17；SQL **已套用正式站 2026-11-17（回滾實測通過：不在市政廳擋、未達成擋、達成領 €600（Lv2）且豬肉 −2、重複擋）**：`supabase/town_quest.sql`（只新增一個函式），在 `town.sql` 之後；實測 `supabase/town_quest_test.sql`，最後 rollback，結果在錯誤訊息 REPORT）
 - RPC `town_quest(rid,pin,op,item)`（view／claim）：每人每天一個額外委託（`hashtext('q'||日期||id)%3`）：打工今天達 3 次（300×Lv）、交 1 包零食（200×Lv）、交 2 塊生豬肉（300×Lv）；Lv 由 `items.works` 門檻 0／10／30／70／150。要在市政廳交付，`items.qd={d,a}`，**不動每日任務板（仍 $500）**。前端入口：市政廳櫃員（`npcModal` 的「公告欄委託」）。
+
+
+## 大量事件池（2026-11-17；SQL **尚未套用正式站**：`supabase/town_pool.sql`，在 `town.sql`、`town_social.sql`、`town_stats2.sql` 之後，可重複執行；實測 `supabase/town_pool_test.sql`，最後 rollback，結果在錯誤訊息 REPORT，**還沒跑**）
+- 取代「只骰 8 種／6 取 1」：文字與效果全由伺服器用模板＋變數產生並回傳，前端只顯示字串（`town.js` 的 `PEV` 只剩地點清單）。獨立 RPC `town_pool(rid,pin,op,target,item)`，不改 `town_act`／`town_world`／`town_pevent`（舊函式保留不用）。
+- 三池（id 範圍）：**A 個人突發 320 種**（id 1～320＝40 場景 × 8 開場，op=`luck`，戶外 50%、5 分鐘一次、每天 ≤ 15）；**B 朋友互動 120 種**（id 1001～1120＝40 活動 × 輕鬆／冒險／大膽，op=`draw` 抽 5 個不同活動 → `do` 選一個，面板「隨機互動」開 choiceModal；對方要同地點醒著）；**C 設施情境 624 種**（id 2001～2624＝13 設施 × 6 人物 × 8 情節，每個 2 選項，op=`fpoll`／`fpick`，取代 `town_pevent` 每地點 3 個）。合計 1064。
+- **分級表只在一處**：`town_pl_scale`（小 100%／中 170%／大 260%）與 `town_pl_tier`（機率 60／30／10）；基準值在 A 的 `amt` 那段（心情 4、精力 4、飽足 5、清潔 6、錢 25、好感 1）、B 的 `town_pl_bfx`、C 的 `town_pl_arch_e`（情節效果表）。文字在 `town_pl_scenes／open／acts／subj／arch_t`。
+- 抽樣：每人最近 20 個 id 存 `items.rc`（缺值＝空）會避開；A 依地點類（街上／公園／廣場）、時段（不合 ×0.4）、運氣（好事 +4%／點）、心情（< 30 好事 ×1.4）加權；C 低心情少抽挑戰／偷看／賭。
+- 平衡：錢期望 ≤ 0（A 賺錢場景 2／40 且小額、花錢 3／40；B 只花錢；C 賭局 30%×+100 對 70%×−60）、錢不變負、不欠款、不會死；入獄／睡覺擋；能力只給進度（`town_pl_prog`，沿用 town_stats2：每天合計 ≤ 8、每項 ≤ 5）；好感走 `town_bond`。`node town/test.js` 檢查池大小、格式、錢場景比例。

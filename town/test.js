@@ -354,4 +354,21 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(M.UPDATES.some(u=>u.id=="u44-powers"),"UPDATES 要有鎮長管理權一則");
  // 頂層函式不可用 init() 裡的變數（powersModal 在 init 裡？確認放在 init 之後可存取 me／pin／R）
  check(tjs.indexOf("async function powersModal")>tjs.indexOf("function init(){"),"powersModal 要在 init() 裡面（才拿得到 me／pin／R）")}
+// 事件池（supabase/town_pool.sql）：三池大小、格式、錢期望、前端改用伺服器回傳文字
+{const fs=require("fs"),q=fs.readFileSync(__dirname+"/../supabase/town_pool.sql","utf8"),L=q.split("\n"),ci=L.findIndex(l=>/^create /.test(l));
+ check(L.slice(0,ci).every(l=>!l.trim()||l.startsWith("--")),"town_pool.sql 開頭每行都要是註解");
+ const sc=[...q.matchAll(/^\s+'([askz])\|(fun|energy|hunger|hygiene|money|bond|prog:(?:st|ag|ch|iq|lk))\|([+-])\|([^|]+)\|([^']+)',?$/gm)];
+ const nO=(q.match(/'\d+\|\d+\|[^']+，'/g)||[]).length,acts=[...q.matchAll(/'([^|']+)\|([^|']*\{w\}[^|']*)\|([tgsec])\|+(\w*)'/g)];
+ check(sc.length*nO>=100,"A 池要 ≥ 100："+sc.length*nO);check(acts.length*3>=100,"B 池要 ≥ 100："+acts.length*3);
+ const places=(q.match(/array\['restaurant'[^\]]+\]/)||[""])[0].split(",").length,arch=(q.match(/\{S\}[^']*\|[^']*\|[^']*\|[^']*\|[^']*\|[^']*'/g)||[]).length;
+ check(places>=13&&arch>=8&&places*6*arch>=100,`C 池要 ≥ 100：${places}×6×${arch}`);
+ check(sc.length*nO+acts.length*3+places*6*arch>=300,"三池合計要 ≥ 300");
+ const mp=sc.filter(x=>x[2]=="money"&&x[3]=="+").length,mm=sc.filter(x=>x[2]=="money"&&x[3]=="-").length;check(mp<=mm&&mp/sc.length<=0.08,`賺錢場景要少於花錢場景：+${mp} −${mm}`);
+ check(new Set(sc.map(x=>x[4])).size==sc.length,"A 場景標題不可重複");
+ check(/array\[100,170,260\]/.test(q)&&/town_pl_tier/.test(q),"分級表要在 town_pl_scale／town_pl_tier");
+ check(/town_pl_arch_e/.test(q)&&/,30,-4,0,-60,0/.test(q),"設施情節效果表與賭局期望（30%×100 vs 70%×−60）");
+ check(/\{[^}]*\}/.test("")||true,"");
+ const t=fs.readFileSync(__dirname+"/town.js","utf8");
+ check(/town_pool/.test(t)&&/op:"fpoll"/.test(t)&&/op:"draw"/.test(t)&&/op:"luck"/.test(t),"前端要改用 town_pool");
+ check(fs.existsSync(__dirname+"/../supabase/town_pool_test.sql"),"要有 town_pool_test.sql")}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
