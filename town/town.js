@@ -217,6 +217,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u51-npc2",date:"11/17",title:"流動商人來了",items:["每天會有一段時間，流動商人出現在廣場或公園","賣特調補品、小豬玩偶、訓練手冊，限量奇貨、價格偏貴","每種每天限買一次，錢不夠不能買","靠近商人，面板會出現「找流動商人」"]},
   {id:"u50-npc",date:"11/17",title:"店裡有店員了",items:["咖啡廳、餐廳、健身房、醫院、警察局、市政廳裡多了固定店員","店員頭上會冒對話，依時段與店內人數換台詞","點店員可以打招呼、問今日價格（含小鎮事件）、聽八卦","店員只是陪你聊天，不影響任何數值"]},
   {id:"u49-wev",date:"11/17",title:"小鎮事件橫幅變小了",items:["橫幅縮成右上角小標籤，不再擋住地圖","點一下就能收起，下一個事件才會再出現","文字縮小，事件名稱與剩餘時間照樣看得到"]},
   {id:"u48-train",date:"11/17",title:"能力屬性可以練了",items:["健身房舉重練力量、公園慢跑練敏捷、在家讀書練智力、廣場或咖啡廳聊天練魅力、許願池投幣練運氣","每項要累積訓練進度才 +1 點，越高越難，每天最多 8 點進度，最高仍是 5","鼻青臉腫、心情低落、發臭、精力太低、欠事故款會暫時減能力，狀態好了就恢復","「能力屬性」裡看得到進度與暫時減益"]},
@@ -590,6 +591,7 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  else if(p=="townhall"){title="市政廳";note="鎮基金、公告欄、居民投票。鎮基金只能花在居民投票通過的建設案，不能轉給任何人";list.push(btn("市政廳大廳 🏛️","看鎮基金、公告、投票與建設案",()=>civicModal()))}
  else{title="路上";note="站在路邊久了容易遇到壞事（野狗、鳥大便、小偷、機車），找個地方待著吧。點地圖上的房子或地點，就會走過去"}
  if(!sel&&!r.sleeping&&!jailed(r)&&!(walkers[me]&&walkers[me].path.length))list.push(...trainBtns(r));
+ if(NPCV&&NPCV.here&&Date.parse(NPCV.until)>Date.now()&&r.place==NPCV.place&&!r.sleeping&&!jailed(r))list.push(btn("找流動商人","限量奇貨，價格偏貴",npcShop,"fun"));
  if(!sel&&!r.sleeping&&FACP.includes(p)&&!(walkers[me]&&walkers[me].path.length)){list.push(...facBtns(r));const fn=fqOf(r,p);if(fn)note=(note?note+" · ":"")+`來過 ${fn} 次${tierOf(fn)?"：這裡的"+tierOf(fn):"，5 次變常客有折扣"}`}
  if(!sel&&!r.sleeping&&!(walkers[me]&&walkers[me].path.length))list.push(...inviteBtns(r));
  // 同在店裡（咖啡廳、餐廳、健身房）：在場的人可以直接面對面互動，不用先點他
@@ -1289,6 +1291,7 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
  // 公園的流浪貓：在公園裡慢慢走來走去
  {const cx=(25.5+4*(1+Math.sin(t/7000)))*T,cy=(18.6+.8*Math.sin(t/3100))*T;g.fillStyle="#555";g.fillRect(cx-8,cy-4,16,8);g.fillRect(cx+6,cy-10,8,8);g.fillRect(cx+6,cy-12,2,3);g.fillRect(cx+12,cy-12,2,3);g.fillRect(cx-12,cy-8+Math.sin(t/300)*2,4,8);g.fillStyle="#ffd23f";g.fillRect(cx+8,cy-8,2,2);g.fillRect(cx+11,cy-8,2,2)}
  for(const q of POOPS){const im=cimgP("💩");if(im.complete)g.drawImage(im,q.x*T+2,q.y*T+2,T-4,T-4)}
+ if(NPCV&&NPCV.here&&Date.parse(NPCV.until)>Date.now()){const mp=NPCV.place=='plaza'?[20,12]:[33,19];drawChar(g,mp[0]*T,mp[1]*T-6,1.6,{hair:'#8e44ad'},{moving:false},0);g.font="11px 'Cubic 11',monospace";g.textAlign='center';g.lineWidth=3;g.strokeStyle='#1b1b2f';g.strokeText('流動商人',mp[0]*T+10,mp[1]*T-14);g.fillStyle='#ffd166';g.fillText('流動商人',mp[0]*T+10,mp[1]*T-14)}
  {const tt=performance.now(),dt=Math.min(.1,(tt-(zbLast||tt))/1000);zbLast=tt;for(const z of ZB){const q=ZR[z.id]||(ZR[z.id]={x:z.x,y:z.y});const dx=z.x-q.x,dy=z.y-q.y,d=Math.hypot(dx,dy);if(d>.02){const st=Math.min(d,1.3*dt);q.x+=dx/d*st;q.y+=dy/d*st}drawZpig(g,q.x*T,q.y*T,tt)}}
  // 預計路徑：只畫自己的；一點一點的小方塊從腳下排到目的地，走過的自然消失；終點有閃動的黃框
  {const wm=walkers[me];if(wm&&wm.path.length){let px=wm.x,py=wm.y,acc=0;const dots=[];for(const [qx,qy] of wm.path){const sd=Math.hypot(qx-px,qy-py);if(sd>0){let at=.5-acc;while(at<=sd){const f=at/sd;dots.push([px+(qx-px)*f,py+(qy-py)*f]);at+=.5}acc=(acc+sd)%.5}px=qx;py=qy}
@@ -1673,6 +1676,11 @@ let wevHide=null;
 function wevDraw(){let b=$("wev");if(!wevK||wevUntil<Date.now()||wevHide===wevK){if(b)b.classList.remove("on");return}
  if(!b){b=document.createElement("div");b.id="wev";b.onclick=()=>{wevHide=wevK;b.classList.remove("on")};document.body.appendChild(b)}
  const m=Math.max(1,Math.ceil((wevUntil-Date.now())/6e4));b.textContent=`小鎮事件：${WEV[wevK][0]}（${WEV[wevK][1]}），剩 ${m} 分鐘`;b.classList.add("on")}
+let NPCV=null;
+const NPCI=[["tonic","特調補品","€1500 · 心情 +30、清潔 +30"],["toy","小豬玩偶","€2500 · 收藏品，純裝飾"],["book","訓練手冊","€2000 · 隨機一項能力進度 +2"]];
+async function npcPoll(){if(document.visibilityState!="visible"||!me||!S)return;try{const j=await rpc("town_npc",{rid:me,pin,op:"view"});if(j&&!j.error){const was=NPCV&&NPCV.here;NPCV=j;if(j.here&&!was)toast("流動商人來了，在"+(j.place=="plaza"?"廣場":"公園"))}}catch(e){}}
+function npcShop(){const b=(NPCV&&NPCV.bought)||[];choiceModal("流動商人","限量奇貨，每種每天限買一次",NPCI.map(a=>[a[1]+(b.includes(a[0])?"（今天買過了）":""),a[2],async()=>{if(b.includes(a[0])){toast("今天買過了");return}try{const j=await rpc("town_npc",{rid:me,pin,op:"buy",item:a[0]});if(j&&j.error)toast(j.error);else{toast(j.msg);if(NPCV)NPCV.bought=j.bought;await refresh()}}catch(e){toast("連不上小鎮，再試一次")}}]))}
+setInterval(npcPoll,6e4);setTimeout(npcPoll,5000);
 async function wevPoll(){if(wevBusy||document.visibilityState!="visible"||!me||!S)return;wevBusy=true;try{const j=await rpc("town_world",{rid:me,pin,op:"poll"});const ev=j&&j.ev&&WEV[j.ev.k]?j.ev:null;const k=ev?ev.k:null;if(k!==wevK){if(k)toast(`小鎮事件：${WEV[k][0]}，${WEV[k][1]}`);else if(wevK)toast("小鎮事件結束了");}wevK=k;wevUntil=ev?Date.parse(ev.until):0;wevDraw()}catch(e){}finally{wevBusy=false}}
 async function luckPoll(){if(document.visibilityState!="visible"||!me||!S||updBusy())return;const r=R[me];if(!r||r.sleeping||!["street","plaza","park"].includes(r.place))return;try{const j=await rpc("town_world",{rid:me,pin,op:"luck"});if(j&&j.msg)await refresh().catch(()=>{})}catch(e){}}
 setInterval(wevPoll,6e4);setInterval(wevDraw,3e4);setInterval(luckPoll,18e4);setTimeout(wevPoll,4000);

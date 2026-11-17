@@ -405,3 +405,7 @@
 
 ## 店員 NPC（2026-11-17，純前端，不動資料庫與數值）
 - `town.js` 的 `ROOMS.<地點>.npc=[x,y]`＋`NPCS`／`NPC_LINES`／`npcSay`／`npcModal`：咖啡廳小咪、餐廳阿福、健身房阿力、醫院、警察局、市政廳各一位固定店員，畫在室內（`drawRoom`，不佔玩家站位：`roomSpots` 把 npc 格當擋住），頭上每 9 秒冒 4 秒對話泡泡（依時段、店內人數換句）。點店員（`roomTap`）開 `npcModal`：問候、今日價格（餐廳 250／咖啡 90 乘全鎮事件 `wevK` 倍率；其他地點顯示事件消息）、聽八卦（讀 `S.events` 最近 3 則）。地圖門口沒畫店員、超市沒有室內場景所以沒有店員（之後可補）。
+
+## 流動商人 NPC（2026-11-17；SQL **尚未套用正式站**：`supabase/town_npc.sql`，順序在 `town.sql`、`town_stats.sql` 之後；實測 `supabase/town_npc_test.sql`，最後 rollback，結果在錯誤訊息 REPORT，**還沒跑**）
+- 新表 `town_npcs`（RLS 全關）、RPC `town_npc(rid,pin,op,item)`（view／buy）。每鎮每個台灣日惰性結算一次：9～19 點隨機開始，在廣場或公園待 60～120 分。商品每人每天每種限買 1（`items.np={d,b}`）：特調補品 €1500（心情 +30、清潔 +30）、小豬玩偶 €2500（`items.col` +1，純收藏）、訓練手冊 €2000（隨機一項能力進度 `items.at.p` +2）。只花錢不賺錢、錢不夠擋、不欠款、不會死。
+- 前端：`NPCV`／`npcPoll`（每 60 秒）／`npcShop`／`NPCI`；地圖上商人固定畫在廣場（20,12）或公園（33,19）；在同地點時面板出現「找流動商人」。`tools/town-mock.js` 有 `town_npc` 假回應。
