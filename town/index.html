@@ -234,7 +234,7 @@ body.ingame #panel{overflow-x:hidden}#acts{grid-template-columns:repeat(2,minmax
 </head>
 <body>
 <div class="wrap">
- <div class="bar"><h1 id="title">🐷 小豬鎮</h1><button id="menuBtn" class="hide" aria-label="選單">☰ 選單</button></div>
+ <div class="bar"><h1 id="title">🐷 小豬鎮</h1><button id="menuBtn" class="hide" aria-label="選單"><span style="font-size:22px;line-height:22px">☰</span><span>選單</span></button></div>
  <div id="menuBack"></div>
  <nav id="menu" class="drawer" aria-label="選單"><div class="dhead"><canvas id="meCv" width="40" height="50"></canvas><div><b id="meName"></b><small id="meSub"></small></div><button id="menuClose" aria-label="關閉">✕</button></div>
   <div class="dsec">小鎮</div><button data-go-tab="feed">📰 動態</button><button data-go-tab="rank">🏆 本週排行</button><button data-go-tab="ppl">👥 人際關係</button><button id="invite">✉️ 邀請朋友</button><button id="mayor" class="hide">🏛️ 鎮長管理</button><button id="powBtn">🏛️ 鎮長管理權</button>
@@ -244,8 +244,8 @@ body.ingame #panel{overflow-x:hidden}#acts{grid-template-columns:repeat(2,minmax
  <section id="game" class="hide">
   <div id="tips" class="card hide tips"></div><div id="away" class="card hide"></div>
   <div id="needs"></div>
-  <div id="stage"><canvas id="cv"></canvas><div class="tools"><button id="home" aria-label="我">📍 我</button><button id="zoom" aria-label="看全鎮">🗺️ 看全鎮</button><button id="feedBtn" class="mob-only" aria-label="動態">📰 動態<i id="feedBadge2" class="badge hide"></i></button></div><div id="strip"></div></div>
-  <div class="card" id="panel"><button id="grip" aria-label="收合"></button><div id="fb" class="hide"></div><div id="here"></div><canvas id="room" class="hide" width="288" height="120"></canvas><div id="note" class="mut"></div><div id="tipbox" class="hide"></div><div id="ptabs" class="hide"></div><div id="acts"></div></div>
+  <div id="stage"><canvas id="cv"></canvas><div class="tools"><button id="home" aria-label="我">📍 我</button><button id="zoom" aria-label="看全鎮">🗺️ 看全鎮</button><button id="friendBtn" class="mob-only" aria-label="朋友">🤝 朋友</button><button id="feedBtn" class="mob-only" aria-label="動態">📰 動態<i id="feedBadge2" class="badge hide"></i></button></div><div id="strip"></div></div>
+  <div class="card" id="panel"><button id="grip" aria-label="收合"></button><div id="fb" class="hide"></div><div id="here"></div><canvas id="room" class="hide" width="288" height="120"></canvas><div id="note" class="mut"></div><div id="pinbox"></div><div id="tipbox" class="hide"></div><div id="ptabs" class="hide"></div><div id="acts"></div></div>
   <div class="card" id="social"><button id="socialClose" class="mob-only">✕ 回地圖</button><div class="tabs" role="tablist"><button data-tab="feed" class="on">動態<i id="feedBadge" class="badge hide"></i></button><button data-tab="rank">本週排行</button><button data-tab="ppl">人際</button></div>
    <div id="tab-feed"><div class="chips"><button data-ff="all" class="on">全部</button><button data-ff="me">跟我有關</button><button data-ff="good">好事</button><button data-ff="bad">壞事</button><button id="report" class="chip-r">🖼️ 日報圖</button></div><div id="feed"></div></div><div id="tab-rank" class="hide"></div><div id="tab-ppl" class="hide"></div></div>
  </section>
@@ -261,7 +261,7 @@ var m=/[?&]t=([A-Za-z0-9]+)/.exec(location.search),T=m?m[1]:"",loaded=0,LP=windo
 function mine(){try{return JSON.parse(localStorage.getItem("town-mine")||"[]")}catch(e){return[]}}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function add(src){var s=document.createElement("script");s.src=src;s.async=false;document.body.appendChild(s)}
-function load(){if(loaded)return;loaded=1;add("icons.js?v=15");add("town.js?v=180")}
+function load(){if(loaded)return;loaded=1;add("icons.js?v=15");add("town.js?v=185")}
 function ago(t){if(!t)return"";var s=(Date.now()-t)/1e3;return s<90?"剛剛上線":s<3600?Math.round(s/60)+" 分鐘前上線":s<86400?Math.round(s/3600)+" 小時前上線":Math.round(s/86400)+" 天前上線"}
 var R=function(x,y,w,h,f){return'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+f+'"/>'};
 var HOUSE='<svg viewBox="0 0 12 12" shape-rendering="crispEdges">'+R(3,1,6,1,"#d9534f")+R(2,2,8,1,"#d9534f")+R(1,3,10,1,"#d9534f")+R(2,4,8,7,"#f4ead6")+R(5,7,2,4,"#8b5a2b")+R(3,5,2,2,"#9fd8ff")+R(7,5,2,2,"#9fd8ff")+'</svg>';
