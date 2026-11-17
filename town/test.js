@@ -199,7 +199,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(tj.includes('jailed(r)){title+="（牢房裡）"}')&&tj.includes("jePoll"),"入獄的人面板不能有出門鈕，且要有獄友事件輪詢");
  // 假釋原因
  const t0=Date.now(),mk=(n,bad,t,e)=>({items:{jp:{t:new Date(t).toISOString(),e:new Date(e).toISOString(),n,bad}}});
- check(M.paroleWhy({items:{}}).includes("沒有服刑紀錄")&&M.paroleWhy(mk(5,1,t0-9e6,t0+9e6)).includes("惹過事")&&M.paroleWhy(mk(1,0,t0-9e6,t0+9e6)).includes("勞動")&&M.paroleWhy(mk(2,0,t0-1e5,t0+9e6)).includes("一半刑期")&&M.paroleWhy(mk(2,0,t0-9e6,t0+9e6))==="","假釋條件判斷不對（沒紀錄／惹事／勞動不夠／未服滿一半／可以）");
+ check(M.paroleWhy({items:{}}).includes("沒有服刑紀錄")&&M.paroleWhy(mk(5,1,t0-9e6,t0+9e6)).includes("惹過事")&&M.paroleWhy(mk(1,0,t0-9e6,t0+9e6)).includes("勞動")&&M.paroleWhy(mk(2,0,t0-1e5,t0+9e6)).includes("還要等")&&M.paroleWhy(mk(2,0,t0-9e6,t0+9e6))==="","假釋條件判斷不對（沒紀錄／惹事／勞動不夠／未服滿一半／可以）");
  check(M.priorOn({items:{pr:{u:new Date(t0+1e6).toISOString()}}})&&!M.priorOn({items:{pr:{u:new Date(t0-1e6).toISOString()}}})&&!M.priorOn({items:{}})&&M.wantedOn({items:{wt:new Date(t0+1e6).toISOString()}})&&M.paroleOn({items:{pl:new Date(t0+1e6).toISOString()}})&&!M.wantedOn({items:{}}),"前科／通緝／假釋判斷不對（過期或缺值 = 沒有）")}
 // 手機狀態條：條（.need i）不能被壓扁（曾因圖示行高 24.75px、固定高度而被擠成 2px，看起來像能力條不見）
 {const html=require("fs").readFileSync(__dirname+"/index.html","utf8");
