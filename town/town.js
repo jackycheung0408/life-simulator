@@ -217,6 +217,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u50-npc",date:"11/17",title:"店裡有店員了",items:["咖啡廳、餐廳、健身房、醫院、警察局、市政廳裡多了固定店員","店員頭上會冒對話，依時段與店內人數換台詞","點店員可以打招呼、問今日價格（含小鎮事件）、聽八卦","店員只是陪你聊天，不影響任何數值"]},
   {id:"u49-wev",date:"11/17",title:"小鎮事件橫幅變小了",items:["橫幅縮成右上角小標籤，不再擋住地圖","點一下就能收起，下一個事件才會再出現","文字縮小，事件名稱與剩餘時間照樣看得到"]},
   {id:"u48-train",date:"11/17",title:"能力屬性可以練了",items:["健身房舉重練力量、公園慢跑練敏捷、在家讀書練智力、廣場或咖啡廳聊天練魅力、許願池投幣練運氣","每項要累積訓練進度才 +1 點，越高越難，每天最多 8 點進度，最高仍是 5","鼻青臉腫、心情低落、發臭、精力太低、欠事故款會暫時減能力，狀態好了就恢復","「能力屬性」裡看得到進度與暫時減益"]},
   {id:"u48-balance2",date:"11/17",title:"打工不遞減，錢花得更有感",items:["打工薪水不再遞減，每次都是全額","存款超過 5 萬就要繳財產稅，越有錢稅率越高（0.3%～3%）","特調咖啡漲到 €300","喪屍豬打倒改領 €60～140，一天最多 €600"]},
@@ -292,10 +293,16 @@ const ROOMS={
  hospital:{floor:["#e8eef2","#dde6ec"],wall:"#9ec9e8",items:[["meds",1,0],["meds",3,0],["cross",5,0],["lamp",7,0],["reg",9,0],["hbed",1,2],["hbed",3,2],["hbed",5,2],["hbed",1,4],["lamp",11,0],["plant",11,4]]},
  police:{floor:["#b9c3d6","#aeb9ce"],wall:"#2c3e8c",items:[["pboard",1,0],["pstat",3,0],["badge",5,0],["pdesk",7,0],["prep",9,0],["lamp",11,0],["bar",2,2],["table",8,3],["plant",0,4],["plant",11,4]]},
  townhall:{floor:["#e6d8b8","#d9c9a8"],wall:"#7a4a24",items:[["annb",1,0],["annb",3,0],["lamp",5,0],["hall",7,0],["ballot",9,0],["cfund",11,0],["plant",0,2],["plant",11,2],["table",3,3],["table",8,3],["plant",0,4],["plant",11,4]]}};
+// 店員 NPC：固定在櫃台旁、不佔玩家站位、純表現（不動數值、不寫資料庫）
+ROOMS.cafe.npc=[3,1];ROOMS.restaurant.npc=[3,1];ROOMS.gym.npc=[5,1];ROOMS.hospital.npc=[7,1];ROOMS.police.npc=[7,1];ROOMS.townhall.npc=[5,1];
+const NPCS={cafe:{n:"小咪",hair:"#7a4a24",job:"咖啡師",base:90,item:"特調咖啡"},restaurant:{n:"阿福",hair:"#222",job:"店長",base:250,item:"餐廳套餐"},gym:{n:"阿力",hair:"#c0392b",job:"教練",base:0,item:""},hospital:{n:"白護理師",hair:"#e8c27a",job:"護理師",base:0,item:""},police:{n:"小林警員",hair:"#222",job:"警員",base:0,item:""},townhall:{n:"陳櫃員",hair:"#555",job:"櫃員",base:0,item:""}};
+const NPC_LINES={cafe:["今天的豆子很香喔","要不要來杯特調？","歡迎光臨～","外面好像要下雨了"],restaurant:["今天的菜很新鮮","歡迎光臨，幾位？","小心燙喔","廚房正在忙～"],gym:["多喝水、多伸展","今天練哪裡？","別硬撐，慢慢來","加油，再一組！"],hospital:["有哪裡不舒服嗎？","請多休息","保重身體喔","小聲一點，病人在睡"],police:["遵守交通規則喔","有事可以報案","最近鎮上很平靜","騎車要慢一點"],townhall:["有事可以看公告","投票別忘了","鎮長最近很忙","歡迎來市政廳"]};
+const NPC_NIGHT=["這麼晚了還沒睡？","夜深了，早點休息","夜班真安靜"],NPC_BUSY=["今天好熱鬧！","人好多，慢慢來","大家都來了呢"],NPC_EMPTY=["今天好安靜…","只有你一位呢","歡迎，隨便坐"];
+const npcSay=(p,t,cnt)=>{const hr=new Date(Date.now()+8*36e5).getUTCHours(),L=NPC_LINES[p].slice();if(hr>=22||hr<6)L.push(...NPC_NIGHT);if(cnt>=3)L.push(...NPC_BUSY);else if(cnt==0)L.push(...NPC_EMPTY);const k=Math.floor(t/9000);return L[(k*7+p.length)%L.length]};
 // 站位：沒被擋住的地板格，離場景中央近的先排
 const rw=rm=>rm.w||RW,rh=rm=>rm.h||RH,blk=(rm,o)=>rm.home?!(WALLF.includes(o[0])||FLAT.includes(o[0])):ITEM[o[0]][3];
 function homeRoom(r){const it=r.items||{},hl=Math.max(1,Math.min(4,it.hl||1)),d=HOME_DIM[hl-1];return {home:true,hid:r.id,w:d[0],h:d[1]+1,items:fpOf(it),wall:it.wall||"#f4ead6",floor:["#e6d8b8","#d9c9a8"]}}
-function roomSpots(rm){const W=rw(rm),H=rh(rm),blocked=new Set(rm.items.filter(o=>blk(rm,o)).map(o=>o[1]+","+o[2])),out=[],cx=(W-1)/2,cy=(H+1)/2,sc=a=>Math.abs(a[0]-cx)+Math.abs(a[1]-cy)*2+((a[0]+a[1])%2?3:0)+(a[1]==1?4:0);for(let y=1;y<H;y++)for(let x=0;x<W;x++)if(!blocked.has(x+","+y))out.push([x,y]);return out.sort((a,b)=>sc(a)-sc(b))}
+function roomSpots(rm){const W=rw(rm),H=rh(rm),blocked=new Set(rm.items.filter(o=>blk(rm,o)).map(o=>o[1]+","+o[2]).concat(rm.npc?[rm.npc[0]+","+rm.npc[1]]:[])),out=[],cx=(W-1)/2,cy=(H+1)/2,sc=a=>Math.abs(a[0]-cx)+Math.abs(a[1]-cy)*2+((a[0]+a[1])%2?3:0)+(a[1]==1?4:0);for(let y=1;y<H;y++)for(let x=0;x<W;x++)if(!blocked.has(x+","+y))out.push([x,y]);return out.sort((a,b)=>sc(a)-sc(b))}
 const fin=r=>!!r&&!!r.items&&!!ROOMS[r.place]&&(r.items.fi===r.place||(r.place=="jail"&&jailed(r)));
 // 現在在哪個室內：設施裡面（fin）或自己家屋裡（inside）；都不是就 null
 const visitHost=(r,RR)=>{const h=RR&&r&&r.place&&r.place.startsWith("home:")&&r.place!="home:"+r.id?RR[r.place.slice(5)]:null;return h&&inside(h)?h:null};// 在朋友家門口、他人在屋裡 → 看得到他家室內
@@ -1595,6 +1602,7 @@ function drawRoom(){const cv=$("room");if(!cv)return;const r=R[me],rm=roomOf(r,R
  c.fillStyle=rm.wall;c.fillRect(0,0,W*C,C);for(let y=1;y<H;y++)for(let x=0;x<W;x++){c.fillStyle=rm.floor[(x+y)%2];c.fillRect(x*C,y*C,C,C)}
  c.fillStyle="rgba(0,0,0,.25)";c.fillRect(0,C-3,W*C,3);
  for(const o of rm.items){if(rm.home){furnDraw(c,o[0],o[1]*C,o[2]*C,C);continue}const im=roomImg(ITEM[o[0]][0]);if(im.complete&&im.naturalWidth)c.drawImage(im,o[1]*C,o[2]*C,C,C)}
+ if(rm.npc&&!rm.home){const P=r.place,nn=NPCS[P],t=Date.now(),nx=(rm.npc[0]+.5)*C,ny=rm.npc[1]*C+2,cnt=Object.values(R).filter(o=>o.place==P&&fin(o)&&!o.sleeping).length;drawChar(c,nx,ny,1.05,{hair:nn.hair},{moving:false},Math.floor(t/90));c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.fillStyle="#9fe3ff";c.strokeText(nn.n,nx,Math.max(11,ny-30));c.fillText(nn.n,nx,Math.max(11,ny-30));if(t%9000<4000){const tx=npcSay(P,t,cnt),w=Math.min(W*C-4,tx.length*11+10),bx=Math.max(2,Math.min(W*C-w-2,nx-w/2));c.fillStyle="#fff";c.fillRect(bx,ny-52,w,16);c.strokeStyle="#1b1b2f";c.lineWidth=1;c.strokeRect(bx,ny-52,w,16);c.fillStyle="#1b1b2f";c.textAlign="left";c.fillText(tx,bx+5,ny-40)}}
  const here=rm.home?(rm.visit?[tickLocal(R[rm.hid],now()),...Object.values(R).filter(o=>o.id!=rm.hid&&vin(o)&&+o.items.fv==rm.hid&&!o.sleeping&&!(walkers[o.id]&&walkers[o.id].path.length)).sort((a,b)=>(b.id==me)-(a.id==me))]:[r]):Object.values(R).filter(o=>o.place==r.place&&fin(o)&&(o.place=="jail"||!jailed(o))&&!(walkers[o.id]&&walkers[o.id].path.length)).sort((a,b)=>(b.id==me)-(a.id==me)),spots=roomSpots(rm);
  const beds=rm.home?[]:rm.items.filter(q=>q[0]=="hbed"||q[0]=="bunk");let bi=0;
  lastSpots={};here.slice(0,Math.max(1,spots.length)).forEach((o,i)=>{const sp=spots[i]||[Math.floor(W/2),2];lastSpots[o.id]=sp;let x=(sp[0]+.5)*C,y=sp[1]*C+2,mv=false;
@@ -1603,8 +1611,14 @@ function drawRoom(){const cv=$("room");if(!cv)return;const r=R[me],rm=roomOf(r,R
    c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.fillStyle="#fff";c.strokeText("Z z",bx+4,by-C+2);c.fillText("Z z",bx+4,by-C+2);return}
   if(o.id==me&&roomAnim&&roomAnim.age<1){const A=roomAnim,tx=(A.it[1]+.5)*C,sit=SITS.includes(A.code),ty=sit?A.it[2]*C+C-3:Math.min(A.h-1,A.it[2]+1)*C+2,kk=A.age<.25?A.age/.25:A.age>.82?(1-A.age)/.18:1;mv=kk<1;x+=(tx-x)*kk;y+=(ty-y)*kk;if(A.code=="treadmill"&&kk==1)y-=Math.abs(Math.sin(A.age*40))*2;if(A.code=="massage"&&kk==1)x+=Math.sin(A.age*70)*1.2}
   drawChar(c,x,y,1.05,o.look,{moving:mv},Math.floor(performance.now()/90));c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.strokeText(o.name.slice(0,4),x,Math.max(11,y-30));c.fillStyle=o.id==me?"#fee761":"#fff";c.fillText(o.name.slice(0,4),x,Math.max(11,y-30))});if(roomAnim&&roomAnim.age<1)roomFxDraw(c)}
+function npcModal(P){const nn=NPCS[P];if(!nn)return;const m=({market:.85,festival:.9,bust:1.1})[wevK]||1,cnt=Object.values(R).filter(o=>o.place==P&&fin(o)&&!o.sleeping).length;
+ const rows=[["問候",`${nn.n}（${nn.job}）打招呼`,async()=>toast(`${nn.n}：${npcSay(P,Date.now(),cnt)}`)]];
+ rows.push([nn.base?"今日價格":"今日消息",nn.base?`${nn.item} 現在 €${Math.round(nn.base*m)}${m!=1?"（"+WEV[wevK][0]+"）":""}`:(wevK?`${WEV[wevK][0]}：${WEV[wevK][1]}`:"今天鎮上沒有特別的事"),async()=>toast(nn.base?`${nn.n}：${nn.item}今天 €${Math.round(nn.base*m)}${wevK?"，"+WEV[wevK][0]+"期間":""}`:`${nn.n}：${wevK?WEV[wevK][0]+"，"+WEV[wevK][1]:"今天沒什麼大事"}`)]);
+ rows.push(["聽八卦","聽聽鎮上最近的事",async()=>{const ev=((S&&S.events)||[]).filter(e=>e.msg&&e.kind!="rent"&&e.kind!="luck").slice().sort((a,b)=>b.at.localeCompare(a.at)).slice(0,3);toast(ev.length?`${nn.n}：聽說${ev.map(e=>e.msg).join("；")}`:`${nn.n}：最近沒什麼八卦`)}]);
+ choiceModal(nn.n,nn.job,rows)}
 // 點室內：點人＝選他（面對面互動），點物件＝按面板上對應的按鈕；fx、fy 是在室內畫布上的位置（0～1）
 function roomTap(fx,fy){const r=R[me],rm=roomOf(r,R);if(!rm)return;if(rm.visit&&!vin(r)){interiorModal(rm.hid);return}const cx=Math.floor(fx*rw(rm)),cy=Math.floor(fy*rh(rm)),pid=Object.keys(lastSpots).find(k=>+k!=me&&lastSpots[k][0]==cx&&(lastSpots[k][1]==cy||lastSpots[k][1]-1==cy));   // 人的腳在格子上緣、身體畫在上一格，兩格都算點到
+ if(rm.npc&&!rm.home&&cx==rm.npc[0]&&(cy==rm.npc[1]||cy==rm.npc[1]-1)){npcModal(r.place);return}
  if(pid){sel=sel==+pid?null:+pid;renderPanel();return}const o=rm.items.find(o=>o[1]==cx&&o[2]==cy);if(!o){if(rm.home&&!r.sleeping&&!rm.visit)interiorModal(me);return}
  const d=rm.home?[0,(FURN.find(a=>a[0]==o[0])||[0,o[0]])[1],HACT[o[0]]?HACT[o[0]][0]:null]:ITEM[o[0]];if(!d[2]){if(rm.home)interiorModal(me);else toast(d[1]);return}
  const i=panelFns.findIndex(f=>d[2].test(f.label)),el=i<0?null:$("acts").querySelector(`button[data-i="${i}"]`);if(el)el.click();else toast(`${d[1]}現在不能用`)}
