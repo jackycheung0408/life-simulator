@@ -647,7 +647,7 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  // 店家休息中：只留說明，按鈕拿掉
  const cm=closedMsg(p);if(cm&&!sel){title+="（休息中）";note=cm;for(let i=list.length-1;i>=0;i--)if(!list[i].g||list[i].g=="place")list.splice(i,1)}
  for(let i=list.length-1;i>=0;i--)if(/烤地瓜/.test(list[i].label)&&closedMsg("stall"))list.splice(i,1);
- $("here").textContent=title;$("note").textContent=note;
+ if(renderPanel.th!==title){renderPanel.th=title;$("here").textContent=title}if(renderPanel.tn!==note){renderPanel.tn=note;$("note").textContent=note;$("note").title=note}
  // 內容沒變就不重畫，避免按到一半按鈕被換掉
  if(!sel){const t=nextStep(r,p);if(t){list.unshift({...t,g:"tip"});track("show",t.label)}}
  if(!sel){const jk={cafe:"cafe",restaurant:"rest",gym:"gym",market:"shop",rafi:"rafi"}[p],card=null;try{card=jk?jobCardPJ(jk,r):p=="office"?jobCardCo(r):null}catch(e){}if(card){list.unshift({label:"職階",sub:"",g:"work",info:true,card});note=p=="office"?`今天已打工 ${workToday(r)} 次`:""}}
