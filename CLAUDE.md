@@ -409,3 +409,8 @@
 ## 流動商人 NPC（2026-11-17；SQL **已套用正式站 2026-11-17（回滾實測通過：不同地點擋、補品／手冊可買、重複買擋、錢不夠擋、商人離開後擋，錢 5000→1500 不變負）**：`supabase/town_npc.sql`，順序在 `town.sql`、`town_stats.sql` 之後；實測 `supabase/town_npc_test.sql`，最後 rollback，結果在錯誤訊息 REPORT）
 - 新表 `town_npcs`（RLS 全關）、RPC `town_npc(rid,pin,op,item)`（view／buy）。每鎮每個台灣日惰性結算一次：9～19 點隨機開始，在廣場或公園待 60～120 分。商品每人每天每種限買 1（`items.np={d,b}`）：特調補品 €1500（心情 +30、清潔 +30）、小豬玩偶 €2500（`items.col` +1，純收藏）、訓練手冊 €2000（隨機一項能力進度 `items.at.p` +2）。只花錢不賺錢、錢不夠擋、不欠款、不會死。
 - 前端：`NPCV`／`npcPoll`（每 60 秒）／`npcShop`／`NPCI`；地圖上商人固定畫在廣場（20,12）或公園（33,19）；在同地點時面板出現「找流動商人」。`tools/town-mock.js` 有 `town_npc` 假回應。
+
+
+## 登入備份（2026-11-17）
+- iOS 會清主畫面 web app 的 localStorage，登入鑰匙（`town-mine`，裝置金鑰就是裡面的 `pin`）另存 IndexedDB `town-bk`/`k`/`mine`，只存 `tid,name,rid,pin,me,at`。`index.html` 的 `LP.bk(list)` 寫入（空清單 = 刪除，並嘗試 `navigator.storage.persist()`），`town.js` 的 `saveMine`／`dropMine` 都呼叫它，所以登出、搬離會刪備份、不會被還原。
+- 啟動：localStorage 有 `town-mine` 就照舊同步畫首頁（3 秒後補備份）；沒有才讀 IndexedDB，有備份先還原再畫（最多等 700ms），沒備份就立刻畫。首頁主體包在 `main()`。

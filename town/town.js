@@ -217,6 +217,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u52-bk",date:"11/17",title:"登入更穩了",items:["手機清掉網站資料後，會自動還原登入，不用重輸邀請碼","登入鑰匙另外備份一份在瀏覽器裡，只存必要資訊","按「登出」或搬離小鎮會一併刪掉備份","同時請求瀏覽器保留資料，降低被清掉的機會"]},
   {id:"u51-npc2",date:"11/17",title:"流動商人來了",items:["每天會有一段時間，流動商人出現在廣場或公園","賣特調補品、小豬玩偶、訓練手冊，限量奇貨、價格偏貴","每種每天限買一次，錢不夠不能買","靠近商人，面板會出現「找流動商人」"]},
   {id:"u50-npc",date:"11/17",title:"店裡有店員了",items:["咖啡廳、餐廳、健身房、醫院、警察局、市政廳裡多了固定店員","店員頭上會冒對話，依時段與店內人數換台詞","點店員可以打招呼、問今日價格（含小鎮事件）、聽八卦","店員只是陪你聊天，不影響任何數值"]},
   {id:"u49-wev",date:"11/17",title:"小鎮事件橫幅變小了",items:["橫幅縮成右上角小標籤，不再擋住地圖","點一下就能收起，下一個事件才會再出現","文字縮小，事件名稱與剩餘時間照樣看得到"]},
@@ -355,9 +356,9 @@ const houseName=s=>`${STREETS[Math.floor(s/3)]} ${s%3+1} 號`;
 
 // ── 我住的小鎮（存在這台手機）──
 const mine=()=>{try{return JSON.parse(localStorage.getItem("town-mine")||"[]")}catch(e){return []}};
-const saveMine=e=>{e.at=Date.now();const l=mine().filter(x=>x.tid!=e.tid);l.unshift(e);try{localStorage.setItem("town-mine",JSON.stringify(l.slice(0,10)))}catch(er){}};
+const saveMine=e=>{e.at=Date.now();const l=mine().filter(x=>x.tid!=e.tid);l.unshift(e);try{localStorage.setItem("town-mine",JSON.stringify(l.slice(0,10)))}catch(er){}try{LP.bk(l.slice(0,10))}catch(er){}};
 let mineAt=0;const touchMine=()=>{if(!TID||Date.now()-mineAt<6e4)return;mineAt=Date.now();try{const l=mine(),x=l.find(y=>y.tid==TID);if(x){x.at=Date.now();localStorage.setItem("town-mine",JSON.stringify(l))}}catch(e){}};
-const dropMine=tid=>{try{localStorage.setItem("town-mine",JSON.stringify(mine().filter(x=>x.tid!=tid)))}catch(e){}};
+const dropMine=tid=>{try{const l=mine().filter(x=>x.tid!=tid);localStorage.setItem("town-mine",JSON.stringify(l))}catch(e){}try{LP.bk(mine())}catch(e){}};
 const go=tid=>{location.search="?t="+tid};
 // 裝置金鑰：每台手機自動產生一組，代替密碼（存在這台手機上，不用記）
 const newKey=()=>{const a="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789",b=crypto.getRandomValues(new Uint8Array(32));return [...b].map(x=>a[x%a.length]).join("")};

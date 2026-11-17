@@ -32,6 +32,7 @@ check(M.door(7)[0]==11&&M.door(7)[1]==28,"房子 7 的門應該在 (11,28)，和
  check(!/<script[^>]*\ssrc=/.test(html.replace(/add\("[^"]*"\)/g,"")),"index.html 不能有阻塞渲染的 <script src>（遊戲程式要由 LP 動態載入）");
  check(/LP\.top=function/.test(html)&&/LP\.t=Math\.round\(performance\.now\(\)\)/.test(html),"首頁 LP.top 與量測用的 LP.t 要在 index.html 內嵌");
  check((html.match(/town\.js\?v=/g)||[]).length==1&&(html.match(/icons\.js\?v=/g)||[]).length==1,"town.js／icons.js 的 ?v= 在 index.html 只能各出現一次（town-bump 只改第一個）");
+ {const tj=fs.readFileSync(__dirname+"/town.js","utf8");check(/LP\.bk=function/.test(html)&&/indexedDB\.open\(DB/.test(html)&&/storage\.persist/.test(html)&&/function main\(\)/.test(html),"index.html 要有 IndexedDB 登入備份與還原");check(/const dropMine=[^\n]*LP\.bk\(/.test(tj)&&/const saveMine=[^\n]*LP\.bk\(/.test(tj),"saveMine／dropMine 要同步備份（登出要刪備份）")}
  check(Buffer.byteLength(html)<=45000,"index.html 超過 45KB（"+Buffer.byteLength(html)+"），首頁會變慢；CSS／JS 太多的東西移到 town.js");
  check(/animation:ldin 0s linear \.2s/.test(html),"載入畫面 .ld 要延遲 0.2 秒才出現");
  check(/readyState/.test(fs.readFileSync(__dirname+"/town.js","utf8").slice(-600)),"town.js 最後要用 readyState 判斷再跑 init()（它是晚載入的）");
