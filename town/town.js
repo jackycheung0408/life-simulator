@@ -218,6 +218,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u53-trv",date:"11/17",title:"旅人來鎮上了",items:["每天白天有一位旅人在廣場或公園（單日廣場、雙日公園）","走近按「和旅人聊聊」，會遇到問路、賣地圖、說故事、請喝一杯其中一題","選一個選項，影響心情，有的要花錢","每人每天一次，錢不夠不能選"]},
   {id:"u52-cop",date:"11/17",title:"街上有巡警了",items:["一位巡警會沿著馬路來回巡邏","騎車開車的人經過他身邊，頭上會閃紅色驚嘆號","只是提醒，罰單與抓人的機率沒有改變"]},
   {id:"u52-bk",date:"11/17",title:"登入更穩了",items:["手機清掉網站資料後，會自動還原登入，不用重輸邀請碼","登入鑰匙另外備份一份在瀏覽器裡，只存必要資訊","按「登出」或搬離小鎮會一併刪掉備份","同時請求瀏覽器保留資料，降低被清掉的機會"]},
   {id:"u51-npc2",date:"11/17",title:"流動商人來了",items:["每天會有一段時間，流動商人出現在廣場或公園","賣特調補品、小豬玩偶、訓練手冊，限量奇貨、價格偏貴","每種每天限買一次，錢不夠不能買","靠近商人，面板會出現「找流動商人」"]},
@@ -594,6 +595,7 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  else if(p=="townhall"){title="市政廳";note="鎮基金、公告欄、居民投票。鎮基金只能花在居民投票通過的建設案，不能轉給任何人";list.push(btn("市政廳大廳 🏛️","看鎮基金、公告、投票與建設案",()=>civicModal()))}
  else{title="路上";note="站在路邊久了容易遇到壞事（野狗、鳥大便、小偷、機車），找個地方待著吧。點地圖上的房子或地點，就會走過去"}
  if(!sel&&!r.sleeping&&!jailed(r)&&!(walkers[me]&&walkers[me].path.length))list.push(...trainBtns(r));
+ if(TRV&&TRV.here&&r.place==TRV.place&&!r.sleeping&&!jailed(r))list.push(btn("和旅人聊聊 💬","今天來鎮上的旅人，選擇題",trvTalk,"fun"));
  if(NPCV&&NPCV.here&&Date.parse(NPCV.until)>Date.now()&&r.place==NPCV.place&&!r.sleeping&&!jailed(r))list.push(btn("找流動商人 💰","限量奇貨，價格偏貴",npcShop,"fun"));
  if(!sel&&!r.sleeping&&FACP.includes(p)&&!(walkers[me]&&walkers[me].path.length)){list.push(...facBtns(r));const fn=fqOf(r,p);if(fn)note=(note?note+" · ":"")+`來過 ${fn} 次${tierOf(fn)?"：這裡的"+tierOf(fn):"，5 次變常客有折扣"}`}
  if(!sel&&!r.sleeping&&!(walkers[me]&&walkers[me].path.length))list.push(...inviteBtns(r));
@@ -1297,6 +1299,7 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
  {const rr=[];for(let y=0;y<mapRows();y++)if(roadRowsAt(y))rr.push(y);if(rr.length>2){const py=rr[2]+.4,span=COLS-6,ph=(Date.now()/1000*1.5)%(span*2),px=3+(ph<span?ph:span*2-ph),dir=ph<span?1:-1;
   drawChar(g,px*T,py*T-6,1.6,{hair:'#1b2a6b'},{moving:true},Math.floor(Date.now()/120));g.fillStyle='#2e4aa8';g.fillRect(px*T+2,py*T-14,14,3);g.font="11px 'Cubic 11',monospace";g.textAlign='center';g.lineWidth=3;g.strokeStyle='#1b1b2f';g.strokeText('巡警',px*T+10,py*T-18);g.fillStyle='#9fc5ff';g.fillText('巡警',px*T+10,py*T-18);
   if(Math.floor(Date.now()/250)%2)for(const id in walkers){const w=walkers[id],o=R[id];if(!o||!w.path||!w.path.length||!vehOf(o))continue;if(Math.abs(w.x-px)<1.6&&Math.abs(w.y-py)<1.6){g.fillStyle='#e43b44';g.fillRect(w.x*T+8,w.y*T-24,5,10);g.fillRect(w.x*T+8,w.y*T-11,5,4)}}}}
+ if(TRV&&TRV.here){const tp=TRV.place=='plaza'?[14,13]:[29,20];drawChar(g,tp[0]*T,tp[1]*T-6,1.6,{hair:'#d98b2b'},{moving:false},0);g.fillStyle='#8b5a2b';g.fillRect(tp[0]*T+14,tp[1]*T+2,7,9);g.font="11px 'Cubic 11',monospace";g.textAlign='center';g.lineWidth=3;g.strokeStyle='#1b1b2f';g.strokeText('旅人',tp[0]*T+10,tp[1]*T-14);g.fillStyle='#b9f2a1';g.fillText('旅人',tp[0]*T+10,tp[1]*T-14)}
  if(NPCV&&NPCV.here&&Date.parse(NPCV.until)>Date.now()){const mp=NPCV.place=='plaza'?[20,12]:[33,19];drawChar(g,mp[0]*T,mp[1]*T-6,1.6,{hair:'#8e44ad'},{moving:false},0);g.font="11px 'Cubic 11',monospace";g.textAlign='center';g.lineWidth=3;g.strokeStyle='#1b1b2f';g.strokeText('流動商人',mp[0]*T+10,mp[1]*T-14);g.fillStyle='#ffd166';g.fillText('流動商人',mp[0]*T+10,mp[1]*T-14)}
  {const tt=performance.now(),dt=Math.min(.1,(tt-(zbLast||tt))/1000);zbLast=tt;for(const z of ZB){const q=ZR[z.id]||(ZR[z.id]={x:z.x,y:z.y});const dx=z.x-q.x,dy=z.y-q.y,d=Math.hypot(dx,dy);if(d>.02){const st=Math.min(d,1.3*dt);q.x+=dx/d*st;q.y+=dy/d*st}drawZpig(g,q.x*T,q.y*T,tt)}}
  // 預計路徑：只畫自己的；一點一點的小方塊從腳下排到目的地，走過的自然消失；終點有閃動的黃框
@@ -1686,6 +1689,11 @@ let NPCV=null;
 const NPCI=[["tonic","特調補品","€1500 · 心情 +30、清潔 +30"],["toy","小豬玩偶","€2500 · 收藏品，純裝飾"],["book","訓練手冊","€2000 · 隨機一項能力進度 +2"]];
 async function npcPoll(){if(document.visibilityState!="visible"||!me||!S)return;try{const j=await rpc("town_npc",{rid:me,pin,op:"view"});if(j&&!j.error){const was=NPCV&&NPCV.here;NPCV=j;if(j.here&&!was)toast("流動商人來了，在"+(j.place=="plaza"?"廣場":"公園"))}}catch(e){}}
 function npcShop(){const b=(NPCV&&NPCV.bought)||[];choiceModal("流動商人","限量奇貨，每種每天限買一次",NPCI.map(a=>[a[1]+(b.includes(a[0])?"（今天買過了）":""),a[2],async()=>{if(b.includes(a[0])){toast("今天買過了");return}try{const j=await rpc("town_npc",{rid:me,pin,op:"buy",item:a[0]});if(j&&j.error)toast(j.error);else{toast(j.msg);if(NPCV)NPCV.bought=j.bought;await refresh()}}catch(e){toast("連不上小鎮，再試一次")}}]))}
+let TRV=null;
+const TRQ=[["旅人問路","「請問車站怎麼走？」",["親切帶路","心情 +8"],["隨便指一下","心情 −2"]],["旅人賣藏寶圖","「這張圖要 €200，說不定能挖到寶。」",["買下來","€200 · 一半機率挖到 €300、否則心情 −5"],["不買","沒有影響"]],["旅人說故事","「我來跟你講講我的旅行。」",["認真聽","心情 +10"],["打斷他","心情 −3"]],["旅人請你喝一杯","「一起喝一杯吧，我請……不對，你請？」",["請他喝","€100 · 心情 +12"],["婉拒","沒有影響"]]];
+async function trvPoll(){if(document.visibilityState!="visible"||!me||!S)return;try{const j=await rpc("town_traveler",{rid:me,pin,op:"view"});if(j&&!j.error){const was=TRV&&TRV.here;TRV=j;if(j.here&&!was)toast("有旅人來鎮上了，在"+(j.place=="plaza"?"廣場":"公園"))}}catch(e){}}
+function trvTalk(){const q=TRQ[TRV.q];choiceModal(q[0],q[1],[q[2],q[3]].map((a,i)=>[a[0],a[1],async()=>{try{const j=await rpc("town_traveler",{rid:me,pin,op:"pick",item:String(i)});if(j&&j.error)toast(j.error);else{toast(j.msg);TRV.here=false;await refresh()}}catch(e){toast("連不上小鎮，再試一次")}}]))}
+setInterval(trvPoll,6e4);setTimeout(trvPoll,6000);
 setInterval(npcPoll,6e4);setTimeout(npcPoll,5000);
 async function wevPoll(){if(wevBusy||document.visibilityState!="visible"||!me||!S)return;wevBusy=true;try{const j=await rpc("town_world",{rid:me,pin,op:"poll"});const ev=j&&j.ev&&WEV[j.ev.k]?j.ev:null;const k=ev?ev.k:null;if(k!==wevK){if(k)toast(`小鎮事件：${WEV[k][0]}，${WEV[k][1]}`);else if(wevK)toast("小鎮事件結束了");}wevK=k;wevUntil=ev?Date.parse(ev.until):0;wevDraw()}catch(e){}finally{wevBusy=false}}
 async function luckPoll(){if(document.visibilityState!="visible"||!me||!S||updBusy())return;const r=R[me];if(!r||r.sleeping||!["street","plaza","park"].includes(r.place))return;try{const j=await rpc("town_world",{rid:me,pin,op:"luck"});if(j&&j.msg)await refresh().catch(()=>{})}catch(e){}}
