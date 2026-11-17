@@ -188,6 +188,12 @@ body.ingame #needs{grid-template-columns:repeat(6,minmax(0,1fr))}body.ingame .ne
 #menuClose{min-width:44px;min-height:44px}#grip{min-height:44px}
 @media (max-width:700px){.drawer>button{padding:9px 12px;min-height:44px}.dhead small{line-height:1.3}}
 /* ── 按鈕回饋：按下亮框、成功閃綠、失敗搖晃、結果顯示在右上角（用 steps 保持像素感，不閃） ── */
+#acts .act{min-height:44px;padding:5px 10px;gap:8px}#acts .ai{font-size:18px;width:24px}#acts .ai img.px{width:24px;height:24px}#acts .at{flex:1}#acts .at b{font-size:16.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#acts .at small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}#acts .poor .at small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#acts .cta{min-height:48px}#acts .cta .ai img.px{width:28px;height:28px}#acts{gap:6px}
+#acts button.grp{display:block;width:100%;text-align:left;min-height:44px;margin:2px 0 0;padding:0 6px;background:transparent;border:none;box-shadow:none;font-size:11px;font-weight:700;color:#b9c2e8}#acts button.grp:active{transform:none;box-shadow:none}#acts button.grp::after{content:" ▾"}#acts button.grp.c::after{content:" ▸"}#acts .gh{display:none}
+body.ingame{--tb:48px}body.ingame #panel{max-height:30vh}body.ingame #panel.max{max-height:70vh}
+body.ingame #toast{top:calc(var(--hud) + var(--tb) + 8px);bottom:auto;transform:translateX(-50%) translateY(-120px)}body.ingame #toast.on{transform:translateX(-50%) translateY(0)}
 #acts.busy .act{pointer-events:none}
 #acts .act.working{outline:3px solid var(--gold);outline-offset:-3px;filter:brightness(1.2)}
 #acts .act.ok{animation:okf .6s steps(4)}#acts .act.err{animation:errs .4s steps(4)}
@@ -252,7 +258,7 @@ var m=/[?&]t=([A-Za-z0-9]+)/.exec(location.search),T=m?m[1]:"",loaded=0,LP=windo
 function mine(){try{return JSON.parse(localStorage.getItem("town-mine")||"[]")}catch(e){return[]}}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function add(src){var s=document.createElement("script");s.src=src;s.async=false;document.body.appendChild(s)}
-function load(){if(loaded)return;loaded=1;add("icons.js?v=15");add("town.js?v=151")}
+function load(){if(loaded)return;loaded=1;add("icons.js?v=15");add("town.js?v=153")}
 function ago(t){if(!t)return"";var s=(Date.now()-t)/1e3;return s<90?"剛剛上線":s<3600?Math.round(s/60)+" 分鐘前上線":s<86400?Math.round(s/3600)+" 小時前上線":Math.round(s/86400)+" 天前上線"}
 var R=function(x,y,w,h,f){return'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+f+'"/>'};
 var HOUSE='<svg viewBox="0 0 12 12" shape-rendering="crispEdges">'+R(3,1,6,1,"#d9534f")+R(2,2,8,1,"#d9534f")+R(1,3,10,1,"#d9534f")+R(2,4,8,7,"#f4ead6")+R(5,7,2,4,"#8b5a2b")+R(3,5,2,2,"#9fd8ff")+R(7,5,2,2,"#9fd8ff")+'</svg>';

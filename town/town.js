@@ -218,6 +218,8 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u54-roomy",date:"11/17",title:"畫面不再那麼擠",items:["地圖變大，下面的按鈕面板變矮（可拉高）","按鈕變矮，說明只留一行，灰掉的才寫原因","分組標題可點開收合（記住你的選擇，建議下一步永遠展開）","提示訊息移到上方，不再蓋住按鈕"]},
+  {id:"u54-quest",date:"11/17",title:"市政廳有公告欄委託了",items:["點市政廳的櫃員，選「公告欄委託」","每天一個額外委託：打工 3 次、交零食或交生豬肉","獎金依職稱，Lv1 到 Lv5 越高越多","每天一次，和每日任務板各算各的"]},
   {id:"u53-trv",date:"11/17",title:"旅人來鎮上了",items:["每天白天有一位旅人在廣場或公園（單日廣場、雙日公園）","走近按「和旅人聊聊」，會遇到問路、賣地圖、說故事、請喝一杯其中一題","選一個選項，影響心情，有的要花錢","每人每天一次，錢不夠不能選"]},
   {id:"u52-cop",date:"11/17",title:"街上有巡警了",items:["一位巡警會沿著馬路來回巡邏","騎車開車的人經過他身邊，頭上會閃紅色驚嘆號","只是提醒，罰單與抓人的機率沒有改變"]},
   {id:"u52-bk",date:"11/17",title:"登入更穩了",items:["手機清掉網站資料後，會自動還原登入，不用重輸邀請碼","登入鑰匙另外備份一份在瀏覽器裡，只存必要資訊","按「登出」或搬離小鎮會一併刪掉備份","同時請求瀏覽器保留資料，降低被清掉的機會"]},
@@ -633,13 +635,16 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  if(!sel){const t=nextStep(r,p);if(t){list.unshift({...t,g:"tip"});track("show",t.label)}}
  const dg=inside(r)?"self":p&&p.startsWith("home:")&&p!=="home:"+me?"friend":"place";list.forEach(b=>{if(!b.g)b.g=/^(走|去 |取消)/.test(b.label)?"move":/^(打工|應徵)/.test(b.label)?"work":dg});
  const GORD=["tip","self","place","eat","fun","soc","work","home","friend","face","mis","online","move"],order=[...new Set(list.map(b=>b.g))].sort((a,b)=>GORD.indexOf(a)-GORD.indexOf(b)),multi=order.length>1;
- const html=order.map(g=>(multi?`<div class="grp">${GROUP[g]}</div>`:"")+list.map((b,i)=>{if(b.g!=g)return "";
+ const html=order.map(g=>(multi?(g=="tip"?`<div class="grp">${GROUP[g]}</div>`:`<button class="grp${gcol(g)?" c":""}" data-g="${g}">${GROUP[g]}</button>`):"")+list.map((b,i)=>{if(b.g!=g)return "";
    // 圖示放大在左邊；壞事用紅色；錢不夠就標出來
    const m=b.label.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u)||b.label.match(/^(.*?)\s*(\p{Extended_Pictographic}\uFE0F?)$/u),txt=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[1]:m[2]):b.label,ic=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[2]:m[1]):(ACT_ICON[b.label]||(b.g=="move"?"🚶":"•"));
    const cost=+((b.sub||"").match(/€(\d+)(?!\d)/)||[])[1]||0,dis=b.dis||"",poor=dis||(cost&&/€\d+/.test(b.sub)&&!/\+€/.test(b.sub)&&r.money<cost),bad=/扁|砍|雞蛋|臭屁|惡作劇|叫醒/.test(b.label);
-   return `<button data-i="${i}" class="act${b.g=="tip"?" cta":""}${bad?" bad":""}${poor?" poor":""}${b.g=="move"?" ghost":""}"><span class="ai">${ic}</span><span class="at"><b>${esc(txt)}</b>${b.sub||poor?`<small>${poor?(dis?esc(dis):`錢不夠（要 €${cost}）`):b.sub}</small>`:""}</span></button>`}).join("")).join("");
+   return `<button data-i="${i}" data-g="${b.g}" title="${esc(b.sub||"")}" class="act${multi&&gcol(b.g)?" gh":""}${b.g=="tip"?" cta":""}${bad?" bad":""}${poor?" poor":""}${b.g=="move"?" ghost":""}"><span class="ai">${ic}</span><span class="at"><b>${esc(txt)}</b>${b.sub||poor?`<small>${poor?(dis?esc(dis):`錢不夠（要 €${cost}）`):b.sub}</small>`:""}</span></button>`}).join("")).join("");
  panelFns=list;if(html!=lastPanel){lastPanel=html;patchList($("acts"),html)}drawRoom()}
-$("acts").addEventListener("click",ev=>{const b=ev.target.closest("button[data-i]");if(!b||busy)return;const f=panelFns[b.dataset.i];if(f){if(f.dis){toast(f.dis);return}if(f.g=="tip")track("click",f.label);press(b,f.fn)}});
+let GC={mis:1,online:1};try{Object.assign(GC,JSON.parse(localStorage.getItem("town-gc")||"{}"))}catch(e){}
+function gcol(g){return g!="tip"&&!!GC[g]}
+$("acts").addEventListener("click",ev=>{const gb=ev.target.closest("button.grp");if(gb){const g=gb.dataset.g;GC[g]=GC[g]?0:1;try{localStorage.setItem("town-gc",JSON.stringify(GC))}catch(e){}gb.classList.toggle("c",!!GC[g]);$("acts").querySelectorAll(`.act[data-g="${g}"]`).forEach(x=>x.classList.toggle("gh",!!GC[g]));lastPanel="";return}
+const b=ev.target.closest("button[data-i]");if(!b||busy)return;const f=panelFns[b.dataset.i];if(f){if(f.dis){toast(f.dis);return}if(f.g=="tip")track("click",f.label);press(b,f.fn)}});
 let lastNeeds="";
 function renderNeeds(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now());
  const html=NEEDS.map(k=>{const v=Math.round(r[k]),[ic,nm]=NEED_INFO[k];return `<div class="need${v<20?" low":""}" title="${nm} ${v}"><span>${ic}</span><i><b style="width:${v}%;background:${v<20?"var(--bad)":v<50?"var(--warn)":"var(--good)"}"></b></i><small><em>${nm} </em>${v}</small></div>`}).join("")+`<div class="need money"><span>${MOOD[moodOf(r)][0]}</span><small title="€${r.money}"><u class="cu">€</u>${r.money>=10000?(r.money/1000).toFixed(1).replace(/\.0$/,"")+"k":r.money}${(r.items||{}).gift||(r.items||{}).snack?"<br>":""}${(r.items||{}).gift?`🎁${r.items.gift}`:""}${(r.items||{}).gift&&(r.items||{}).snack?" ":""}${(r.items||{}).snack?`🍪${r.items.snack}`:""}</small></div>`;
@@ -1627,6 +1632,7 @@ function npcModal(P){const nn=NPCS[P];if(!nn)return;const m=({market:.85,festiva
  const rows=[["問候",`${nn.n}（${nn.job}）打招呼`,async()=>toast(`${nn.n}：${npcSay(P,Date.now(),cnt)}`)]];
  rows.push([nn.base?"今日價格":"今日消息",nn.base?`${nn.item} 現在 €${Math.round(nn.base*m)}${m!=1?"（"+WEV[wevK][0]+"）":""}`:(wevK?`${WEV[wevK][0]}：${WEV[wevK][1]}`:"今天鎮上沒有特別的事"),async()=>toast(nn.base?`${nn.n}：${nn.item}今天 €${Math.round(nn.base*m)}${wevK?"，"+WEV[wevK][0]+"期間":""}`:`${nn.n}：${wevK?WEV[wevK][0]+"，"+WEV[wevK][1]:"今天沒什麼大事"}`)]);
  rows.push(["聽八卦","聽聽鎮上最近的事",async()=>{const ev=((S&&S.events)||[]).filter(e=>e.msg&&e.kind!="rent"&&e.kind!="luck").slice().sort((a,b)=>b.at.localeCompare(a.at)).slice(0,3);toast(ev.length?`${nn.n}：聽說${ev.map(e=>e.msg).join("；")}`:`${nn.n}：最近沒什麼八卦`)}]);
+ if(P=="townhall")rows.push(["公告欄委託","今天的額外委託，獎金依職稱",async()=>{try{const j=await rpc("town_quest",{rid:me,pin,op:"view"});if(j&&j.error){toast(j.error);return}const go=async()=>{try{const k=await rpc("town_quest",{rid:me,pin,op:"claim"});if(k&&k.error)toast(k.error);else{toast(k.msg);await refresh()}}catch(e){toast("連不上小鎮，再試一次")}};choiceModal("公告欄委託",`${j.need}，獎金 €${j.reward}（Lv${j.lv}）${j.done?"，今天已完成":j.ready?"，已達成":""}`,[[j.done?"已完成":"交付委託",j.ready?"在市政廳領獎":"還沒達成",async()=>{if(j.done)toast("今天已完成了");else if(!j.ready)toast("還沒達成："+j.need);else await go()}]])}catch(e){toast("連不上小鎮，再試一次")}}]);
  choiceModal(nn.n,nn.job,rows)}
 // 點室內：點人＝選他（面對面互動），點物件＝按面板上對應的按鈕；fx、fy 是在室內畫布上的位置（0～1）
 function roomTap(fx,fy){const r=R[me],rm=roomOf(r,R);if(!rm)return;if(rm.visit&&!vin(r)){interiorModal(rm.hid);return}const cx=Math.floor(fx*rw(rm)),cy=Math.floor(fy*rh(rm)),pid=Object.keys(lastSpots).find(k=>+k!=me&&lastSpots[k][0]==cx&&(lastSpots[k][1]==cy||lastSpots[k][1]-1==cy));   // 人的腳在格子上緣、身體畫在上一格，兩格都算點到
