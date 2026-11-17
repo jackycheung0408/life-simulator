@@ -304,7 +304,7 @@ const NPC_NIGHT=["這麼晚了還沒睡？","夜深了，早點休息","夜班�
 const npcSay=(p,t,cnt)=>{const hr=new Date(Date.now()+8*36e5).getUTCHours(),L=NPC_LINES[p].slice();if(hr>=22||hr<6)L.push(...NPC_NIGHT);if(cnt>=3)L.push(...NPC_BUSY);else if(cnt==0)L.push(...NPC_EMPTY);const k=Math.floor(t/9000);return L[(k*7+p.length)%L.length]};
 // 站位：沒被擋住的地板格，離場景中央近的先排
 const rw=rm=>rm.w||RW,rh=rm=>rm.h||RH,blk=(rm,o)=>rm.home?!(WALLF.includes(o[0])||FLAT.includes(o[0])):ITEM[o[0]][3];
-function homeRoom(r){const it=r.items||{},hl=Math.max(1,Math.min(4,it.hl||1)),d=HOME_DIM[hl-1];return {home:true,hid:r.id,w:d[0],h:d[1]+1,items:fpOf(it),wall:it.wall||"#f4ead6",floor:["#e6d8b8","#d9c9a8"]}}
+function homeRoom(r){const it=r.items||{},hl=hlc(it.hl),d=HOME_DIM[hl-1];return {home:true,hid:r.id,w:d[0],h:d[1]+1,items:fpOf(it),wall:it.wall||"#f4ead6",floor:["#e6d8b8","#d9c9a8"]}}
 function roomSpots(rm){const W=rw(rm),H=rh(rm),blocked=new Set(rm.items.filter(o=>blk(rm,o)).map(o=>o[1]+","+o[2]).concat(rm.npc?[rm.npc[0]+","+rm.npc[1]]:[])),out=[],cx=(W-1)/2,cy=(H+1)/2,sc=a=>Math.abs(a[0]-cx)+Math.abs(a[1]-cy)*2+((a[0]+a[1])%2?3:0)+(a[1]==1?4:0);for(let y=1;y<H;y++)for(let x=0;x<W;x++)if(!blocked.has(x+","+y))out.push([x,y]);return out.sort((a,b)=>sc(a)-sc(b))}
 const fin=r=>!!r&&!!r.items&&!!ROOMS[r.place]&&(r.items.fi===r.place||(r.place=="jail"&&jailed(r)));
 // 現在在哪個室內：設施裡面（fin）或自己家屋裡（inside）；都不是就 null
@@ -993,7 +993,7 @@ function drawHomeEdit(cv,rm,sel,oid){const C=RC,W=rw(rm),H=rh(rm),c=cv.getContex
 function drawOwner(c,rm,o,C){const W=rw(rm),H=rh(rm),spots=roomSpots(rm),sp=spots[0]||[Math.floor(W/2),2];c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.fillStyle="#fff";
  if(o.sleeping){const bd=rm.items.find(q=>q[0]=="bed"),bx=bd?(bd[1]+.5)*C:(sp[0]+.5)*C,by=bd?bd[2]*C+C-4:sp[1]*C+C-4;c.save();c.translate(bx,by-2);c.rotate(-Math.PI/2);drawChar(c,0,0,1.05,o.look,{moving:false},0);c.restore();c.strokeText("Z z",bx+4,by-C+2);c.fillText("Z z",bx+4,by-C+2);return}
  const x=(sp[0]+.5)*C,y=sp[1]*C+2;drawChar(c,x,y,1.05,o.look,{moving:false},0);c.strokeText(o.name.slice(0,4),x,Math.max(11,y-30));c.fillText(o.name.slice(0,4),x,Math.max(11,y-30))}
-function interiorModal(id,sel){const o=R[id],mine=id==me,it=o.items||{},hl=Math.max(1,Math.min(4,it.hl||1)),rm=homeRoom({id,items:it}),W=rw(rm),H=rh(rm),fp=rm.items,placed=new Set(fp.map(a=>a[0])),cap=HOUSES[hl-1][2],nx=HOUSES[hl],owned=(it.f||[]).filter(k=>!placed.has(k));
+function interiorModal(id,sel){const o=R[id],mine=id==me,it=o.items||{},hl=hlc(it.hl),rm=homeRoom({id,items:it}),W=rw(rm),H=rh(rm),fp=rm.items,placed=new Set(fp.map(a=>a[0])),cap=HOUSES[hl-1][2],nx=HOUSES[hl],owned=(it.f||[]).filter(k=>!placed.has(k));
  const nm=k=>(FURN.find(a=>a[0]==k)||[0,k])[1];sel=sel||null;
  $("modal").classList.remove("hide");
  const ctl=mine?(sel?`<div class="mrow"><span><b>${nm(sel)}</b> <small class="mut">${placed.has(sel)?"點空格移到那裡":(WALLF.includes(sel)?"點上面那排牆放上去":"點地板放下去")}</small></span>${placed.has(sel)?`<button data-x="${sel}">收回</button>`:""}</div>`:'<p class="mut">點家具選取，再點空格移動；背包的家具點下面的名字，再點空格放下。</p>'):"";
@@ -1166,7 +1166,7 @@ function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas")
  for(let s=0;s<NR*3;s++){const [hx,hy]=homeXY(s),X=hx*T,Y=hy*T,W=5*T,o=bySlot(s);m.fillStyle="rgba(0,0,0,.18)";m.fillRect(X+8,Y+T+10,W,3*T);const it=(o&&o.items)||{};m.fillStyle=o?(it.wall||"#f4ead6"):"#e2ddd2";m.fillRect(X,Y+T,W,3*T-6);
   m.fillStyle=o?(it.roof||ROOFS[s]):"#9a9a9a";m.fillRect(X-8,Y,W+16,T+14);m.fillStyle="rgba(0,0,0,.15)";for(let k=0;k<W+16;k+=12)m.fillRect(X-8+k,Y,6,T+14);m.fillStyle="rgba(255,255,255,.25)";m.fillRect(X-8,Y,W+16,4);
   win(X+20,Y+T+26,!!o);win(X+W-36,Y+T+26,!!o);m.fillStyle="#7a4a24";m.fillRect(X+W/2-11,Y+3*T+4,22,T-10);m.fillStyle="#e0b050";m.fillRect(X+W/2+5,Y+3*T+18,3,3);m.fillStyle="#cbbf9f";m.fillRect(X+W/2-10,Y+4*T,20,T);
-  {const hl=o?(it.hl||1):1;
+  {const hl=o?hlc(it.hl):1;
    if(hl>=2){m.fillStyle="rgba(0,0,0,.22)";m.fillRect(X-8,Y+T+10,W+16,6);[X+20,X+W-36].forEach(a=>{m.fillStyle="#8b5a2b";m.fillRect(a-2,Y+T+40,20,6);m.fillStyle="#e74c3c";m.fillRect(a,Y+T+36,4,4);m.fillStyle="#f1c40f";m.fillRect(a+8,Y+T+36,4,4)})}
    if(hl>=3){m.fillStyle="#8d8d8d";m.fillRect(X+W-30,Y-16,16,24);m.fillStyle="#6d6d6d";m.fillRect(X+W-32,Y-20,20,6);m.fillStyle="#f4f1de";for(let k=-6;k<W+8;k+=14){if(k>W/2-26&&k<W/2+26)continue;m.fillRect(X+k,Y+3*T+14,4,18)}m.fillRect(X-6,Y+3*T+20,W/2-26+6,3);m.fillRect(X+W/2+26,Y+3*T+20,W/2-26+6,3)}
    if(hl>=4){m.fillStyle="#f1c40f";m.fillRect(X-8,Y,W+16,5);m.fillStyle="#e8d9a8";[W/2-30,W/2+22].forEach(a=>{m.fillRect(X+a,Y+T+30,8,2*T-12);m.fillStyle="#cdbb85";m.fillRect(X+a-2,Y+T+26,12,6);m.fillStyle="#e8d9a8"})}}
