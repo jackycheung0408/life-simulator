@@ -111,6 +111,20 @@ for(let rows=2;rows<=4;rows++){M.setRows(rows);for(const [k,o] of Object.entries
 // 其他工作：薪水階梯、拉菲辦公室座標（要和 town.sql 一致）
 check(M.pjWage("cafe",0)==200&&M.pjWage("cafe",15)==230&&M.pjWage("cafe",40)==260&&M.pjWage("gym",0)==230&&M.pjWage("shop",15)==224&&M.pjWage("rest",40)==273&&M.pjWage("rafi",0)==320&&M.pjWage("rafi",15)==450&&M.pjWage("rafi",40)==650,"其他工作薪水表不對");
 check(M.pjName("rafi",15)=="企劃"&&M.pjName("cafe",40)=="咖啡師（資深）","其他工作職稱不對");
+// 職階擴大（2026-11-17）：前端表要和 town.sql 一致，舊職階不動，薪水單調、最高階不超過上限
+{const sq=require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8"),arr=(re)=>{const m=sq.match(re);return m?m[1].split(",").map(Number):null};
+ check(JSON.stringify(M.JOBS.map(j=>j[2]))==JSON.stringify(arr(/town_wage\(lv int\)[\s\S]*?array\[([\d,]+)\]/)),"公司薪水表和 SQL 不一致");
+ check(M.JOBS.slice(0,5).map(j=>j.join()).join("|")=="實習生,0,190|員工,10,260|組長,30,350|經理,70,520|主管,150,800","公司前 5 階不能改");
+ check(M.JOBS.every((j,i)=>i==0||(j[1]>M.JOBS[i-1][1]&&j[2]>M.JOBS[i-1][2]))&&M.JOBS.length>=8&&M.JOBS[M.JOBS.length-1][2]<=800*2.2,"公司職階要遞增、至少 8 階、最高 ≤ 主管 ×2.2");
+ for(const j of M.JOBS)check(sq.includes("when n >= "+j[1]+" then")||j[1]==0||j[1]==10,"SQL town_job_lv 缺門檻 "+j[1]);
+ const mult=sq.match(/array\[100,115,130,[\d,]+\]/);check(mult&&JSON.stringify(mult[0].slice(6,-1).split(",").map(Number))==JSON.stringify(M.PJM),"其他工作倍率和 SQL 不一致");
+ check(M.PJM.every((x,i)=>i==0||x>M.PJM[i-1])&&M.PJM[M.PJM.length-1]<=190&&M.PJM.length>=7,"其他工作倍率要遞增、最高 ≤ ×1.9、至少 7 階");
+ for(const t of M.PJT.slice(1))check(sq.includes("when n >= "+t+" then"),"SQL town_pjob_tier 缺門檻 "+t);
+ for(const t of M.RFT.slice(1))check(sq.includes("when n >= "+t+" then"),"SQL town_rafi_tier 缺門檻 "+t);
+ check(sq.includes("array["+M.RFW.join(",")+"])[public.town_rafi_tier"),"拉菲薪水和 SQL 不一致");
+ for(const k of Object.keys(M.PJN)){check(M.PJN[k].length==(k=="rafi"?M.RFT.length:M.PJT.length),k+" 職稱數不對");for(const nm of M.PJN[k])check(sq.includes("'"+nm+"'"),"SQL 缺職稱 "+nm);
+  const T=k=="rafi"?M.RFT:M.PJT;let p=0;for(let n=0;n<=400;n++){const w=M.pjWage(k,n);check(w>=p,k+" 薪水不單調 "+n);p=w}check(M.pjWage(k,9999)<=(k=="rafi"?650*1.6:M.PJ[k][2]*1.9),k+" 最高階薪水過高");check(M.pjName(k,T[3])==M.PJN[k][3],k+" 階名不對")}
+ check(M.pjWage("cafe",80)==280&&M.pjWage("gym",350)==414&&M.pjWage("rafi",260)==950,"新職階薪水不對")}
 check(M.PLACES.rafi&&M.PLACES.rafi.door[0]==49&&M.PLACES.rafi.door[1]==21,"拉菲辦公室門口不對");
 check(M.PLACES.stock&&M.PLACES.stock.door[0]==45&&M.PLACES.stock.door[1]==5&&!M.blocked(45,5),"證券交易所門口不對");
 // 交通：車行門口、價格與速度（和 town.sql 的 vbuy／move 一致）、斑馬線與人行道

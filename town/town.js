@@ -39,8 +39,12 @@ const PLACES={
  plaza:{r:[12,8,10,7],door:[14,11],name:"廣場"}};
 // 其他工作（和 town.sql 的 town_pjob_* 一致）：[名稱, 地點, 底薪, [精力,飽足,心情,清潔]]；熟練 15 次 ×1.15、40 次 ×1.3；拉菲底薪 320／450／650，要先升到「員工」
 const PJ={cafe:["咖啡師","cafe",200,[-19,-6,-6,-3],"cafe"],rest:["服務生","restaurant",210,[-22,-3,-8,-8],"restaurant"],gym:["健身教練","gym",230,[-32,-12,-4,-15],"gym"],shop:["店員","market",195,[-16,-6,-10,-2],"market"],rafi:["行政專員","rafi",320,[-25,-8,-18,-4],"rafi"]};
-const pjWage=(k,n)=>k=="rafi"?(n>=40?650:n>=15?450:320):Math.floor(PJ[k][2]*(n>=40?130:n>=15?115:100)/100);
-const pjName=(k,n)=>k=="rafi"?(n>=40?"業務經理":n>=15?"企劃":"行政專員"):PJ[k][0]+(n>=40?"（資深）":n>=15?"（熟手）":"");
+const PJT=[0,15,40,80,140,220,350],PJM=[100,115,130,140,152,165,180],RFT=[0,15,40,80,150,260],RFW=[320,450,650,740,840,950];
+const PJN={cafe:["咖啡師","咖啡師（熟手）","咖啡師（資深）","咖啡廳領班","咖啡廳副店長","咖啡廳店長","咖啡廳區經理"],rest:["服務生","服務生（熟手）","服務生（資深）","餐廳領班","餐廳副理","餐廳經理","餐飲總監"],gym:["健身教練","健身教練（熟手）","健身教練（資深）","健身房領班","健身房副理","健身房經理","健身房區總監"],shop:["店員","店員（熟手）","店員（資深）","超市領班","超市副店長","超市店長","超市區經理"],rafi:["行政專員","企劃","業務經理","部門主任","協理","總監"]};
+const pjTier=(k,n)=>(k=="rafi"?RFT:PJT).reduce((a,t,i)=>n>=t?i:a,0);
+const pjWage=(k,n)=>k=="rafi"?RFW[pjTier(k,n)]:Math.floor(PJ[k][2]*PJM[pjTier(k,n)]/100);
+const pjName=(k,n)=>PJN[k][pjTier(k,n)];
+const JOBS=[["實習生",0,190],["員工",10,260],["組長",30,350],["經理",70,520],["主管",150,800],["資深主管",250,920],["協理",400,1050],["副總",650,1250],["總經理",1000,1500]];
 const FOUNTAIN=[16,10,2,3];
 // 路上物件：位置要和資料庫 town_obj_near 一致；用法：[名稱, 按鈕, 說明]
 const OBJS={vend:{x:19,y:5,name:"自動販賣機",acts:[["投一罐飲料 🥤","€30 · 精力 +12 · 偶爾掉兩罐"]]},trash:{x:8,y:14,name:"垃圾桶",acts:[["撿垃圾 🗑️","心情 +4 · 說不定撿到東西"]]},
@@ -220,6 +224,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u59-ranks",date:"11/17",title:"打工職階擴大",items:["公司在「主管」之後多了：資深主管、協理、副總、總經理（累計打工 250／400／650／1000 次）","咖啡廳、餐廳、健身房、超市各多了領班、副店長（副理）、店長（經理）、區經理（總監）","拉菲的辦公室在「業務經理」之後多了部門主任、協理、總監","原本的職階、門檻、薪水都沒變，新職階只是往上加","升到領班以上或資深主管以上會得到同名稱號，沒有一次性獎金"]},
   {id:"u54-tapdbg",date:"11/17",title:"回報點地圖沒反應用的除錯資訊",items:["長按最上方狀態列 1 秒，除錯資訊多一行「最後一次點地圖」的格子位置與結果","如果點某處沒反應，請點一次後立刻長按狀態列截圖給我","一般玩家不受影響"]},
   {id:"u53-door",date:"11/17",title:"進出門變成最顯眼的按鈕",items:["自己家、朋友家、各設施的「進去／出門」都固定在標題右側","按鈕改成粉紅大鍵，隨時一眼找到","不用再在分頁裡找出門"]},
   {id:"u52-dock",date:"11/17",title:"底部導覽列變成整塊底座",items:["導覽列貼齊畫面底部，和下方 iPhone 保留區連成同一塊深色底座","狀態列只往下移一小段（12px），上方空白不再過大","互動面板加高，一次看得到更多按鈕，地圖相對縮小"]},
@@ -325,7 +330,7 @@ const fin=r=>!!r&&!!r.items&&!!ROOMS[r.place]&&(r.items.fi===r.place||(r.place==
 // 現在在哪個室內：設施裡面（fin）或自己家屋裡（inside）；都不是就 null
 const visitHost=(r,RR)=>{const h=RR&&r&&r.place&&r.place.startsWith("home:")&&r.place!="home:"+r.id?RR[r.place.slice(5)]:null;return h&&inside(h)?h:null};// 在朋友家門口、他人在屋裡 → 看得到他家室內
 const roomOf=(r,RR)=>!r?null:fin(r)?ROOMS[r.place]:(r.place=="home:"+r.id&&inside(r))?homeRoom(r):visitHost(r,RR)?{...homeRoom(visitHost(r,RR)),visit:true,inn:vin(r)}:null;// RR = 居民表（頂層函式拿不到 init 裡的 R，由呼叫的人傳進來）
-if(typeof module!=="undefined")module.exports={HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
+if(typeof module!=="undefined")module.exports={HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,JOBS,PJT,PJM,PJN,RFT,RFW,pjTier,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
 
 function init(){
 
@@ -705,7 +710,6 @@ function renderPeople(){const list=Object.values(R).filter(o=>o.id!=me).map(o=>(
  $("tab-ppl").querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{sel=+b.dataset.w;lastPanel="";renderPanel();$("here").scrollIntoView({behavior:"smooth",block:"center"})})}
 // 動態：每種事一個圖示，名字粗體，分今天／昨天，跟我有關的用左邊色條標出來
 // ── 職業階梯與人生願望（資料在 items：works 累計打工、wish、titles、meals；門檻要和 town.sql 一致）──
-const JOBS=[["實習生",0,190],["員工",10,260],["組長",30,350],["經理",70,520],["主管",150,800]];
 const jobLv=n=>JOBS.reduce((a,j,i)=>n>=j[1]?i:a,0);
 const career=r=>{const n=(r.items&&r.items.works)||0,lv=jobLv(n),nx=JOBS[lv+1];return{n,lv,name:JOBS[lv][0],wage:JOBS[lv][2],next:nx?nx[0]:null,left:nx?nx[1]-n:0}};
 const dayKey=(o=0)=>new Date(now()+8*36e5+o*864e5).toISOString().slice(0,10);
@@ -723,7 +727,7 @@ const pjN=(r,k)=>((r.items&&r.items.jw)||{})[k]||0;
 const pjPay=(k,r)=>Math.floor(payOf(pjWage(k,pjN(r,k)),r)*workPct(workToday(r))/100);
 const pjFx=k=>["精力","飽足","心情","清潔"].map((l,i)=>`${l} ${PJ[k][3][i]}`).join(" · ");
 const pjBtn=(k,r)=>{const n=pjN(r,k);if(k=="rafi"&&((r.items&&r.items.works)||0)<10)return btn("應徵（還不夠資格）","先在公司升到「員工」（累計打工 10 次）",()=>toast("先在公司打工 10 次升到員工，再來應徵"));return btn(`打工：${pjName(k,n)} 💼`,(wkLeft(r)?`休息中，${fmtLeft(wkLeft(r))}後可再打 · `:"")+`+€${pjPay(k,r)} · ${pjFx(k)}`,()=>act("job",{item:k}))};
-const pjNote=(k,r)=>{const n=pjN(r,k),nx=n<15?15:n<40?40:0;return `${pjName(k,n)} · 這裡已做 ${n} 次${nx?`，再 ${nx-n} 次升「${pjName(k,nx)}」`:"，已是最高職位"} · 今天全部打工共 ${workToday(r)} 次 · 薪水全額、不遞減`};
+const pjNote=(k,r)=>{const n=pjN(r,k),T=k=="rafi"?RFT:PJT,t=pjTier(k,n),nx=T[t+1];return `${pjName(k,n)} · 每次 €${pjPay(k,r)} · 這裡已做 ${n} 次${nx!=null?`，再 ${nx-n} 次升「${PJN[k][t+1]}」（€${pjWage(k,nx)}）`:"，已是最高職位"} · 今天全部打工共 ${workToday(r)} 次 · 薪水全額、不遞減`};
 const myWage=()=>Math.floor(payOf(career(R[me]).wage,tickLocal(R[me],now()))*workPct(workToday(R[me]))/100);
 const WISHES={rich:["首富","持有金錢",[30000,100000,300000],["小富翁","大富翁","小豬首富"],r=>r.money],pop:["人氣王","好朋友以上的人數",[5,10,20],["交友廣闊","萬人迷","人氣王"],r=>(S.bonds||[]).filter(b=>(b.a==r.id||b.b==r.id)&&b.s>=10).length],
  fight:["格鬥冠軍","擂台最高連勝",[3,7,15],["擂台新秀","擂台猛將","格鬥冠軍"],r=>(r.items&&r.items.best)||0],food:["美食家","累計吃飯／大餐",[30,100,300],["老饕","美食家","食神"],r=>(r.items&&r.items.meals)||0],

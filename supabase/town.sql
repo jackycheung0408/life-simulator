@@ -306,14 +306,31 @@ revoke all on function public.town_encounter(text,bigint,text,text) from public,
 
 -- ── 職業階梯與人生願望：資料都存在 items（works 累計打工、wish 願望、titles 稱號、meals 吃飯次數）──
 create or replace function public.town_job_lv(n int) returns int language sql immutable as $$
-  select case when n >= 150 then 4 when n >= 70 then 3 when n >= 30 then 2 when n >= 10 then 1 else 0 end
+  select case when n >= 1000 then 8 when n >= 650 then 7 when n >= 400 then 6 when n >= 250 then 5 when n >= 150 then 4 when n >= 70 then 3 when n >= 30 then 2 when n >= 10 then 1 else 0 end
 $$;
 create or replace function public.town_job_name(lv int) returns text language sql immutable as $$
-  select (array['實習生','員工','組長','經理','主管'])[lv + 1]
+  select (array['實習生','員工','組長','經理','主管','資深主管','協理','副總','總經理'])[lv + 1]
 $$;
 create or replace function public.town_wage(lv int) returns int language sql immutable as $$
-  select (array[190,260,350,520,800])[lv + 1]
+  select (array[190,260,350,520,800,920,1050,1250,1500])[lv + 1]
 $$;
+-- 其他工作職階（2026-11-17 擴大；前 3 階不變）：階 0..6 = 累計 0／15／40／80／140／220／350 次，薪水倍率 100／115／130／140／152／165／180 %
+create or replace function public.town_pjob_tier(n int) returns int language sql immutable as $$
+  select case when n >= 350 then 6 when n >= 220 then 5 when n >= 140 then 4 when n >= 80 then 3 when n >= 40 then 2 when n >= 15 then 1 else 0 end
+$$;
+-- 拉菲辦公室階 0..5 = 0／15／40／80／150／260 次，薪水 320／450／650／740／840／950
+create or replace function public.town_rafi_tier(n int) returns int language sql immutable as $$
+  select case when n >= 260 then 5 when n >= 150 then 4 when n >= 80 then 3 when n >= 40 then 2 when n >= 15 then 1 else 0 end
+$$;
+-- 新職階給稱號（接在 items.titles 後，不重複）；沒有一次性獎金
+create or replace function public.town_rank_title(r public.town_residents, t text) returns public.town_residents language plpgsql as $$
+begin
+  if not (coalesce(r.items->'titles','[]'::jsonb) ? t) then
+    r.items := jsonb_set(r.items, '{titles}', coalesce(r.items->'titles','[]'::jsonb) || to_jsonb(t));
+  end if;
+  return r;
+end $$;
+revoke all on function public.town_pjob_tier(int), public.town_rafi_tier(int), public.town_rank_title(public.town_residents,text) from public, anon, authenticated;
 create or replace function public.town_wish_ms(k text) returns int[] language sql immutable as $$
   select case k when 'rich' then array[30000,100000,300000] when 'pop' then array[5,10,20] when 'fight' then array[3,7,15]
     when 'food' then array[30,100,300] when 'work' then array[2,3,4] end
@@ -771,12 +788,16 @@ create or replace function public.town_pjob_fx(k text) returns int[] language sq
     when 'shop' then array[-16,-6,-10,-2] when 'rafi' then array[-25,-8,-18,-4] end
 $$;
 create or replace function public.town_pjob_wage(k text, n int) returns int language sql immutable as $$
-  select case when k = 'rafi' then (case when n >= 40 then 650 when n >= 15 then 450 else 320 end)
-    else (case k when 'cafe' then 200 when 'rest' then 210 when 'gym' then 230 when 'shop' then 195 end) * (case when n >= 40 then 130 when n >= 15 then 115 else 100 end) / 100 end
+  select case when k = 'rafi' then (array[320,450,650,740,840,950])[public.town_rafi_tier(n) + 1]
+    else (case k when 'cafe' then 200 when 'rest' then 210 when 'gym' then 230 when 'shop' then 195 end) * (array[100,115,130,140,152,165,180])[public.town_pjob_tier(n) + 1] / 100 end
 $$;
 create or replace function public.town_pjob_name(k text, n int) returns text language sql immutable as $$
-  select case k when 'rafi' then (case when n >= 40 then '業務經理' when n >= 15 then '企劃' else '行政專員' end)
-    else (case k when 'cafe' then '咖啡師' when 'rest' then '服務生' when 'gym' then '健身教練' when 'shop' then '店員' end) || (case when n >= 40 then '（資深）' when n >= 15 then '（熟手）' else '' end) end
+  select case k
+    when 'rafi' then (array['行政專員','企劃','業務經理','部門主任','協理','總監'])[public.town_rafi_tier(n) + 1]
+    when 'cafe' then (array['咖啡師','咖啡師（熟手）','咖啡師（資深）','咖啡廳領班','咖啡廳副店長','咖啡廳店長','咖啡廳區經理'])[public.town_pjob_tier(n) + 1]
+    when 'rest' then (array['服務生','服務生（熟手）','服務生（資深）','餐廳領班','餐廳副理','餐廳經理','餐飲總監'])[public.town_pjob_tier(n) + 1]
+    when 'gym' then (array['健身教練','健身教練（熟手）','健身教練（資深）','健身房領班','健身房副理','健身房經理','健身房區總監'])[public.town_pjob_tier(n) + 1]
+    when 'shop' then (array['店員','店員（熟手）','店員（資深）','超市領班','超市副店長','超市店長','超市區經理'])[public.town_pjob_tier(n) + 1] end
 $$;
 revoke all on function public.town_pjob_place(text), public.town_pjob_key(text), public.town_pjob_fx(text), public.town_pjob_wage(text,int), public.town_pjob_name(text,int) from public, anon, authenticated;
 -- 打工薪水不遞減（2026-11-17 使用者決定：沒有次數與收入上限，改靠出口平衡）；保留函式簽名
@@ -1445,6 +1466,7 @@ begin
     insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'work', r.name || ' 在' || public.town_place_name(r.place) || '當' || public.town_pjob_name(item, n) || '，賺了 €' || w);
     if public.town_pjob_name(item, n + 1) <> public.town_pjob_name(item, n) then
       insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'promo', r.name || ' 在' || public.town_place_name(r.place) || '升職了！成為「' || public.town_pjob_name(item, n + 1) || '」，每次 €' || public.town_pjob_wage(item, n + 1));
+      if (case when item = 'rafi' then public.town_rafi_tier(n + 1) else public.town_pjob_tier(n + 1) end) >= 3 then r := public.town_rank_title(r, public.town_pjob_name(item, n + 1)); end if;
     end if;
   elsif act in ('dine','work','play','browse','coffee','movie','workout') then
     if (act = 'dine' and r.place <> 'restaurant') or (act = 'work' and r.place <> 'office') or (act = 'play' and r.place not in ('park','plaza')) or (act = 'browse' and r.place <> 'market')
@@ -1459,6 +1481,7 @@ begin
       insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'work', r.name || ' 打工賺了 €' || w);
       if public.town_job_lv(n + 1) > public.town_job_lv(n) then
         insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'promo', r.name || ' 升職了！成為「' || public.town_job_name(public.town_job_lv(n + 1)) || '」，每次打工 €' || public.town_wage(public.town_job_lv(n + 1)));
+        if public.town_job_lv(n + 1) >= 5 then r := public.town_rank_title(r, public.town_job_name(public.town_job_lv(n + 1))); end if;
       end if;
     elsif act = 'play' then r.fun := r.fun + 20; r.energy := r.energy - 5;
     elsif act in ('coffee','movie','workout') then
