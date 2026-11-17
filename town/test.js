@@ -147,7 +147,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  // 每個賭的選項期望值要略負（和 SQL 同一份表）
  const tbl=JSON.parse(sql.match(/'(\{\s*"restaurant".*?\})'::jsonb/s)[1]);
  for(const [p,evs] of Object.entries(tbl))evs.forEach((e,i)=>e.forEach((o,j)=>{const ev=(o[4]*o[2]+(100-o[4])*o[7])/100;check(ev<=0,`${p} 事件 ${i} 選項 ${j} 金錢期望值 ${ev} 要 ≤ 0`);check(o.length==9,`${p}${i}${j} 長度`)}))}
-{const U=M.UPDATES,ids=new Set();check(U&&U.length>0,"UPDATES 要有內容");U.forEach(u=>{check(!ids.has(u.id),"UPDATES id 重複 "+u.id);ids.add(u.id);check(u.items.length>=3&&u.items.length<=6,"UPDATES "+u.id+" 要 3～6 條")})}
+{const U=M.UPDATES,ids=new Set();check(U&&U.length>0,"UPDATES 要有內容");U.forEach(u=>{check(!ids.has(u.id),"UPDATES id 重複 "+u.id);ids.add(u.id);const dm=String(u.date).match(/(\d+)\D+(\d+)$/),nw=dm&&+dm[1]*100+ +dm[2]>=1117;if(nw){check(u.items.length>=1&&u.items.length<=3,"UPDATES "+u.id+" 要 1～3 條");check(u.title.length<=12,"UPDATES "+u.id+" 標題 ≤ 12 字");u.items.forEach(t=>check(t.length<=20,"UPDATES "+u.id+" 每條 ≤ 20 字："+t))}else check(u.items.length>=3&&u.items.length<=6,"UPDATES "+u.id+" 要 3～6 條")})}
 {const sql=require("fs").readFileSync(__dirname+"/../supabase/town_fac.sql","utf8");check(M.TASKS.length==8,"TASKS 要 8 個");
  for(const [k,d] of Object.entries(M.FAC)){const kk=k=="photo2"?"photo":k;check(sql.includes("'"+kk+"'"),"town_fac 沒有 "+kk);if(d[1]>0)check(new RegExp("when '"+kk+"' then "+d[1]+"\\b").test(sql),"town_fac 價格和 FAC 不一致："+kk+" "+d[1]);if(!d[3].every(p=>M.PLACES[p]))check(false,"FAC 地點不存在 "+k)}
  const fn=sql.match(/town_fac_done[\s\S]*?\$\$;/)[0];check((fn.match(/when \d then/g)||[]).length==M.TASKS.length,"任務數量和 SQL 不一致")}
