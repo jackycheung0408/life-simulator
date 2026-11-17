@@ -645,7 +645,7 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  // 內容沒變就不重畫，避免按到一半按鈕被換掉
  if(!sel){const t=nextStep(r,p);if(t){list.unshift({...t,g:"tip"});track("show",t.label)}}
  const dg=inside(r)?"self":p&&p.startsWith("home:")&&p!=="home:"+me?"friend":"place";list.forEach(b=>{if(!b.g)b.g=/^(走|去 |取消)/.test(b.label)?"move":/^(打工|應徵)/.test(b.label)?"work":dg});
- const GORD=["tip","self","place","eat","fun","soc","work","home","friend","face","mis","online","move"],TABS=[["care","😊 自己"],["here","📍 這裡"],["social","🤝 朋友"],["fun","🎈 玩樂"],["work","💼 賺錢"],["move","🚶 移動"]];
+ const GORD=["tip","self","place","eat","fun","train","soc","work","home","friend","face","mis","online","move"],TABS=[["care","生活"],["here","地點"],["grow","成長"],["social","朋友"],["fun","玩樂"],["work","賺錢"],["move","移動"]];
  const tile=(b,i)=>{
    const m=b.label.match(/^(\p{Extended_Pictographic}️?)\s*(.*)$/u)||b.label.match(/^(.*?)\s*(\p{Extended_Pictographic}️?)$/u),txt=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[1]:m[2]):b.label,ic=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[2]:m[1]):(ACT_ICON[b.label]||(b.g=="move"?"🚶":"•"));
    const cost=+((b.sub||"").match(/€(\d+)(?!\d)/)||[])[1]||0,dis=b.dis||"",poor=dis||(cost&&/€\d+/.test(b.sub)&&!/\+€/.test(b.sub)&&r.money<cost),bad=/扁|砍|雞蛋|臭屁|惡作劇|叫醒/.test(b.label),cta=b.g=="tip";
@@ -653,12 +653,12 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  const idx=list.map((b,i)=>[b,i]),tips=idx.filter(x=>x[0].g=="tip").slice(0,2),rest=idx.filter(x=>x[0].g!="tip");
  const tabsHave=TABS.filter(t=>rest.some(x=>TABOF[x[0].g]==t[0])),pk=p+"|"+(sel||"");
  if(pk!==ptabKey){ptabKey=pk;ptab=""}if(!tabsHave.some(t=>t[0]==ptab))ptab=(tabsHave.find(t=>t[0]=="here")||tabsHave[0]||[""])[0];
- const flat=rest.length<=6,tabHtml=!flat&&tabsHave.length>1?tabsHave.map(t=>{const its=rest.filter(x=>TABOF[x[0].g]==t[0]),n=its.filter(x=>!x[0].dis).length;return `<button class="ptab${t[0]==ptab?" on":""}${n?"":" z"}" data-t="${t[0]}">${t[1]}</button>`}).join(""):"";
+ const flat=rest.length<=6,tabHtml=!flat&&tabsHave.length>1?tabsHave.map(t=>{const its=rest.filter(x=>TABOF[x[0].g]==t[0]),n=its.filter(x=>!x[0].dis).length;return `<button class="ptab${t[0]==ptab?" on":""}${n?"":" z"}" data-t="${t[0]}">${t[0]=="here"?(p&&p.startsWith("home:")?"房子":(title.replace(/[（(].*$/,"").trim().slice(0,4)||"地點")):t[1]}</button>`}).join(""):"";
  const cur=rest.filter(x=>flat||TABOF[x[0].g]==ptab).sort((a,b)=>GORD.indexOf(a[0].g)-GORD.indexOf(b[0].g));
  const tipH=tips.map(x=>tile(x[0],x[1])).join(""),html=cur.map(x=>tile(x[0],x[1])).join("");
  const all=tipH+"§"+tabHtml+"§"+html;
  panelFns=list;if(all!=lastPanel){lastPanel=all;patchList($("tipbox"),tipH);patchList($("ptabs"),tabHtml);patchList($("acts"),html);$("tipbox").classList.toggle("hide",!tipH);$("ptabs").classList.toggle("hide",!tabHtml)}drawRoom()}
-const TABOF={self:"care",eat:"care",place:"here",home:"here",friend:"here",face:"social",soc:"social",mis:"social",online:"social",fun:"fun",work:"work",move:"move"};let ptab="",ptabKey="";function panelFnTab(f){ptab=TABOF[f.g]||ptab;lastPanel="";renderPanel()}
+const TABOF={self:"care",eat:"care",place:"here",home:"here",friend:"here",face:"social",soc:"social",mis:"social",online:"social",fun:"fun",train:"grow",work:"work",move:"move"};let ptab="",ptabKey="";function panelFnTab(f){ptab=TABOF[f.g]||ptab;lastPanel="";renderPanel()}
 const actClick=ev=>{const tb=ev.target.closest("button.ptab");if(tb){ptab=tb.dataset.t;lastPanel="";renderPanel();return}
 const b=ev.target.closest("button[data-i]");if(!b||busy)return;const f=panelFns[b.dataset.i];if(f){if(f.dis){toast(f.dis);return}if(f.g=="tip")track("click",f.label);press(b,f.fn)}};
 $("acts").addEventListener("click",actClick);$("tipbox").addEventListener("click",actClick);$("ptabs").addEventListener("click",actClick);
@@ -1537,7 +1537,7 @@ function trainBtns(r){const out=[],p=r.place,it=r.items||{},a=it.at||{};
  for(const k of Object.keys(TRN)){const d=TRN[k],ok=d[3]=="home"?(p=="home:"+me&&inside(r)):d[3].split(",").includes(p);if(!ok)continue;
   const key={lift:"st",run:"ag",read:"iq",chat:"ch",pray:"lk"}[k],cur=Math.min(5,a[key]||0),pr=(a.p||{})[key]||0;let dis="";
   if(cur>=5)dis=d[1]+"已經練到最高了";else if(k=="chat"&&!Object.values(R).some(o=>o.id!=me&&o.place==p&&!o.sleeping&&!jailed(o)))dis="要有人在場才能聊天";
-  out.push({...btn(`${d[0]}（練${d[1]}）`,`${d[2]?"€"+d[2]+" · ":""}${d[4]} · 進度 ${pr}/${6+3*cur}`,()=>doTrain(k),"fun"),dis})}
+  out.push({...btn(`${d[0]}（練${d[1]}）`,`${d[2]?"€"+d[2]+" · ":""}${d[4]} · 進度 ${pr}/${6+3*cur}`,()=>doTrain(k),"train"),dis})}
  return out}
 function facBtns(r){const p=r.place,out=[],it=r.items||{},doy=doyTP();
  const here=Object.values(R).filter(o=>o.id!=me&&o.place==p&&!o.sleeping&&!jailed(o));
