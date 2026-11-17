@@ -16,7 +16,6 @@ begin
   begin perform public.town_stats(ra,'1234','spend','st'); rep := rep||'   無點數 spend 沒擋 BAD'||E'\n'; exception when others then rep := rep||'   無點數 spend 擋住：'||SQLERRM||E'\n'; end;
   update public.town_residents set items = jsonb_set(items,'{al}','{"lv":3}') where id = ra;
   j := public.town_stats(ra,'1234','spend','iq'); rep := rep||'   Lv3 spend iq：'||j::text||'（期望 iq 1、avail 1）'||E'\n';
-  j := public.town_stats(ra,'1234','spend','st'); 
   begin perform public.town_stats(ra,'1234','spend','st'); rep := rep||'   st 已 5 再加沒擋 BAD'||E'\n'; exception when others then rep := rep||'   st 已 5 擋住：'||SQLERRM||E'\n'; end;
   -- 2 roll fun/mis
   ok := 0; bad := 0;
