@@ -592,7 +592,7 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  else if(p=="townhall"){title="市政廳";note="鎮基金、公告欄、居民投票。鎮基金只能花在居民投票通過的建設案，不能轉給任何人";list.push(btn("市政廳大廳 🏛️","看鎮基金、公告、投票與建設案",()=>civicModal()))}
  else{title="路上";note="站在路邊久了容易遇到壞事（野狗、鳥大便、小偷、機車），找個地方待著吧。點地圖上的房子或地點，就會走過去"}
  if(!sel&&!r.sleeping&&!jailed(r)&&!(walkers[me]&&walkers[me].path.length))list.push(...trainBtns(r));
- if(NPCV&&NPCV.here&&Date.parse(NPCV.until)>Date.now()&&r.place==NPCV.place&&!r.sleeping&&!jailed(r))list.push(btn("找流動商人","限量奇貨，價格偏貴",npcShop,"fun"));
+ if(NPCV&&NPCV.here&&Date.parse(NPCV.until)>Date.now()&&r.place==NPCV.place&&!r.sleeping&&!jailed(r))list.push(btn("找流動商人 💰","限量奇貨，價格偏貴",npcShop,"fun"));
  if(!sel&&!r.sleeping&&FACP.includes(p)&&!(walkers[me]&&walkers[me].path.length)){list.push(...facBtns(r));const fn=fqOf(r,p);if(fn)note=(note?note+" · ":"")+`來過 ${fn} 次${tierOf(fn)?"：這裡的"+tierOf(fn):"，5 次變常客有折扣"}`}
  if(!sel&&!r.sleeping&&!(walkers[me]&&walkers[me].path.length))list.push(...inviteBtns(r));
  // 同在店裡（咖啡廳、餐廳、健身房）：在場的人可以直接面對面互動，不用先點他
