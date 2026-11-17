@@ -226,7 +226,7 @@ body.ingame #panel{overflow-x:hidden}#acts{grid-template-columns:repeat(2,minmax
 .list,.lpgo,.choose{animation:lpup .35s .08s ease-out both}
 #lg .big{border-radius:16px;box-shadow:0 4px 0 rgba(0,0,0,.35);transition:transform .08s}#lg .big:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.35)}
 #lg .big.pri{background:linear-gradient(#ff8fb4,#e0779b);color:#fff;min-height:64px}#lg .big.pri small{color:#fff;opacity:.9}
-.lpfoot{text-align:center;font-size:11px;opacity:.6;margin:14px 0 0}
+.lpfoot{text-align:center;font-size:11px;opacity:.6;margin:14px 0 0}.lpfoot button{all:unset;cursor:pointer;text-decoration:underline;padding:8px 4px}
 @keyframes lpup{from{opacity:.001;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.lpw.hero2,.list,.lpgo,.choose{animation:none}}
 
@@ -238,7 +238,7 @@ body.ingame #panel{overflow-x:hidden}#acts{grid-template-columns:repeat(2,minmax
  <div id="menuBack"></div>
  <nav id="menu" class="drawer" aria-label="選單"><div class="dhead"><canvas id="meCv" width="40" height="50"></canvas><div><b id="meName"></b><small id="meSub"></small></div><button id="menuClose" aria-label="關閉">✕</button></div>
   <div class="dsec">小鎮</div><button data-go-tab="feed">📰 動態</button><button data-go-tab="rank">🏆 本週排行</button><button data-go-tab="ppl">👥 人際關係</button><button id="invite">✉️ 邀請朋友</button><button id="mayor" class="hide">🏛️ 鎮長管理</button><button id="powBtn">🏛️ 鎮長管理權</button>
-  <div class="dsec">我</div><button id="bagBtn">🛍️ 背包<small id="bagN"></small></button><button id="life">🎯 我的人生</button><button id="taskBtn">📋 每日任務</button><button id="statBtn">💪 能力屬性</button><button id="updBtn">📰 更新紀錄</button><button id="relook">👗 換造型</button><button id="bell">🔕 開啟通知</button><button id="install" class="hide">📲 加到主畫面</button>
+  <div class="dsec">我</div><button id="bagBtn">🛍️ 背包<small id="bagN"></small></button><button id="life">🎯 我的人生</button><button id="taskBtn">📋 每日任務</button><button id="statBtn">💪 能力屬性</button><button id="updBtn">📰 更新紀錄</button><button id="legalBtn">📄 條款與隱私</button><button id="relook">👗 換造型</button><button id="bell">🔕 開啟通知</button><button id="install" class="hide">📲 加到主畫面</button>
   <div class="dsec">其他</div><button id="towns">🏘️ 我的小鎮</button><button id="logout">🚪 登出</button></nav>
  <section id="login"><div class="card" id="lg"><div class="ld"><div class="ldp">🐷</div><b>小豬鎮</b><div class="ldb"><i></i></div><small>載入中…</small></div></div></section>
  <section id="game" class="hide">
@@ -261,7 +261,7 @@ var m=/[?&]t=([A-Za-z0-9]+)/.exec(location.search),T=m?m[1]:"",loaded=0,LP=windo
 function mine(){try{return JSON.parse(localStorage.getItem("town-mine")||"[]")}catch(e){return[]}}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function add(src){var s=document.createElement("script");s.src=src;s.async=false;document.body.appendChild(s)}
-function load(){if(loaded)return;loaded=1;add("icons.js?v=16");add("town.js?v=230")}
+function load(){if(loaded)return;loaded=1;add("icons.js?v=16");add("town.js?v=231")}
 function ago(t){if(!t)return"";var s=(Date.now()-t)/1e3;return s<90?"剛剛上線":s<3600?Math.round(s/60)+" 分鐘前上線":s<86400?Math.round(s/3600)+" 小時前上線":Math.round(s/86400)+" 天前上線"}
 var R=function(x,y,w,h,f){return'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+f+'"/>'};
 var HOUSE='<svg viewBox="0 0 12 12" shape-rendering="crispEdges">'+R(3,1,6,1,"#d9534f")+R(2,2,8,1,"#d9534f")+R(1,3,10,1,"#d9534f")+R(2,4,8,7,"#f4ead6")+R(5,7,2,4,"#8b5a2b")+R(3,5,2,2,"#9fd8ff")+R(7,5,2,2,"#9fd8ff")+'</svg>';
@@ -284,7 +284,7 @@ LP.top=function(list){
  var one=!list.length;
  h+='<div class="'+(one?"choose":"lpgo")+'"><button class="big'+(one?" pri":"")+'" id="cJoin"><span class="hi">'+MAIL+'</span><span><b>加入朋友的小鎮</b><small>用朋友給的邀請碼或連結</small></span></button>'
   +'<button class="big" id="cNew"><span class="hi">'+FLAG+'</span><span><b>建立新小鎮</b><small>自己當鎮長</small></span></button></div>';
- return h+'<p class="lpfoot">小豬鎮 · 和朋友一起生活</p>'};
+ return h+'<p class="lpfoot">小豬鎮 · 和朋友一起生活<br>'+'<button class="lpl" data-h="terms.html" onclick="location.href='terms.html'">條款</button> · <button class="lpl" data-h="privacy.html" onclick="location.href='privacy.html'">隱私</button>'+'</p>'};
 /* 備份：iOS 會清 localStorage，登入鑰匙（town-mine，含裝置金鑰 pin）另存 IndexedDB；只存必要欄位，登出／搬離會同步刪。 */
 var DB="town-bk";
 function idb(f){try{var q=indexedDB.open(DB,1);q.onupgradeneeded=function(){q.result.createObjectStore("k")};q.onsuccess=function(){try{f(q.result)}catch(e){}};q.onerror=function(){}}catch(e){}}

@@ -226,6 +226,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"legal-1117",date:"11/17",title:"新增條款與隱私",items:["選單可看服務條款","選單可看隱私權政策"]},
   {id:"pc-layout-1117",date:"11/17",title:"電腦版改版",items:["電腦上左邊地圖、右邊面板","滾輪縮放、滑過顯示名稱","方向鍵走路、1-9 按按鈕"]},
   {id:"u63-pixel",date:"11/17",title:"全面像素風",items:["地圖與文字邊緣更銳利","圓角、模糊陰影改成像素方塊"]},
   {id:"u62-panel",date:"11/17",title:"面板高度自動調整",items:["按鈕少時面板變矮，地圖更大","灰掉按鈕的原因改成短句"]},
@@ -848,7 +849,7 @@ function bondsModal(){const list=Object.values(R).filter(o=>o.id!=me).map(o=>({o
 // 新手提示：第一次進小鎮時顯示，看過就不再出現
 function tipsWhenFree(n=0){let seen=null;try{seen=localStorage.getItem("town-tips")}catch(e){}if(seen||n>8)return;if($("modal").classList.contains("hide")&&$("away").classList.contains("hide"))showTips();else setTimeout(()=>tipsWhenFree(n+1),3000)}
 function showTips(){let seen=null;try{seen=localStorage.getItem("town-tips")}catch(e){}if(seen)return;const el=$("tips");el.classList.remove("hide");
- el.innerHTML=`<b>👋 新手小提示</b><p>🗺️ 點地圖上的房子或地點，角色會自己走過去。</p><p>👆 點地圖上的人，可以傳訊息、打電話；走到他旁邊還能擊掌或扁他。</p><p>🍚 上面的需求會隨現實時間下降，快見底時下方會出現粉紅色的「建議下一步」。</p><div class="row"><button class="pri" id="tipok">知道了</button></div>`;
+ el.innerHTML=`<b>👋 新手小提示</b><p>🗺️ 點地圖上的房子或地點，角色會自己走過去。</p><p>👆 點地圖上的人，可以傳訊息、打電話；走到他旁邊還能擊掌或扁他。</p><p>🍚 上面的需求會隨現實時間下降，快見底時下方會出現粉紅色的「建議下一步」。</p><small>繼續即表示同意<button id="tipT" style="all:unset;text-decoration:underline;cursor:pointer;padding:8px 4px">條款</button>與<button id="tipP" style="all:unset;text-decoration:underline;cursor:pointer;padding:8px 4px">隱私</button></small><div class="row"><button class="pri" id="tipok">知道了</button></div>`;$("tipT").onclick=()=>window.open("terms.html","_blank");$("tipP").onclick=()=>window.open("privacy.html","_blank");
  $("tipok").onclick=()=>{el.classList.add("hide");try{localStorage.setItem("town-tips","1")}catch(e){}}}
 // 建議下一步：最缺的需求先處理，其次是錢、道謝、邀請朋友
 function nextStep(r,p){if(r.sleeping||jailed(r)||(walkers[me]&&walkers[me].path.length))return null;const atHome=inside(r),chain=(...l)=>async()=>{for(const x of l)await act(...x)},homeDo=a=>()=>{if(p=="home:"+me){inside(r)?act(a):chain(["enter"],[a])()}else{pendingThen=chain(["enter"],[a]);goHouse(r.slot)}},goDo=(pl,a)=>()=>{pendingThen=chain([a]);walkTo(pl,PLACES[pl].door)};
@@ -1490,7 +1491,7 @@ $("menuBtn").onclick=()=>{const r=R[me];if(r){$("bagN").textContent=bagCount(r)?
 $("menuBack").onclick=closeMenu;$("menuClose").onclick=closeMenu;
 document.querySelectorAll("[data-go-tab]").forEach(b=>b.onclick=()=>{const t=b.dataset.goTab;document.querySelector(`[data-tab=${t}]`).click();if(isMob())document.body.classList.add("social");else $("social").scrollIntoView({behavior:"smooth"})});
 $("friendBtn").onclick=()=>document.body.classList.toggle("fr");$("strip").addEventListener("click",()=>setTimeout(()=>document.body.classList.remove("fr"),50));$("feedBtn").onclick=()=>{document.body.classList.add("social");markSeen()};$("socialClose").onclick=()=>document.body.classList.remove("social");$("menu").addEventListener("click",e=>{if(e.target.closest("button"))closeMenu()});
-$("life").onclick=lifeModal;$("powBtn").onclick=()=>{closeMenu();powersModal()};$("taskBtn").onclick=()=>{closeMenu();taskModal()};$("statBtn").onclick=()=>{closeMenu();statsModal()};$("updBtn").onclick=()=>{closeMenu();updModal(true)};$("bagBtn").onclick=()=>{closeMenu();bagModal()};
+$("life").onclick=lifeModal;$("powBtn").onclick=()=>{closeMenu();powersModal()};$("taskBtn").onclick=()=>{closeMenu();taskModal()};$("statBtn").onclick=()=>{closeMenu();statsModal()};$("updBtn").onclick=()=>{closeMenu();updModal(true)};$("legalBtn").onclick=()=>{closeMenu();$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>條款與隱私</h2><p class="mut">白話版，一分鐘讀完。</p><div class="row"><button id="lgT">服務條款</button><button id="lgP">隱私權政策</button></div><div class="row"><button id="lgX" class="pri">關閉</button></div>`;$("lgT").onclick=()=>window.open("terms.html","_blank");$("lgP").onclick=()=>window.open("privacy.html","_blank");$("lgX").onclick=()=>$("modal").classList.add("hide")};$("bagBtn").onclick=()=>{closeMenu();bagModal()};
 $("relook").onclick=()=>{let look=normLook(R[me].look);$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>換造型</h2><div id="lk2"></div><div class="row"><button id="mc">取消</button><button class="pri" id="ms">儲存</button></div>`;
  lookPicker($("lk2"),look,l=>look=l,R[me].items||{});$("mc").onclick=()=>$("modal").classList.add("hide");$("ms").onclick=async()=>{try{await rpc("town_login",{rid:me,pin,new_look:look});mapKey="";await refresh();$("modal").classList.add("hide");toast("換好了")}catch(e){toast(e.message)}}};
 $("report").onclick=report;
