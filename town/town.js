@@ -598,7 +598,8 @@ function walkTo(dest,d){if(jailed(R[me])){pendingThen=null;toast(`你被關在�
 function arrived(w){const d=w.dest,th=w.then;w.dest=null;w.then=null;act("move",{px:w.goal[0],py:w.goal[1],dest:d}).then(async()=>{if(ROOMS[d]&&R[me]&&!jailed(R[me]))await enterRoom(d,true);if(th)th()})}
 // ── 點擊即互動 ──
 const WORKPL=["office","rafi"];
-function tapTab(t){ptab=t;lastPanel="";renderPanel()}
+let tapHi=null;
+function tapTab(t,re){tapHi=re||null;ptab=t;lastPanel="";renderPanel()}
 function tapObj(k){const r=R[me],d=TAP_DEF[k],o=OBJS[k];if(!r||!d)return;if(r.sleeping||jailed(r)){toast("現在不能這樣做");return}
  if(d.feed&&!(r.items||{}).snack){toast("沒有零食可以餵");tapTab("here");return}
  const go=()=>act("obj",{item:k,note:d.feed?"feed":null});
@@ -606,9 +607,9 @@ function tapObj(k){const r=R[me],d=TAP_DEF[k],o=OBJS[k];if(!r||!d)return;if(r.sl
  tapConfirm(`${o.name} $${d.cost}`,go)}
 function tapConfirm(txt,fn){let c=$("tapc");if(c)c.remove();c=document.createElement("div");c.id="tapc";c.style.cssText="position:fixed;left:50%;top:40%;transform:translateX(-50%);z-index:60;background:#fff7d6;border:3px solid #2b2b2b;padding:12px;display:flex;gap:8px;align-items:center;font:16.5px 'Cubic 11',monospace;color:#2b2b2b";c.innerHTML=`<span>${esc(txt)}</span>`;
  for(const [l,f] of [["做",()=>{c.remove();fn()}],["取消",()=>c.remove()]]){const b=document.createElement("button");b.textContent=l;b.style.cssText="min-height:44px;padding:0 16px;font:inherit;border:3px solid #2b2b2b;background:#f6a5c0;color:#2b2b2b";b.onclick=f;c.appendChild(b)}document.body.appendChild(c);setTimeout(()=>c.isConnected&&c.remove(),8000)}
-function tapPlace(p){const w=walkers[me];if(p.slot!=null){const o=bySlot(p.slot);if(o&&o.id==me){if(inside(R[me])&&!(w.path.length))return;pendingThen=async()=>{await act("enter")};goHouse(p.slot);return}pendingThen=()=>tapTab("here");goHouse(p.slot);return}
+function tapPlace(p){const w=walkers[me];if(p.slot!=null){const o=bySlot(p.slot);if(o&&o.id==me){if(inside(R[me])&&!(w.path.length)){act("exit");return}pendingThen=async()=>{await act("enter")};goHouse(p.slot);return}pendingThen=()=>tapTab("here");goHouse(p.slot);return}
  if(p.obj){const k=p.obj;pendingThen=()=>tapObj(k);walkTo(p.dest,p.door);return}
- pendingThen=()=>tapTab(WORKPL.includes(p.dest)?"work":"here");walkTo(p.dest,p.door)}
+ pendingThen=()=>WORKPL.includes(p.dest)?tapTab("work",/^打工|^應徵/):tapTab("here");walkTo(p.dest,p.door)}
 function tapNpc(tx,ty){const near=(q)=>q&&Math.abs(q[0]-tx)<=1&&Math.abs(q[1]-ty)<=1;
  if(TRV&&TRV.here&&near(TRV.place=="plaza"?[14,13]:[29,20])){pendingThen=()=>trvTalk();walkTo(TRV.place,[tx,ty]);return true}
  if(NPCV&&NPCV.here&&Date.parse(NPCV.until)>Date.now()&&near(NPCV.place=="plaza"?[20,12]:[33,19])){pendingThen=()=>npcShop();walkTo(NPCV.place,[tx,ty]);return true}return false}
@@ -717,7 +718,7 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
    const m=b.label.match(/^(\p{Extended_Pictographic}️?)\s*(.*)$/u)||b.label.match(/^(.*?)\s*(\p{Extended_Pictographic}️?)$/u),txt=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[1]:m[2]):b.label,ic=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[2]:m[1]):(ACT_ICON[b.label]||(b.g=="move"?"🚶":"•"));
    const nm2=txt.length>5?txt.match(/^(.*?(?:給|和|跟|請|邀請|去|對))\s*(\S.*)$/):null,cost=/(領|賺|獎|拿|得到|\+€|收入|打倒)/.test((b.sub||"").split("€")[0]+"€")?0:(+((b.sub||"").match(/€(\d+)(?!\d)/)||[])[1]||0),dis=b.dis||"",poor=dis||(cost&&/€\d+/.test(b.sub)&&!/\+€/.test(b.sub)&&r.money<cost),bad=/扁|砍|雞蛋|臭屁|惡作劇|叫醒/.test(b.label),cta=b.g=="tip"||b.g=="pin";
    const ic2=ICALIAS[String(ic).replace(/\uFE0F/g,"")]||ic;return `<button data-i="${i}" data-g="${b.g}" title="${esc(b.sub||"")}" class="act${cta?" cta":""}${bad?" bad":""}${poor?" poor":""}${b.g=="move"?" ghost":""}"><span class="ai">${ic2}</span><span class="at">${nm2?`<b>${esc(nm2[1])}</b><em class="nm">${esc(nm2[2])}</em>`:`<b>${esc(txt)}</b>`}${poor?`<small>${dis?esc(dis):`錢不夠（要 €${cost}）`}</small>`:cta&&b.sub?`<small>${b.sub}</small>`:""}</span>${cost&&!poor&&!cta&&!/\+€/.test(b.sub||"")?`<em class="pc">€${cost}</em>`:""}</button>`};
- const idx=list.map((b,i)=>[b,i]),pins=idx.filter(x=>x[0].g=="pin").slice(0,2),tips=idx.filter(x=>x[0].g=="tip").slice(0,2),rest=idx.filter(x=>x[0].g!="tip"&&x[0].g!="pin");
+ const idx=list.map((b,i)=>[b,i]),pins=idx.filter(x=>x[0].g=="pin").slice(0,2),tips=idx.filter(x=>x[0].g=="tip").slice(0,2),rest=idx.filter(x=>x[0].g!="tip"&&x[0].g!="pin");if(tapHi){const hi=rest.findIndex(x=>tapHi.test(x[0].label));if(hi>0)rest.unshift(rest.splice(hi,1)[0])}
  const tabsHave=TABS.filter(t=>rest.some(x=>(TABOF[x[0].g]||"here")==t[0])),pk=p+"|"+(sel||"");
  if(pk!==ptabKey){ptabKey=pk;ptab=""}if(!tabsHave.some(t=>t[0]==ptab))ptab=(tabsHave.find(t=>t[0]=="here")||tabsHave[0]||[""])[0];
  const flat=rest.length<=6,tabHtml=!flat&&tabsHave.length>1?tabsHave.map(t=>{const its=rest.filter(x=>(TABOF[x[0].g]||"here")==t[0]),n=its.filter(x=>!x[0].dis).length;return `<button class="ptab${t[0]==ptab?" on":""}${n?"":" z"}" data-t="${t[0]}">${t[0]=="here"?(p&&p.startsWith("home:")?"房子":(title.replace(/[（(].*$/,"").trim().slice(0,4)||"地點")):t[1]}</button>`}).join(""):"";
@@ -737,7 +738,7 @@ const TABOF={self:"care",eat:"care",place:"here",home:"here",friend:"here",face:
 const SGN=["友善","惡作劇","線上","對戰"],sgOf=b=>/扁|砍|戰帖|PK|對練|打一場/.test(b.label)?3:/原諒|和好|擊掌|道謝|送禮|邀請|請客/.test(b.label)?0:(b.g=="mis"||/潑水|紙條|告白|偷零食|拍醜照|換座位|門鈴|便便|丟雞蛋|惡作劇/.test(b.label))?1:(b.g=="online"||/傳訊息|打電話|叫外送|寄禮物|留言/.test(b.label))?2:0;
 function socialHtml(cur,tile){const s=cur.slice().sort((a,b)=>sgOf(a[0])-sgOf(b[0]));let last=-1;return s.map(x=>{const k=sgOf(x[0]);let h="";if(k!=last){last=k;h=`<div class="subh">${SGN[k]}</div>`}return h+tile(x[0],x[1])}).join("")}
 let ptab="",ptabKey="";try{new ResizeObserver(()=>resize()).observe($("stage"))}catch(e){}try{new ResizeObserver(()=>document.body.style.setProperty("--phpx",($("panel").offsetHeight||0)+"px")).observe($("panel"))}catch(e){}function panelFnTab(f){ptab=TABOF[f.g]||ptab;lastPanel="";renderPanel()}
-const actClick=ev=>{const tb=ev.target.closest("button.ptab");if(tb){ptab=tb.dataset.t;lastPanel="";renderPanel();return}
+const actClick=ev=>{const tb=ev.target.closest("button.ptab");if(tb){tapHi=null;ptab=tb.dataset.t;lastPanel="";renderPanel();return}
 const b=ev.target.closest("button[data-i]");if(!b||busy)return;const f=panelFns[b.dataset.i];if(f){if(f.dis){toast(f.dis);return}if(f.g=="tip")track("click",f.label);press(b,f.fn)}};
 $("acts").addEventListener("click",actClick);$("tipbox").addEventListener("click",actClick);$("pinbox").addEventListener("click",actClick);{const a=$("acts"),p=$("panel"),mk=()=>a.classList.toggle("more",a.scrollTop+a.clientHeight<a.scrollHeight-4),fit=()=>{const B=document.body;if(p.classList.contains("min")){p.style.height="";a.style.height="";B.style.setProperty("--phpx",(p.offsetHeight||0)+"px");return}
  const prev=p.offsetHeight,tr=p.style.transition;p.style.transition="none";p.style.height="auto";a.style.height="";a.style.flex="none";a.style.overflow="visible";
@@ -1497,7 +1498,7 @@ cv.addEventListener("pointerup",e=>{const wasPinch=ptrs.size>=2||!down;endPtr(e)
  // 停在原地才放手就不要慣性
  if(d.moved&&performance.now()-(d.lt||0)>80){cam.vx=cam.vy=0}if(d.moved||!S)return;const rc=cv.getBoundingClientRect(),wx=(e.clientX-rc.left)/cam.s+cam.ox,wy=(e.clientY-rc.top)/cam.s+cam.oy,tx=Math.floor(wx/T),ty=Math.floor(wy/T);
  const hit=Object.values(R).find(r=>r.id!=me&&Math.hypot((walkers[r.id].x+.5)*T-wx,(walkers[r.id].y+.2)*T-wy)<T*.8);
- if(hit){if(R[me].sleeping||jailed(R[me])){sel=hit.id;renderPanel();return}pendingThen=()=>{sel=hit.id;tapTab("social")};walkToPerson(hit.id);return}sel=null;if(!R[me].sleeping&&!blocked(tx,ty)&&tapNpc(tx,ty))return;
+ if(hit){if(R[me].sleeping||jailed(R[me])){sel=hit.id;renderPanel();return}pendingThen=()=>{sel=hit.id;tapTab("social",/擊掌/)};walkToPerson(hit.id);return}sel=null;if(!R[me].sleeping&&!blocked(tx,ty)&&tapNpc(tx,ty))return;
  if(R[me].sleeping){toast("先起床才能出門");return}
  const p=placeAt(tx,ty);window.__tap=`tap ${tx},${ty} scale ${cam.s.toFixed(2)} blocked ${blocked(tx,ty)} place ${p?(p.slot!=null?'house':p.dest):'none'} t ${new Date().toLocaleTimeString()}`;if(!p){toast("那裡走不過去");return}tapPlace(p)});
 $("zoom").onclick=()=>{zoomFar=!zoomFar;cam.user=false;$("zoom").textContent=zoomFar?"🔍 拉近":"🗺️ 看全鎮";camFree=zoomFar;resize()};
