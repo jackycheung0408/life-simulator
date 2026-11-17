@@ -231,6 +231,7 @@ const UPDATES=[
   {id:"u52-dock",date:"11/17",title:"底部導覽列變成整塊底座",items:["導覽列貼齊畫面底部，和下方 iPhone 保留區連成同一塊深色底座","狀態列只往下移一小段（12px），上方空白不再過大","互動面板加高，一次看得到更多按鈕，地圖相對縮小"]},
   {id:"u51-tags",date:"11/17",title:"重疊的人名牌不再糊成一團",items:["好幾個人站在同一個位置時，名牌會往上一層一層疊開","面對面按鈕的名字拆成兩行，不再被切掉","長按最上方狀態列 1 秒可看除錯資訊（回報畫面問題用）"]},
   {id:"u50-statusbar",date:"11/17",title:"頂部不再糊",items:["iPhone 狀態列改成純黑實心，狀態條不會再被系統模糊","如果還是糊：把桌面圖示刪掉，用 Safari 重新「加入主畫面」一次","畫面頂部從狀態列下方開始算"]},
+  {id:"u59-tabs",date:"11/17",title:"按鈕分類整理",items:["設施的吃喝、玩樂、簽到都放進「地點」頁，不再散在別的頁","旅人、流動商人也放進「地點」頁","任何沒分到類的按鈕一律歸到「地點」，不會被藏起來","惡趣味與危險動作集中在「朋友」頁，並有紅色左邊條"]},
   {id:"u58-door",date:"11/17",title:"進去才能用設施",items:["咖啡廳、餐廳、健身房等：站在門口只能「進去」，進去後才有設施的按鈕","店裡最上面固定有「出門」","室內畫面的空白改成牆壁與地板延伸，看起來更滿","上方狀態列往下移，避開 iPhone 瀏海的模糊"]},
   {id:"u57-pop",date:"11/17",title:"做完事會跳出變化",items:["吃、玩、打工、訓練…做完就在畫面浮出增減的數字","例：🍚 +48、💰 −$30","上方狀態列不再被 iPhone 瀏海模糊（改成不固定在最上緣）","下面按鈕改成方塊，少的時候不分頁","鄰居欄可以左右滑了"]},
   {id:"u56-ui2",date:"11/17",title:"畫面大改版：地圖更大、更好找",items:["上方只剩一條細細的狀態列，快沒了才會閃紅","我、看全鎮、動態、選單變成右邊的圓形按鈕","下面按鈕分成「這裡／社交／玩樂／工作」分頁，建議下一步固定在最上面","提示訊息一次一則，統一放在狀態列下面，不再蓋住按鈕"]},
@@ -621,8 +622,8 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  else if(p=="townhall"){title="市政廳";note="鎮基金、公告欄、居民投票。鎮基金只能花在居民投票通過的建設案，不能轉給任何人";list.push(btn("市政廳大廳 🏛️","看鎮基金、公告、投票與建設案",()=>civicModal()))}
  else{title="路上";note="站在路邊久了容易遇到壞事（野狗、鳥大便、小偷、機車），找個地方待著吧。點地圖上的房子或地點，就會走過去"}
  if(!sel&&!r.sleeping&&!jailed(r)&&!(walkers[me]&&walkers[me].path.length))list.push(...trainBtns(r));
- if(TRV&&TRV.here&&r.place==TRV.place&&!r.sleeping&&!jailed(r))list.push(btn("和旅人聊聊 💬","今天來鎮上的旅人，選擇題",trvTalk,"fun"));
- if(NPCV&&NPCV.here&&Date.parse(NPCV.until)>Date.now()&&r.place==NPCV.place&&!r.sleeping&&!jailed(r))list.push(btn("找流動商人 💰","限量奇貨，價格偏貴",npcShop,"fun"));
+ if(TRV&&TRV.here&&r.place==TRV.place&&!r.sleeping&&!jailed(r))list.push(btn("和旅人聊聊 💬","今天來鎮上的旅人，選擇題",trvTalk,"place"));
+ if(NPCV&&NPCV.here&&Date.parse(NPCV.until)>Date.now()&&r.place==NPCV.place&&!r.sleeping&&!jailed(r))list.push(btn("找流動商人 💰","限量奇貨，價格偏貴",npcShop,"place"));
  if(!sel&&!r.sleeping&&FACP.includes(p)&&!(walkers[me]&&walkers[me].path.length)){list.push(...facBtns(r));const fn=fqOf(r,p);if(fn)note=(note?note+" · ":"")+`來過 ${fn} 次${tierOf(fn)?"：這裡的"+tierOf(fn):"，5 次變常客有折扣"}`}
  if(!sel&&!r.sleeping&&!(walkers[me]&&walkers[me].path.length))list.push(...inviteBtns(r));
  // 同在店裡（咖啡廳、餐廳、健身房）：在場的人可以直接面對面互動，不用先點他
@@ -666,10 +667,10 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
    const nm2=txt.length>5?txt.match(/^(.*?(?:給|和|跟|請|邀請|去|對))\s*(\S.*)$/):null,cost=/(領|賺|獎|拿|得到|\+€|收入|打倒)/.test((b.sub||"").split("€")[0]+"€")?0:(+((b.sub||"").match(/€(\d+)(?!\d)/)||[])[1]||0),dis=b.dis||"",poor=dis||(cost&&/€\d+/.test(b.sub)&&!/\+€/.test(b.sub)&&r.money<cost),bad=/扁|砍|雞蛋|臭屁|惡作劇|叫醒/.test(b.label),cta=b.g=="tip"||b.g=="pin";
    const ic2=ICALIAS[String(ic).replace(/\uFE0F/g,"")]||ic;return `<button data-i="${i}" data-g="${b.g}" title="${esc(b.sub||"")}" class="act${cta?" cta":""}${bad?" bad":""}${poor?" poor":""}${b.g=="move"?" ghost":""}"><span class="ai">${ic2}</span><span class="at">${nm2?`<b>${esc(nm2[1])}</b><em class="nm">${esc(nm2[2])}</em>`:`<b>${esc(txt)}</b>`}${poor?`<small>${dis?esc(dis):`錢不夠（要 €${cost}）`}</small>`:cta&&b.sub?`<small>${b.sub}</small>`:""}</span>${cost&&!poor&&!cta&&!/\+€/.test(b.sub||"")?`<em class="pc">€${cost}</em>`:""}</button>`};
  const idx=list.map((b,i)=>[b,i]),pins=idx.filter(x=>x[0].g=="pin").slice(0,2),tips=idx.filter(x=>x[0].g=="tip").slice(0,2),rest=idx.filter(x=>x[0].g!="tip"&&x[0].g!="pin");
- const tabsHave=TABS.filter(t=>rest.some(x=>TABOF[x[0].g]==t[0])),pk=p+"|"+(sel||"");
+ const tabsHave=TABS.filter(t=>rest.some(x=>(TABOF[x[0].g]||"here")==t[0])),pk=p+"|"+(sel||"");
  if(pk!==ptabKey){ptabKey=pk;ptab=""}if(!tabsHave.some(t=>t[0]==ptab))ptab=(tabsHave.find(t=>t[0]=="here")||tabsHave[0]||[""])[0];
- const flat=rest.length<=6,tabHtml=!flat&&tabsHave.length>1?tabsHave.map(t=>{const its=rest.filter(x=>TABOF[x[0].g]==t[0]),n=its.filter(x=>!x[0].dis).length;return `<button class="ptab${t[0]==ptab?" on":""}${n?"":" z"}" data-t="${t[0]}">${t[0]=="here"?(p&&p.startsWith("home:")?"房子":(title.replace(/[（(].*$/,"").trim().slice(0,4)||"地點")):t[1]}</button>`}).join(""):"";
- const cur=rest.filter(x=>flat||TABOF[x[0].g]==ptab).sort((a,b)=>GORD.indexOf(a[0].g)-GORD.indexOf(b[0].g));
+ const flat=rest.length<=6,tabHtml=!flat&&tabsHave.length>1?tabsHave.map(t=>{const its=rest.filter(x=>(TABOF[x[0].g]||"here")==t[0]),n=its.filter(x=>!x[0].dis).length;return `<button class="ptab${t[0]==ptab?" on":""}${n?"":" z"}" data-t="${t[0]}">${t[0]=="here"?(p&&p.startsWith("home:")?"房子":(title.replace(/[（(].*$/,"").trim().slice(0,4)||"地點")):t[1]}</button>`}).join(""):"";
+ const cur=rest.filter(x=>flat||(TABOF[x[0].g]||"here")==ptab).sort((a,b)=>GORD.indexOf(a[0].g)-GORD.indexOf(b[0].g));
  const pinH=pins.map(x=>tile(x[0],x[1])).join(""),tipH=tips.map(x=>tile(x[0],x[1])).join(""),html=cur.map(x=>tile(x[0],x[1])).join("");
  const all=pinH+"§"+tipH+"§"+tabHtml+"§"+html;
  panelFns=list;if(all!=lastPanel){lastPanel=all;patchList($("pinbox"),pinH);$("panel").classList.toggle("haspin",!!pinH);patchList($("tipbox"),tipH);patchList($("ptabs"),tabHtml);patchList($("acts"),html);$("tipbox").classList.toggle("hide",!tipH);$("ptabs").classList.toggle("hide",!tabHtml)}drawRoom()}
@@ -1556,7 +1557,7 @@ function escapeModal(){choiceModal("真的要越獄嗎？",`成功約 ${escP()}%
 function slashModal(t){choiceModal(`真的要砍 ${t.name} 嗎？`,`你們有仇，只有這種人才能動手。他精力 −${JAIL.hurt[0]}、心情 −${JAIL.hurt[1]}，精力歸零會倒地送醫院，醫藥費由你付；你精力 −${JAIL.self[0]}。被巡警抓到（約 ${JAIL.catchP}%，倒地 ${JAIL.catchFallP}%）要關 1～3 小時，好感也會大跌。${priorOn(R[me])||wantedOn(R[me])?"你現在有前科或被通緝，被抓的機率更高。":""}角色不會死`,[["確定動手","30 分鐘一次",()=>doJail("slash",t.id)],["算了","",()=>{}]])}
 const FACCD={};// 設施互動的時間冷卻已全部取消（2026-11）；好感每日上限、每日精力補充上限（200）還在
 const FACI={special:"🍚",takeout:"📦",latte:"☕",redeem:"🎫",treat:"💗",song:"🎵",film:"🎬",popcorn:"🍪",spar:"👊",checkin:"✨",frisbee:"🎈",fish:"🐟",picnic:"🍽️",feast:"🍖",spa:"🛁",trip:"🧳",photo:"✨",photo2:"💗"};
-const FACG={special:"eat",takeout:"eat",latte:"eat",redeem:"eat",popcorn:"eat",picnic:"eat",feast:"eat",film:"fun",song:"fun",fish:"fun",photo:"fun",checkin:"fun",spa:"fun",trip:"fun",treat:"soc",spar:"soc",frisbee:"soc",photo2:"soc"};
+const FACG={special:"place",takeout:"place",latte:"place",redeem:"place",popcorn:"place",picnic:"place",feast:"place",film:"place",song:"place",fish:"place",photo:"place",checkin:"place",spa:"place",trip:"place",treat:"soc",spar:"soc",frisbee:"soc",photo2:"soc"};
 // 設施互動：全部直接放在面板第一層，不能按的灰掉並寫原因
 const TRN={lift:["舉重","力量",150,"gym","精力 −15，要 25 以上"],run:["慢跑","敏捷",0,"park","精力 −12，要 20 以上"],read:["讀書","智力",0,"home","精力 −6、心情 −3，在自己家屋裡"],chat:["找人聊天","魅力",0,"plaza,cafe","精力 −3，要有人在場"],pray:["許願池投幣","運氣",100,"plaza","精力 −2，錢只出不進"]};
 async function doTrain(k){try{const j=await rpc("town_train",{rid:me,pin,kind:k});await refresh().catch(()=>{});toast((TRN[k][1])+"："+j.msg);feedback(true,j.msg)}catch(e){toast(e.message)}}
