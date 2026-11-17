@@ -220,6 +220,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u54-tapdbg",date:"11/17",title:"回報點地圖沒反應用的除錯資訊",items:["長按最上方狀態列 1 秒，除錯資訊多一行「最後一次點地圖」的格子位置與結果","如果點某處沒反應，請點一次後立刻長按狀態列截圖給我","一般玩家不受影響"]},
   {id:"u53-door",date:"11/17",title:"進出門變成最顯眼的按鈕",items:["自己家、朋友家、各設施的「進去／出門」都固定在標題右側","按鈕改成粉紅大鍵，隨時一眼找到","不用再在分頁裡找出門"]},
   {id:"u52-dock",date:"11/17",title:"底部導覽列變成整塊底座",items:["導覽列貼齊畫面底部，和下方 iPhone 保留區連成同一塊深色底座","狀態列往下移，離開螢幕最上緣的模糊區","互動面板加高，一次看得到更多按鈕，地圖相對縮小"]},
   {id:"u51-tags",date:"11/17",title:"重疊的人名牌不再糊成一團",items:["好幾個人站在同一個位置時，名牌會往上一層一層疊開","面對面按鈕的名字拆成兩行，不再被切掉","長按最上方狀態列 1 秒可看除錯資訊（回報畫面問題用）"]},
@@ -680,7 +681,7 @@ const b=ev.target.closest("button[data-i]");if(!b||busy)return;const f=panelFns[
 $("acts").addEventListener("click",actClick);$("tipbox").addEventListener("click",actClick);$("pinbox").addEventListener("click",actClick);{const a=$("acts"),p=$("panel"),mk=()=>a.classList.toggle("more",a.scrollTop+a.clientHeight<a.scrollHeight-4),fit=()=>{document.body.style.setProperty("--phpx",(p.offsetHeight||0)+"px");const tl=a.querySelector(".act");if(!tl||p.classList.contains("min")){a.style.height="";return}a.style.height="";const pr=p.getBoundingClientRect(),ar=a.getBoundingClientRect(),pitch=tl.offsetHeight+6,avail=pr.bottom-8-ar.top,rows=Math.max(1,Math.floor((avail+6)/pitch));if(avail>0){a.style.flex="0 0 auto";a.style.height=(rows*pitch-6)+"px"}mk()};a.addEventListener("scroll",mk,{passive:true});new MutationObserver(()=>setTimeout(fit,30)).observe(a,{childList:true});new ResizeObserver(fit).observe(p);addEventListener("resize",()=>setTimeout(fit,50));setTimeout(fit,300)}$("ptabs").addEventListener("click",actClick);
 let lastNeeds="";
 function renderNeeds(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now());
- const html=NEEDS.map(k=>{const v=Math.round(r[k]),[ic,nm]=NEED_INFO[k];return `<div class="need${v<20?" low":""}" title="${nm} ${v}"><span>${ic}</span><i><b style="width:${v}%;background:${v<20?"var(--bad)":v<50?"var(--warn)":"var(--good)"}"></b></i><small><em>${nm} </em>${v}</small></div>`}).join("")+`<div class="need money"><span>${MOOD[moodOf(r)][0]}</span><small title="€${r.money}"><u class="cu">€</u>${r.money>=10000?(r.money/1000).toFixed(1).replace(/\.0$/,"")+"k":r.money}${(r.items||{}).gift||(r.items||{}).snack?"<br>":""}${(r.items||{}).gift?`🎁${r.items.gift}`:""}${(r.items||{}).gift&&(r.items||{}).snack?" ":""}${(r.items||{}).snack?`🍪${r.items.snack}`:""}</small></div>`;
+ const html=NEEDS.map(k=>{const v=Math.round(r[k]),[ic,nm]=NEED_INFO[k];return `<div class="need${v<20?" low":""}" title="${nm} ${v}"><span>${ic}</span><i><b style="width:${v}%;background:${v<20?"var(--bad)":v<50?"var(--warn)":"var(--good)"}"></b></i><small><em>${nm} </em>${v}</small></div>`}).join("")+`<div class="need money"><span>${MOOD[moodOf(r)][0]}</span><small title="€${r.money}"><u class="cu">€</u>${r.money>=10000?(r.money/1000).toFixed(1).replace(/\.0$/,"")+"k":r.money}${(r.items||{}).gift||(r.items||{}).snack?"<br>":""}${(r.items||{}).gift?`🎁${r.items.gift}`:""}${(r.items||{}).gift&&(r.items||{}).snack?" ":""}${(r.items||{}).snack?`🍪${r.items.snack}`:""}</small></div>\n${window.__tap||"尚未點地圖"}`;
  if(html!=lastNeeds){lastNeeds=html;patchList($("needs"),html)}}
 // 每週排行（最近 7 天）
 // 排行榜：頒獎台（前三名大頭貼）＋其餘名次＋你的名次；最近 7 天的事件，加上現在的存款和好友數
@@ -1418,7 +1419,7 @@ cv.addEventListener("pointerup",e=>{const wasPinch=ptrs.size>=2||!down;endPtr(e)
  const hit=Object.values(R).find(r=>r.id!=me&&Math.hypot((walkers[r.id].x+.5)*T-wx,(walkers[r.id].y+.2)*T-wy)<T*.8);
  if(hit){sel=sel==hit.id?null:hit.id;renderPanel();return}sel=null;
  if(R[me].sleeping){toast("先起床才能出門");return}
- const p=placeAt(tx,ty);if(!p){toast("那裡走不過去");return}if(p.slot!=null){goHouse(p.slot);return}walkTo(p.dest,p.door)});
+ const p=placeAt(tx,ty);window.__tap=`tap ${tx},${ty} scale ${cam.s.toFixed(2)} blocked ${blocked(tx,ty)} place ${p?(p.slot!=null?'house':p.dest):'none'} t ${new Date().toLocaleTimeString()}`;if(!p){toast("那裡走不過去");return}if(p.slot!=null){goHouse(p.slot);return}walkTo(p.dest,p.door)});
 $("zoom").onclick=()=>{zoomFar=!zoomFar;cam.user=false;$("zoom").textContent=zoomFar?"🔍 拉近":"🗺️ 看全鎮";camFree=zoomFar;resize()};
 $("home").onclick=()=>{camFree=false;sel=null;lastPanel="";renderPanel()};
 $("logout").onclick=()=>{if(!confirm("登出後要再輸入一次邀請碼才能進來。確定嗎？"))return;dropMine(TID);me=null;pin=null;townLogin()};
