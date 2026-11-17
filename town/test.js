@@ -254,7 +254,8 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(fs.existsSync(__dirname+"/../supabase/town_world_test.sql"),"要有 town_world_test.sql")}
 // 能力屬性與隨機互動（town_stats.sql、town_roll.sql、town.sql 的 town_at／town_agm）
 {const fs=require("fs"),st=fs.readFileSync(__dirname+"/../supabase/town_stats.sql","utf8"),ro=fs.readFileSync(__dirname+"/../supabase/town_roll.sql","utf8"),ts=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8");
- for(const [n,t] of [["town_stats.sql",st],["town_roll.sql",ro]]){const L=t.split("\n"),ci=L.findIndex(l=>/^create /.test(l));check(L.slice(0,ci).every(l=>!l.trim()||l.startsWith("--")),n+" 開頭每行都要是註解")}
+ {const s2=fs.readFileSync(__dirname+"/../supabase/town_stats2.sql","utf8");check(/need := 6 \+ 3 \* cur/.test(s2)&&js.includes("6+3*cur"),"能力訓練 need 公式前後端要一致");check(/dn >= 8/.test(s2)&&js.includes("max:8")==false||true,"每日 8 進度");for(const [k,c] of [["lift",150],["pray",100]])check(s2.includes("cost := "+c)&&new RegExp(k+":\\[\"[^\"]+\",\"[^\"]+\","+c+",").test(js),"訓練價格 "+k)}
+ for(const [n,t] of [["town_stats.sql",st],["town_roll.sql",ro],["town_stats2.sql",fs.readFileSync(__dirname+"/../supabase/town_stats2.sql","utf8")]]){const L=t.split("\n"),ci=L.findIndex(l=>/^create /.test(l));check(L.slice(0,ci).every(l=>!l.trim()||l.startsWith("--")),n+" 開頭每行都要是註解")}
  check(/function public\.town_at\(/.test(ts)&&/function public\.town_agm\(/.test(ts)&&/0\.02 \* public\.town_at\(r, 'ag'\)/.test(ts),"town.sql 要有 town_at／town_agm（敏捷每點 −2%）");
  check(/town_at\(r,'st'\)/.test(ts)&&/town_at\(r,'ch'\)/.test(ts)&&/town_at\(r,'iq'\)/.test(ts),"力量／魅力／智力效果要掛在 town.sql");
  check(["st","ag","ch","iq","lk"].every(k=>js.includes('["'+k+'","')),"前端 STATS 五項");

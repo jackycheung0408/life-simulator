@@ -217,6 +217,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u48-train",date:"11/17",title:"能力屬性可以練了",items:["健身房舉重練力量、公園慢跑練敏捷、在家讀書練智力、廣場或咖啡廳聊天練魅力、許願池投幣練運氣","每項要累積訓練進度才 +1 點，越高越難，每天最多 8 點進度，最高仍是 5","鼻青臉腫、心情低落、發臭、精力太低、欠事故款會暫時減能力，狀態好了就恢復","「能力屬性」裡看得到進度與暫時減益"]},
   {id:"u48-balance2",date:"11/17",title:"打工不遞減，錢花得更有感",items:["打工薪水不再遞減，每次都是全額","存款超過 5 萬就要繳財產稅，越有錢稅率越高（0.3%～3%）","特調咖啡漲到 €300","喪屍豬打倒改領 €60～140，一天最多 €600"]},
   {id:"u47-landing",date:"11/16",title:"首頁換新裝",items:["首頁加了像素豬 Logo 與大標題","主按鈕改成粉紅立體按鈕，按下去有手感","卡片圓角與陰影統一，進場有淡入動畫","手機瀏海與底部安全區不再被擋住"]},
   {id:"u46-nolimit",date:"11/16",title:"取消互動限制、能力屬性、隨機互動",items:["朋友互動、惡趣味、設施、打工賺錢的次數與冷卻上限全部取消，只剩精力、飽足等五條需求、入獄與睡覺會擋","新增能力屬性：力量、敏捷、魅力、智力、運氣，第一次進遊戲分配 10 點，之後升級每級 +1 點（選單「能力屬性」）","面對面多了「隨機互動」「隨機惡趣味」兩顆骰子鈕，系統幫你抽一個現在做得到的","因為沒有上限，賺錢只靠精力限制，打工遞減與財產稅仍在"]},
@@ -580,6 +581,7 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
    btn("今日治安 📊","看鎮上今天的罰單、事故、砍人、入獄",()=>policeAct("stats")))}
  else if(p=="townhall"){title="市政廳";note="鎮基金、公告欄、居民投票。鎮基金只能花在居民投票通過的建設案，不能轉給任何人";list.push(btn("市政廳大廳 🏛️","看鎮基金、公告、投票與建設案",()=>civicModal()))}
  else{title="路上";note="站在路邊久了容易遇到壞事（野狗、鳥大便、小偷、機車），找個地方待著吧。點地圖上的房子或地點，就會走過去"}
+ if(!sel&&!r.sleeping&&!jailed(r)&&!(walkers[me]&&walkers[me].path.length))list.push(...trainBtns(r));
  if(!sel&&!r.sleeping&&FACP.includes(p)&&!(walkers[me]&&walkers[me].path.length)){list.push(...facBtns(r));const fn=fqOf(r,p);if(fn)note=(note?note+" · ":"")+`來過 ${fn} 次${tierOf(fn)?"：這裡的"+tierOf(fn):"，5 次變常客有折扣"}`}
  if(!sel&&!r.sleeping&&!(walkers[me]&&walkers[me].path.length))list.push(...inviteBtns(r));
  // 同在店裡（咖啡廳、餐廳、健身房）：在場的人可以直接面對面互動，不用先點他
@@ -679,15 +681,15 @@ const TRAITS={foodie:["吃貨","吃東西的飽足效果 +30%"],athlete:["運動
  nightowl:["夜貓子","晚上 10 點到早上 6 點，醒著精力掉得慢"],clean:["愛乾淨","清潔掉得比較慢"],lucky:["幸運兒","路上壞事少、路邊好事多"],romantic:["浪漫","送出的禮物效果加倍"]};
 // ── 能力屬性（supabase/town_stats.sql）：力量、敏捷、魅力、智力、運氣；建角色後分配 10 點，之後升級每級 +1 點
 const STATS=[["st","力量","打架、PK、擂台力量 +1／點"],["ag","敏捷","被巡警抓、車禍機率 −2%／點"],["ch","魅力","好感增加 +2%／點"],["iq","智力","打工薪水 +1%／點"],["lk","運氣","隨機事件壞結果 1%／點變好結果"]];
-function statsModal(first){const r=R[me];if(!r)return;let at={},avail=0,ini=true;
+function statsModal(first){const r=R[me];if(!r)return;let at={},avail=0,ini=true,tr=null;
  const draw=()=>{const sel=first&&!ini;const tot=STATS.reduce((s,k)=>s+(at[k[0]]||0),0);
-  $("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>能力屬性</h2><p class="mut">${sel?`有 10 點可以分配（每項 0～5），選了就不能改，也可以先跳過。已用 ${tot}／10`:`每項最高 5 點。升級後每級得 1 點，可用點數：${avail}`}</p><div class="list">${STATS.map(k=>`<div class="act" style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="flex:1"><b>${k[1]}</b> ${at[k[0]]||0}／5<br><small>${k[2]}</small></span>${sel?`<button data-m="${k[0]}">−</button><button data-p="${k[0]}">＋</button>`:`<button data-s="${k[0]}"${avail>0&&(at[k[0]]||0)<5?"":" disabled"}>加 1 點</button>`}</div>`).join("")}</div><p class="err" id="serr"></p><div class="row">${sel?'<button id="sskip">先跳過</button><button class="pri" id="sok">選好了</button>':'<button id="sclose">關閉</button>'}</div>`;
+  $("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>能力屬性</h2><p class="mut">${sel?`有 10 點可以分配（每項 0～5），選了就不能改，也可以先跳過。已用 ${tot}／10`:`每項最高 5 點。升級後每級得 1 點，可用點數：${avail}`}</p><div class="list">${STATS.map(k=>{const tp=tr&&tr.tmp?tr.tmp[k[0]]||0:0,pg=tr&&tr.p?tr.p[k[0]]||0:0,nd=tr&&tr.need?tr.need[k[0]]||0:0;return `<div class="act" style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="flex:1"><b>${k[1]}</b> ${at[k[0]]||0}／5${tp?` <small class="mut">（暫時 −${tp}）</small>`:""}<br><small>${k[2]}</small>${!sel&&nd?`<br><small class="mut">訓練進度 ${pg}/${nd}</small>`:""}</span>${sel?`<button data-m="${k[0]}">−</button><button data-p="${k[0]}">＋</button>`:`<button data-s="${k[0]}"${avail>0&&(at[k[0]]||0)<5?"":" disabled"}>加 1 點</button>`}</div>`}).join("")}</div>${!sel&&tr?`<p class="mut"><small>練習：健身房舉重（力量）、公園慢跑（敏捷）、在家讀書（智力）、廣場／咖啡廳聊天（魅力）、許願池投幣（運氣）。今天進度 ${tr.td}/${tr.max}。暫時減益：鼻青臉腫、心情低落、發臭、精力不足、事故欠款，狀態解除就恢復。</small></p>`:""}<p class="err" id="serr"></p><div class="row">${sel?'<button id="sskip">先跳過</button><button class="pri" id="sok">選好了</button>':'<button id="sclose">關閉</button>'}</div>`;
   $("mbody").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{const k=b.dataset.p;if(tot<10&&(at[k]||0)<5){at[k]=(at[k]||0)+1;draw()}});
   $("mbody").querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{const k=b.dataset.m;if((at[k]||0)>0){at[k]--;draw()}});
   $("mbody").querySelectorAll("[data-s]").forEach(b=>b.onclick=async()=>{try{const j=await rpc("town_stats",{rid:me,pin,op:"spend",note:b.dataset.s});at=j.at;avail=j.avail;await refresh().catch(()=>{});draw()}catch(e){$("serr").textContent=e.message}});
   const done=async note=>{try{const j=await rpc("town_stats",{rid:me,pin,op:"set",note});at=j.at;ini=true;await refresh().catch(()=>{});$("modal").classList.add("hide");toast("能力分配好了")}catch(e){$("serr").textContent=e.message}};
   if($("sok"))$("sok").onclick=()=>done(STATS.map(k=>at[k[0]]||0).join(","));if($("sskip"))$("sskip").onclick=()=>done("0,0,0,0,0");if($("sclose"))$("sclose").onclick=()=>$("modal").classList.add("hide")};
- rpc("town_stats",{rid:me,pin,op:"view"}).then(j=>{at=j.at;avail=j.avail;ini=j.init;if(first&&ini)return;draw()}).catch(e=>toast(e.message))}
+ rpc("town_stats",{rid:me,pin,op:"view"}).then(j=>{at=j.at;avail=j.avail;ini=j.init;if(first&&ini)return;rpc("town_train",{rid:me,pin,kind:"view"}).then(t=>{tr=t}).catch(()=>{}).then(draw)}).catch(e=>toast(e.message))}
 async function rollDo(kind,id){try{const j=await rpc("town_roll",{rid:me,pin,kind,target:id});await refresh();const a=j.act;if(kind=="mis"){spawnFx(MIS_FX[a]||"sparkle",me,id);playRoomFx(a,id)}const m=(j.res&&j.res.msg)||"";toast(`${j.flavor} ${m}`);feedback(true,m)}catch(e){toast(e.message)}}
 function traitModal(){const sel=[];$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>選 2 個個性</h2><p class="mut">只有加成，沒有壞處。選了就不能改，也可以先跳過。</p><div class="list">${Object.entries(TRAITS).map(([k,v])=>`<button data-tk="${k}" style="width:100%;text-align:left;margin-bottom:6px"><b>${v[0]}</b><br><small>${v[1]}</small></button>`).join("")}</div><p class="err" id="terr"></p><div class="row"><button id="tskip">先跳過</button><button class="pri" id="tok" disabled>選好了</button></div>`;
  const bs=[...$("mbody").querySelectorAll("[data-tk]")],upd=()=>{bs.forEach(b=>b.classList.toggle("pri",sel.includes(b.dataset.tk)));$("tok").disabled=sel.length!=2;$("tok").textContent=sel.length==2?"選好了":`再選 ${2-sel.length} 個`};
@@ -1486,6 +1488,14 @@ const FACCD={};// 設施互動的時間冷卻已全部取消（2026-11）；好�
 const FACI={special:"🍚",takeout:"📦",latte:"☕",redeem:"🎫",treat:"💗",song:"🎵",film:"🎬",popcorn:"🍪",spar:"👊",checkin:"✨",frisbee:"🎈",fish:"🐟",picnic:"🍽️",feast:"🍖",spa:"🛁",trip:"🧳",photo:"✨",photo2:"💗"};
 const FACG={special:"eat",takeout:"eat",latte:"eat",redeem:"eat",popcorn:"eat",picnic:"eat",feast:"eat",film:"fun",song:"fun",fish:"fun",photo:"fun",checkin:"fun",spa:"fun",trip:"fun",treat:"soc",spar:"soc",frisbee:"soc",photo2:"soc"};
 // 設施互動：全部直接放在面板第一層，不能按的灰掉並寫原因
+const TRN={lift:["舉重","力量",150,"gym","精力 −15，要 25 以上"],run:["慢跑","敏捷",0,"park","精力 −12，要 20 以上"],read:["讀書","智力",0,"home","精力 −6、心情 −3，在自己家屋裡"],chat:["找人聊天","魅力",0,"plaza,cafe","精力 −3，要有人在場"],pray:["許願池投幣","運氣",100,"plaza","精力 −2，錢只出不進"]};
+async function doTrain(k){try{const j=await rpc("town_train",{rid:me,pin,kind:k});await refresh().catch(()=>{});toast((TRN[k][1])+"："+j.msg);feedback(true,j.msg)}catch(e){toast(e.message)}}
+function trainBtns(r){const out=[],p=r.place,it=r.items||{},a=it.at||{};
+ for(const k of Object.keys(TRN)){const d=TRN[k],ok=d[3]=="home"?(p=="home:"+me&&inside(r)):d[3].split(",").includes(p);if(!ok)continue;
+  const key={lift:"st",run:"ag",read:"iq",chat:"ch",pray:"lk"}[k],cur=Math.min(5,a[key]||0),pr=(a.p||{})[key]||0;let dis="";
+  if(cur>=5)dis=d[1]+"已經練到最高了";else if(k=="chat"&&!Object.values(R).some(o=>o.id!=me&&o.place==p&&!o.sleeping&&!jailed(o)))dis="要有人在場才能聊天";
+  out.push({...btn(`${d[0]}（練${d[1]}）`,`${d[2]?"€"+d[2]+" · ":""}${d[4]} · 進度 ${pr}/${6+3*cur}`,()=>doTrain(k),"fun"),dis})}
+ return out}
 function facBtns(r){const p=r.place,out=[],it=r.items||{},doy=doyTP();
  const here=Object.values(R).filter(o=>o.id!=me&&o.place==p&&!o.sleeping&&!jailed(o));
  for(const k of Object.keys(FAC)){const d=FAC[k];if(!d[3].includes(p))continue;let name=d[0],sub=d[2],price=d[1];

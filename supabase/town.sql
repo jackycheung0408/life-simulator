@@ -235,11 +235,18 @@ $$;
 revoke all on function public.town_wd_pct(text), public.town_px(text,int) from public, anon, authenticated;
 
 -- 能力屬性（見 town_stats.sql）：items.at = {st 力量, ag 敏捷, ch 魅力, iq 智力, lk 運氣}，缺值 = 0；各項最多 5 點加到玩家身上
-create or replace function public.town_at(r public.town_residents, k text) returns int language sql immutable as $$
-  select least(5, greatest(0, coalesce((r.items->'at'->>k)::int, 0)))
+-- 暫時減益（town_stats2.sql 說明；由狀態即時算，狀態一解除就恢復，不存任何東西）：鼻青臉腫 力量 −1 敏捷 −1、心情低落 魅力 −2、發臭 魅力 −1、精力 < 10 智力 −2、事故欠款 運氣 −1
+create or replace function public.town_at(r public.town_residents, k text) returns int language sql stable as $$
+  select greatest(0, least(5, greatest(0, coalesce((r.items->'at'->>k)::int, 0))) - case k
+    when 'st' then case when r.bruised_until > now() then 1 else 0 end
+    when 'ag' then case when r.bruised_until > now() then 1 else 0 end
+    when 'ch' then case when coalesce(r.items->>'sad','') = 'true' then 2 else 0 end + case when r.hygiene < 1 then 1 else 0 end
+    when 'iq' then case when r.energy < 10 then 2 else 0 end
+    when 'lk' then case when coalesce((r.items->'db'->>'a')::int, 0) > 0 then 1 else 0 end
+    else 0 end)
 $$;
 -- 敏捷：每點被巡警抓、車禍機率 ×(1 − 2%)
-create or replace function public.town_agm(r public.town_residents) returns real language sql immutable as $$
+create or replace function public.town_agm(r public.town_residents) returns real language sql stable as $$
   select (1 - 0.02 * public.town_at(r, 'ag'))::real
 $$;
 revoke all on function public.town_at(public.town_residents,text), public.town_agm(public.town_residents) from public, anon, authenticated;
