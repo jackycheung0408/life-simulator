@@ -3,6 +3,37 @@
 (function(){
 const PAL={k:"#1b1b2f",w:"#ffffff",l:"#f5e6c8",r:"#e43b44",R:"#a22633",o:"#f77622",Y:"#fee761",y:"#e8b02c",b:"#8fd3ff",B:"#2e86de",n:"#1e3a8a",g:"#63c74d",G:"#2f7d32",p:"#ff8fb3",P:"#d1426e",t:"#f1c9a5",T:"#8f563b",s:"#e0e0e0",S:"#9aa5b8",d:"#5a6988",v:"#9b5de5",c:"#c0c0c0"};
 const A={
+memo:`
+.kkkkkkkkkk.
+.kYYYYYYYYk.
+.kYkkkkkkYk.
+.kYYYYYYYYk.
+.kYkkkkkYYk.
+.kYYYYYYYYk.
+.kYkkkYYYYk.
+.kYYYYYYYYk.
+.kkkkkkkkkk.`,
+loveletter:`
+kkkkkkkkkkkk
+kwkwwwwwwkwk
+kwwkwwwwkwwk
+kwwwkwwkwwwk
+kwwwwkkwwwwk
+kwwppwwppwwk
+kwwwpppppwwk
+kwwwwpppwwwk
+kkkkkkkkkkkk`,
+camera:`
+....kkkk....
+kkkkkddkkkkk
+kSSSSSSSSSSk
+kSSkkkkkkSSk
+kSkkbbbbkkSk
+kSkkbwbbkkSk
+kSkkbbbbkkSk
+kSSkkkkkkSSk
+kSSSSSSSSSSk
+kkkkkkkkkkkk`,
 bowl:`
 ...wwwwww...
 ..wwwlwwww..
@@ -1173,7 +1204,7 @@ const MAP={"🩺":"cross","🏥":"cross","👮":"badge","📜":"scroll","🏛️
  "🤝":"hands","🙌":"hands","👋":"hands","👆":"hands","🤲":"hands","💪":"fist","🏛️":"hall","🥚":"egg","🥤":"can","💨":"fart","🍖":"meat","🍽️":"plate","🍳":"plate","🍪":"cookie","🍠":"potato","🛵":"scooter","🚲":"bike","🏍️":"moto","🚗":"car","💥":"burst","💢":"burst","👊":"fist","🪙":"coin",
  "🐱":"cat","🐕":"dog","🐦":"bird","🐟":"fish","🐷":"face:happy","🔒":"lock","😴":"face:sleepy","💤":"zzz","🌙":"moon","🎈":"balloon","⏰":"alarm","🎨":"palette","🗺️":"map","🔔":"bell","🔕":"belloff","🏡":"house","🏠":"house","🏘️":"house","📺":"tv","☀️":"sun",
  "👥":"people","👗":"shirt","📰":"news","🏆":"trophy","🥇":"medal:1","🥈":"medal:2","🥉":"medal:3","🚪":"door","📍":"pin","🖼️":"picture","🔍":"search","🗑️":"trash","🎠":"swing","🚶":"walk","🎵":"note","🎸":"guitar","🌧️":"rain","💦":"drops","💩":"poop","🍀":"clover","🕹️":"joy","☕":"cup","🎬":"film","🏋️":"dumbbell","🃏":"card","🎲":"dice","🎰":"slot","🔢":"bingo","🔨":"mole","🧠":"card","♠":"card","♠️":"card","🎡":"wheel","✂️":"scissors","🪨":"rock","📄":"paper","✊":"rock","✋":"paper","✌️":"scissors","🏆":"trophy",
- "👀":"eyes","🧽":"sponge","⚔️":"swords","🛣️":"road","🛍️":"bag","😤":"face:angry","😒":"face:meh","😊":"face:happy","🙂":"face:smile","😵":"face:dizzy","😣":"face:sad","😪":"face:sleepy","🥺":"face:sad","😂":"face:laugh","🤕":"face:hurt"};
+ "🦶":"memo","💘":"loveletter","📸":"camera","👀":"eyes","🧽":"sponge","⚔️":"swords","🛣️":"road","🛍️":"bag","😤":"face:angry","😒":"face:meh","😊":"face:happy","🙂":"face:smile","😵":"face:dizzy","😣":"face:sad","😪":"face:sleepy","🥺":"face:sad","😂":"face:laugh","🤕":"face:hurt"};
 window.PIXICON=e=>draw(MAP[e]||MAP[e.replace(/️/g,"")]||MAP[e+"️"]||"star");
 window.PIXICON_NAME=n=>draw(n);
 window.PIXICON_MAP=MAP;

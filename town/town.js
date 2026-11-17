@@ -561,7 +561,7 @@ const btn=(label,sub,fn,g)=>({label,sub,fn,g});
 // 不能按的按鈕照樣顯示，灰掉並寫原因（冷卻、沒人在場、集點不夠…）；點了會提示原因
 const cdLeft=(r,key,mins)=>!/^(esc|yard|jv|slash|lic)/.test(String(key))?0:Math.max(0,Date.parse(((r.items||{}).cd||{})[key]||"1970")+mins*6e4-now());
 const dbtn=(label,sub,fn,left,g)=>({...btn(label,sub,fn,g),dis:left?`剛做過，${fmtLeft(left)}後再來`:""});
-const ICALIAS={"🥊":"👊","💬":"📱","🔪":"⚔️","🕳":"🚪","📊":"📈"},ACT_ICON={打喪屍豬:"👊",賣生豬肉:"💰",佈置:"🛋️",裝潢:"🎨",吃飯:"🍚",上廁所:"🚽",洗澡:"🛁",看電視:"📺",睡覺:"😴",起床:"☀️",吃一頓:"🍽️",打工:"💼",玩一下:"🎈",逛逛:"👀",煮飯給他:"🍳",幫他洗澡:"🧽",叫醒他:"⏰",串門子:"🏠",惡作劇:"💨",送禮物:"🎁",盪鞦韆:"🎠",快速休息:"😴",快速睡覺:"💤",進屋:"🏠",出門:"🚪",室內:"🛋️",餵貓吃零食:"🐟",取消:"✖️"};
+const ICALIAS={"🥊":"👊","💬":"👥","🔪":"⚔️","🕳":"🚪","📊":"📈"},ACT_ICON={打喪屍豬:"👊",賣生豬肉:"💰",佈置:"🛋️",裝潢:"🎨",吃飯:"🍚",上廁所:"🚽",洗澡:"🛁",看電視:"📺",睡覺:"😴",起床:"☀️",吃一頓:"🍽️",打工:"💼",玩一下:"🎈",逛逛:"👀",煮飯給他:"🍳",幫他洗澡:"🧽",叫醒他:"⏰",串門子:"🏠",惡作劇:"💨",送禮物:"🎁",盪鞦韆:"🎠",快速休息:"😴",快速睡覺:"💤",進屋:"🏠",出門:"🚪",室內:"🛋️",餵貓吃零食:"🐟",取消:"✖️"};
 const GROUP={tip:"建議下一步",self:"照顧自己",friend:"在他家",place:"在這裡",face:"面對面",online:"線上 · 在哪都能做",mis:"惡趣味",move:"移動",eat:"吃喝",fun:"玩樂",soc:"社交",work:"工作與任務",home:"房子"};let lastPanel="",panelFns=[];
 function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),p=r.place,list=[];let title="",note="";
  if(walkers[me]&&walkers[me].path.length){title="走路中…";note="到了就可以做事"}
