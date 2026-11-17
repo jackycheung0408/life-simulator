@@ -201,7 +201,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(vsql.includes("town_vin(")&&vsql.includes("op = 'enter'")&&vsql.includes("not public.town_inside(t)")&&vsql.includes("town_bond_get(rid, target) < -20")&&vsql.includes("r.items - 'fv'"),"town_visit.sql：進去要在門口、屋主在屋裡、關係不能太差，出門清掉 fv");
  check(tsql.includes("act in ('feed','wash','wakeup','visit') and coalesce(r.items->>'fv','') <> target::text"),"town.sql：煮飯、洗澡、叫醒、串門子要先進他家（惡作劇、丟雞蛋、留言、送禮留在門口）");
  check((tsql.match(/- 'fv'/g)||[]).length>=3,"town.sql：移動、離線回家睡、入獄都要清掉 fv");
- check(tjs.includes("function enterFriend(")&&tjs.includes("function exitFriend(")&&tjs.includes('btn("進去",')&&tjs.includes("!vin(r)"),"面板：門口只有進去，進去後才有煮飯、洗澡、叫醒、串門子與出門");}
+ check(tjs.includes("function enterFriend(")&&tjs.includes("function exitFriend(")&&tjs.includes('btn("🚪 進去",')&&tjs.includes("!vin(r)"),"面板：門口只有進去，進去後才有煮飯、洗澡、叫醒、串門子與出門");}
 // 頂層函式（init() 外面）不可使用只在 init() 裡宣告的 me／$／esc／pxify／toast／pin／R／S（曾因 offTxt、updModal 用了 me／$ 而在畫面丟 "me is not defined"、更新紀錄打不開）
 {const src=require("fs").readFileSync(__dirname+"/town.js","utf8").split("\n"),ii=src.findIndex(l=>l.startsWith("function init(){")),top=src.slice(0,ii);
  const strip=l=>l.replace(/\/\/.*$/,"").replace(/`(?:[^`\\]|\\.)*`/g,"``").replace(/"(?:[^"\\]|\\.)*"/g,'""').replace(/'(?:[^'\\]|\\.)*'/g,"''");
@@ -371,4 +371,10 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  const t=fs.readFileSync(__dirname+"/town.js","utf8");
  check(/town_pool/.test(t)&&/op:"fpoll"/.test(t)&&/op:"draw"/.test(t)&&/op:"luck"/.test(t),"前端要改用 town_pool");
  check(fs.existsSync(__dirname+"/../supabase/town_pool_test.sql"),"要有 town_pool_test.sql")}
+// 面板排版（ui2）：按鈕區一定可見或可捲到——面板整體可捲、小畫布不塞進面板、進去／出門置頂
+{const t=require("fs").readFileSync(__dirname+"/town.js","utf8");
+ check(t.includes("body.ingame #room{display:none!important}"),"ui2：遊戲中面板內的小室內畫布要隱藏（會擠掉按鈕）");
+ check(/body\.ingame #panel\{overflow-y:auto/.test(t)&&t.includes("body.ingame #panel>*{flex-shrink:0}"),"ui2：面板整體要可捲、子區塊不可被壓縮");
+ check(t.includes('enterFriend(id),"pin"')&&t.includes('exitFriend(),"pin"')&&t.includes('enterRoom(p),"pin"')&&t.includes('exitRoom(),"pin"'),"進去／出門（朋友家、設施）要置頂（g:pin）");
+ check(t.includes('tips=idx.filter(x=>x[0].g=="pin")'),"renderPanel：pin 按鈕要置頂")}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
