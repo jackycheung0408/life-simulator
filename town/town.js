@@ -162,7 +162,7 @@ function freePath(from,to){if(blocked(to[0],to[1]))return null;const key=(x,y)=>
 const route=(from,to,veh)=>veh?bfs(from,to,veh):freePath(from,to);
 // 點到的格子是哪裡：{slot} 房子、{dest} 公共地點或路上
 function placeAt(x,y){const pp=POOPS.find(q=>q.x==x&&q.y==y);if(pp){const c=[[x,y+1],[x+1,y],[x-1,y],[x,y-1]].find(d=>!blocked(...d));if(c)return {dest:"street",door:c}}for(const k in OBJS){const o=OBJS[k];if(o.x!=null&&x==o.x&&y==o.y)return {dest:"street",door:[x,y+(y==5?1:0)],obj:k}}let s=slotAt(x,y);if(s<0)for(let i=0;i<NR*3;i++){const d=door(i);if(d[0]==x&&d[1]==y)s=i}if(s>=0)return {slot:s};
- for(const k in PLACES)if(isOn(k)&&inRect(x,y,PLACES[k].r))return {dest:k,door:PLACES[k].door};
+ for(const k in PLACES)if(isOn(k)&&inRect(x,y,PLACES[k].r)){if((k=="plaza"||k=="park")&&!blocked(x,y))return {dest:k,door:[x,y]};return {dest:k,door:PLACES[k].door}}
  if(inRect(x,y,FOUNTAIN))return {dest:"plaza",door:PLACES.plaza.door};
  return blocked(x,y)?null:{dest:"street",door:[x,y]}}
 
@@ -224,6 +224,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，3～6 條短句。
 const UPDATES=[
+  {id:"u55-openwalk",date:"11/17",title:"廣場和公園可以點哪走哪",items:["點廣場或公園裡的任何一格，會直接走到你點的位置，不再繞去門口","建築、房子、噴水池照舊走到門口","睡著時點地圖不會走，要先按「起床」"]},
   {id:"u59-ranks",date:"11/17",title:"打工職階擴大",items:["公司在「主管」之後多了：資深主管、協理、副總、總經理（累計打工 250／400／650／1000 次）","咖啡廳、餐廳、健身房、超市各多了領班、副店長（副理）、店長（經理）、區經理（總監）","拉菲的辦公室在「業務經理」之後多了部門主任、協理、總監","原本的職階、門檻、薪水都沒變，新職階只是往上加","升到領班以上或資深主管以上會得到同名稱號，沒有一次性獎金"]},
   {id:"u54-tapdbg",date:"11/17",title:"回報點地圖沒反應用的除錯資訊",items:["長按最上方狀態列 1 秒，除錯資訊多一行「最後一次點地圖」的格子位置與結果","如果點某處沒反應，請點一次後立刻長按狀態列截圖給我","一般玩家不受影響"]},
   {id:"u53-door",date:"11/17",title:"進出門變成最顯眼的按鈕",items:["自己家、朋友家、各設施的「進去／出門」都固定在標題右側","按鈕改成粉紅大鍵，隨時一眼找到","不用再在分頁裡找出門"]},
