@@ -586,8 +586,8 @@
 - 室內：咖啡廳加拉花台、茶壺桌（動畫 `latteart`／`pot`），電影院 `seat`、超市 `mshelf` 動畫，電影院與超市新增店員（小映、阿珍）；室內台灣 19～6 點加暗色疊層（`drawRoom`）。**還沒做**：人多時座位坐滿、每間 ≥12 個專屬事件情節（事件池 C 型仍是通用模板）、餐廳／超市新增物件、視覺基準圖更新。
 
 
-## 角色密碼登入（2026-11-18；SQL `supabase/town_account.sql` **尚未套用正式站**，實測 `town_account_test.sql`（回滾，REPORT）；順序：`town.sql` → `town_authfix.sql` → `town_account.sql`（它會刪掉舊 4 參數 `town_device` 並重建 6 參數版；之後若重套 `town.sql`／`town_authfix.sql`，要再套一次這個檔，否則舊版沒密碼檢查的 `town_device` 會回來）
-- **新裝置三步**：① 邀請碼 → ② 選角色 → ③ 輸入密碼進入（`pinStep`，步驟條 `LP.stepBar`）。**已登入的裝置（有效裝置金鑰）不再詢問**，開 app 直接進城鎮（原本的行為沒動；金鑰失效才走「登入失效」畫面）。
+## 角色密碼登入（2026-11-18；SQL `supabase/town_account.sql` **已套用正式站 2026-11-18（回滾實測 `town_account_test.sql` 全過：初值＝邀請碼、設密碼後邀請碼失效、舊客戶端沒帶 pw 被擋並提示、同組連錯 5 次鎖、鎖定中密碼正確仍放行、全域 30 次限速、鎮長重設與臨時密碼、非鎮長被擋、舊 4 參數函式已刪；第一次測試失敗是測試腳本把 6 字密碼當角色名稱，已修）**；順序：`town.sql` → `town_authfix.sql` → `town_account.sql`（它會刪掉舊 4 參數 `town_device` 並重建 6 參數版；之後若重套 `town.sql`／`town_authfix.sql`，要再套一次這個檔，否則舊版沒密碼檢查的 `town_device` 會回來）
+- **新裝置三步＋第 4 步**：① 邀請碼 → ② 選角色 → ③ 輸入密碼 → ④ 設定新密碼（`pinStep`／`newPwStep`，步驟條 `LP.stepBar(4)`；沒設過密碼或是臨時密碼就一定要先設，不能略過，設好才 `enter()`）。**已登入的裝置（有效裝置金鑰）不再詢問**，開 app 直接進城鎮（原本的行為沒動；金鑰失效才走「登入失效」畫面）。
 - **密碼**：每個角色都有。還沒設過的初始密碼＝小鎮邀請碼（第 3 步小字提示）；`town_device(tid,invite,rid,key,pw default null,cid default null)`：角色已設密碼 → 必須帶正確 `pw`（沒帶回「這個角色已設密碼，請更新遊戲後輸入密碼」，所以舊客戶端進不來）；沒設密碼 → 邀請碼正確即可。設好後邀請碼就不能再當密碼（`town_acct_pwok` 也禁止密碼＝邀請碼或角色名稱，≥6 字）。前端若偵測到舊 SQL（「Could not find」）會退回 4 參數呼叫，所以前端和 SQL 誰先上都不會壞登入。
 - **強制設密碼**：已登入裝置沒有密碼，或密碼是鎮長發的臨時密碼（`temp`）時，進遊戲後 `acctModal(1)` 彈出不能關的視窗（沒有關閉鈕；`acctForce` 讓 `refresh` 在被其他視窗蓋掉時重開）；`town_acct` op：`status／init（第一次設，免舊密碼）／setpw（要舊密碼）／reset（鎮長）`。選單「帳號與密碼」也能改。
 - **鎖定**：表 `town_pw_tries(rid,cid,…)`；`cid` = `localStorage town-cid`（前端隨機產生）。同一角色＋同一 cid 連錯 5 次鎖 30 分鐘；同一角色每小時全域錯 30 次限速 10 分鐘；**密碼正確一律放行並清零**；訊息統一「密碼不對」。長隨機裝置金鑰失效不計入（`town_auth`，見 `town_authfix.sql`）。
