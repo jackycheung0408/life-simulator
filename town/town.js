@@ -313,7 +313,13 @@ const ITEM={coffee:["cup","咖啡機",/特調咖啡/,1],cake:["cookie","蛋糕�
  bars:["bars","鐵窗",null,0],vent:["vent","通風口",/越獄/,0],glass:["glass","探監窗口",/探望/,0],gate:["door","大門（假釋）",/假釋/,0],bailDesk:["ticket","保釋櫃檯",/保釋/,1],bunk:["bed","上下鋪",null,1],work:["hammer","勞動工作台",/牢裡的勞動/,1],yard:["tree","放風場",/放風/,0],
  hbed:["bed","病床",null,1],reg:["ticket","掛號櫃檯",/掛號看診|^出院/,1],meds:["box","藥櫃",null,1],cross:["cross","十字標誌",null,0],
  pdesk:["case","櫃檯",/繳罰單/,1],pboard:["picture","通緝公告板",/自首/,1],prep:["mail","報案窗口",/報案/,1],pstat:["chart","治安看板",/今日治安/,1],badge:["badge","警徽",null,0],
- hall:["case","服務櫃檯",/大廳/,1],annb:["scroll","公告欄",/大廳/,1],ballot:["ticket","投票箱",/大廳/,1],cfund:["money","基金箱",/大廳/,1]};
+ hall:["case","服務櫃檯",/大廳/,1],annb:["scroll","公告欄",/大廳/,1],ballot:["ticket","投票箱",/大廳/,1],cfund:["money","基金箱",/大廳/,1],
+ giftshelf:["gift","禮品架",/買禮物/,1],snackshelf:["cookie","零食架",/買零食/,1],clothes:["shirt","服飾架",/造型與擺飾/,1],till:["till","收銀台",/逛逛|賣生豬肉/,1],mshelf:["shelf","貨架",null,1],frame:["picture","掛畫",null,1],
+ screen:["screen","銀幕",/看電影|看今日片/,1],popcorn:["box","爆米花機",/爆米花/,1],seat:["seat","座椅",null,0],
+ pc:["pc","辦公桌電腦",/^打工|^應徵|加班/,1],pcs:["pc","交易終端",/看盤與買賣/,1],board:["chart","行情看板",/看盤與買賣/,1],tick:["chart","走勢圖",null,1],
+ ring:["ring","擂台",/打擂台|打一場/,1],sandbag:["fist","沙包",null,1],trophy:["trophy","獎盃櫃",null,1],blades:["swords","兵器架",null,1],
+ vbike:["bike","腳踏車展示台",/腳踏車/,1],vmoto:["moto","機車展示台",/機車/,1],vcar:["car","汽車展示台",/汽車/,1],lic:["ticket","駕照報名櫃檯",/駕照/,1],gar:["wrench","保險維修櫃檯",/保險、維修/,1],
+ cleaver:["cleaver","屠宰檯",/偷飼料/,1],hook:["meat","掛肉鉤",null,1]};
 const ROOMS={
  cafe:{floor:["#d9b48a","#cfa67a"],wall:"#7a4a24",items:[["coffee",1,0],["cake",3,0],["lamp",5,0],["jukebox",8,0],["job",10,0],["bar",2,1],["table",4,3],["table",8,3],["plant",0,4],["plant",11,4]]},
  restaurant:{floor:["#f1e0c6","#e6d0ae"],wall:"#c0392b",items:[["kitchen",1,0],["menu",3,0],["lamp",5,0],["lamp",8,0],["job",10,0],["bar",2,1],["pack",4,1],["table",3,3],["table",7,3],["table",10,3],["plant",0,4],["plant",11,4]]},
@@ -322,6 +328,15 @@ const ROOMS={
  hospital:{floor:["#e8eef2","#dde6ec"],wall:"#9ec9e8",items:[["meds",1,0],["meds",3,0],["cross",5,0],["lamp",7,0],["reg",9,0],["hbed",1,2],["hbed",3,2],["hbed",5,2],["hbed",1,4],["lamp",11,0],["plant",11,4]]},
  police:{floor:["#b9c3d6","#aeb9ce"],wall:"#2c3e8c",items:[["pboard",1,0],["pstat",3,0],["badge",5,0],["pdesk",7,0],["prep",9,0],["lamp",11,0],["bar",2,2],["table",8,3],["plant",0,4],["plant",11,4]]},
  townhall:{floor:["#e6d8b8","#d9c9a8"],wall:"#7a4a24",items:[["annb",1,0],["annb",3,0],["lamp",5,0],["hall",7,0],["ballot",9,0],["cfund",11,0],["plant",0,2],["plant",11,2],["table",3,3],["table",8,3],["plant",0,4],["plant",11,4]]}};
+Object.assign(ROOMS,{
+ market:{floor:["#e9e3d3","#ded6c2"],wall:"#3a7d44",items:[["snackshelf",1,0],["giftshelf",3,0],["clothes",5,0],["lamp",7,0],["till",9,0],["job",11,0],["mshelf",2,2],["mshelf",5,2],["mshelf",8,2],["plant",0,4],["plant",11,4]]},
+ cinema:{floor:["#6b2e3a","#5f2833"],wall:"#3b2f6b",items:[["popcorn",1,0],["lamp",2,0],["screen",4,0],["screen",5,0],["screen",6,0],["screen",7,0],["lamp",9,0],["seat",3,2],["seat",4,2],["seat",5,2],["seat",6,2],["seat",7,2],["seat",8,2],["seat",3,3],["seat",4,3],["seat",5,3],["seat",6,3],["seat",7,3],["seat",8,3],["plant",0,4],["plant",11,4]]},
+ office:{floor:["#c9ced6","#bfc5ce"],wall:"#34495e",items:[["lamp",0,0],["frame",2,0],["frame",4,0],["mshelf",6,0],["mshelf",7,0],["lamp",9,0],["pc",1,2],["pc",4,2],["pc",7,2],["pc",10,2],["plant",0,4],["plant",11,4],["table",5,4]]},
+ rafi:{floor:["#d7c9e6","#cdbedd"],wall:"#5b3a8c",items:[["frame",1,0],["frame",3,0],["lamp",5,0],["mshelf",7,0],["mshelf",8,0],["lamp",10,0],["pc",2,2],["pc",5,2],["pc",9,2],["plant",0,4],["plant",11,4]]},
+ stock:{floor:["#2b2f3a","#262a34"],wall:"#1f3a2a",items:[["tick",1,0],["board",3,0],["tick",5,0],["lamp",7,0],["frame",9,0],["lamp",11,0],["pcs",2,2],["pcs",5,2],["pcs",8,2],["table",10,3],["plant",0,4],["plant",11,4]]},
+ arena:{floor:["#a4553a","#9a4d33"],wall:"#5a1f1f",items:[["trophy",1,0],["lamp",3,0],["blades",5,0],["lamp",8,0],["trophy",10,0],["sandbag",1,3],["sandbag",1,4],["ring",5,2],["ring",6,2],["ring",5,3],["ring",6,3],["table",9,3],["table",9,4],["plant",11,4]]},
+ carshop:{floor:["#9aa0a6","#8f959b"],wall:"#1d4e89",items:[["lic",1,0],["gar",3,0],["lamp",5,0],["lamp",9,0],["vbike",2,2],["vmoto",5,2],["vcar",8,2],["vcar",10,3],["plant",0,4],["plant",11,4]]},
+ slaughter:{floor:["#8a8a85","#7f7f7a"],wall:"#5a1a1a",items:[["hook",1,0],["hook",3,0],["lamp",5,0],["hook",8,0],["hook",10,0],["cleaver",5,2],["cleaver",6,2],["mshelf",1,3],["mshelf",10,3],["plant",0,4]]}});
 // 店員 NPC：固定在櫃台旁、不佔玩家站位、純表現（不動數值、不寫資料庫）
 ROOMS.cafe.npc=[3,1];ROOMS.restaurant.npc=[3,1];ROOMS.gym.npc=[5,1];ROOMS.hospital.npc=[7,1];ROOMS.police.npc=[7,1];ROOMS.townhall.npc=[5,1];
 const NPCS={cafe:{n:"小咪",hair:"#7a4a24",job:"咖啡師",base:90,item:"特調咖啡"},restaurant:{n:"阿福",hair:"#222",job:"店長",base:250,item:"餐廳套餐"},gym:{n:"阿力",hair:"#c0392b",job:"教練",base:0,item:""},hospital:{n:"白護理師",hair:"#e8c27a",job:"護理師",base:0,item:""},police:{n:"小林警員",hair:"#222",job:"警員",base:0,item:""},townhall:{n:"陳櫃員",hair:"#555",job:"櫃員",base:0,item:""}};
@@ -1699,7 +1714,7 @@ async function exitRoom(){leaveRoomLocal();try{await rpc("town_fi",{rid:me,pin,o
 function leaveRoomLocal(){const r=R[me];if(vin(r)){r.items={...r.items};delete r.items.fv}if(!fin(r))return false;r.items={...r.items};delete r.items.fi;rpc("town_fi",{rid:me,pin,op:"exit"}).catch(()=>{});return true}
 // 室內互動動畫：角色走到對應物件旁（約 0.4 秒）→ 播動畫（約 0.9 秒）→ 走回來（約 0.3 秒），共 1.7 秒；只畫在 12×5 的小畫布，手機不卡
 // 打工動畫：種類 → [room 室內物件代號, 室內動畫碼, 地圖動畫碼]；室內沒有物件或不在室內時用地圖動畫（書桌、掃描、文件）
-const WORK_FX={work:[null,null,"wk_desk"],cowork:[null,null,"wk_desk"],job_cafe:["coffee","wk_cafe","wk_desk"],job_rest:["kitchen","wk_serve","wk_desk"],job_gym:["rack","wk_lift","wk_desk"],job_shop:[null,null,"wk_scan"],job_rafi:[null,null,"wk_docs"]};
+const WORK_FX={work:["pc","wk_type","wk_desk"],cowork:["pc","wk_type","wk_desk"],job_cafe:["coffee","wk_cafe","wk_desk"],job_rest:["kitchen","wk_serve","wk_desk"],job_gym:["rack","wk_lift","wk_desk"],job_shop:["till","wk_scan","wk_scan"],job_rafi:["pc","wk_docs","wk_docs"]};
 const wkKey=(a,x)=>a=="work"||a=="cowork"?a:a=="job"&&x&&x.item?"job_"+x.item:null;
 let wkBusy=false;
 function wkPlay(a,x){const k=wkKey(a,x),W=k&&WORK_FX[k];if(!W||wkBusy||!R[me])return Promise.resolve();wkBusy=true;window.SFX&&SFX.fx(W[1]||W[2],1);const D=1800;
@@ -1707,7 +1722,8 @@ function wkPlay(a,x){const k=wkKey(a,x),W=k&&WORK_FX[k];if(!W||wkBusy||!R[me])re
  if(it){roomAnim={code:W[1],it,tv:null,home:false,w:rw(rm),h:rh(rm),born:performance.now(),dur:D,age:0};loopRoom()}
  else{spawnFx(W[2],me);if(a=="cowork"&&x.target&&walkers[x.target])spawnFx(W[2],x.target)}
  return new Promise(r=>setTimeout(()=>{wkBusy=false;r()},D))}
-const ROOM_ACT={latte:"coffee",coffee:"coffee",special:"kitchen",dine:"bar",takeout:"pack",song:"jukebox",treat:"bar",redeem:"cake",spar:"bag",checkin:"locker",workout:"treadmill",spa:"spa",feast:"menu",labor:"work",yard:"yard",visit:"glass",escape:"vent",parole:"gate",bail:"bailDesk",consult:"reg",discharge:"reg",hvisit:"hbed",pay:"pdesk",surrender:"pboard",report:"prep",stats:"pstat",civic:"annb"};
+const ROOM_ACT={latte:"coffee",coffee:"coffee",special:"kitchen",dine:"bar",takeout:"pack",song:"jukebox",treat:"bar",redeem:"cake",spar:"bag",checkin:"locker",workout:"treadmill",spa:"spa",feast:"menu",labor:"work",yard:"yard",visit:"glass",escape:"vent",parole:"gate",bail:"bailDesk",consult:"reg",discharge:"reg",hvisit:"hbed",pay:"pdesk",surrender:"pboard",report:"prep",stats:"pstat",civic:"annb",movie:"screen",popcorn:"popcorn",browse:"till",buy:"till",sneak:"cleaver",vbuy:"vcar",license:"lic",insure:"gar",vfix:"gar",vsell:"gar",trade:"pcs"};
+const ROOM_ALT={spar:"ring"};
 let lastSpots={},spotsBefore=null;let roomAnim=null;
 const HOME_ACT={toilet:"toilet",shower:"shower",eat:"fridge",tv:"tvcab",nap:"massage",qsleep:"bed",sleep:"bed",feed:"fridge",wakeup:"bed",visit:"sofa"};// 家裡：互動 → 家具（沒有那件家具就在房間中央演）
 // 對人做的事（扁、丟蛋、惡作劇…）：我走到他旁邊，在他身上播動畫（PAIR_FX：互動 → 動畫代號）
@@ -1715,7 +1731,7 @@ const PAIR_FX={fight:"punch",egg:"eggs",prank:"puff",splash:"splash",sticker:"st
 function playRoomFx(a,target){const r=R[me],rm=roomOf(r,R);if(!rm)return;const pf=PAIR_FX[a];
  const L=spotsBefore&&spotsBefore[target]?spotsBefore:lastSpots;
  if(pf&&target&&L[target]){const sp=L[target],mx=sp[0]>0?sp[0]-1:sp[0]+1;roomAnim={code:pf,it:[pf,mx,Math.max(0,sp[1]-1)],tv:null,home:!!rm.home,w:rw(rm),h:rh(rm),born:performance.now(),dur:1700,age:0,tgt:sp};loopRoom();return}
- let code=rm.home?HOME_ACT[a]:ROOM_ACT[a],tv=null;if(!code)return;
+ let code=rm.home?HOME_ACT[a]:ROOM_ACT[a],tv=null;if(!code)return;if(!rm.home&&ROOM_ALT[a]&&!rm.items.some(o=>o[0]==code))code=ROOM_ALT[a];
  if(rm.home&&a=="tv"){tv=rm.items.find(o=>o[0]=="tvcab")||null;if(rm.items.some(o=>o[0]=="sofa"))code="sofa"}
  let it=rm.items.find(o=>o[0]==code);if(!it){if(!rm.home)return;it=[code,Math.floor(rw(rm)/2),2]}
  roomAnim={code,it,tv,home:!!rm.home,w:rw(rm),h:rh(rm),born:performance.now(),dur:1700,age:0};loopRoom()}
@@ -1738,6 +1754,16 @@ function roomFxDraw(c){const A=roomAnim,C=RC,k=Math.max(0,Math.min(1,(A.age-.25)
   case "wk_cafe":{const fl=Math.floor(k*16)%2;for(let j=0;j<4;j++)P(ox-6+j*4+Math.sin(k*9+j)*2,oy-10-((k*60+j*9)%20),3,3,`rgba(255,255,255,${.85-j*.12})`);const cy=py-14;P(ox-4,cy,8,7,"#fff");P(ox-3,cy+1,6,2,"#6b4a2b");P(ox+4,cy+2,2,3,"#fff");P(ox-1,oy+2,2,Math.max(0,Math.min(8,k*12)),"#6b4a2b");if(fl)P(ox+8,oy-2,2,2,"#e74c3c");break}
   case "wk_serve":{const f=(Math.sin(k*9)+1)/2,sx=C*1.5+f*(A.w-3)*C*.6;P(sx-7,py-20,14,2,"#c9c9c9");P(sx-5,py-24,10,4,"#fff");P(sx-1,py-27,2,3,"#e74c3c");P(sx-9,py-12,4,4,"#f5c9a0");P(sx+5,py-12,4,4,"#f5c9a0");break}
   case "wk_lift":{const u=Math.abs(Math.sin(k*10)),y=py-30-u*14;P(ox-12,y,24,2,"#9aa5b8");P(ox-14,y-4,4,10,"#1b1b2f");P(ox+10,y-4,4,10,"#1b1b2f");if(u>.9)for(let j=0;j<3;j++)P(ox-8+j*8,py-12,2,2,"#fff");break}
+  case "wk_type":{const fl=Math.floor(k*14)%2;P(ox-8,oy-12,16,9,fl?"#6fc6ff":"#bfe6ff");for(let j=0;j<4;j++)P(ox-7+j*4,oy+2+(Math.floor(k*20+j)%2),3,2,"#fff");break}
+  case "wk_scan":{const f=Math.floor(k*10)%2;P(ox-9,oy-4,18,2,"#e43b44");if(f)P(ox-9,oy-10,18,2,"#fff");for(let j=0;j<3;j++)P(ox-6+j*6,oy-12-((k*40+j*9)%14),3,3,"#fee761");break}
+  case "wk_docs":for(let j=0;j<4;j++){const y=oy-8-((k*50+j*10)%24),x=ox-9+j*6+Math.sin(k*8+j)*3;P(x,y,6,8,"#fff");P(x+1,y+2,4,1,"#1b1b2f");P(x+1,y+5,3,1,"#1b1b2f")}break;
+  case "screen":case "popcorn":{const fl=Math.floor(k*12)%3;P(ox-10,oy-6,20,10,["#6fc6ff","#fee761","#ff8fb3"][fl]);for(let j=0;j<3;j++)P(ox-8+j*7,oy+8+((k*30+j*5)%8),3,3,"#fff");break}
+  case "till":for(let j=0;j<3;j++)P(ox-6+j*6,oy-2-((k*44+j*9)%18),4,4,"#fee761");P(ox-7,oy-7,14,3,"#6fc6ff");break;
+  case "pcs":case "board":{const u=Math.floor(k*10)%2;for(let j=0;j<5;j++){const h=3+((j*7+Math.floor(k*14))%9);P(ox-10+j*4,oy+4-h,3,h,(j+u)%2?"#e43b44":"#63c74d")}break}
+  case "ring":for(let j=0;j<6;j++){const a2=j*1.05+k*6;P(ox+Math.cos(a2)*10,oy+Math.sin(a2)*8,3,3,j%2?"#fee761":"#fff")}if(Math.floor(k*10)%2)P(ox-8,oy-12,16,3,"#e74c3c");break;
+  case "vcar":case "vmoto":case "vbike":for(let j=0;j<5;j++){const a2=j*1.25+k*5;P(ox+Math.cos(a2)*11,oy+Math.sin(a2)*8,2,2,"#fff")}break;
+  case "lic":case "gar":for(let j=0;j<3;j++)P(ox-6+j*6,oy-2-((k*44+j*9)%18),4,4,"#fee761");break;
+  case "cleaver":im("cleaver",ox,oy-12+Math.abs(Math.sin(k*18))*10,16);if(Math.sin(k*18)>.85)for(let j=0;j<4;j++)P(ox-8+j*5,oy+4-j%2*3,2,2,"#e43b44");break;
   case "coffee":for(let j=0;j<4;j++)P(ox-8+j*5+Math.sin(k*9+j)*2,oy-8-((k*60+j*9)%18),3,3,`rgba(255,255,255,${.85-j*.12})`);break;
   case "jukebox":for(let j=0;j<3;j++){const x=ox+(j-1)*9+Math.sin(k*8+j)*3,y=oy-6-((k*50+j*12)%26);P(x,y,4,3,"#fee761");P(x+3,y-7,1,8,"#fee761")}break;
   case "kitchen":case "bar":case "pack":case "menu":im("plate",px,py-32-Math.abs(Math.sin(k*9))*4,14);for(let j=0;j<3;j++)P(px-8+j*7,py-22+((k*50+j*8)%12),2,2,"#f5e6b8");break;
