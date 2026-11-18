@@ -230,7 +230,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
   {id:"login-1118",date:"11/18",title:"登入更穩",items:["舊裝置不再害你被鎖","登入失效會告訴你怎麼辦"]},
-  {id:"acct-1118",date:"11/18",title:"帳號密碼登入",items:["選單可產生密碼","換手機：首頁用帳號登入"]},
+  {id:"acct-1118",date:"11/18",title:"角色密碼",items:["每個角色要設自己的密碼","換手機：選角色後輸入密碼"]},
   {id:"btnfx-1118",date:"11/18",title:"按鈕顯示效果",items:["每顆按鈕寫出加減與門檻","長按按鈕看詳細說明"]},
   {id:"venues1-1118",date:"11/18",title:"吃喝社交場館升級",items:["咖啡廳拉花、共點，餐廳套餐、外帶","電影院情侶座、超市特價與點數","店員常客有委託，夜晚室內變暗"]},
   {id:"arcade2-1118",date:"11/18",title:"街機新三款",items:["新增百家樂、射龍門、妞妞","射龍門入場費 $50、自訂押注","新圖示，注碼按鈕同步"]},
@@ -467,7 +467,7 @@ $("lg").innerHTML=`${LP.top(list)}
   <div id="lk"></div><p class="err" id="cerr"></p><div class="row"><button class="pri" id="create">建立小鎮，當鎮長</button></div></div>
   ${standalone?"":`<p style="margin-top:14px"><button class="ghost" id="inst2" style="width:100%">📲 加到主畫面，像 App 一樣打開</button></p>`}`;
  const show=k=>{$("fJoin").classList.toggle("hide",k!="j");$("fNew").classList.toggle("hide",k!="n");$("cJoin").classList.toggle("on",k=="j");$("cNew").classList.toggle("on",k=="n");(k=="j"?$("code"):$("tn")).focus()};
- if($("cRec"))$("cRec").onclick=()=>recFind();if($("cAcct"))$("cAcct").onclick=()=>acctLogin();$("cJoin").onclick=()=>show("j");$("cNew").onclick=()=>show("n");if(LP.want=="a"){LP.want="";if(window.ACCT_ON!==false){acctLogin();return}}if(LP.want=="r"){LP.want="";if(window.RECOVERY_ON){recFind();return}}if(LP.want){show(LP.want);LP.want=""}
+ if($("cRec"))$("cRec").onclick=()=>recFind();$("cJoin").onclick=()=>show("j");$("cNew").onclick=()=>show("n");if(LP.want=="r"){LP.want="";if(window.RECOVERY_ON){recFind();return}}if(LP.want){show(LP.want);LP.want=""}
  $("lg").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));if($("inst2"))$("inst2").onclick=installHelp;
  $("join").onclick=async()=>{const c=$("code").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.length<4){$("jerr").textContent="邀請碼是 6 個英文或數字，檢查有沒有少打";return}
   // 小鎮代碼或邀請碼都可以；輸入的是邀請碼就記起來，等一下自動填好
@@ -479,7 +479,7 @@ $("lg").innerHTML=`${LP.top(list)}
   catch(e){$("cerr").textContent=e.message;$("create").disabled=false}}}
 
 // ── 鎮內登入：我住在這裡，或用邀請碼搬進來 ──
-let refAt=0;async function refresh(){const st=await rpc("town_state",{tid:TID});refAt=Date.now();apply(st);if(me&&(()=>{try{return sessionStorage.getItem("town-acct-temp")}catch(e){return 0}})()){try{sessionStorage.removeItem("town-acct-temp")}catch(e){}setTimeout(()=>acctModal(1),600)}if(me)try{checkInvite();checkPk();checkWoken();checkPwn()}catch(e){}if(Date.now()-civT>6e4)civSync()}
+let refAt=0;async function refresh(){const st=await rpc("town_state",{tid:TID});refAt=Date.now();apply(st);if(me&&!acctChk&&!modalOpen()){acctChk=1;setTimeout(()=>acctModal(1),500)}else if(me&&acctForce&&!modalOpen())setTimeout(()=>acctModal(1),300);if(me)try{checkInvite();checkPk();checkWoken();checkPwn()}catch(e){}if(Date.now()-civT>6e4)civSync()}
 const seenLuck=new Set();
 function apply(st){S=st;setTimeout(popCheck,0);POOPS=st.poops||[];CUR="$";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>(e.kind=="luck"||e.kind=="rent"||e.kind=="ticket"||e.kind=="crash")&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
  st.residents.forEach(r=>{R[r.id]=r;const w=walkers[r.id];
@@ -523,28 +523,23 @@ function recBindModal(){$("modal").classList.remove("hide");$("mbody").innerHTML
 const recRpc2=(fn,b)=>rpc(fn,b);
 // ── 帳號＋密碼登入（supabase/town_account.sql）：和裝置金鑰並存；SQL 沒套用時偵測到錯誤就隱藏入口
 const acctGone=e=>/Could not find|schema cache|does not exist|PGRST/i.test((e&&e.message)||"")&&(window.ACCT_ON=false,1);
-function acctLogin(){document.body.classList.remove("ingame");$("login").classList.remove("hide");$("game").classList.add("hide");
- $("lg").innerHTML=`<h2>用帳號密碼登入</h2><p class="mut">帳號預設是你的角色名稱，也可以是你自訂的帳號名。還沒有密碼？先在原本的手機進小鎮，選單「帳號與密碼」產生。</p>
-  <label class="lpcode">小鎮代碼或邀請碼<input id="ac1" maxlength="8" autocomplete="off" style="text-transform:uppercase"></label>
-  <label class="lpcode">帳號（角色名稱）<input id="ac2" maxlength="12" autocomplete="username"></label>
-  <label class="lpcode">密碼<input id="ac3" type="password" maxlength="40" autocomplete="current-password"></label><p class="err" id="aerr"></p>
-  <div class="row"><button id="ahome">← 小豬鎮首頁</button><button class="pri" id="ago">登入</button></div>`;
- $("ahome").onclick=()=>go("");$("ac1").focus();
- $("ago").onclick=async()=>{const c=$("ac1").value.trim().toUpperCase(),u=$("ac2").value.trim(),p=$("ac3").value;if(!c||!u||!p){$("aerr").textContent="三格都要填：小鎮代碼、帳號、密碼";return}
-  $("ago").disabled=true;try{const j=await rpc("town_acct_login",{code:c,uname:u,pw:p});saveMine({tid:j.town_id,name:j.town_name,rid:j.rid,pin:j.key,me:j.me});if(j.temp)try{sessionStorage.setItem("town-acct-temp","1")}catch(e){}location.search="?t="+j.town_id}
-  catch(e){if(acctGone(e)){$("aerr").textContent="帳號登入還沒開放，請用邀請碼進來";$("ago").disabled=false;return}$("aerr").textContent=e.message;$("ago").disabled=false}}}
-// 選單「帳號與密碼」：產生初始密碼（只顯示一次）、改密碼、改帳號名
-async function acctModal(force){$("modal").classList.remove("hide");$("mbody").innerHTML='<h2>帳號與密碼</h2><p class="mut">查詢中…</p>';const shut=()=>$("modal").classList.add("hide");
- let st;try{st=await rpc("town_acct",{rid:me,pin,op:"status"})}catch(e){if(acctGone(e)){$("mbody").innerHTML='<h2>帳號與密碼</h2><p class="mut">這個功能還沒開放。</p><div class="row"><button id="ax">關閉</button></div>';$("ax").onclick=shut;const b=$("acctBtn");if(b)b.hidden=true;return}$("mbody").innerHTML=`<h2>帳號與密碼</h2><p class="err">${esc(e.message)}</p><div class="row"><button id="ax">關閉</button></div>`;$("ax").onclick=shut;return}
- const draw=(pw)=>{$("mbody").innerHTML=`<h2>帳號與密碼</h2><p class="mut">換手機時，用「小鎮代碼＋帳號＋密碼」就能登入，不用邀請碼。</p><p>帳號：<b>${esc(st.uname)}</b> <small class="mut">${st.custom?"（自訂）":"（角色名稱）"}</small></p>
-  ${pw?`<div class="mrow"><span>初始密碼：<b class="code">${esc(pw)}</b><br><small class="mut">只顯示這一次，請現在抄下來，並馬上改成自己的密碼</small></span></div>`:""}
-  ${st.has?`${st.temp?'<p class="err">這是臨時密碼，請現在改成自己的密碼</p>':""}<h2 style="margin-top:12px">改密碼</h2><label>舊密碼<input id="ap1" type="password" maxlength="40" autocomplete="current-password" value="${esc(pw||"")}"></label><label>新密碼（至少 6 字，不能和角色名稱一樣）<input id="ap2" type="password" maxlength="40" autocomplete="new-password"></label><div class="row" style="justify-content:flex-start"><button class="pri" id="asp">改密碼</button></div>`
-   :`<div class="row" style="justify-content:flex-start"><button class="pri" id="agen">產生初始密碼</button></div><p class="mut">密碼由系統隨機產生，只顯示一次。</p>`}
-  <h2 style="margin-top:12px">自訂帳號名</h2><label>2～12 字，同小鎮不能重複<input id="an" maxlength="12" placeholder="${esc(st.uname)}"></label><div class="row" style="justify-content:flex-start"><button id="asn">儲存帳號名</button></div>
-  <p class="err" id="aerr"></p><div class="row"><button id="ax">關閉</button></div>`;
-  $("ax").onclick=shut;if($("agen"))$("agen").onclick=async()=>{try{const j=await rpc("town_acct",{rid:me,pin,op:"gen"});st.has=true;st.temp=true;draw(j.pw)}catch(e){$("aerr").textContent=e.message}};
-  if($("asp"))$("asp").onclick=async()=>{try{await rpc("town_acct",{rid:me,pin,op:"setpw",note1:$("ap1").value,note2:$("ap2").value});st.temp=false;toast("密碼改好了");draw()}catch(e){$("aerr").textContent=e.message}};
-  $("asn").onclick=async()=>{try{const j=await rpc("town_acct",{rid:me,pin,op:"setname",note1:$("an").value});st.uname=j.uname;st.custom=true;toast("帳號名改好了");draw()}catch(e){$("aerr").textContent=e.message}}};
+// 選單「帳號與密碼」與強制設密碼：還沒設密碼或是鎮長發的臨時密碼時不能關（acctForce，refresh 會重開）
+let acctForce=false,lastPw="",acctChk=0;
+async function acctModal(force){$("modal").classList.remove("hide");$("mbody").innerHTML='<h2>帳號與密碼</h2><p class="mut">查詢中…</p>';const shut=()=>{acctForce=false;$("modal").classList.add("hide")};
+ let st;try{st=await rpc("town_acct",{rid:me,pin,op:"status"})}catch(e){if(acctGone(e)){acctForce=false;$("mbody").innerHTML='<h2>帳號與密碼</h2><p class="mut">這個功能還沒開放。</p><div class="row"><button id="ax">關閉</button></div>';$("ax").onclick=shut;const b=$("acctBtn");if(b)b.hidden=true;return}$("mbody").innerHTML=`<h2>帳號與密碼</h2><p class="err">${esc(e.message)}</p><div class="row"><button id="ax">關閉</button></div>`;$("ax").onclick=shut;return}
+ acctForce=!!force&&(!st.has||st.temp);if(!acctForce&&force){shut();return}
+ const draw=()=>{const need=!st.has||st.temp,f=acctForce;
+  $("mbody").innerHTML=`<h2>${!st.has?"設定你的密碼":"密碼"}</h2>
+  ${!st.has?`<p class="mut">換手機登入時要用。至少 6 個字，不能和角色名稱或邀請碼一樣。${window.RECOVERY_ON?"綁 Email 忘記密碼時才能用驗證碼重設。":""}</p>`:st.temp?'<p class="err">這是臨時密碼，請現在改成自己的密碼</p>':'<p class="mut">換手機登入時，輸入邀請碼、選角色、再輸入這個密碼。</p>'}
+  ${st.has?`<label>舊密碼<input id="ap1" type="password" maxlength="40" autocomplete="current-password" value="${esc(st.temp?lastPw:"")}"></label>`:""}
+  <label>${st.has?"新密碼":"密碼"}<input id="ap2" type="password" maxlength="40" autocomplete="new-password"></label>
+  ${st.has?"":`<label>再輸入一次<input id="ap3" type="password" maxlength="40" autocomplete="new-password"></label>`}
+  <p class="err" id="aerr"></p><div class="row">${f?"":'<button id="ax">關閉</button>'}<button class="pri" id="asp">${st.has?"改密碼":"設定密碼"}</button></div>
+  ${window.RECOVERY_ON&&st.has&&!need?'<div class="row" style="justify-content:flex-start"><button id="aem">綁定 Email（忘記密碼時用）</button></div>':""}`;
+  if($("ax"))$("ax").onclick=shut;if($("aem"))$("aem").onclick=()=>recBindModal();
+  $("asp").onclick=async()=>{const n=$("ap2").value;if($("ap3")&&$("ap3").value!==n){$("aerr").textContent="兩次密碼不一樣，再輸入一次";return}$("asp").disabled=true;
+   try{await rpc("town_acct",{rid:me,pin,op:st.has?"setpw":"init",note1:st.has?$("ap1").value:n,note2:n});lastPw="";acctForce=false;st.has=true;st.temp=false;toast("密碼設好了");
+    if(window.RECOVERY_ON){draw()}else shut()}catch(e){$("aerr").textContent=e.message;$("asp").disabled=false}}};
  draw()}
 function townLogin(){document.body.classList.remove("ingame");$("login").classList.remove("hide");$("game").classList.add("hide");const res=Object.values(R),full=res.length>=12;
  $("lg").innerHTML=`${LP.scene(1)}${LP.stepBar(2)}<h2>${esc(S.town.name)}</h2><p class="mut">住了 ${res.length} 人${savedInv()?" · 邀請碼已自動填好":""}</p>
@@ -555,12 +550,22 @@ function townLogin(){document.body.classList.remove("ingame");$("login").classLi
  $("lg").querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>pinStep(+b.dataset.id));
  if($("mv"))$("mv").onclick=()=>joinStep();$("home2").onclick=()=>go("")}
 const savedInv=()=>{try{return sessionStorage.getItem("town-inv-"+TID)||""}catch(e){return ""}};
-function pinStep(id){const r=R[id];$("lg").innerHTML=`${LP.scene(1)}${LP.stepBar(3)}<p><b>${esc(r.name)}</b>，歡迎回來</p><p class="mut">換新手機、清過瀏覽器資料或登入失效時，輸入一次邀請碼就好。</p>
-  <label class="lpcode">邀請碼（邀請訊息裡有，或問鎮長）<input id="inv" maxlength="8" autocomplete="off" style="text-transform:uppercase" value="${esc(savedInv())}"></label><p class="err" id="lerr"></p>
-  <div class="row"><button id="back">← 換人</button><button class="pri" id="go">進入小鎮</button></div>`;
- $("back").onclick=townLogin;$("inv").focus();
- $("go").onclick=async()=>{const inv=$("inv").value.trim().toUpperCase();if(!inv){$("lerr").textContent="先填小鎮的邀請碼（向鎮長要）";return}$("go").disabled=true;
-  try{const k=newKey();await rpc("town_device",{tid:TID,invite:inv,rid:id,key:k});const res=await rpc("town_login",{rid:id,pin:k});me=id;pin=k;lastSeen=res.last_seen;saveMine({tid:TID,name:S.town.name,rid:id,pin:k,me:r.name});await enter()}catch(e){$("lerr").textContent=e.message;$("go").disabled=false}}}
+const cid=()=>{try{let c=localStorage.getItem("town-cid");if(!c){c=newKey();localStorage.setItem("town-cid",c)}return c}catch(e){return "none"}};
+function pinStep(id){const r=R[id];$("lg").innerHTML=`${LP.scene(1)}${LP.stepBar(3)}<p><b>${esc(r.name)}</b>，歡迎回來</p>
+  <label class="lpcode">密碼<input id="pw" type="password" maxlength="40" autocomplete="current-password"></label><p class="mut">還沒設過密碼的角色，初始密碼是邀請碼。</p><p class="err" id="lerr"></p>
+  <div class="row"><button id="back">← 換人</button><button class="pri" id="go">進入小鎮</button></div>${window.RECOVERY_ON?'<div class="row" style="justify-content:flex-start"><button id="fgt">忘記密碼？</button></div>':""}`;
+ $("back").onclick=townLogin;$("pw").focus();if($("fgt"))$("fgt").onclick=()=>forgotPw(id);
+ $("pw").onkeydown=e=>{if(e.key=="Enter")$("go").click()};
+ $("go").onclick=async()=>{const pv=$("pw").value;if(!pv){$("lerr").textContent="先輸入密碼（還沒設過就輸入邀請碼）";return}$("go").disabled=true;
+  try{const k=newKey();const dv={tid:TID,invite:pv.toUpperCase(),rid:id,key:k};try{await rpc("town_device",{...dv,pw:pv,cid:cid()})}catch(e2){if(!acctGone(e2))throw e2;await rpc("town_device",dv)}const res=await rpc("town_login",{rid:id,pin:k});lastPw=pv;me=id;pin=k;lastSeen=res.last_seen;saveMine({tid:TID,name:S.town.name,rid:id,pin:k,me:r.name});await enter()}catch(e){$("lerr").textContent=e.message;$("go").disabled=false}}}
+// 忘記密碼（RECOVERY_ON）：Email 驗證碼 → 該 Email 綁的本鎮角色 → 設新密碼 → 登入
+function forgotPw(id0){const host=$("lg");host.innerHTML="";const box=document.createElement("div");host.appendChild(box);
+ const back=()=>{const b=document.createElement("div");b.className="row";b.style.justifyContent="flex-start";b.innerHTML='<button id="fback">← 回輸入密碼</button>';host.appendChild(b);$("fback").onclick=()=>pinStep(id0)};
+ recAsk(box,"忘記密碼",async tok=>{box.innerHTML='<p class="mut">查詢中…</p>';try{const l=((await recRpc("town_recovery_list",{},tok)).list||[]).filter(x=>x.town_id==TID);
+  if(!l.length){box.innerHTML='<h2>找不到綁定的角色</h2><p class="mut">這個 Email 沒有綁這個小鎮的角色。請鎮長在鎮長面板幫你「重設密碼」。</p>';back();return}
+  box.innerHTML=`<h2>選要重設密碼的角色</h2><div class="list">${l.map((x,i)=>`<button class="big" data-i="${i}"><span><b>${esc(x.me)}</b></span></button>`).join("")}</div><p class="err" id="rerr"></p>`;
+  box.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{const x=l[+b.dataset.i];box.innerHTML=`<h2>${esc(x.me)}：設新密碼</h2><label class="lpcode">新密碼（至少 6 字）<input id="np" type="password" maxlength="40" autocomplete="new-password"></label><p class="err" id="rerr"></p><div class="row"><button class="pri" id="nok">設好並進入</button></div>`;
+   $("nok").onclick=async()=>{$("nok").disabled=true;try{const k=newKey();await recRpc("town_recovery_reset",{rid:x.rid,key:k,newpw:$("np").value},tok);saveMine({tid:TID,name:S.town.name,rid:x.rid,pin:k,me:x.me});location.search="?t="+TID}catch(e){$("rerr").textContent=e.message;$("nok").disabled=false}}})}catch(e){box.innerHTML=`<p class="err">${esc(e.message)}</p>`;back()}});back()}
 function joinStep(){const free=[];for(let s=0;s<12;s++)if(!bySlot(s))free.push(s);const show=free.filter(s=>Math.floor(s/3)<NR);if(!show.length&&free.length)show.push(free[0]);let slot=show[0],look=randLook();
  $("lg").innerHTML=`${LP.scene(1)}${LP.stepBar(2)}<p><b>搬進${esc(S.town.name)}</b></p><label class="lpcode">邀請碼（問鎮長）<input id="inv" maxlength="8" autocomplete="off" style="text-transform:uppercase" value="${esc(savedInv())}"></label>
   <label>你的名字<input id="mn" maxlength="12"></label>
@@ -1668,7 +1673,7 @@ const kb=document.createElement("div");kb.id="kbh";kb.textContent="方向鍵移�
 }
 $("home").onclick=()=>{camFree=false;sel=null;lastPanel="";renderPanel()};
 $("logout").onclick=()=>{if(!confirm("登出後要再輸入一次邀請碼才能進來。確定嗎？"))return;dropMine(TID);me=null;pin=null;townLogin()};
-$("towns").onclick=()=>go("");if(window.ACCT_ON!==false)$("acctBtn").hidden=false;$("acctBtn").onclick=()=>{closeMenu();acctModal()};if(window.RECOVERY_ON)$("recBtn").hidden=false;$("recBtn").onclick=()=>{closeMenu();recBindModal()};
+$("towns").onclick=()=>go("");$("acctBtn").hidden=false;$("acctBtn").onclick=()=>{closeMenu();acctModal()};if(window.RECOVERY_ON)$("recBtn").hidden=false;$("recBtn").onclick=()=>{closeMenu();recBindModal()};
 $("invite").onclick=async()=>{if(R[me].mayor){try{shareModal((await rpc("town_mayor",{rid:me,pin,act:"invite"})).invite)}catch(e){toast(e.message)}}else{const text=`來「${S.town.name}」當鄰居！🐷\n${townURL()}\n（邀請碼請問鎮長）`;try{await navigator.clipboard.writeText(text);toast("已複製網址，邀請碼請鎮長給")}catch(e){toast(townURL())}}};
 $("mayor").onclick=mayorPanel;// 抽屜：點一下在「一般 → 拉高 → 收起」之間切換；也可以上下滑
 const gripLabel=()=>{const p=$("panel");$("grip").textContent=p.classList.contains("min")?"▲ 展開":"▼ 收起"};

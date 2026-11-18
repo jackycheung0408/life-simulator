@@ -586,13 +586,10 @@
 - 室內：咖啡廳加拉花台、茶壺桌（動畫 `latteart`／`pot`），電影院 `seat`、超市 `mshelf` 動畫，電影院與超市新增店員（小映、阿珍）；室內台灣 19～6 點加暗色疊層（`drawRoom`）。**還沒做**：人多時座位坐滿、每間 ≥12 個專屬事件情節（事件池 C 型仍是通用模板）、餐廳／超市新增物件、視覺基準圖更新。
 
 
-## 帳號＋密碼登入（2026-11-18；SQL `supabase/town_account.sql` **尚未套用正式站**，實測 `town_account_test.sql`（回滾，REPORT）；順序在 `town.sql` 之後）
-- 和免密碼裝置金鑰、邀請碼並存，舊流程完全不動。帳號＝小鎮代碼（或邀請碼）＋角色名稱，可改自訂帳號名（同鎮唯一 2～12 字，不可撞別人的角色名）。表 `town_accounts(rid,town_id,uname,pw 雜湊,temp,fails,locked_until)`，RLS 全關。
-- 初始密碼：已登入裝置在選單「帳號與密碼」（`acctModal`）按「產生初始密碼」，伺服器隨機 6 碼只回傳一次，之後要求改成自己的（改密碼要舊密碼、≥6 字、不能等於角色名稱）；鎮長在鎮長面板「重設密碼」產生臨時密碼（只顯示給鎮長一次，玩家登入後被要求改）。
-- 登入：首頁「用帳號密碼登入」（`LP.want="a"`，`acctLogin`）→ `town_acct_login` 回一把新裝置金鑰（舊金鑰仍有效），存 `town-mine`＋IndexedDB 備份。錯誤一律「帳號或密碼不對」，同角色連錯 5 次鎖 30 分鐘（鎖定時也是同一句）。
-- 旗標 `window.ACCT_ON`（`index.html`，預設 true）；SQL 沒套用時 RPC 會回「Could not find the function」，`acctGone` 偵測到就設成 false 並隱藏入口。與 `RECOVERY_ON`（Email 救援）互不相干。
-
-
-## 登入鎖定規則（2026-11-18；SQL `supabase/town_authfix.sql` **尚未套用正式站**，之後再跑一次性 `town_unlock_once.sql`；實測 `town_authfix_test.sql`（回滾，REPORT）**尚未跑**）
-- `town_auth` 先驗憑證：金鑰或舊 pin 對就放行並清零 `fails`／`lock_until`（鎖定中也行）。長隨機金鑰（非 4 碼）失敗**不計次、不鎖**，raise「這台裝置的登入失效了，請重新登入」；只有舊 4 碼 pin 錯 5 次才鎖 10 分鐘（訊息含剩餘分鐘）。`town_device` 整鎮鎖改成邀請碼錯 20 次。
-- 前端 `rpc` 認得「登入失效」：`window.__lost` 停掉所有帶 pin 的 RPC、清 `town-mine` 該鎮的 `pin`（保留卡片與備份）、顯示「重新登入」畫面；自動登入沒有 pin 時直接走選角色。mock：`sessionStorage.mockLost=1` 模擬失效。
+## 角色密碼登入（2026-11-18；SQL `supabase/town_account.sql` **尚未套用正式站**，實測 `town_account_test.sql`（回滾，REPORT）；順序：`town.sql` → `town_authfix.sql` → `town_account.sql`（它會刪掉舊 4 參數 `town_device` 並重建 6 參數版；之後若重套 `town.sql`／`town_authfix.sql`，要再套一次這個檔，否則舊版沒密碼檢查的 `town_device` 會回來）
+- **新裝置三步**：① 邀請碼 → ② 選角色 → ③ 輸入密碼進入（`pinStep`，步驟條 `LP.stepBar`）。**已登入的裝置（有效裝置金鑰）不再詢問**，開 app 直接進城鎮（原本的行為沒動；金鑰失效才走「登入失效」畫面）。
+- **密碼**：每個角色都有。還沒設過的初始密碼＝小鎮邀請碼（第 3 步小字提示）；`town_device(tid,invite,rid,key,pw default null,cid default null)`：角色已設密碼 → 必須帶正確 `pw`（沒帶回「這個角色已設密碼，請更新遊戲後輸入密碼」，所以舊客戶端進不來）；沒設密碼 → 邀請碼正確即可。設好後邀請碼就不能再當密碼（`town_acct_pwok` 也禁止密碼＝邀請碼或角色名稱，≥6 字）。前端若偵測到舊 SQL（「Could not find」）會退回 4 參數呼叫，所以前端和 SQL 誰先上都不會壞登入。
+- **強制設密碼**：已登入裝置沒有密碼，或密碼是鎮長發的臨時密碼（`temp`）時，進遊戲後 `acctModal(1)` 彈出不能關的視窗（沒有關閉鈕；`acctForce` 讓 `refresh` 在被其他視窗蓋掉時重開）；`town_acct` op：`status／init（第一次設，免舊密碼）／setpw（要舊密碼）／reset（鎮長）`。選單「帳號與密碼」也能改。
+- **鎖定**：表 `town_pw_tries(rid,cid,…)`；`cid` = `localStorage town-cid`（前端隨機產生）。同一角色＋同一 cid 連錯 5 次鎖 30 分鐘；同一角色每小時全域錯 30 次限速 10 分鐘；**密碼正確一律放行並清零**；訊息統一「密碼不對」。長隨機裝置金鑰失效不計入（`town_auth`，見 `town_authfix.sql`）。
+- **重設**：鎮長面板「重設密碼」（`data-pw`，`op:"reset"`）產生 6 碼臨時密碼，明碼只給鎮長看一次；忘記密碼（要 Email 驗證）＝第 3 步「忘記密碼？」→ `recAsk` → `town_recovery_list`（只留本鎮）→ 選角色 → `town_recovery_reset` 設新密碼並取得金鑰。**「忘記密碼」與選單的「綁定 Email」只在 `window.RECOVERY_ON` 為 true 時出現（預設 false，要等真實寄信驗證成功）；在那之前鎮長重設是唯一重設途徑。**
+- 沒有「用帳號密碼登入」入口也沒有自訂帳號名（帳號＝選人物）。`town_accounts(rid,pw,temp,changed_at)`，RLS 全關。

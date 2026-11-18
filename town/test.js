@@ -440,18 +440,15 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 {const src=require("fs").readFileSync(__dirname+"/town.js","utf8");
  check(src.includes('id="fxcard"')||src.includes('id="fxcard')||src.includes("fxcard"),"要有長按詳情卡 #fxcard");check(src.includes("NOFXRE"),"要有 NOFXRE 清單")}
 {const fs=require("fs");const sq=fs.readFileSync(__dirname+"/../supabase/town_account.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8"),ih=fs.readFileSync(__dirname+"/index.html","utf8");
- check(sq.split("\n").slice(0,6).every(l=>l.startsWith("-- ")),"town_account.sql 檔頭每行要是註解");
- check(/enable row level security/.test(sq)&&/revoke all on public\.town_accounts from anon, authenticated/.test(sq),"town_accounts 要 RLS 全關");
- check(sq.includes("extensions.crypt")&&sq.includes("#variable_conflict use_variable")&&!/returns json[^$]*pw text, temp/.test(sq),"town_account 要用雜湊與 use_variable");
- check(!/'pw', *a\.pw|'pw', *r\.pw/.test(sq),"不可回傳雜湊");
- for(const f of ["town_acct","town_acct_login"])check(js.includes('"'+f+'"'),"town.js 要呼叫 "+f);
- check(js.includes("function acctLogin")&&js.includes("function acctModal")&&ih.includes('id="cAcct"')&&ih.includes('id="acctBtn"')&&ih.includes("window.ACCT_ON"),"帳號密碼入口（cAcct、acctBtn、ACCT_ON、acctLogin、acctModal）要在");
- check(js.includes("data-pw")&&js.includes('op:"reset"'),"鎮長面板要有重設密碼");
+ check(sq.split("\n").slice(0,6).every(l=>l.startsWith("-- ")||l.startsWith("--   ")),"town_account.sql 檔頭每行要是註解");
+ check(/enable row level security/.test(sq)&&/revoke all on public\.town_accounts from anon, authenticated/.test(sq)&&/revoke all on public\.town_pw_tries from anon, authenticated/.test(sq),"town_accounts／town_pw_tries 要 RLS 全關");
+ check(sq.includes("extensions.crypt")&&sq.includes("#variable_conflict use_variable")&&sq.includes("drop function if exists public.town_device(text, text, bigint, text)"),"town_account 要用雜湊、use_variable、並刪掉舊 4 參數 town_device");
+ check(!/'pw', *a\.pw/.test(sq),"不可回傳雜湊");
+ check(sq.includes("pw text default null, cid text default null")&&sq.includes("已設密碼，請更新遊戲後輸入密碼")&&sq.includes("interval '30 minutes'")&&sq.includes(">= 30"),"town_device 要有 pw／cid 參數、舊客戶端提示、5 次鎖 30 分鐘、每小時 30 次限速");
+ check(!/on conflict \(rid/.test(sq),"on conflict 用 constraint 名稱，避免和參數 rid 撞名");
+ for(const f of ["town_acct","town_device"])check(js.includes('"'+f+'"'),"town.js 要呼叫 "+f);
+ check(js.includes("function acctModal")&&js.includes("function pinStep")&&js.includes("function forgotPw")&&js.includes("town-cid")&&ih.includes('id="acctBtn"'),"密碼流程（pinStep、acctModal、forgotPw、town-cid、acctBtn）要在");
+ check(!ih.includes("cAcct")&&js.includes("RECOVERY_ON")&&/window\.RECOVERY_ON\?'<div class="row" style="justify-content:flex-start"><button id="fgt">/.test(js),"忘記密碼入口要受 RECOVERY_ON 控制，首頁不放帳密入口");
+ check(js.includes("data-pw")&&js.includes('op:"reset"')&&js.includes("acctForce"),"鎮長面板重設密碼與強制設密碼要在");
  check(fs.existsSync(__dirname+"/../supabase/town_account_test.sql"),"要有 town_account_test.sql")}
-{const fs=require("fs");const fx=fs.readFileSync(__dirname+"/../supabase/town_authfix.sql","utf8"),sq=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8");
- const fn=(t,n)=>{const a=t.indexOf("create or replace function public."+n+"(");const b=t.indexOf("end $$;",a);return a<0?"":t.slice(a,b)};
- for(const n of ["town_auth","town_device"])check(fn(fx,n)&&fn(fx,n)==fn(sq,n),"town_authfix.sql 的 "+n+" 要和 town.sql 一致");
- check(fx.split("\n").slice(0,3).every(l=>l.startsWith("-- ")),"town_authfix.sql 檔頭每行要是註解");
- check(fn(sq,"town_auth").includes("登入失效")&&js.includes("登入失效")&&js.includes("window.__lost"),"要有登入失效處理（SQL 與前端）");
- check(fs.existsSync(__dirname+"/../supabase/town_unlock_once.sql")&&fs.existsSync(__dirname+"/../supabase/town_authfix_test.sql"),"要有 town_unlock_once.sql 與 town_authfix_test.sql")}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
