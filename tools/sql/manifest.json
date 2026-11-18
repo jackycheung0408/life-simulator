@@ -597,6 +597,13 @@
    "needs": [
     "town_world.sql"
    ]
+  },
+  {
+   "file": "town_confiscate_1118.sql",
+   "kind": "once",
+   "needs": [
+    "town.sql"
+   ]
   }
  ]
 }
