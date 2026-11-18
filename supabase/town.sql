@@ -659,30 +659,8 @@ begin
   return json_build_object('town_id',t.id,'resident_id',rid);
 end $$;
 
-alter table public.town_towns add column if not exists fails int not null default 0;
-alter table public.town_towns add column if not exists lock_until timestamptz;
-create or replace function public.town_device(tid text, invite text, rid bigint, key text) returns json
-language plpgsql security definer set search_path = public as $$
-#variable_conflict use_variable
-declare t public.town_towns;
-begin
-  select * into t from public.town_towns where id = upper(trim(tid)) for update;
-  if not found then raise exception '找不到這個小鎮'; end if;
-  if t.lock_until is not null and t.lock_until > now() then raise exception '這個小鎮暫時鎖住了（邀請碼被試錯太多次），請稍後再試，或請鎮長確認邀請碼'; end if;
-  if t.lock_until is not null and t.lock_until <= now() then update public.town_towns set fails = 0, lock_until = null where id = t.id; t.fails := 0; end if;
-  if key !~ '^[A-Za-z0-9]{24,64}$' then raise exception '裝置金鑰格式不對'; end if;
-  if upper(trim(coalesce(invite,''))) <> t.invite then
-    update public.town_towns set fails = fails + 1, lock_until = (case when fails + 1 >= 20 then now() + interval '10 minutes' end) where id = t.id;
-    return json_build_object('error','邀請碼不對，請問鎮長');
-  end if;
-  if t.fails > 0 then update public.town_towns set fails = 0, lock_until = null where id = t.id; end if;
-  if not exists (select 1 from public.town_residents where id = rid and town_id = t.id) then raise exception '這個小鎮沒有這位居民'; end if;
-  insert into public.town_devices(resident_id, key_hash) values (rid, extensions.crypt(key, extensions.gen_salt('bf')));
-  -- 每人最多留 6 台裝置
-  delete from public.town_devices where resident_id = rid and id not in (select id from public.town_devices where resident_id = rid order by created_at desc limit 6);
-  update public.town_residents set seen_at = now() where id = rid;
-  return json_build_object('ok', true);
-end $$;
+-- town_device（新裝置換金鑰）已搬到 town_account.sql（6 參數，含密碼檢查）；town_towns 的 fails／lock_until 欄位也由 town_authfix.sql 補。
+-- 這裡不要再定義 town_device，否則整份套用 town.sql 會把舊版（沒密碼檢查）帶回來。
 
 -- 用小鎮代碼或邀請碼找到小鎮（兩組碼都是 6 碼，很容易搞混）
 create or replace function public.town_find(code text) returns json
@@ -1765,8 +1743,6 @@ alter table public.town_towns alter column currency set default '$';  -- 2026-11
 
 revoke all on function public.town_state(text), public.town_create(text,text,text,jsonb), public.town_join(text,text,text,text,jsonb,int),
   public.town_login(bigint,text,jsonb), public.town_mayor(bigint,text,text,bigint), public.town_act(bigint,text,text,bigint,real,real,text,text,text) from public;
-revoke all on function public.town_device(text,text,bigint,text) from public;
-grant execute on function public.town_device(text,text,bigint,text) to anon, authenticated;
 revoke all on function public.town_obj_near(text,real,real,text) from public, anon, authenticated;
 revoke all on function public.town_closed(text) from public, anon, authenticated;
 grant execute on function public.town_state(text), public.town_create(text,text,text,jsonb), public.town_join(text,text,text,text,jsonb,int),

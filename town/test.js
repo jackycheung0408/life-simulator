@@ -444,6 +444,9 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(sq.split("\n").slice(0,6).every(l=>l.startsWith("-- ")||l.startsWith("--   ")),"town_account.sql 檔頭每行要是註解");
  check(/enable row level security/.test(sq)&&/revoke all on public\.town_accounts from anon, authenticated/.test(sq)&&/revoke all on public\.town_pw_tries from anon, authenticated/.test(sq),"town_accounts／town_pw_tries 要 RLS 全關");
  check(sq.includes("extensions.crypt")&&sq.includes("#variable_conflict use_variable")&&sq.includes("drop function if exists public.town_device(text, text, bigint, text)"),"town_account 要用雜湊、use_variable、並刪掉舊 4 參數 town_device");
+ {const ts=require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8");check(!/create or replace function public\.town_device\(/.test(ts),"town.sql 不可定義 town_device（會蓋掉 town_account.sql 的密碼檢查版）");
+ const blk=(s,n)=>{const m=s.split("\n");const a=m.findIndex(l=>l.startsWith("create or replace function public."+n+"("));const b=m.findIndex((l,k)=>k>a&&l.startsWith("end $$;"));return m.slice(a,b+1).join("\n")};
+ check(blk(ts,"town_auth")===blk(require("fs").readFileSync(__dirname+"/../supabase/town_authfix.sql","utf8"),"town_auth"),"town.sql 的 town_auth 要和 town_authfix.sql 一致")}
  check(!/'pw', *a\.pw/.test(sq),"不可回傳雜湊");
  check(sq.includes("pw text default null, cid text default null")&&sq.includes("已設密碼，請更新遊戲後輸入密碼")&&sq.includes("interval '30 minutes'")&&sq.includes(">= 30"),"town_device 要有 pw／cid 參數、舊客戶端提示、5 次鎖 30 分鐘、每小時 30 次限速");
  check(!/on conflict \(rid/.test(sq),"on conflict 用 constraint 名稱，避免和參數 rid 撞名");
