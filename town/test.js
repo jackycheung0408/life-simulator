@@ -431,4 +431,10 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check([0,1,6,7,9,10].map(M.NIUM).join()=="1,1,1,2,2,3"&&sq.includes("when ps >= 10000 then 3 when ps >= 7000 then 2 else 1")&&sq.includes("if ps = ds then win := bet;")&&sq.includes("key := cs[i] % 100;")&&sq.includes("if ps < 1000 and ps % 1000 < 12 then")&&sq.includes("回報率 = 1 − P(雙方都是")&&js.includes("莊家直接贏")&&sq.includes("r.money < bet * 3"),"妞妞倍數表／平手／不比花色／3 倍現金要和 SQL 一致");
  check(!/40 局/.test(js.replace(/\/\/.*$/gm,"")),"town.js 不能再有「40 局」文字");
  check(js.includes('"town_game2"')&&fs.existsSync(__dirname+"/../supabase/town_arcade2_test.sql"),"前端要呼叫 town_game2、要有 town_arcade2_test.sql")}
+
+{const src=require("fs").readFileSync(__dirname+"/town.js","utf8"),h=src.slice(src.indexOf("const FXI="),src.indexOf("function fxOf")),pf=new Function(h+";return parseFx")(),f=(s)=>pf(s).fx.map(x=>x[0]+x[1]).join(","),n=(s)=>pf(s).need.map(x=>x[0]).join(",");
+ check(f("飽足 +55 · 精力 +20 · 心情 +10 · €250")=="money-250,hunger55,energy20,fun10","parseFx 吃一頓："+f("飽足 +55 · 精力 +20 · 心情 +10 · €250"));
+ check(f("好感 −1 · 30 分鐘一次")=="bond-1"&&n("好感 −1 · 30 分鐘一次")=="冷卻30分","parseFx 冷卻");
+ check(f("領 €30")=="money30","parseFx 領錢");check(f("心情 +20")=="fun20","parseFx 心情");
+ check(src.includes('id="fxcard"')||src.includes('id="fxcard')||src.includes("fxcard"),"要有長按詳情卡 #fxcard");check(src.includes("NOFXRE"),"要有 NOFXRE 清單")}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
