@@ -448,4 +448,10 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(js.includes("function acctLogin")&&js.includes("function acctModal")&&ih.includes('id="cAcct"')&&ih.includes('id="acctBtn"')&&ih.includes("window.ACCT_ON"),"帳號密碼入口（cAcct、acctBtn、ACCT_ON、acctLogin、acctModal）要在");
  check(js.includes("data-pw")&&js.includes('op:"reset"'),"鎮長面板要有重設密碼");
  check(fs.existsSync(__dirname+"/../supabase/town_account_test.sql"),"要有 town_account_test.sql")}
+{const fs=require("fs");const fx=fs.readFileSync(__dirname+"/../supabase/town_authfix.sql","utf8"),sq=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8");
+ const fn=(t,n)=>{const a=t.indexOf("create or replace function public."+n+"(");const b=t.indexOf("end $$;",a);return a<0?"":t.slice(a,b)};
+ for(const n of ["town_auth","town_device"])check(fn(fx,n)&&fn(fx,n)==fn(sq,n),"town_authfix.sql 的 "+n+" 要和 town.sql 一致");
+ check(fx.split("\n").slice(0,3).every(l=>l.startsWith("-- ")),"town_authfix.sql 檔頭每行要是註解");
+ check(fn(sq,"town_auth").includes("登入失效")&&js.includes("登入失效")&&js.includes("window.__lost"),"要有登入失效處理（SQL 與前端）");
+ check(fs.existsSync(__dirname+"/../supabase/town_unlock_once.sql")&&fs.existsSync(__dirname+"/../supabase/town_authfix_test.sql"),"要有 town_unlock_once.sql 與 town_authfix_test.sql")}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

@@ -17,6 +17,7 @@ if(!String(url).includes("/rpc/"))return _fetch(url,o);const fn=url.split("/rpc/
  if(fn=="town_recovery_list")return ok({ok:true,list:(db.rec||[]).map(x=>({town_id:R(x.rid).town_id,town_name:db.towns[R(x.rid).town_id].name,rid:x.rid,me:R(x.rid).name}))});
  if(fn=="town_recovery_claim"){R(b.rid).pin=b.key;return ok({ok:true,town_id:R(b.rid).town_id})}
  if(fn=="town_find"){const c=String(b.code||"").toUpperCase(),t=Object.values(db.towns).find(t=>t.id==c||String(t.invite).toUpperCase()==c);return ok(t?{town_id:t.id,name:t.name}:null)}
+ if(sessionStorage.getItem("mockLost")&&b.rid&&b.pin&&fn!="town_device")return bad("這台裝置的登入失效了，請重新登入");
  if(fn=="town_state"){if(!db.towns[b.tid])return bad("找不到這個小鎮，確認一下代碼");return ok(state(b.tid))}
  if(fn=="town_create"){const tid="T"+Math.random().toString(36).slice(2,7).toUpperCase();db.towns[tid]={id:tid,name:b.town_name,rows:2,invite:"INV999"};const r=add(tid,b.my_name,0,b.pin,b.look,true);ev(tid,`${b.my_name} 建立了「${b.town_name}」，當上鎮長`,r.id);return ok({town_id:tid,resident_id:r.id,invite:"INV999"})}
  if(fn=="town_join"){const t=db.towns[b.tid];if(b.invite!=t.invite)return bad("邀請碼不對，請問鎮長");const r=add(b.tid,b.my_name,b.want_slot,b.pin,b.look);t.rows=Math.max(t.rows,Math.floor(b.want_slot/3)+1);ev(b.tid,`${b.my_name} 搬進來了`,r.id);return ok({town_id:b.tid,resident_id:r.id})}
@@ -31,7 +32,7 @@ if(!String(url).includes("/rpc/"))return _fetch(url,o);const fn=url.split("/rpc/
   else res={p:[c(),c(),c(),c(),c()],b:[c(),c(),c(),c(),c()],pcl:7,bcl:3,win:b.bet*3,bet:b.bet,pen:0};
   return ok({game:res,money:r.money})}
  if(fn=="town_score"){const r=R(b.rid);r.items=r.items||{};const sp=r.items.sp=r.items.sp||{};if(b.score>(sp[b.game]||0))sp[b.game]=b.score;return ok({best:sp[b.game],gain:2})}
- if(fn=="town_device"){const t=db.towns[b.tid];if(b.invite!=t.invite)return ok({error:"邀請碼不對，請問鎮長"});R(b.rid).pin=b.key;return ok({ok:true})}
+ if(fn=="town_device"){const t=db.towns[b.tid];if(b.invite!=t.invite)return ok({error:"邀請碼不對，請問鎮長"});R(b.rid).pin=b.key;sessionStorage.removeItem("mockLost");return ok({ok:true})}
  if(fn=="town_login"){const r=R(b.rid);if(!r)return bad("找不到這位居民");if(r.pin!=b.pin)return ok({error:"密碼不對"});if(b.new_look)r.look=b.new_look;return ok({ok:true,town_id:r.town_id,last_seen:"2000-01-01T00:00:00Z"})}
  if(fn=="town_features"){const r=R(b.rid);db.towns[r.town_id].off=b.off;save();return ok({ok:true})}
  if(fn=="town_mayor"){const r=R(b.rid),t=db.towns[r.town_id];if(!r.mayor)return bad("只有鎮長可以做這件事");if(b.act=="newinvite")t.invite="NEW"+Math.floor(Math.random()*900+100);if(b.act=="kick"){db.res=db.res.filter(x=>x.id!=b.target)}return ok({ok:true,invite:t.invite})}

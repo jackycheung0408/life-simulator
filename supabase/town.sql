@@ -585,20 +585,29 @@ begin
         union all (select id,at,actor,target,kind,msg from public.town_events where town_id = t.id and kind = 'rent' and at > now() - interval '36 hours')) u) e));
 end $$;
 
--- 驗證密碼：連錯 5 次鎖 10 分鐘。錯的時候回傳 id 是 null（不用 raise，raise 會把錯誤次數一起復原）
+-- 驗證憑證：長金鑰失效不計次、直接報「登入失效」；只有舊 4 碼 pin 錯 5 次鎖 10 分鐘（錯的時候回傳 id 是 null，不用 raise，raise 會把錯誤次數一起復原）
 create or replace function public.town_auth(rid bigint, pin text) returns public.town_residents
 language plpgsql security definer set search_path = public as $$
-declare r public.town_residents;
+#variable_conflict use_variable
+declare r public.town_residents; ok boolean; mins int;
 begin
   select * into r from public.town_residents where id = rid for update;
   if not found then raise exception '找不到這位居民，可能已經搬走了'; end if;
-  if r.lock_until is not null and r.lock_until > now() then raise exception '密碼錯太多次，請 10 分鐘後再試'; end if;
-  if extensions.crypt(coalesce(pin,''), r.pin_hash) <> r.pin_hash
-     and not exists (select 1 from public.town_devices d where d.resident_id = rid and extensions.crypt(coalesce(pin,''), d.key_hash) = d.key_hash) then
-    update public.town_residents set fails = fails + 1, lock_until = case when fails + 1 >= 5 then now() + interval '10 minutes' end where id = rid;
+  -- 先驗證憑證：比對成功就放行並清零（鎖定中也一樣）
+  ok := extensions.crypt(coalesce(pin,''), r.pin_hash) = r.pin_hash
+     or exists (select 1 from public.town_devices d where d.resident_id = rid and extensions.crypt(coalesce(pin,''), d.key_hash) = d.key_hash);
+  if not ok then
+    -- 長隨機金鑰失效：不累加、不鎖定，直接回明確錯誤（沒有狀態要保留，raise 無副作用）
+    if coalesce(pin,'') !~ '^\d{4}$' then raise exception '這台裝置的登入失效了，請重新登入'; end if;
+    -- 只有舊 4 碼 pin 才算暴力猜測：5 次鎖 10 分鐘
+    if r.lock_until is not null and r.lock_until > now() then
+      mins := greatest(1, ceil(extract(epoch from (r.lock_until - now())) / 60)::int);
+      raise exception '密碼錯太多次，還要約 % 分鐘', mins;
+    end if;
+    update public.town_residents set fails = fails + 1, lock_until = (case when fails + 1 >= 5 then now() + interval '10 minutes' end) where id = rid;
     r.id := null; return r;
   end if;
-  if r.fails > 0 then update public.town_residents set fails = 0, lock_until = null where id = rid; end if;
+  if r.fails > 0 or r.lock_until is not null then update public.town_residents set fails = 0, lock_until = null where id = rid; end if;
   return public.town_tick(r);
 end $$;
 
@@ -654,14 +663,16 @@ alter table public.town_towns add column if not exists fails int not null defaul
 alter table public.town_towns add column if not exists lock_until timestamptz;
 create or replace function public.town_device(tid text, invite text, rid bigint, key text) returns json
 language plpgsql security definer set search_path = public as $$
+#variable_conflict use_variable
 declare t public.town_towns;
 begin
   select * into t from public.town_towns where id = upper(trim(tid)) for update;
   if not found then raise exception '找不到這個小鎮'; end if;
-  if t.lock_until is not null and t.lock_until > now() then raise exception '邀請碼錯太多次，請 10 分鐘後再試'; end if;
+  if t.lock_until is not null and t.lock_until > now() then raise exception '這個小鎮暫時鎖住了（邀請碼被試錯太多次），請稍後再試，或請鎮長確認邀請碼'; end if;
+  if t.lock_until is not null and t.lock_until <= now() then update public.town_towns set fails = 0, lock_until = null where id = t.id; t.fails := 0; end if;
   if key !~ '^[A-Za-z0-9]{24,64}$' then raise exception '裝置金鑰格式不對'; end if;
   if upper(trim(coalesce(invite,''))) <> t.invite then
-    update public.town_towns set fails = fails + 1, lock_until = case when fails + 1 >= 5 then now() + interval '10 minutes' end where id = t.id;
+    update public.town_towns set fails = fails + 1, lock_until = (case when fails + 1 >= 20 then now() + interval '10 minutes' end) where id = t.id;
     return json_build_object('error','邀請碼不對，請問鎮長');
   end if;
   if t.fails > 0 then update public.town_towns set fails = 0, lock_until = null where id = t.id; end if;
