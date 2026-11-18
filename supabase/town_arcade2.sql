@@ -6,19 +6,19 @@
 --   精確窮舉（13^6 種牌）：閒贏 0.446147、莊贏 0.458428、和 0.095426。
 --   賠率：閒 1:1（期望 0.98772）、莊 1:0.95（期望 0.98936）、和 8:1 即拿回 ×9（期望 0.85883）；和局時押閒莊退回押注。
 --
--- 【射龍門】（2026-11-18 第四版：入場費 50、自訂押注、彩池自動加碼、贏的抽 5% 進鎮基金、單注硬上限 800）牌獨立隨機（A 最小 K 最大，每個點數 1/13）。
+-- 【射龍門】（2026-11-18 第五版：入場費 50、自訂押注、**不設單注上限**、彩池自動加碼、贏的抽 5% 進鎮基金）牌獨立隨機（A 最小 K 最大，每個點數 1/13）。
 --   流程：按「入場」付固定入場費 F = 50（進彩池）→ 發兩張龍門（相鄰＝差 1 不可能贏：自動重發、不收入場費）→ 玩家「放棄」（只損失入場費）
 --   或自訂押注 b（下限 50；龍門同點時還要選大／小）→ 翻第三張。贏 = 從彩池拿走 1 倍押注，其中 5%（四捨五入）進鎮基金、玩家實拿 95%；輸 1 倍；
 --   撞 1 柱（異點龍門第三張同其中一張）輸 2 倍；撞 2 柱（兩張龍門同點、第三張也同點）輸 3 倍；輸的進彩池。
---   押注上限 = min(單注硬上限 B_max = 800, 彩池餘額, floor(現金/3))：只能賭彩池裡的錢（彩池付得出 1 倍），現金 >= 3b（撞 2 柱要付 3 倍）。入場要求彩池 >= 50。
+--   押注上限 = min(彩池餘額, floor(現金/3))：只能賭彩池裡的錢（彩池付得出 1 倍），現金 >= 3b（撞 2 柱要付 3 倍）。入場要求彩池 >= 50。
 --   彩池 town_pots：每鎮一個、種子 3000、上限 100000（玩家輸進來而超出的部分進鎮基金）。【系統發錢】每 10 分鐘自動加 10%：pool = pool + min(floor(pool*0.10), 100000 - pool)，
 --   惰性結算（任何人開射龍門／入場／下注時補算，最多補 144 步 = 24 小時，記 last_tick），加碼本身不會把超出部分送進鎮基金；每次結算時彩池不足 3000 就補到 3000（種子下限）。
---   風險：這是系統憑空加錢進彩池，彩池的錢只能靠玩家贏走；因為每手最佳策略淨期望為負，彩池長期只會增加、期望上玩家無法淨賺，但單次變異可贏走最多 800。
 --   【精確窮舉】相鄰龍門自動重發，所以有效龍門是 145 組有序點數對（同點 13、差 d 的 2*(13-d) 組）。W = 贏的點數個數：不同點 W = 差-1；同點取較大的一邊 W = max(13-a, a-1)。
 --   含 5% 抽成，每單位押注的期望（淨）= (1.95W - 15)/13（異點：贏 +0.95、撞柱 2 點 -2、其餘 -1；同點：撞 2 柱 1 點 -3，公式相同）。玩家看完龍門才下注：W >= 8 為正（W=8 +0.046 … W=12 +0.646）。
---   最佳策略 = W >= 8 押最大注 B_max、其餘放棄。正期望質量 M = Σ p(W)·max(0,(1.95W-15)/13) = 0.050928，玩的機率 20.69%：每手淨 = -50 + B×0.050928。
---   損益平衡單注約 982（B = 1000 時回報率 1.0036 > 1，所以必須設上限）。B_max = 800：每手淨 -9.26，平均總投入 50 + 800×0.2069 = 215.5，回報率 1 + (-9.26/215.5) = 0.957（< 0.97）；B <= 848 才符合 0.97。
---   改 F／抽成／B_max／加碼要同步：town_dg_entry()、town_dg_cap()、town_pot_get()、前端 DGFEE／DGMAX、town/test.js（會重算最佳策略回報率）。
+--   最佳策略 = W >= 8 押到上限、其餘放棄。正期望質量 M = Σ p(W)·max(0,(1.95W-15)/13) = 0.050928，玩的機率 20.69%：每手淨 = -50 + B×0.050928，回報率 = 1 + 淨/(50 + B×0.2069)。
+--   【風險（使用者已知情並選擇不設限）】損益平衡單注約 982。最佳策略的每手淨／回報率：B=50 -47.5／0.214；B=800 -9.3／0.957；B=1000 +0.9／1.004；B=5000 +204.6／1.189；B=20000 +968.6／1.231（極限 1.246）。
+--   所以彩池與現金夠大的玩家（現金 >= 3 倍、彩池 >= 押注）可以用最佳策略從彩池賺錢；彩池自己每 10 分鐘 +10% 是系統發錢（上限 100000 內），兩者合起來是通膨出口。
+--   只有小注（約 50～800）時最佳策略淨期望為負。之前的 800 單注硬上限版本（回報率 0.957）已移除；要重新設限只要改 town_dg_cap() 與前端。
 --
 -- 【妞妞】一副 52 張牌，玩家與莊家各 5 張；A=1、2～9、10JQK=10。五張中找 3 張總和為 10 的倍數，其餘 2 張個位數 = 妞點（0 = 妞妞，最大）；找不到 = 沒妞。
 --   比大小：妞妞 > 9 > ... > 1 > 沒妞；同級只比最大一張的點數（K>...>A），不比花色；連最大牌點數都一樣 = 平手，退回押注。
@@ -50,9 +50,9 @@ begin
   end if;
   return a;
 end $$;
--- 單注上限：min(800, 彩池, floor(現金/3))；限制原因 pot／cash／cap
-create or replace function public.town_dg_cap(po bigint, m int) returns int language sql immutable as $$ select least(800, po, m / 3)::int $$;
-create or replace function public.town_dg_why(po bigint, m int) returns text language sql immutable as $$ select case when m / 3 < least(800, po) then 'cash' when po < 800 then 'pot' else 'cap' end $$;
+-- 單注上限：min(彩池, floor(現金/3))（沒有硬上限）；限制原因 pot／cash
+create or replace function public.town_dg_cap(po bigint, m int) returns int language sql immutable as $$ select least(po, m / 3)::int $$;
+create or replace function public.town_dg_why(po bigint, m int) returns text language sql immutable as $$ select case when m / 3 < po then 'cash' else 'pot' end $$;
 create or replace function public.town_dg_next(tid text) returns int language sql stable security definer set search_path = public as $$ select 600 - (floor(extract(epoch from (now() - (select last_tick from public.town_pots where town_id = tid))))::int % 600) $$;
 -- 彩池加減：不會 < 0，超過 100000 的部分進鎮基金
 create or replace function public.town_pot_add(tid text, d bigint) returns bigint language plpgsql security definer set search_path = public as $$
@@ -130,7 +130,6 @@ begin
     end if;
     po := public.town_pot_get(r.town_id);
     if bet is null or bet < 50 then raise exception '押注最少 €50'; end if;
-    if bet > 800 then raise exception '單注上限 €800'; end if;
     if bet > po then raise exception '只能賭彩池裡的錢，彩池只有 €%', po; end if;
     if r.money < bet * 3 then raise exception '現金要有押注的 3 倍（撞柱要賠），最多可押 €%', r.money / 3; end if;
     r.items := r.items - 'dg';

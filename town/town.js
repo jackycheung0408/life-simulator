@@ -398,8 +398,8 @@ const fin=r=>!!r&&!!r.items&&!!ROOMS[r.place]&&(r.items.fi===r.place||(r.place==
 // 現在在哪個室內：設施裡面（fin）或自己家屋裡（inside）；都不是就 null
 const visitHost=(r,RR)=>{const h=RR&&r&&r.place&&r.place.startsWith("home:")&&r.place!="home:"+r.id?RR[r.place.slice(5)]:null;return h&&inside(h)?h:null};// 在朋友家門口、他人在屋裡 → 看得到他家室內
 const roomOf=(r,RR)=>!r?null:fin(r)?ROOMS[r.place]:(r.place=="home:"+r.id&&inside(r))?homeRoom(r):visitHost(r,RR)?{...homeRoom(visitHost(r,RR)),visit:true,inn:vin(r)}:null;// RR = 居民表（頂層函式拿不到 init 裡的 R，由呼叫的人傳進來）
-const DGFEE=50,DGMAX=800,NIUM=c=>c==10?3:c>=7?2:1;
-if(typeof module!=="undefined")module.exports={DGFEE,DGMAX,NIUM,VENACT,HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,TAP_DEF,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,JOBS,PJT,PJM,PJN,RFT,RFW,pjTier,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
+const DGFEE=50,NIUM=c=>c==10?3:c>=7?2:1;
+if(typeof module!=="undefined")module.exports={DGFEE,NIUM,VENACT,HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,TAP_DEF,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,JOBS,PJT,PJM,PJN,RFT,RFW,pjTier,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
 
 function init(){
 
@@ -1087,10 +1087,10 @@ function gamesModal(){$("modal").classList.remove("hide");const solo=SOLO.some(g
   area.querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{area.querySelectorAll("[data-b]").forEach(x=>x.disabled=true);try{const g=await pg2("bacc",{choice:b.dataset.b});const side=g.pt>g.bt?"閒贏":g.bt>g.pt?"莊贏":"和局";
    $("gShow").innerHTML=`<p>閒 <b>${g.pt}</b></p>${cardsH(g.p)}<p>莊 <b>${g.bt}</b></p>${cardsH(g.b)}<p class="mut">${side}</p>`+result(g);money()}catch(e){$("gShow").innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
    area.querySelectorAll("[data-b]").forEach(x=>x.disabled=false)})}
-if(gameTab=="dg"){area.innerHTML=`<p class="mut">流程：付入場費 €${DGFEE}（進彩池）→ 看兩張龍門牌 → 放棄（只損失入場費），或自訂金額下注（€50～€${DGMAX}，只能賭彩池裡的錢，現金要有押注 3 倍）。第三張在兩張之間才贏，贏拿彩池 1 倍押注（抽 5% 進鎮基金）；撞柱輸 2 倍，兩張龍門同點又撞中輸 3 倍；其他輸 1 倍。兩張相鄰自動重發、不收入場費。彩池每 10 分鐘自動加 10%。</p><p class="mut">彩池 €<b id="dgPot">…</b> · 下次加碼 <b id="dgNext">…</b></p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="dgGo">入場（付 €${DGFEE}）</button></div>`;
-  let dgm=DGMAX,dgwhy="cap",dgt=0,dgBet=50;const WHY={pot:"彩池只有這些",cash:"現金 ÷ 3（撞柱要賠 3 倍）",cap:"單注上限"};
+if(gameTab=="dg"){area.innerHTML=`<p class="mut">流程：付入場費 €${DGFEE}（進彩池）→ 看兩張龍門牌 → 放棄（只損失入場費），或自訂金額下注（最少 €50，只能賭彩池裡的錢，現金要有押注 3 倍）。第三張在兩張之間才贏，贏拿彩池 1 倍押注（抽 5% 進鎮基金）；撞柱輸 2 倍，兩張龍門同點又撞中輸 3 倍；其他輸 1 倍。兩張相鄰自動重發、不收入場費。彩池每 10 分鐘自動加 10%。</p><p class="mut">彩池 €<b id="dgPot">…</b> · 下次加碼 <b id="dgNext">…</b></p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="dgGo">入場（付 €${DGFEE}）</button></div>`;
+  let dgm=0,dgwhy="pot",dgt=0,dgBet=50;const WHY={pot:"彩池只有這些",cash:"現金 ÷ 3（撞柱要賠 3 倍）"};
   const tm=()=>{const n=$("dgNext");if(n)n.textContent=Math.floor(dgt/60)+":"+String(dgt%60).padStart(2,"0")};const tk=setInterval(()=>{if(!$("dgNext")){clearInterval(tk);return}dgt=dgt>0?dgt-1:600;tm()},1000);
-  const potUp=g=>{$("dgPot").textContent=g.pot;dgm=g.maxBet!=null?g.maxBet:DGMAX;dgwhy=g.why||"cap";if(g.next!=null)dgt=g.next;tm()};
+  const potUp=g=>{$("dgPot").textContent=g.pot;dgm=g.maxBet!=null?g.maxBet:0;dgwhy=g.why||"pot";if(g.next!=null)dgt=g.next;tm()};
   const dgSync=()=>{const inp=$("dgIn");if(!inp)return;dgBet=Math.floor(+inp.value)||0;const ok=dgBet>=50&&dgBet<=dgm;area.querySelectorAll("[data-dg]").forEach(x=>{if(x.dataset.dg!="pass")x.disabled=!ok});area.querySelectorAll("[data-dgb]").forEach(x=>x.textContent=`押 €${dgBet}`);const n=$("dgNote");if(n)n.textContent=dgm<50?`現金或彩池不夠（${WHY[dgwhy]}），只能放棄`:`目前可押 €50～€${dgm}（${WHY[dgwhy]}）${dgBet>dgm?" · 金額太大":dgBet<50?" · 最少 €50":""}`};
   rpc("town_game2",{rid:me,pin,game:"dg_info",bet:0}).then(r=>{potUp(r.game)}).catch(()=>{});
   const deal=async()=>{try{const g=await pg2("dg_start",{bet:0});const gt=g.gates,show=$("gShow");potUp(g);money();dgBet=Math.max(50,Math.min(dgBet,dgm||50));

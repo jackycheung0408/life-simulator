@@ -14,7 +14,7 @@ begin
     end loop;
     rep := rep || 'bacc '||nm||' RTP='||round(tot/(n*bet),4)||' ties='||ties||E'\n';
   end loop;
-  -- 射龍門（入場費 50、自訂押注、單注上限 800、贏的抽 5%）：最佳策略 W>=8 押 800、其餘放棄，理論回報率 0.957、每手淨 -9.26
+  -- 射龍門（入場費 50、自訂押注、無單注上限、贏的抽 5%）：最佳策略 W>=8 押 800、其餘放棄，理論回報率 0.957、每手淨 -9.3（大注 5000 +204.6／1.189，不設限的已知風險）
   update public.town_residents set money=1000000, items='{}'::jsonb where id = rid;
   tot := 0; n := 0; neg := 0; cnt := array[0,0];
   for i in 1..500 loop
@@ -49,13 +49,20 @@ begin
       rep := rep||'win net='||(g->'game'->>'net')||' fund='||(select fund from public.town_towns where id=(select town_id from public.town_residents where id=rid))||E'\n'; exit;
     end if;
   end loop;
-  -- 自訂金額範圍：49、801 被擋；超過彩池被擋；現金 ÷ 3 被擋
+  -- 大注可下：彩池 60000、現金 300000，押 20000 可下（現金 ÷ 3 = 100000、彩池 60000）；押 60001 被擋
+  update public.town_residents set money=300000, items='{}'::jsonb where id = rid;
+  update public.town_pots set amt = 60000, last_tick = now() where town_id = (select town_id from public.town_residents where id=rid);
+  g := public.town_game2(rid,'1234','dg_start',0);
+  rep := rep||'big info maxBet='||(g->'game'->>'maxBet')||' why='||(g->'game'->>'why')||' (expect 60050 pot, since entry adds 50)'||E'\n';
+  begin perform public.town_game2(rid,'1234','dg_play',60100,case when (g->'game'->>'same')::boolean then 'lo' else 'in' end); rep := rep||'bet>pot ALLOWED'||E'\n'; exception when others then rep := rep||'dg bet 60100 > pot: '||sqlerrm||E'\n'; end;
+  g := public.town_game2(rid,'1234','dg_play',20000,case when (g->'game'->>'same')::boolean then (case when (g->'game'->'gates'->>0)::int % 100 >= 7 then 'lo' else 'hi' end) else 'in' end);
+  rep := rep||'big bet 20000 ok net='||(g->'game'->>'net')||' pot='||(g->'game'->>'pot')||' money='||(select money from public.town_residents where id=rid)||E'\n';
+  -- 自訂金額範圍：49 被擋；超過彩池被擋；現金 ÷ 3 被擋
   update public.town_residents set money=100000, items='{}'::jsonb where id = rid;
   update public.town_pots set amt = 500, last_tick = now() where town_id = (select town_id from public.town_residents where id=rid);
   g := public.town_game2(rid,'1234','dg_start',0);
   rep := rep||'maxBet info='||(g->'game'->>'maxBet')||' why='||(g->'game'->>'why')||E'\n';
   begin perform public.town_game2(rid,'1234','dg_play',49,'in'); rep := rep||'bet 49 ALLOWED'||E'\n'; exception when others then rep := rep||'dg bet 49: '||sqlerrm||E'\n'; end;
-  begin perform public.town_game2(rid,'1234','dg_play',801,'in'); rep := rep||'bet 801 ALLOWED'||E'\n'; exception when others then rep := rep||'dg bet 801: '||sqlerrm||E'\n'; end;
   begin perform public.town_game2(rid,'1234','dg_play',700,'in'); rep := rep||'bet>pot ALLOWED'||E'\n'; exception when others then rep := rep||'dg bet 700 pot ~550: '||sqlerrm||E'\n'; end;
   update public.town_residents set money=300 where id = rid;
   begin perform public.town_game2(rid,'1234','dg_play',150,'in'); rep := rep||'cash<3x ALLOWED'||E'\n'; exception when others then rep := rep||'dg cash 300 bet 150: '||sqlerrm||E'\n'; end;
