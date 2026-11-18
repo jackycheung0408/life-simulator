@@ -14,30 +14,41 @@ begin
     end loop;
     rep := rep || 'bacc '||nm||' RTP='||round(tot/(n*bet),4)||' ties='||ties||E'\n';
   end loop;
-  -- 射龍門：重複發牌，各種龍門都試；放棄不扣錢；相鄰自動放棄；撞柱扣 2 倍
-  tot := 0; n := 0; neg := 0;
-  for i in 1..1500 loop
-    update public.town_residents set money=100000 where id = rid;
-    g := public.town_game2(rid,'1234','dg_start');
-    if (g->'game'->>'abandon')::boolean then
-      if (select money from public.town_residents where id=rid) <> 100000 then rep := rep||'ABANDON CHARGED'||E'\n'; end if; continue;
-    end if;
-    if i % 7 = 0 then g := public.town_game2(rid,'1234','dg_play',0,'pass'); if (select money from public.town_residents where id=rid) <> 100000 then rep := rep||'PASS CHARGED'||E'\n'; end if; continue; end if;
-    g := public.town_game2(rid,'1234','dg_play',bet,case when (g->'game'->>'same')::boolean then (case when (g->'game'->'gates'->>0)::int % 100 >= 7 then 'lo' else 'hi' end) else 'in' end);
-    n := n + 1; tot := tot + (g->'game'->>'win')::int - (g->'game'->>'pen')::int;
-    if (g->'game'->>'hit')::boolean and (g->'game'->>'pen')::int <> bet then rep := rep||'PILLAR PEN WRONG'||E'\n'; end if;
+  -- 射龍門（先下注、彩池）：最佳策略 W<=6 放棄、W>=7 玩，理論回報率 0.9510；檢查彩池 >=0、發牌費進彩池、相鄰不收費
+  update public.town_residents set money=1000000, items='{}'::jsonb where id = rid;
+  tot := 0; n := 0; neg := 0; bet := 100;
+  for i in 1..3000 loop
+    update public.town_residents set money=1000000 where id = rid;
+    update public.town_pots set amt = 3000 where town_id = (select town_id from public.town_residents where id=rid);
+    g := public.town_game2(rid,'1234','dg_start',bet);
+    a := (g->'game'->'gates'->>1)::int % 100 - (g->'game'->'gates'->>0)::int % 100;
+    if a = 1 then rep := rep||'ADJACENT NOT REDEALT'||E'\n'; end if;
+    n := n + 1;
+    -- W：同點取較大一邊；不同點 = 差 - 1
+    if a = 0 then nm := case when (g->'game'->'gates'->>0)::int % 100 >= 7 then 'lo' else 'hi' end; a := greatest(13-(g->'game'->'gates'->>0)::int % 100, (g->'game'->'gates'->>0)::int % 100 - 1);
+    else nm := 'in'; a := a - 1; end if;
+    if a <= 6 then g := public.town_game2(rid,'1234','dg_play',0,'pass');
+    else g := public.town_game2(rid,'1234','dg_play',0,nm); end if;
+    tot := tot + (select money from public.town_residents where id=rid) - 1000000;
+    if (select amt from public.town_pots where town_id=(select town_id from public.town_residents where id=rid)) < 0 then neg := neg + 1; end if;
   end loop;
-  rep := rep||'dg played='||n||' avg RTP='||round(1+tot/(n*bet)-1,4)||' (含撞柱多扣，理論每種龍門 <= 0.96)'||E'\n';
-  -- 射龍門：現金不足押注 2 倍要被擋；沒先發牌要被擋；押注範圍
-  update public.town_residents set money=150, items='{}'::jsonb where id = rid;
-  begin perform public.town_game2(rid,'1234','dg_play',100,'in'); rep := rep||'no gates ALLOWED'||E'\n'; exception when others then rep := rep||'no gates: '||sqlerrm||E'\n'; end;
-  begin perform public.town_game2(rid,'1234','dg_play',100,'in'); exception when others then null; end;
+  rep := rep||'dg best-policy RTP='||round(1 + tot/(n*bet),4)||' (理論 0.9510) neg pot='||neg||E'\n';
+  update public.town_residents set money=1000000 where id = rid;
+  begin perform public.town_game2(rid,'1234','dg_play',0,'in'); rep := rep||'no gates ALLOWED'||E'\n'; exception when others then rep := rep||'no gates: '||sqlerrm||E'\n'; end;
+  update public.town_pots set amt = 200 where town_id = (select town_id from public.town_residents where id=rid);
+  begin perform public.town_game2(rid,'1234','dg_start',100); rep := rep||'pot too small ALLOWED'||E'\n'; exception when others then rep := rep||'pot 200 bet 100: '||sqlerrm||E'\n'; end;
+  update public.town_pots set amt = 99999 where town_id = (select town_id from public.town_residents where id=rid);
+  perform public.town_pot_add((select town_id from public.town_residents where id=rid), 5000);
+  rep := rep||'pot cap: '||(select amt from public.town_pots where town_id=(select town_id from public.town_residents where id=rid))||' fund='||(select fund from public.town_towns where id=(select town_id from public.town_residents where id=rid))||E'\n';
+  update public.town_residents set money=250, items='{}'::jsonb where id = rid;
+  begin perform public.town_game2(rid,'1234','dg_start',100); rep := rep||'cash<3x ALLOWED'||E'\n'; exception when others then rep := rep||'cash 250 bet 100: '||sqlerrm||E'\n'; end;
   begin perform public.town_game2(rid,'1234','bacc',49,'p'); rep := rep||'bet 49 ALLOWED'||E'\n'; exception when others then rep := rep||'bet 49: '||sqlerrm||E'\n'; end;
   begin perform public.town_game2(rid,'1234','bacc',1001,'p'); rep := rep||'bet 1001 ALLOWED'||E'\n'; exception when others then rep := rep||'bet 1001: '||sqlerrm||E'\n'; end;
-  begin perform public.town_game2(rid,'1234','niu',100); rep := rep||'niu need 2x ALLOWED'||E'\n'; exception when others then rep := rep||'niu 150 money bet 100: '||sqlerrm||E'\n'; end;
+  update public.town_residents set money=150, items='{}'::jsonb where id = rid;
+  begin perform public.town_game2(rid,'1234','niu',100); rep := rep||'niu need 3x ALLOWED'||E'\n'; exception when others then rep := rep||'niu 150 money bet 100: '||sqlerrm||E'\n'; end;
   update public.town_residents set money=40 where id = rid;
   begin perform public.town_game2(rid,'1234','bacc',50,'p'); rep := rep||'broke ALLOWED'||E'\n'; exception when others then rep := rep||'broke: '||sqlerrm||E'\n'; end;
-  -- 妞妞：理論 RTP 1.000（贏妞妞 ×3、輸妞妞賠 2 倍）；錢不變負、不限局數連玩 60 局
+  -- 妞妞：理論 RTP 1.000（倍數 1／2／3，平手 2.74% 退注）；錢不變負、不限局數連玩 60 局
   tot := 0; n := 4000; neg := 0; cnt := array[0,0,0,0,0,0,0,0,0,0,0];
   for i in 1..n loop
     update public.town_residents set money=100000 where id = rid;

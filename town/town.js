@@ -229,7 +229,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
   {id:"venues1-1118",date:"11/18",title:"吃喝社交場館升級",items:["咖啡廳拉花、共點，餐廳套餐、外帶","電影院情侶座、超市特價與點數","店員常客有委託，夜晚室內變暗"]},
-  {id:"arcade2-1118",date:"11/18",title:"街機新三款",items:["新增百家樂、射龍門、妞妞","街機不限局數"]},
+  {id:"arcade2-1118",date:"11/18",title:"街機新三款",items:["新增百家樂、射龍門、妞妞","射龍門先押注、有彩池","街機不限局數"]},
   {id:"infac-1118",date:"11/18",title:"進館才能用",items:["超市、電影院、公司等也能走進去","設施功能要進去才能用"]},
   {id:"tap-1117",date:"11/17",title:"點了就做",items:["點物件、建築，走過去自動互動","花錢的會先問你"]},
   {id:"sound-1117",date:"11/17",title:"新增 8-bit 音效",items:["點擊、賺錢、打工、走路都有聲音","選單「聲音」可開音樂、調音量、試聽"]},
@@ -357,8 +357,8 @@ const fin=r=>!!r&&!!r.items&&!!ROOMS[r.place]&&(r.items.fi===r.place||(r.place==
 // 現在在哪個室內：設施裡面（fin）或自己家屋裡（inside）；都不是就 null
 const visitHost=(r,RR)=>{const h=RR&&r&&r.place&&r.place.startsWith("home:")&&r.place!="home:"+r.id?RR[r.place.slice(5)]:null;return h&&inside(h)?h:null};// 在朋友家門口、他人在屋裡 → 看得到他家室內
 const roomOf=(r,RR)=>!r?null:fin(r)?ROOMS[r.place]:(r.place=="home:"+r.id&&inside(r))?homeRoom(r):visitHost(r,RR)?{...homeRoom(visitHost(r,RR)),visit:true,inn:vin(r)}:null;// RR = 居民表（頂層函式拿不到 init 裡的 R，由呼叫的人傳進來）
-const dgOdds=(w,p)=>Math.floor((100*p+1248-100*w)/w);
-if(typeof module!=="undefined")module.exports={VENACT,HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,TAP_DEF,dgOdds,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,JOBS,PJT,PJM,PJN,RFT,RFW,pjTier,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
+const DGFEE=3,DGPASS=10,NIUM=c=>c==10?3:c>=7?2:1;
+if(typeof module!=="undefined")module.exports={DGFEE,DGPASS,NIUM,VENACT,HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,TAP_DEF,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,JOBS,PJT,PJM,PJN,RFT,RFW,pjTier,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
 
 function init(){
 
@@ -1024,18 +1024,18 @@ function gamesModal(){$("modal").classList.remove("hide");const solo=SOLO.some(g
   area.querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{area.querySelectorAll("[data-b]").forEach(x=>x.disabled=true);try{const g=await pg2("bacc",{choice:b.dataset.b});const side=g.pt>g.bt?"閒贏":g.bt>g.pt?"莊贏":"和局";
    $("gShow").innerHTML=`<p>閒 <b>${g.pt}</b></p>${cardsH(g.p)}<p>莊 <b>${g.bt}</b></p>${cardsH(g.b)}<p class="mut">${side}</p>`+result(g);money()}catch(e){$("gShow").innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
    area.querySelectorAll("[data-b]").forEach(x=>x.disabled=false)})}
- if(gameTab=="dg"){area.innerHTML=`<p class="mut">先發兩張龍門牌，看完再決定押不押。第三張在兩張之間才贏；撞柱（跟龍門同點）輸 2 倍，要有押注 2 倍的現金；其他輸 1 倍。賠率看間距，間距越小賠越多。</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="dgGo">發龍門牌</button></div>`;
-  const deal=async()=>{try{const g=await pg2("dg_start");const gt=g.gates,ra=gt[0]%100,rb=gt[1]%100,show=$("gShow");lockBet(false);
-   show.innerHTML=`<div class="cards">${cardHTML(gt[0])}${cardHTML(0,true)}${cardHTML(gt[1])}</div>`;
-   if(g.abandon){show.innerHTML+=`<p class="mut">兩張相鄰，不可能贏，自動放棄（不扣錢）</p>`;area.querySelector(".gbtns").innerHTML=`<button class="pri" id="dgGo">再發一次</button>`;$("dgGo").onclick=deal;return}
-   const ox=o=>"×"+((100+o)/100).toFixed(2),pl=g.same?[["hi","更大",g.oddsHi],["lo","更小",g.oddsLo]].filter(x=>x[2]!=null).map(([k,n,o])=>`<button class="gbig" data-dg="${k}">${n}<span>${ox(o)}</span></button>`).join(""):`<button class="gbig" data-dg="in">射！<span>${ox(g.odds)}</span></button>`;
-   area.querySelector(".gbtns").innerHTML=pl+`<button class="gbig" data-dg="pass">放棄<span>不扣錢</span></button>`;
-   area.querySelectorAll("[data-dg]").forEach(b=>b.onclick=async()=>{area.querySelectorAll("[data-dg]").forEach(x=>x.disabled=true);try{const r2=await pg2("dg_play",{choice:b.dataset.dg});
-    if(r2.pass){show.innerHTML=`<p class="gres">放棄了，沒扣錢</p>`}else{const net=r2.win-r2.bet-r2.pen;show.innerHTML=`<div class="cards">${cardHTML(gt[0])}${cardHTML(r2.card)}${cardHTML(gt[1])}</div><p class="gres ${net>0?"good":"bad"}">${net>0?`贏了 €${net}！`:r2.hit?`撞柱！輸了 €${r2.bet+r2.pen}`:`輸了 €${r2.bet}`}</p>`}
-    money();area.querySelector(".gbtns").innerHTML=`<button class="pri" id="dgGo">再發一局（押 €${gameBet}）</button>`;$("dgGo").onclick=deal}catch(e){toast(e.message);area.querySelectorAll("[data-dg]").forEach(x=>x.disabled=false)}})}catch(e){toast(e.message)}};
+if(gameTab=="dg"){area.innerHTML=`<p class="mut">先下注再發龍門牌。第三張在兩張之間才贏，贏拿彩池 1 倍押注；撞柱輸 2 倍，兩張龍門同點又撞中輸 3 倍；其他輸 1 倍。兩張相鄰不可能贏，免費重發。發牌費 ${DGFEE}%、放棄再付 ${DGPASS}%，都進彩池。</p><p class="mut">彩池 €<b id="dgPot">…</b> · 最多可押 €<b id="dgMax">…</b>（現金要有押注 3 倍＋發牌費）</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="dgGo">下注 €${gameBet}，發龍門牌</button></div>`;
+  const potUp=g=>{$("dgPot").textContent=g.pot;$("dgMax").textContent=g.maxBet!=null?g.maxBet:Math.min(1000,Math.floor(g.pot/3))};
+  rpc("town_game2",{rid:me,pin,game:"dg_info",bet:0}).then(r=>potUp(r.game)).catch(()=>{});
+  const deal=async()=>{try{const g=await pg2("dg_start",{});const gt=g.gates,show=$("gShow");potUp(g);const bet=g.bet;
+   show.innerHTML=`<div class="cards">${cardHTML(gt[0])}${cardHTML(0,true)}${cardHTML(gt[1])}</div><p class="mut">已收發牌費 €${g.fee}${g.redeal?`（相鄰重發 ${g.redeal} 次，免費）`:""}</p>`;
+   area.querySelector(".gbtns").innerHTML=(g.same?[["hi","更大",g.canHi],["lo","更小",g.canLo]].filter(x=>x[2]).map(([k,n])=>`<button class="gbig" data-dg="${k}">玩：${n}<span>押 €${bet}</span></button>`).join(""):`<button class="gbig" data-dg="in">玩！<span>押 €${bet}</span></button>`)+`<button class="gbig" data-dg="pass">放棄<span>再付 €${g.pass}</span></button>`;
+   area.querySelectorAll("[data-dg]").forEach(b=>b.onclick=async()=>{area.querySelectorAll("[data-dg]").forEach(x=>x.disabled=true);try{const r2=await pg2("dg_play",{choice:b.dataset.dg});potUp(r2);
+    if(r2.pass)show.innerHTML=`<p class="gres bad">放棄了，付 €${r2.cost}</p>`;else show.innerHTML=`<div class="cards">${cardHTML(gt[0])}${cardHTML(r2.card)}${cardHTML(gt[1])}</div><p class="gres ${r2.net>0?"good":"bad"}">${r2.net>0?`贏了 €${r2.net}！`:r2.mult>1?`撞柱！輸了 €${-r2.net}`:`輸了 €${-r2.net}`}</p>`;
+    money();area.querySelector(".gbtns").innerHTML=`<button class="pri" id="dgGo">再來一局（押 €${gameBet}）</button>`;$("dgGo").onclick=deal}catch(e){toast(e.message);area.querySelectorAll("[data-dg]").forEach(x=>x.disabled=false)}})}catch(e){toast(e.message)}};
   $("dgGo").onclick=deal}
- if(gameTab=="niu"){area.innerHTML=`<p class="mut">各 5 張牌，找 3 張湊成 10 的倍數，剩 2 張的個位數是妞點（0 = 妞妞最大，找不到 = 沒妞）。比大小贏 ×2，妞妞贏 ×3，輸給莊家妞妞賠 2 倍（現金要有押注 2 倍）。同點比最大牌（K 最大、A 最小），再比花色。</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="nGo">開牌（押 €${gameBet}）</button></div>`;
-  $("nGo").onclick=async()=>{$("nGo").disabled=true;try{const g=await pg2("niu");$("gShow").innerHTML=`<p>莊家 <b>${NIUC(g.bcl)}</b></p>${cardsH(g.b)}<p>你 <b>${NIUC(g.pcl)}</b></p>${cardsH(g.p)}`+(g.win>0?`<p class="gres good">贏了 €${g.win-g.bet}！</p>`:`<p class="gres bad">輸了 €${g.bet+g.pen}</p>`);money()}catch(e){toast(e.message)}$("nGo").disabled=false;$("nGo").textContent=`再來一局（押 €${gameBet}）`}}
+ if(gameTab=="niu"){area.innerHTML=`<p class="mut">各 5 張牌，找 3 張湊成 10 的倍數，剩 2 張的個位數是妞點（0 = 妞妞最大，找不到 = 沒妞）。比大小，最大一張也同點算平手退押注（不比花色）。贏家牌型決定倍數，輸家付同樣倍數：沒妞、妞 1～6 = 1 倍；妞 7、8、9 = 2 倍；妞妞 = 3 倍（現金要有押注 3 倍）。</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="nGo">開牌（押 €${gameBet}）</button></div>`;
+  $("nGo").onclick=async()=>{$("nGo").disabled=true;try{const g=await pg2("niu");$("gShow").innerHTML=`<p>莊家 <b>${NIUC(g.bcl)}</b></p>${cardsH(g.b)}<p>你 <b>${NIUC(g.pcl)}</b></p>${cardsH(g.p)}`+(g.win>g.bet?`<p class="gres good">贏了 €${g.win-g.bet}！</p>`:g.win==g.bet?`<p class="gres">平手，退回押注</p>`:`<p class="gres bad">輸了 €${g.bet+g.pen}</p>`);money()}catch(e){toast(e.message)}$("nGo").disabled=false;$("nGo").textContent=`再來一局（押 €${gameBet}）`}}
  // 單機：前端自己玩，結束後只把個人最佳分數送給伺服器（不給錢）
  const sendScore=async(game,score)=>{try{const r=await rpc("town_score",{rid:me,pin,game,score});const it=R[me].items=R[me].items||{};it.sp=it.sp||{};if(score>(it.sp[game]||0))it.sp[game]=score;return r}catch(e){toast(e.message);return null}};
  const soloEnd=async(game,score,note)=>{const r=await sendScore(game,score);$("gShow").innerHTML=`<p class="gres good">得分 <b>${score}</b>${note||""}</p><p class="mut">個人最佳 ${r?r.best:spOf(R[me],game)}${r&&r.gain?" · 心情 +"+r.gain:""}</p><div class="gbtns"><button class="pri" id="sgAgain">再玩一次</button></div>`;$("sgAgain").onclick=()=>gamesModal()};
