@@ -1796,8 +1796,8 @@ begin
   if public.town_is_off(r.town_id, 'arcade') then raise exception '這個小鎮沒有開街機'; end if;
   if r.place <> 'plaza' then raise exception '街機在小豬廣場，走過去再玩'; end if;
   -- 舊格式（沒有花色，點數 < 100）的進行中牌局：退回押注、清掉，請重開
-  if game in ('hl_guess','bj_hit','bj_stand') and ((game = 'hl_guess' and (r.items->'hl'->>'card')::int < 100) or (game <> 'hl_guess' and (r.items->'bj'->'p'->>0)::int < 100)) then
-    update public.town_residents set money = money + coalesce((r.items->(case when game = 'hl_guess' then 'hl' else 'bj' end)->>'bet')::int,0), items = items - (case when game = 'hl_guess' then 'hl' else 'bj' end) where id = rid;
+  if game in ('hl_guess','bj_hit','bj_stand') and ((game = 'hl_guess' and (r.items->'hlg'->>'card')::int < 100) or (game <> 'hl_guess' and (r.items->'bj'->'p'->>0)::int < 100)) then
+    update public.town_residents set money = money + coalesce((r.items->(case when game = 'hl_guess' then 'hlg' else 'bj' end)->>'bet')::int,0), items = items - (case when game = 'hl_guess' then 'hlg' else 'bj' end) where id = rid;
     return json_build_object('error','舊版牌局已作廢，押注已退回，請重新開局');
   end if;
   -- 開新一局才要檢查押注與次數；21 點和比大小的後續動作不用
@@ -1815,18 +1815,18 @@ begin
     if choice = house then win := bet; elsif (choice,house) in (('r','s'),('s','p'),('p','r')) then win := bet*2; end if;
     res := json_build_object('you',choice,'house',house,'win',win);
   elsif game = 'hl_start' then
-    c := public.town_card(); r.items := jsonb_set(r.items, '{hl}', jsonb_build_object('bet',bet,'card',c));
+    c := public.town_card(); r.items := jsonb_set(r.items, '{hlg}', jsonb_build_object('bet',bet,'card',c));
     res := json_build_object('card',c);
   elsif game = 'hl_guess' then
-    if r.items->'hl' is null then raise exception '先開一局'; end if;
-    c := (r.items->'hl'->>'card')::int; bet := (r.items->'hl'->>'bet')::int; c2 := public.town_card();
+    if r.items->'hlg' is null then raise exception '先開一局'; end if;
+    c := (r.items->'hlg'->>'card')::int; bet := (r.items->'hlg'->>'bet')::int; c2 := public.town_card();
     d1 := c % 100; d2 := c2 % 100; -- 比的是點數，花色只是好看
     -- 賠率看機率：猜中的牌越少賠越多（期望值 0.92）
     if coalesce(choice,'') not in ('hi','lo') then raise exception '猜更大或更小'; end if;
     p := case when choice = 'hi' then 13 - d1 else d1 - 1 end;
     -- 一樣大退回押注；贏的賠率 = 0.97 × 12 / 贏的點數數（每個選項期望值都是 0.972）
     if d2 = d1 then win := bet; elsif p > 0 and ((choice = 'hi' and d2 > d1) or (choice = 'lo' and d2 < d1)) then win := floor(bet * 11.64 / p); end if;
-    r.items := r.items - 'hl';
+    r.items := r.items - 'hlg';
     res := json_build_object('card',c,'next',c2,'win',win);
   elsif game = 'wheel' then
     -- 10 格：銘謝惠顧 ×6、×0.5、×1、×2、×5
