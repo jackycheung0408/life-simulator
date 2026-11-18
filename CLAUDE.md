@@ -584,3 +584,10 @@
 ## 吃喝社交場館升級（2026-11-18，咖啡廳／餐廳／電影院／超市；SQL `supabase/town_venues1.sql` **已套用正式站 2026-11-18（回滾實測 town_venues1_test.sql：拉花／共點／套餐／外帶／情侶座／聊劇情／特價／試吃／點數兌換／常客委託各動作都成功，錢都不為負）**，在 `town.sql`、`town_fac.sql`、`town_pool.sql`、`town_infac.sql` 之後；實測 `town_venues1_test.sql`（回滾，REPORT）**尚未跑**）
 - 獨立 RPC `town_venue(rid,pin,act,target,num)`（不改 `town_act`／`town_fac`），前端 `VENACT` 集合的動作 `doFac` 會改打它；按鈕仍由 `FAC` 表產生（`node town/test.js` 比對價格與 SQL）。動作：咖啡廳 `art` 拉花小遊戲（€150，`artModal` 點對時機，num=品質 0～100，精力 15＋品質/4、心情 2＋品質/12、≥80 集點 +1）、`share` 共點一壺（€240，雙方精力 +25 心情 +6 好感 +3）；餐廳 `combo` 套餐 €320（飽足 +50 心情 +16）、`bring` 外帶給朋友 €200；電影院 `seat` 情侶座 €360（雙方心情 +20 好感 +4）、`chat` 聊劇情 €0（雙方心情 +6 好感 +2）；超市 `sale` 特價零食 €42（每天輪替名稱、會員點數 `items.mp` +1）、`sample` 試吃、`mredeem` 滿 10 點換 2 包零食；四間店員都有「常客」（`REG`，依日期輪替）`reg` 常客委託：付 €90／200／280／60、拿 €80／170／240／50，淨 −10～−40、心情 +6。價格走 `town_px`（全鎮事件）與常客折扣（`items.fq`），`sale`／`reg` 不打折。
 - 室內：咖啡廳加拉花台、茶壺桌（動畫 `latteart`／`pot`），電影院 `seat`、超市 `mshelf` 動畫，電影院與超市新增店員（小映、阿珍）；室內台灣 19～6 點加暗色疊層（`drawRoom`）。**還沒做**：人多時座位坐滿、每間 ≥12 個專屬事件情節（事件池 C 型仍是通用模板）、餐廳／超市新增物件、視覺基準圖更新。
+
+
+## 帳號＋密碼登入（2026-11-18；SQL `supabase/town_account.sql` **尚未套用正式站**，實測 `town_account_test.sql`（回滾，REPORT）；順序在 `town.sql` 之後）
+- 和免密碼裝置金鑰、邀請碼並存，舊流程完全不動。帳號＝小鎮代碼（或邀請碼）＋角色名稱，可改自訂帳號名（同鎮唯一 2～12 字，不可撞別人的角色名）。表 `town_accounts(rid,town_id,uname,pw 雜湊,temp,fails,locked_until)`，RLS 全關。
+- 初始密碼：已登入裝置在選單「帳號與密碼」（`acctModal`）按「產生初始密碼」，伺服器隨機 6 碼只回傳一次，之後要求改成自己的（改密碼要舊密碼、≥6 字、不能等於角色名稱）；鎮長在鎮長面板「重設密碼」產生臨時密碼（只顯示給鎮長一次，玩家登入後被要求改）。
+- 登入：首頁「用帳號密碼登入」（`LP.want="a"`，`acctLogin`）→ `town_acct_login` 回一把新裝置金鑰（舊金鑰仍有效），存 `town-mine`＋IndexedDB 備份。錯誤一律「帳號或密碼不對」，同角色連錯 5 次鎖 30 分鐘（鎖定時也是同一句）。
+- 旗標 `window.ACCT_ON`（`index.html`，預設 true）；SQL 沒套用時 RPC 會回「Could not find the function」，`acctGone` 偵測到就設成 false 並隱藏入口。與 `RECOVERY_ON`（Email 救援）互不相干。

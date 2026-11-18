@@ -439,4 +439,13 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 
 {const src=require("fs").readFileSync(__dirname+"/town.js","utf8");
  check(src.includes('id="fxcard"')||src.includes('id="fxcard')||src.includes("fxcard"),"要有長按詳情卡 #fxcard");check(src.includes("NOFXRE"),"要有 NOFXRE 清單")}
+{const fs=require("fs");const sq=fs.readFileSync(__dirname+"/../supabase/town_account.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8"),ih=fs.readFileSync(__dirname+"/index.html","utf8");
+ check(sq.split("\n").slice(0,6).every(l=>l.startsWith("-- ")),"town_account.sql 檔頭每行要是註解");
+ check(/enable row level security/.test(sq)&&/revoke all on public\.town_accounts from anon, authenticated/.test(sq),"town_accounts 要 RLS 全關");
+ check(sq.includes("extensions.crypt")&&sq.includes("#variable_conflict use_variable")&&!/returns json[^$]*pw text, temp/.test(sq),"town_account 要用雜湊與 use_variable");
+ check(!/'pw', *a\.pw|'pw', *r\.pw/.test(sq),"不可回傳雜湊");
+ for(const f of ["town_acct","town_acct_login"])check(js.includes('"'+f+'"'),"town.js 要呼叫 "+f);
+ check(js.includes("function acctLogin")&&js.includes("function acctModal")&&ih.includes('id="cAcct"')&&ih.includes('id="acctBtn"')&&ih.includes("window.ACCT_ON"),"帳號密碼入口（cAcct、acctBtn、ACCT_ON、acctLogin、acctModal）要在");
+ check(js.includes("data-pw")&&js.includes('op:"reset"'),"鎮長面板要有重設密碼");
+ check(fs.existsSync(__dirname+"/../supabase/town_account_test.sql"),"要有 town_account_test.sql")}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
