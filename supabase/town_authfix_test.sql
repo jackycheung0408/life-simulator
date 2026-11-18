@@ -3,7 +3,7 @@ do $$
 declare t text := 'ZZAUTH'; rid bigint; rep text := ''; i int; msg text; r public.town_residents; k text := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ012345'; m0 int; m1 int; tw public.town_towns;
 begin
   insert into public.town_towns(id, name, invite) values (t, '測試鎮', 'INV123');
-  insert into public.town_residents(town_id, name, slot, x, y, pin_hash, money) values (t, '甲', 0, 20, 7, extensions.crypt('1234', extensions.gen_salt('bf')), 3000) returning id into rid;
+  insert into public.town_residents(town_id, name, slot, place, x, y, pin_hash, money) values (t, '甲', 0, 'street', 20, 7, extensions.crypt('1234', extensions.gen_salt('bf')), 3000) returning id into rid;
   insert into public.town_devices(resident_id, key_hash) values (rid, extensions.crypt(k, extensions.gen_salt('bf')));
   -- 1 失效長金鑰連打 30 次
   for i in 1..30 loop begin perform public.town_auth(rid, 'ZYXWVUTSRQPONMLKJIHGFEDCBA9876'); exception when others then msg := sqlerrm; end; end loop;
