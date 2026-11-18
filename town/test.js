@@ -126,8 +126,13 @@ check(M.pjName("rafi",15)=="企劃"&&M.pjName("cafe",40)=="咖啡師（資深）
  for(const t of M.RFT.slice(1))check(sq.includes("when n >= "+t+" then"),"SQL town_rafi_tier 缺門檻 "+t);
  check(sq.includes("array["+M.RFW.join(",")+"])[public.town_rafi_tier"),"拉菲薪水和 SQL 不一致");
  for(const k of Object.keys(M.PJN)){check(M.PJN[k].length==(k=="rafi"?M.RFT.length:M.PJT.length),k+" 職稱數不對");for(const nm of M.PJN[k])check(sq.includes("'"+nm+"'"),"SQL 缺職稱 "+nm);
-  const T=k=="rafi"?M.RFT:M.PJT;let p=0;for(let n=0;n<=400;n++){const w=M.pjWage(k,n);check(w>=p,k+" 薪水不單調 "+n);p=w}check(M.pjWage(k,9999)<=(k=="rafi"?650*1.6:M.PJ[k][2]*1.9),k+" 最高階薪水過高");check(M.pjName(k,T[3])==M.PJN[k][3],k+" 階名不對")}
+  const T=k=="rafi"?M.RFT:M.PJT;let p=0;for(let n=0;n<=400;n++){const w=M.pjWage(k,n);check(w>=p,k+" 薪水不單調 "+n);p=w}check(M.pjWage(k,9999)<=(k=="rafi"?1500:M.PJ[k][2]*1.9),k+" 最高階薪水過高");check(M.pjName(k,T[3])==M.PJN[k][3],k+" 階名不對")}
  check(M.pjWage("cafe",80)==280&&M.pjWage("gym",350)==414&&M.pjWage("rafi",260)==950,"新職階薪水不對")}
+{const sq=require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8"),ra=require("fs").readFileSync(__dirname+"/../supabase/town_rafi2.sql","utf8");
+ for(const nm of ["town_rafi_tier","town_pjob_wage","town_pjob_name","town_place_name"]){const g=t=>{const m=t.match(new RegExp("create or replace function public\\."+nm+"\\(.*?\\n\\$\\$;","s"));return m&&m[0]};check(g(ra)&&g(ra)==g(sq),"town_rafi2.sql 與 town.sql 的 "+nm+" 不一致")}
+ check(ra.split("\n").filter(l=>l.trim()&&!l.startsWith("create")&&!l.startsWith(" ")&&!l.startsWith("$$")&&!l.startsWith("revoke")&&!l.startsWith("--")).length==0,"town_rafi2.sql 非函式行必須是註解");
+ for(const [nm,l] of [["資深業務經理",3],["業務總監",6],["業務負責人",7],["總經理",8],["董事長",9]])check(M.PJN.rafi[l]==nm,"拉菲職稱順序 "+nm);
+ check(M.PLACES.rafi.name=="拉菲's office"&&sq.includes("then '拉菲''s office'")&&!/[^'"]'拉菲's/.test(sq),"place 名")}
 check(M.PLACES.rafi&&M.PLACES.rafi.door[0]==49&&M.PLACES.rafi.door[1]==21,"拉菲辦公室門口不對");
 check(M.PLACES.stock&&M.PLACES.stock.door[0]==45&&M.PLACES.stock.door[1]==5&&!M.blocked(45,5),"證券交易所門口不對");
 // 交通：車行門口、價格與速度（和 town.sql 的 vbuy／move 一致）、斑馬線與人行道

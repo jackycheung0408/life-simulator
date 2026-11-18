@@ -94,7 +94,7 @@ create or replace function public.town_place_name(p text) returns text language 
   select case
     when p like 'home:%' then coalesce((select name from public.town_residents where id = substr(p,6)::bigint), '空屋') || ' 家'
     when p = 'plaza' then '廣場' when p = 'restaurant' then '餐廳' when p = 'market' then '超市'
-    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' when p = 'rafi' then '拉菲的辦公室' when p = 'stock' then '證券交易所' when p = 'carshop' then '車行' when p = 'jail' then '監獄' when p = 'hospital' then '醫院' when p = 'police' then '警察局' when p = 'townhall' then '市政廳' else '路上' end
+    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' when p = 'rafi' then '拉菲''s office' when p = 'stock' then '證券交易所' when p = 'carshop' then '車行' when p = 'jail' then '監獄' when p = 'hospital' then '醫院' when p = 'police' then '警察局' when p = 'townhall' then '市政廳' else '路上' end
 $$;
 create or replace function public.town_name_ok(t text) returns boolean language sql immutable as $$
   select char_length(trim(t)) between 1 and 12 and trim(t) !~ '[<>"]' and not public.has_bad_words(t)
@@ -318,9 +318,9 @@ $$;
 create or replace function public.town_pjob_tier(n int) returns int language sql immutable as $$
   select case when n >= 350 then 6 when n >= 220 then 5 when n >= 140 then 4 when n >= 80 then 3 when n >= 40 then 2 when n >= 15 then 1 else 0 end
 $$;
--- 拉菲辦公室階 0..5 = 0／15／40／80／150／260 次，薪水 320／450／650／740／840／950
+-- 拉菲's office 階 0..9 = 0／15／40／60／80／150／260／400／600／900 次，薪水 320／450／650／690／740／840／950／1050／1200／1400
 create or replace function public.town_rafi_tier(n int) returns int language sql immutable as $$
-  select case when n >= 260 then 5 when n >= 150 then 4 when n >= 80 then 3 when n >= 40 then 2 when n >= 15 then 1 else 0 end
+  select case when n >= 900 then 9 when n >= 600 then 8 when n >= 400 then 7 when n >= 260 then 6 when n >= 150 then 5 when n >= 80 then 4 when n >= 60 then 3 when n >= 40 then 2 when n >= 15 then 1 else 0 end
 $$;
 -- 新職階給稱號（接在 items.titles 後，不重複）；沒有一次性獎金
 create or replace function public.town_rank_title(r public.town_residents, t text) returns public.town_residents language plpgsql as $$
@@ -763,7 +763,7 @@ begin
   r.items := jsonb_set(r.items, '{dc}', dc);
   return r;
 end $$;
--- ── 其他工作（咖啡師／服務生／健身教練／店員／拉菲的辦公室）：各自計數 items.jw[k]，疲勞和公司共用 dc.work ──
+-- ── 其他工作（咖啡師／服務生／健身教練／店員／拉菲's office）：各自計數 items.jw[k]，疲勞和公司共用 dc.work ──
 -- 熟練度：0 次 ×1.0、15 次 ×1.15、40 次 ×1.3；拉菲三個職位（行政專員／企劃／業務經理）底薪 320／450／650
 create or replace function public.town_pjob_place(k text) returns text language sql immutable as $$
   select case k when 'cafe' then 'cafe' when 'rest' then 'restaurant' when 'gym' then 'gym' when 'shop' then 'market' when 'rafi' then 'rafi' end
@@ -777,12 +777,12 @@ create or replace function public.town_pjob_fx(k text) returns int[] language sq
     when 'shop' then array[-16,-6,-10,-2] when 'rafi' then array[-25,-8,-18,-4] end
 $$;
 create or replace function public.town_pjob_wage(k text, n int) returns int language sql immutable as $$
-  select case when k = 'rafi' then (array[320,450,650,740,840,950])[public.town_rafi_tier(n) + 1]
+  select case when k = 'rafi' then (array[320,450,650,690,740,840,950,1050,1200,1400])[public.town_rafi_tier(n) + 1]
     else (case k when 'cafe' then 200 when 'rest' then 210 when 'gym' then 230 when 'shop' then 195 end) * (array[100,115,130,140,152,165,180])[public.town_pjob_tier(n) + 1] / 100 end
 $$;
 create or replace function public.town_pjob_name(k text, n int) returns text language sql immutable as $$
   select case k
-    when 'rafi' then (array['行政專員','企劃','業務經理','部門主任','協理','總監'])[public.town_rafi_tier(n) + 1]
+    when 'rafi' then (array['行政專員','企劃','業務經理','資深業務經理','部門主任','協理','業務總監','業務負責人','總經理','董事長'])[public.town_rafi_tier(n) + 1]
     when 'cafe' then (array['咖啡師','咖啡師（熟手）','咖啡師（資深）','咖啡廳領班','咖啡廳副店長','咖啡廳店長','咖啡廳區經理'])[public.town_pjob_tier(n) + 1]
     when 'rest' then (array['服務生','服務生（熟手）','服務生（資深）','餐廳領班','餐廳副理','餐廳經理','餐飲總監'])[public.town_pjob_tier(n) + 1]
     when 'gym' then (array['健身教練','健身教練（熟手）','健身教練（資深）','健身房領班','健身房副理','健身房經理','健身房區總監'])[public.town_pjob_tier(n) + 1]
@@ -1443,7 +1443,7 @@ begin
   elsif act = 'job' then
     if item is null or item not in ('cafe','rest','gym','shop','rafi') then raise exception '沒有這份工作'; end if;
     if r.place <> public.town_pjob_place(item) then raise exception '要在%才能做這份工作', public.town_place_name(public.town_pjob_place(item)); end if;
-    if item = 'rafi' and coalesce((r.items->>'works')::int,0) < 10 then raise exception '拉菲的辦公室要先在公司升到「員工」（累計打工 10 次）才能應徵'; end if;
+    if item = 'rafi' and coalesce((r.items->>'works')::int,0) < 10 then raise exception '拉菲''s office要先在公司升到「員工」（累計打工 10 次）才能應徵'; end if;
     perform public.town_wk_check(r); r := public.town_wk_set(r);
     fx := public.town_pjob_fx(item);
     if r.energy < greatest(15, -fx[1]) then raise exception '太累了，先回家睡覺'; end if;
