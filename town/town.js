@@ -558,7 +558,15 @@ function pinStep(id){const r=R[id];$("lg").innerHTML=`${LP.scene(1)}${LP.stepBar
  $("back").onclick=townLogin;$("pw").focus();if($("fgt"))$("fgt").onclick=()=>forgotPw(id);
  $("pw").onkeydown=e=>{if(e.key=="Enter")$("go").click()};
  $("go").onclick=async()=>{const pv=$("pw").value;if(!pv){$("lerr").textContent="先輸入密碼（還沒設過就輸入邀請碼）";return}$("go").disabled=true;
-  try{const k=newKey();const dv={tid:TID,invite:pv.toUpperCase(),rid:id,key:k};try{await rpc("town_device",{...dv,pw:pv,cid:cid()})}catch(e2){if(!acctGone(e2))throw e2;await rpc("town_device",dv)}const res=await rpc("town_login",{rid:id,pin:k});lastPw=pv;me=id;pin=k;lastSeen=res.last_seen;saveMine({tid:TID,name:S.town.name,rid:id,pin:k,me:r.name});await enter()}catch(e){$("lerr").textContent=e.message;$("go").disabled=false}}}
+  try{const k=newKey();const dv={tid:TID,invite:pv.toUpperCase(),rid:id,key:k};try{await rpc("town_device",{...dv,pw:pv,cid:cid()})}catch(e2){if(!acctGone(e2))throw e2;await rpc("town_device",dv)}const res=await rpc("town_login",{rid:id,pin:k});let st=null;try{st=await rpc("town_acct",{rid:id,pin:k,op:"status"})}catch(e3){if(!acctGone(e3))throw e3}
+  const fin=async()=>{lastPw="";me=id;pin=k;lastSeen=res.last_seen;saveMine({tid:TID,name:S.town.name,rid:id,pin:k,me:r.name});await enter()};
+  if(st&&(!st.has||st.temp))newPwStep(id,k,pv,r,st,fin);else{lastPw=pv;await fin()}}catch(e){$("lerr").textContent=e.message;$("go").disabled=false}}}
+// 登入第 4 步：還沒設密碼（初始密碼是邀請碼）或是臨時密碼，進遊戲前一定要先設新密碼，不能略過
+function newPwStep(id,k,old,r,st,fin){$("lg").innerHTML=`${LP.scene(1)}${LP.stepBar(4)}<p><b>${esc(r.name)}</b>，設定你的新密碼</p><p class="mut">以後換手機登入用。至少 6 個字，不能和角色名稱或邀請碼一樣。${window.RECOVERY_ON?"進遊戲後可在選單「帳號與密碼」綁定 Email，忘記密碼時才能用驗證碼重設。":""}</p>
+  <label class="lpcode">新密碼<input id="n1" type="password" maxlength="40" autocomplete="new-password"></label><label class="lpcode">再輸入一次<input id="n2" type="password" maxlength="40" autocomplete="new-password"></label><p class="err" id="lerr"></p>
+  <div class="row"><button class="pri" id="ngo">設定並進入小鎮</button></div>`;$("n1").focus();
+ $("ngo").onclick=async()=>{const a=$("n1").value;if(a!==$("n2").value){$("lerr").textContent="兩次密碼不一樣，再輸入一次";return}$("ngo").disabled=true;
+  try{await rpc("town_acct",{rid:id,pin:k,op:st.has?"setpw":"init",note1:st.has?old:a,note2:a});await fin()}catch(e){$("lerr").textContent=e.message+"（改好後再按一次）";$("ngo").disabled=false}}}
 // 忘記密碼（RECOVERY_ON）：Email 驗證碼 → 該 Email 綁的本鎮角色 → 設新密碼 → 登入
 function forgotPw(id0){const host=$("lg");host.innerHTML="";const box=document.createElement("div");host.appendChild(box);
  const back=()=>{const b=document.createElement("div");b.className="row";b.style.justifyContent="flex-start";b.innerHTML='<button id="fback">← 回輸入密碼</button>';host.appendChild(b);$("fback").onclick=()=>pinStep(id0)};
