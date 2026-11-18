@@ -34,7 +34,8 @@ if(!String(url).includes("/rpc/"))return _fetch(url,o);const fn=url.split("/rpc/
  if(fn=="town_mayor"){const r=R(b.rid),t=db.towns[r.town_id];if(!r.mayor)return bad("只有鎮長可以做這件事");if(b.act=="newinvite")t.invite="NEW"+Math.floor(Math.random()*900+100);if(b.act=="kick"){db.res=db.res.filter(x=>x.id!=b.target)}return ok({ok:true,invite:t.invite})}
  if(fn=="town_traits"){const r=R(b.rid);r.items=r.items||{};r.items.tr=b.ks||[];return ok(state(r.town_id))}
  if(fn=="town_wish"){const r=R(b.rid);r.items=r.items||{};r.items.wish={k:b.k=="skip"?"none":b.k,m:0};if(b.k=="rich"){r.items.titles=["小富翁"];r.items.wish.m=1}return ok(state(r.town_id))}
- if(fn=="town_fac"){return ok({m:0,f:3,msg:"（假資料）"+b.act})}
+ if(fn=="town_venue"){return ok({m:b.act=="reg"?-10:-100,f:6,msg:"（假資料）"+b.act})}
+  if(fn=="town_fac"){return ok({m:0,f:3,msg:"（假資料）"+b.act})}
  if(fn=="town_jail"){const r=R(b.rid);r.items=Object.assign({},r.items);const it=r.items;const iso=ms=>new Date(ms).toISOString();
   if(b.act=="labor"){it.jp=Object.assign({},it.jp,{n:((it.jp||{}).n||0)+1});r.money+=120;r.energy-=20;it.jl=iso(Date.parse(it.jl)-6e5);return ok({m:120,e:-20,f:-3,msg:"做了一小時勞動，領了 €120，刑期縮短 10 分鐘"})}
   if(b.act=="yard"){r.fun=Math.min(100,r.fun+6);r.energy-=3;it.cd=Object.assign({},it.cd,{yard:now()});return ok({f:6,e:-3,msg:"在放風場曬了太陽、走了一圈，心情好多了"})}
