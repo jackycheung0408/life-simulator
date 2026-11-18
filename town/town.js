@@ -601,7 +601,7 @@ const clearWorking=()=>$("acts").querySelectorAll(".working").forEach(x=>x.class
 function feedback(ok,msg){clearWorking();const b=pressed!=null&&$("acts").querySelector(`[data-i="${pressed}"]`);pressed=null;
  if(b){b.classList.remove("ok","err");void b.offsetWidth;b.classList.add(ok?"ok":"err");setTimeout(()=>b.classList.remove("ok","err"),700)}
  const f=$("fb");if(f&&msg){f.textContent=(ok?"✓ ":"✗ ")+msg;f.className=ok?"good":"bad";pxify(f);clearTimeout(fbTimer);fbTimer=setTimeout(()=>{f.className="hide"},3200)}}
-async function act(a,extra={}){if(busy)return;busy=true;spotsBefore={...lastSpots};$("acts").classList.add("busy");const b0=tickLocal(R[me],now());try{const st=await rpc("town_act",{rid:me,pin,act:a,...extra});await wkPlay(a,extra);apply(st);
+async function act(a,extra={}){if(busy)return;if(FACTS.has(a))await ensureIn();busy=true;spotsBefore={...lastSpots};$("acts").classList.add("busy");const b0=tickLocal(R[me],now());try{const st=await rpc("town_act",{rid:me,pin,act:a,...extra});await wkPlay(a,extra);apply(st);
   if(ACT_FX[a])spawnFx(ACT_FX[a],me);playRoomFx(a,extra.target);if(a=="buy"){spawnFx("bag",me);toast("已放進背包")}if(a=="obj"&&OBJ_FX[extra.item])spawnFx(OBJ_FX[extra.item],me);
   const b1=tickLocal(R[me],now()),ic={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"€"};let k=0;
     window.SFX&&SFX.act(a,extra,b1.money-b0.money);if(a!="move")feedback(true,sumChanges(b0,b1,ic))}
@@ -718,7 +718,7 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  if(!sel&&(tkList(r).length||susLeft(r)>0))list.push(btn(`🎫 罰單 · 欠 €${tkDebt(r)}`,susLeft(r)>0?`違規記滿，車輛暫停到 ${new Date(Date.parse(r.items.sus)).toLocaleString("zh-TW",{hour12:false,month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}`:`${tkList(r).length} 張 · 欠 €3000 以上不能上車`,()=>ticketModal(),"move"));
  // 走進設施裡面：還在門口就給「進去」，在裡面給「出門」
  if(p!="jail"){const st=statLine(r);if(st)note=(note?note+"。":"")+st}
- if(ROOMS[p]&&!r.sleeping&&!sel&&!(walkers[me]&&walkers[me].path.length)){if(jailed(r)){title+="（牢房裡）"}else if(fin(r)){title+="（店裡）";list.push(btn("🚪 出門","回到門口 · 走去別處也會自動離開",()=>exitRoom(),"pin"))}else list.unshift(btn("🚪 進去",`走進${placeName(p)}，進去才能用裡面的設施`,()=>enterRoom(p),"pin"))}
+ if(ROOMS[p]&&!NOENTER[p]&&!r.sleeping&&!sel&&!(walkers[me]&&walkers[me].path.length)){if(jailed(r)){title+="（牢房裡）"}else if(fin(r)){title+="（店裡）";list.push(btn("🚪 出門","回到門口 · 走去別處也會自動離開",()=>exitRoom(),"pin"))}else list.unshift(btn("🚪 進去",`走進${placeName(p)}，進去才能用裡面的設施`,()=>enterRoom(p),"pin"))}
  // 店家休息中：只留說明，按鈕拿掉
  const cm=closedMsg(p);if(cm&&!sel){title+="（休息中）";note=cm;for(let i=list.length-1;i>=0;i--)if(!list[i].g||list[i].g=="place")list.splice(i,1)}
  for(let i=list.length-1;i>=0;i--)if(/烤地瓜/.test(list[i].label)&&closedMsg("stall"))list.splice(i,1);
@@ -726,7 +726,7 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  // 內容沒變就不重畫，避免按到一半按鈕被換掉
  if(!sel){const t=nextStep(r,p);if(t){list.unshift({...t,g:"tip"});track("show",t.label)}}
  if(!sel){const jk={cafe:"cafe",restaurant:"rest",gym:"gym",market:"shop",rafi:"rafi"}[p],card=null;try{card=jk?jobCardPJ(jk,r):p=="office"?jobCardCo(r):null}catch(e){}if(card){list.unshift({label:"職階",sub:"",g:"work",info:true,card});note=p=="office"?`今天已打工 ${workToday(r)} 次`:""}}
- if(ROOMS[p]&&!fin(r)&&!jailed(r)&&!r.sleeping&&!sel){const kg=/^(pin|tip|move|online|face|mis|friend|soc)$/,kl=/便便|喪屍|旁休息|旅人|商人|吃零食|下車|衝|守規矩|駕照|欠款|罰單|騎|開/;for(let i=list.length-1;i>=0;i--){const b=list[i];if(/一起/.test(b.label)||!(kg.test(b.g||"")||kl.test(b.label)))list.splice(i,1)}}
+ if(ROOMS[p]&&!NOENTER[p]&&!fin(r)&&!jailed(r)&&!r.sleeping&&!sel){const kg=/^(pin|tip|move|online|face|mis|friend|soc)$/,kl=/便便|喪屍|旁休息|旅人|商人|吃零食|下車|衝|守規矩|駕照|欠款|罰單|騎|開/;for(let i=list.length-1;i>=0;i--){const b=list[i];if(/一起/.test(b.label)||!(kg.test(b.g||"")||kl.test(b.label)))list.splice(i,1)}}
  const dg=inside(r)?"self":p&&p.startsWith("home:")&&p!=="home:"+me?"friend":"place";list.forEach(b=>{if(!b.g)b.g=/^(走|去 |取消)/.test(b.label)?"move":/^(打工|應徵)/.test(b.label)?"work":dg});
  const GORD=["pin","tip","self","place","eat","fun","train","soc","work","home","friend","face","mis","online","move"],TABS=[["care","生活"],["here","地點"],["grow","成長"],["social","朋友"],["fun","玩樂"],["work","賺錢"],["move","移動"]];
  const tile=(b,i)=>{if(b.info){const c=b.card,pc=c.nx!=null?Math.min(100,Math.round(100*(c.n-c.cur)/(c.nx-c.cur))):100;return `<div class="jobcard" data-g="work"><div class="jr1"><b>${esc(c.name)}</b><span>$${c.pay}／次</span></div><div class="jr2"><i><u style="width:${pc}%"></u></i><small>${c.nx!=null?`${c.n}／${c.nx} 次 → ${esc(c.nname)} $${c.npay}`:"已達最高階"}</small></div></div>`}
@@ -1165,7 +1165,7 @@ async function stockModal(){$("modal").classList.remove("hide");if(!QUOTES)$("mb
  <h3 class="gh">今日消息</h3><ul class="mut" style="margin:0 0 8px 16px">${news}</ul>
  <h3 class="gh">行情（紅漲綠跌，跟 6 小時前比）</h3><div class="list">${rows}</div><p class="mut">價格每 10 分鐘變一次，偶爾有利多利空。買賣沒有上限、沒有手續費。</p><div class="row"><button id="mc">離開</button></div>`;
  $("mc").onclick=()=>{$("modal").classList.add("hide");refresh().catch(()=>{})};
- const go=async(op,v)=>{if(!inside){toast("要走到證券交易所才能買賣");return}const [code,q]=v.split(":"),qty=q=="all"?it.h[code].q:+q;try{const res=await rpc("town_stock_trade",{rid:me,pin,op,code,qty});if(res.error)throw new Error(res.error);toast(res.msg);spawnFx("coins",me);await refresh();stockModal()}catch(e){toast(e.message)}};
+ const go=async(op,v)=>{if(!inside){toast("要走到證券交易所才能買賣");return}const [code,q]=v.split(":"),qty=q=="all"?it.h[code].q:+q;await ensureIn();try{const res=await rpc("town_stock_trade",{rid:me,pin,op,code,qty});if(res.error)throw new Error(res.error);toast(res.msg);spawnFx("coins",me);await refresh();stockModal()}catch(e){toast(e.message)}};
  $("mbody").querySelectorAll("[data-b]").forEach(b=>b.onclick=()=>go("buy",b.dataset.b));$("mbody").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>go("sell",b.dataset.s))}
 // ── 醫院／警察局／市政廳（supabase/town_civic.sql）──
 async function civAct(fn,args,fx,anim){try{const j=await rpc(fn,{rid:me,pin,...args});await refresh();if(fx)spawnFx(fx,me);if(anim)playRoomFx(anim);if(j&&j.msg){toast(j.msg);feedback(true,j.msg)}return j}catch(e){toast(e.message);feedback(false,e.message)}finally{renderPanel()}}
@@ -1662,7 +1662,7 @@ const taskDone=(r,i)=>{const a=faOf(r),k=a.k||{};return[workToday(r)>=3,(a.n||0)
 const fqOf=(r,p)=>((r.items||{}).fq||{})[p]||0,discOf=n=>n>=15?15:n>=5?10:0,facPrice=(r,p,b)=>Math.floor((b*(100-discOf(fqOf(r,p)))+50)/100);
 const tierOf=n=>n>=15?"熟客（−15%）":n>=5?"常客（−10%）":"";
 const claimable=r=>taskIds().filter((t,i)=>taskDone(r,t)&&!(faOf(r).tk||[]).includes(t)).length;
-async function doFac(act,target,item){try{const j=await rpc("town_fac",{rid:me,pin,act,item:item||null,target:target||null});await refresh();spawnFx(FAC_FX[act]||(j.m<0?"coins":"sparkle"),me,target&&walkers[target]?target:null);playRoomFx(act);const t=`${j.msg||""} · ${fxText(j)}`;toast(t);feedback(true,t)}catch(e){toast(e.message);feedback(false,e.message)}renderPanel()}
+async function doFac(act,target,item){await ensureIn();try{const j=await rpc("town_fac",{rid:me,pin,act,item:item||null,target:target||null});await refresh();spawnFx(FAC_FX[act]||(j.m<0?"coins":"sparkle"),me,target&&walkers[target]?target:null);playRoomFx(act);const t=`${j.msg||""} · ${fxText(j)}`;toast(t);feedback(true,t)}catch(e){toast(e.message);feedback(false,e.message)}renderPanel()}
 async function doJail(a,target){try{const j=await rpc("town_jail",{rid:me,pin,act:a,item:null,target:target||null});await refresh();spawnFx(j.caught||j.escaped===false?"crash":j.m<0?"coins":a=="slash"?"fight":"sparkle",me);playRoomFx(a);const t=j.msg||"";toast(t);feedback(true,t)}catch(e){toast(e.message);feedback(false,e.message)}renderPanel()}
 function escapeModal(){choiceModal("真的要越獄嗎？",`成功約 ${escP()}%：逃出監獄，但被通緝 ${JAILX.wanted[0]} 小時，出門被巡警抓回牢裡的機率很高（躲在家最安全）。失敗：加刑 ${JAILX.esc[2]} 分鐘、罰款最多 €${JAILX.esc[3]}、精力 −15 心情 −10，而且算惹事，這次不能假釋。越獄不會死`,[["試試看",`精力 ≥ ${JAILX.esc[0]} · ${JAILX.esc[4]} 分鐘一次`,()=>doJail("escape")],["算了","",()=>{}]])}
 function slashModal(t){choiceModal(`真的要砍 ${t.name} 嗎？`,`你們有仇，只有這種人才能動手。他精力 −${JAIL.hurt[0]}、心情 −${JAIL.hurt[1]}，精力歸零會倒地送醫院，醫藥費由你付；你精力 −${JAIL.self[0]}。被巡警抓到（約 ${JAIL.catchP}%，倒地 ${JAIL.catchFallP}%）要關 1～3 小時，好感也會大跌。${priorOn(R[me])||wantedOn(R[me])?"你現在有前科或被通緝，被抓的機率更高。":""}角色不會死`,[["確定動手","30 分鐘一次",()=>doJail("slash",t.id)],["算了","",()=>{}]])}
@@ -1709,7 +1709,11 @@ const ROOMIMG={};
 function roomImg(n){if(!ROOMIMG[n]){const i=new Image();i.onload=()=>{try{drawRoom()}catch(e){}};i.src=window.PIXICON_NAME(n);ROOMIMG[n]=i}return ROOMIMG[n]}
 async function enterFriend(id){try{await rpc("town_visit",{rid:me,pin,op:"enter",target:id});await refresh()}catch(e){toast(e.message)}renderPanel()}
 async function exitFriend(){const r=R[me];if(vin(r)){r.items={...r.items};delete r.items.fv}try{await rpc("town_visit",{rid:me,pin,op:"exit"});await refresh()}catch(e){toast(e.message)}renderPanel()}
-async function enterRoom(pl,quiet){try{await rpc("town_fi",{rid:me,pin,op:"enter",pl});window.SFX&&SFX.play("door");await refresh()}catch(e){if(!quiet)toast(e.message)}renderPanel()}
+// 伺服器的 town_fi 白名單還沒包含這個地點（舊版 SQL）：記下來，門口照舊顯示全部設施動作，不卡住玩家
+const NOENTER={};
+const FACTS=new Set(["work","cowork","job","buy","browse","movie","spar","sneak","vbuy","license","insure","vfix","vsell","dine","coffee","workout","paytk"]);
+async function ensureIn(){const r=R[me];if(!r||!ROOMS[r.place]||NOENTER[r.place]||fin(r)||r.sleeping||jailed(r)||r.place=="jail"||walkers[me]&&walkers[me].path.length)return;await enterRoom(r.place,true)}
+async function enterRoom(pl,quiet){try{await rpc("town_fi",{rid:me,pin,op:"enter",pl});window.SFX&&SFX.play("door");await refresh()}catch(e){if(/還不能進去/.test(e.message))NOENTER[pl]=1;else if(!quiet)toast(e.message)}renderPanel()}
 async function exitRoom(){leaveRoomLocal();try{await rpc("town_fi",{rid:me,pin,op:"exit"});await refresh()}catch(e){toast(e.message)}renderPanel()}
 function leaveRoomLocal(){const r=R[me];if(vin(r)){r.items={...r.items};delete r.items.fv}if(!fin(r))return false;r.items={...r.items};delete r.items.fi;rpc("town_fi",{rid:me,pin,op:"exit"}).catch(()=>{});return true}
 // 室內互動動畫：角色走到對應物件旁（約 0.4 秒）→ 播動畫（約 0.9 秒）→ 走回來（約 0.3 秒），共 1.7 秒；只畫在 12×5 的小畫布，手機不卡
