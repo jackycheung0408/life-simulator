@@ -608,6 +608,6 @@
 ## 比大小狀態鍵修正（2026-11-18；SQL **已套用正式站 2026-11-18（整份 town.sql＋town_hlfix.sql；回滾實測 town_hlfix_test.sql：舊寫法報錯重現、退回押注 1000、hl 已清；居民 26 的 items.hl 已不存在）**；town.sql 已移除舊 4 參數 town_device，test.js 擋 town.sql 的 town_device／town_auth 與單檔不一致）
 - 比大小進行中的牌局原本存 `items.hl`，和房子等級 `items.hl` 同鍵：牌局開著時 `town_login`／`town_rent` 讀 `(items->>'hl')::int` 報「invalid input syntax for type integer」，玩家登不進去（H7CE2M 居民 26 實例）。已改存 `items.hlg`（`town.sql`），清理檔 `supabase/town_hlfix.sql`（退回押注、移除物件型 hl），實測 `town_hlfix_test.sql`。套用順序：`town.sql` → `town_hlfix.sql` → `town_account.sql`。
 
-## 2026-11-18 一次性沒收（`supabase/town_confiscate_1118.sql`；**尚未執行**）
-- 原因：射龍門舊版系統憑空產生彩池底池 $3000，兩位玩家獲利，鎮長決定沒收。id 26 現金 −795＋刪汽車（保留駕照、不退車款）；id 35 現金 −2205；扣到 0 為止。`town_migrations` 標記 `confiscate_1118` 防重複，名字／小鎮不符就 raise exception。
-- 執行：`python3 tools/sql/sql.py apply town_confiscate_1118.sql --prod`（使用者核准後）。執行後把這段改成「已執行」。
+## 2026-11-18 一次性沒收汽車（`supabase/town_confiscate_car_1118.sql`；**尚未執行**）
+- 原因：射龍門舊版系統憑空產生彩池底池，id 26「俺是寕蝶亞蔑蝶」獲利後買汽車。鎮長決定**只沒收汽車（不退車款、保留駕照），錢不收**。原本含扣錢的 `town_confiscate_1118.sql` 已刪除；新腳本會同時寫入舊標記 `confiscate_1118`，萬一誤貼舊腳本也會被略過。標記 `confiscate_car_1118` 確保只執行一次。
+- 執行：使用者在 Supabase SQL Editor 貼上執行，或 `python3 tools/sql/sql.py apply town_confiscate_car_1118.sql --prod`。執行後把這段改成「已執行」。
