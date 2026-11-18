@@ -231,7 +231,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 const UPDATES=[
   {id:"btnfx-1118",date:"11/18",title:"按鈕顯示效果",items:["每顆按鈕寫出加減與門檻","長按按鈕看詳細說明"]},
   {id:"venues1-1118",date:"11/18",title:"吃喝社交場館升級",items:["咖啡廳拉花、共點，餐廳套餐、外帶","電影院情侶座、超市特價與點數","店員常客有委託，夜晚室內變暗"]},
-  {id:"arcade2-1118",date:"11/18",title:"街機新三款",items:["新增百家樂、射龍門、妞妞","射龍門先入場、看牌再押","新圖示，注碼按鈕同步"]},
+  {id:"arcade2-1118",date:"11/18",title:"街機新三款",items:["新增百家樂、射龍門、妞妞","射龍門入場費 $50、自訂押注","新圖示，注碼按鈕同步"]},
   {id:"infac-1118",date:"11/18",title:"進館才能用",items:["超市、電影院、公司等也能走進去","設施功能要進去才能用"]},
   {id:"tap-1117",date:"11/17",title:"點了就做",items:["點物件、建築，走過去自動互動","花錢的會先問你"]},
   {id:"sound-1117",date:"11/17",title:"新增 8-bit 音效",items:["點擊、賺錢、打工、走路都有聲音","選單「聲音」可開音樂、調音量、試聽"]},
@@ -304,6 +304,45 @@ const UPDATES=[
  {id:"u07-bond",date:"11/05",title:"好感與隨機相遇",items:["好感加減數字重新調整，每對朋友每天有上限","同地點做事時，可能隨機遇到事件","和好、扁人、冷卻時間都整理過","按建議的下一步會自動走過去並執行"]}
 ];
 // 設施互動表（和 supabase/town_fac.sql 一致，test.js 會比對）
+/*RULES:START*/
+// 互動效果單一來源：晶片、門檻、長按卡、文件都從這裡產生。改數值只改這裡＋對應 SQL，再跑 node tools/town-rules-doc.mjs。
+// 欄位：k 代號、m 按鈕標籤比對（去掉圖示後）、t 名稱、at 限定地點、fx [[stat,delta]]（delta 數字或字串）或 (r,H)=>[…]、need [[類型,值]]（energy 精力≥、item 需要物品、cd 次數限制、near 要有人在場）、p 機率說明、sql "檔名#SQL 內可搜尋的字串"、chk [[正規式（SQL 內）,"擷取的數字，逗號相連"]]
+const RULES=[
+{k:"eat",m:/^吃飯/,t:"在家吃飯",fx:(r,H)=>H.hasF(r,"fridge")?[["money",-30],["hunger",48],["energy",15]]:[["money",-60],["hunger",32],["energy",15],["fun",-3]],sql:"town.sql#act = 'eat' then n := 60",chk:[[/act = 'eat' then n := (\d+) - (\d+)\*public\.town_fu\(r,'fridge'\).*?then (\d+) else (\d+) end\)\*fm; r\.energy := r\.energy \+ (\d+)/,"60,30,48,32,15"]]},
+{k:"toilet",m:/^上廁所/,t:"上廁所",fx:(r,H)=>H.hasF(r,"toilet")?[["bladder","滿"]]:[["bladder","滿"],["hygiene",-10],["fun",-3]],sql:"town.sql#act = 'toilet' then r.bladder := 100",chk:[[/act = 'toilet' then r\.bladder := (\d+); if public\.town_fu\(r,'toilet'\)=0 then r\.hygiene := r\.hygiene - (\d+); r\.fun := r\.fun - (\d+)/,"100,10,3"]]},
+{k:"shower",m:/^洗澡/,t:"洗澡",fx:(r,H)=>H.hasF(r,"shower")?[["hygiene","滿"],["energy",10],["fun",3]]:[["hygiene","+70%缺口"],["fun",3]],sql:"town.sql#act = 'shower' then",chk:[[/r\.hygiene := 100; r\.energy := r\.energy \+ (\d+); else r\.hygiene := r\.hygiene \+ \(100 - r\.hygiene\)\*\.(\d+); end if; r\.fun := r\.fun \+ (\d+)/,"10,7,3"]]},
+{k:"tv",m:/^看電視/,t:"看電視",fx:(r,H)=>H.hasF(r,"tvcab")?[["fun",15+7*(H.hasF(r,"sofa")?1:0)],["energy",-3]]:[["fun",6]],sql:"town.sql#act = 'tv' then",chk:[[/town_fu\(r,'tvcab'\)=1 then r\.fun := r\.fun \+ (\d+) \+ (\d+)\*public\.town_fu\(r,'sofa'\); r\.energy := r\.energy - (\d+); else r\.fun := r\.fun \+ (\d+)/,"15,7,3,6"]]},
+{k:"nap",m:/^快速休息/,t:"快速休息",fx:(r,H)=>[["energy",H.hasF(r,"massage")?100:H.hasF(r,"sofa")?70:50]],sql:"town.sql#act = 'nap' then",chk:[[/r\.energy := r\.energy \+ case when public\.town_fu\(r,'massage'\)=1 then (\d+) when public\.town_fu\(r,'sofa'\)=1 then (\d+) else (\d+) end/,"100,70,50"]]},
+{k:"snack",m:/^吃零食/,t:"吃零食",fx:[["hunger",20],["fun",3]],need:[["item","零食 1 包"]],sql:"town.sql#act = 'snack' then",chk:[[/r\.hunger := r\.hunger \+ (\d+)\*fm; r\.fun := r\.fun \+ (\d+);\n  elsif act in \('unwrap'/,"20,3"]]},
+{k:"play",m:/^玩一下/,t:"玩一下",fx:[["fun",20],["energy",-5]],sql:"town.sql#act = 'play' then",chk:[[/act = 'play' then r\.fun := r\.fun \+ (\d+); r\.energy := r\.energy - (\d+)/,"20,5"]]},
+{k:"dine",m:/^吃一頓/,t:"餐廳吃一頓",fx:[["money",-250],["hunger",55],["energy",20],["fun",10]],sql:"town.sql#act = 'dine' then",chk:[[/town_px\(r\.town_id, (\d+)\) then raise exception '錢不夠，去公司打工吧'[^]*?r\.hunger := r\.hunger \+ (\d+)\*fm; r\.energy := r\.energy \+ (\d+); r\.fun := r\.fun \+ (\d+)/,"250,55,20,10"]]},
+{k:"coffee",m:/^喝咖啡/,t:"喝咖啡",fx:[["money",-90],["energy",50],["fun",3],["bladder",-10]],sql:"town.sql#act = 'coffee' then",chk:[[/act = 'coffee' then if r\.money < public\.town_px\(r\.town_id, (\d+)\).*?r\.energy := r\.energy \+ (\d+); r\.fun := r\.fun \+ (\d+); r\.bladder := r\.bladder - (\d+)/,"90,50,3,10"]]},
+{k:"movie",m:/^看電影/,t:"看電影",fx:[["money",-300],["fun",35],["energy",-5]],sql:"town.sql#act = 'movie' then",chk:[[/act = 'movie' then if r\.money < public\.town_px\(r\.town_id, (\d+)\).*?r\.fun := r\.fun \+ (\d+); r\.energy := r\.energy - (\d+)/,"300,35,5"]]},
+{k:"workout",m:/^健身/,t:"健身",fx:[["energy",-15],["hunger",-10],["hygiene",-15],["fun",10]],need:[["energy",15]],sql:"town.sql#太累了，先休息",chk:[[/if r\.energy < (\d+) then raise exception '太累了，先休息'; end if; r\.energy := r\.energy - (\d+); r\.hunger := r\.hunger - (\d+); r\.hygiene := r\.hygiene - (\d+); r\.fun := r\.fun \+ (\d+)/,"15,15,10,15,10"]]},
+{k:"work",m:/^(去公司)?打工/,at:["office"],t:"公司打工",fx:(r,H)=>[["money",H.wage(r)],["energy",-25],["fun",-10],["hunger",-8]],need:[["energy",25]],p:"薪水為職階底薪，實發另乘心情、個性、事件、前科、智力",sql:"town.sql#act = 'work' then if r.energy < 25",chk:[[/act = 'work' then if r\.energy < (\d+)[^]*?r\.energy := r\.energy - (\d+); r\.fun := r\.fun - (\d+); r\.hunger := r\.hunger - (\d+)/,"25,25,10,8"]]},
+{k:"f:special",m:"fac:special",t:"今日特餐",fx:[["money",-200],["hunger",40],["fun",12]],sql:"town_fac.sql#act = 'special'",chk:[[/when 'special' then (\d+)/,"200"],[/act = 'special' then h := (\d+); f := (\d+)/,"40,12"]]},
+{k:"f:takeout",m:"fac:takeout",t:"打包帶走",fx:[["money",-120],["fun",3]],need:[["item","背包未滿"]],p:"另得零食 1 包",sql:"town_fac.sql#act = 'takeout'",chk:[[/when 'takeout' then (\d+)/,"120"],[/打包了一份帶走/,""]]},
+{k:"f:latte",m:"fac:latte",t:"特調咖啡",fx:[["money",-300],["energy",45],["fun",4]],p:"另得集點 +1",sql:"town_fac.sql#act = 'latte'",chk:[[/when 'latte' then (\d+)/,"300"],[/act = 'latte' then\s+e := (\d+); f := (\d+)/,"45,4"]]},
+{k:"f:redeem",m:"fac:redeem",t:"集點卡換一杯",fx:[["energy",45],["fun",6]],need:[["item","集點卡 8 點"]],sql:"town_fac.sql#act = 'redeem'",chk:[[/act = 'redeem' then.*?e := (\d+); f := (\d+)/s,"45,6"]]},
+{k:"f:treat",m:"fac:treat",t:"請客",fx:[["money",-200],["fun",4],["bond",3]],need:[["near","要有人在場"]],p:"對方心情 +10",sql:"town_fac.sql#act = 'treat'",chk:[[/when 'treat' then (\d+)/,"200"],[/act = 'treat' then\s+f := (\d+); b := (\d+); t\.fun := t\.fun \+ (\d+)/,"4,3,10"]]},
+{k:"f:song",m:"fac:song",t:"點歌",fx:[["money",-50],["fun",6]],p:"在場的人心情 +3",sql:"town_fac.sql#act = 'song'",chk:[[/when 'song' then (\d+)/,"50"],[/act = 'song' then\s+f := (\d+).*?fun \+ (\d+)\)/,"6,3"]]},
+{k:"f:film",m:"fac:film",t:"看今日片",fx:[["money",-280],["fun","+16～22"],["energy","−4～0"]],p:"每天換片",sql:"town_fac.sql#act = 'film'",chk:[[/when 'film' then (\d+)/,"280"],[/f := \(array\[(\d+),(\d+),(\d+),(\d+)\]\)\[i \+ 1\]; e := \(array\[(-?\d+),(-?\d+),(-?\d+),(-?\d+)\]\)/,"18,22,16,20,-2,0,0,-4"]]},
+{k:"f:popcorn",m:"fac:popcorn",t:"爆米花",fx:[["money",-80],["hunger",12],["fun",4]],sql:"town_fac.sql#act = 'popcorn'",chk:[[/when 'popcorn' then (\d+)/,"80"],[/act = 'popcorn' then h := (\d+); f := (\d+)/,"12,4"]]},
+{k:"f:spar",m:"fac:spar",t:"健身房對練",fx:[["energy",-12],["fun",6],["bond",2]],need:[["energy",25],["near","要有人在場"]],p:"雙方精力都要 ≥25",sql:"town_fac.sql#act = 'spar'",chk:[[/act = 'spar' then\s+if r\.energy < (\d+) or t\.energy < (\d+).*?e := -(\d+); f := (\d+); b := (\d+)/s,"25,25,12,6,2"]]},
+{k:"f:checkin",m:"fac:checkin",t:"每日簽到",fx:[["fun",3]],need:[["cd","每天 1 次"]],p:"連續 3 天 +$60、7 天 +$200",sql:"town_fac.sql#act = 'checkin'",chk:[[/f := (\d+); msg := '健身房簽到/,"3"],[/s % 7 = 0 then m := m \+ (\d+).*?s % 3 = 0 then m := m \+ (\d+)/s,"200,60"]]},
+{k:"f:frisbee",m:"fac:frisbee",t:"丟飛盤",fx:[["energy",-4],["fun",8],["bond",1]],need:[["energy",10],["near","要有人在場"]],sql:"town_fac.sql#act = 'frisbee'",chk:[[/act = 'frisbee' then\s+if r\.energy < (\d+) or t\.energy < (\d+).*?e := -(\d+); f := (\d+); b := (\d+)/s,"10,10,4,8,1"]]},
+{k:"f:fish",m:"fac:fish",t:"釣魚",fx:[["money",-30],["fun",4]],p:"15% 賣 $100、35% 賣 $30、其餘空手",sql:"town_fac.sql#act = 'fish'",chk:[[/when 'fish' then (\d+)/,"30"],[/f := (\d+);\n    if pa < \.(\d+) then m := m \+ (\d+).*?elsif pa < \.(\d+) then m := m \+ (\d+)/s,"4,15,100,50,30"]]},
+{k:"f:picnic",m:"fac:picnic",t:"野餐",fx:[["money",-150],["hunger",25],["fun",12]],p:"有人在場好感 +1",sql:"town_fac.sql#act = 'picnic'",chk:[[/when 'picnic' then (\d+)/,"150"],[/act = 'picnic' then\s+h := (\d+); f := (\d+)/,"25,12"]]},
+{k:"f:feast",m:"fac:feast",t:"高級套餐",fx:[["money",-3000],["hunger",40],["fun",30]],sql:"town_fac.sql#act = 'feast'",chk:[[/when 'feast' then (\d+)/,"3000"],[/act = 'feast' then h := (\d+); f := (\d+)/,"40,30"]]},
+{k:"f:spa",m:"fac:spa",t:"溫泉 SPA",fx:[["money",-2000],["energy",30],["fun",25],["hygiene",40]],sql:"town_fac.sql#act = 'spa'",chk:[[/when 'spa' then (\d+)/,"2000"],[/act = 'spa' then e := (\d+); f := (\d+); r\.hygiene := least\(100, r\.hygiene \+ (\d+)/,"30,25,40"]]},
+{k:"f:trip",m:"fac:trip",t:"小旅行",fx:[["money",-8000],["fun",60],["energy",-10],["hunger",-10]],sql:"town_fac.sql#act = 'trip'",chk:[[/when 'trip' then (\d+)/,"8000"],[/act = 'trip' then e := -(\d+); h := -(\d+); f := (\d+)/,"10,10,60"]]},
+{k:"f:photo",m:"fac:photo",t:"自拍",fx:[["fun",5]],sql:"town_fac.sql#act = 'photo'",chk:[[/act = 'photo' then\s+f := (\d+)/,"5"]]},
+{k:"f:photo2",m:"fac:photo2",t:"合照",fx:[["fun",6],["bond",1]],need:[["near","要有人在場"]],sql:"town_fac.sql#act = 'photo'",chk:[[/if pair then f := (\d+); b := (\d+)/,"6,1"]]},
+{k:"hosp:consult",m:/^掛號看診/,t:"掛號看診",fx:[["money",-150],["energy",20],["hygiene",40],["fun",5]],need:[["cd","每天 1 次"]],sql:"town_civic.sql#if op = 'consult' then"},
+{k:"jail:yard",m:/^放風/,t:"放風",fx:[["fun",6],["energy",-3]],need:[["cd","30 分鐘 1 次"]],sql:"town_jail.sql#if act = 'yard' then"}
+];
+/*RULES:END*/
+const RULES_TODO=/^(申請假釋|繳罰單|叫醒|叫他出來|旅人|找流動|和旅人|自首|出院|丟雞蛋|串門子|幫他洗澡|煮飯給他|送禮物|買禮物|買零食|惡作劇|打擂台|打喪屍豬|賣生豬肉|清掉便便|溜進去偷飼料|快速睡覺|做牢裡的勞動|付保釋金|替 |探病|越獄|報案|逛逛|買|探|應戰|向 |邀請|謝謝|換|看室內|裝潢|拉花|共點|主餐|外帶|情侶座|看完聊|今日特價|試吃|會員點數|常客|打工|每日任務|坐下|起身|丟飛盤|釣魚|健身房對練)/;
 const FAC={special:["今日特餐",200,"飽足 +40 · 心情 +12",["restaurant"],0],takeout:["打包帶走",120,"一份零食放進背包",["restaurant"],0],
  latte:["特調咖啡",300,"精力 +45 · 心情 +4 · 集點卡 +1",["cafe"],0],redeem:["集點卡換一杯",0,"集滿 8 點免費換一杯 · 精力 +45 · 心情 +6",["cafe"],0],
  treat:["請客",200,"請在場的人喝咖啡：對方心情 +10、你 +4、好感 +3",["cafe"],1],song:["點歌",50,"你心情 +6，在場的人心情 +3",["cafe"],0],
@@ -359,8 +398,8 @@ const fin=r=>!!r&&!!r.items&&!!ROOMS[r.place]&&(r.items.fi===r.place||(r.place==
 // 現在在哪個室內：設施裡面（fin）或自己家屋裡（inside）；都不是就 null
 const visitHost=(r,RR)=>{const h=RR&&r&&r.place&&r.place.startsWith("home:")&&r.place!="home:"+r.id?RR[r.place.slice(5)]:null;return h&&inside(h)?h:null};// 在朋友家門口、他人在屋裡 → 看得到他家室內
 const roomOf=(r,RR)=>!r?null:fin(r)?ROOMS[r.place]:(r.place=="home:"+r.id&&inside(r))?homeRoom(r):visitHost(r,RR)?{...homeRoom(visitHost(r,RR)),visit:true,inn:vin(r)}:null;// RR = 居民表（頂層函式拿不到 init 裡的 R，由呼叫的人傳進來）
-const DGFEE=70,NIUM=c=>c==10?3:c>=7?2:1;
-if(typeof module!=="undefined")module.exports={DGFEE,NIUM,VENACT,HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,TAP_DEF,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,JOBS,PJT,PJM,PJN,RFT,RFW,pjTier,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
+const DGFEE=50,DGMAX=800,NIUM=c=>c==10?3:c>=7?2:1;
+if(typeof module!=="undefined")module.exports={DGFEE,DGMAX,NIUM,VENACT,HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,TAP_DEF,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,JOBS,PJT,PJM,PJN,RFT,RFW,pjTier,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
 
 function init(){
 
@@ -640,20 +679,16 @@ function tapNpc(tx,ty){const near=(q)=>q&&Math.abs(q[0]-tx)<=1&&Math.abs(q[1]-ty
 const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀請朋友搬進來吧`);return}if(o.id==me&&inside(R[me])&&!(walkers[me]&&walkers[me].path.length)){interiorModal(me);return}walkTo("home:"+o.id,o.id==me?door(s):visitSpot(s))};
 
 // ── 下方面板：依所在地點顯示可以做的事 ──
-// ── 按鈕效果與門檻：b.fx=[[stat,delta]…]、b.need=[[文字,已滿足]…]、b.nofx=1；沒有就用 parseFx(sub) 從副標解析 ──
-const FXI={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"💰",bond:"💗",fit:"💪"},FXW={飽足:"hunger",精力:"energy",膀胱:"bladder",清潔:"hygiene",心情:"fun",好感:"bond",體能:"fit"};
-const NOFXRE=/^(起床|進屋|進去|出門|佈置|裝潢|看室內|傳訊息|造型|街機|看盤|市政廳|和旅人|找流動|走到|去 |取消|應徵|邀請朋友|你沒有駕照|附近有|謝謝|.*駕照|.*下車|今日治安|出院|自首)/;
-function parseFx(sub){const s=String(sub||""),fx=[],need=[];let m;const re=/(他|兩人|你|雙方|對方)?(飽足|精力|膀胱|清潔|心情|好感|體能)\s*([+＋−-])\s*(\d+)/g;
- while((m=re.exec(s))){const k=FXW[m[2]],d=(/[−-]/.test(m[3])?-1:1)*+m[4];if(!fx.some(x=>x[0]==k))fx.push([k,d,m[1]||""])}
- const g=s.match(/(領|賺|拿|獎金)[^€]{0,4}€\s*(\d+)/);if(g)fx.unshift(["money",+g[2]]);else{const c=s.match(/(?:^|[^+\d])€\s*(\d+)(?!\d)/);if(c&&!/保釋|只剩|罰/.test(s.split("€")[0]))fx.unshift(["money",-c[1]])}
- const cd=s.match(/(\d+)\s*(分鐘|小時)一次/);if(cd)need.push([`冷卻${cd[1]}${cd[2]=="小時"?"時":"分"}`,1,"cd"]);if(/一天一次|每天 1 次/.test(s))need.push(["每天1次",1,"cd"]);const dn=s.match(/一天最多\s*(\d+)\s*次/);if(dn)need.push([`每天≤${dn[1]}次`,1,"cd"]);
- const ge=s.match(/(精力|好感)\s*[≥>=]+\s*(\d+)/);if(ge)need.push([ge[1]+"≥"+ge[2],0,ge[1]=="精力"?"energy":"bond",+ge[2]]);if(/先去超市買|要有零食/.test(s))need.push(["要有零食/禮物",0,"item"]);if(/要朋友在|朋友在場/.test(s))need.push(["要朋友在",0,"friend"]);
- return{fx,need}}
-function fxOf(b,r){const p=b.fx||b.need?{fx:b.fx||[],need:b.need||[]}:(b.nofx||NOFXRE.test(String(b.label).replace(/\p{Extended_Pictographic}️?\s*/gu,"")))?{fx:[],need:[]}:parseFx(b.sub),fx=p.fx.slice(),need=[];
- const mo=fx.find(x=>x[0]=="money");if(mo&&mo[1]<0&&r.money<-mo[1])need.push(["需$"+(-mo[1]),0]);
- const en=fx.find(x=>x[0]=="energy");if(en&&en[1]<0&&r.energy<-en[1])need.push(["精力≥"+(-en[1]),0]);
- p.need.forEach(n=>{if(n[2]=="energy"&&r.energy>=n[3])return;need.push([n[0],n[1],n[2]])});return{fx,need,chips:fx.slice(0,3)}}
-const fxChip=x=>{const v=x[0]=="money"?(x[1]<0?"−":"+")+"$"+Math.abs(x[1]):(x[1]<0?"−":"+")+Math.abs(x[1]);return `<i class="fc ${x[0]=="money"?"gd":x[1]<0?"dn":"up"}">${FXI[x[0]]||"•"}${v}</i>`};
+// ── 按鈕效果與門檻：全部出自 RULES（頂層）；b.key 或標籤比對 RULES，沒有規則的不顯示晶片（nofx 或待確認）──
+const FXI={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"💰",bond:"💗",fit:"💪"},FXN={hunger:"飽足",energy:"精力",bladder:"膀胱",hygiene:"清潔",fun:"心情",money:"錢",bond:"好感",fit:"體能"};
+const NOFXRE=/^(起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
+const wageOf=r=>{const n=+((r.items||{}).works)||0;let w=JOBS[0][2];for(const j of JOBS)if(n>=j[1])w=j[2];return w};
+function ruleOf(b,r){if(b.key)return RULES.find(x=>x.m===b.key)||null;const l=String(b.label).replace(/\p{Extended_Pictographic}️?\s*/gu,"").trim();return RULES.find(x=>x.m instanceof RegExp&&x.m.test(l)&&(!x.at||x.at.includes(r.place)))||null}
+function fxOf(b,r){const ru=b.nofx?null:ruleOf(b,r);if(!ru)return{fx:[],need:[],chips:[],rule:null};const fx=typeof ru.fx=="function"?ru.fx(r,{hasF,wage:wageOf}):ru.fx.slice(),need=[];
+ const mo=fx.find(x=>x[0]=="money"&&typeof x[1]=="number");if(mo&&mo[1]<0)need.push(["需$"+(-mo[1]),r.money>=-mo[1]]);
+ (ru.need||[]).forEach(n=>{if(n[0]=="energy")need.push(["精力≥"+n[1],r.energy>=n[1]]);else need.push([n[1],1])});
+ return{fx,need,chips:fx.slice(0,3),rule:ru}}
+const fxChip=x=>{const s=typeof x[1]=="string",v=x[0]=="money"&&!s?(x[1]<0?"−":"+")+"$"+Math.abs(x[1]):s?x[1]:(x[1]<0?"−":"+")+Math.abs(x[1]);return `<i class="fc ${x[0]=="money"?"gd":!s&&x[1]<0?"dn":"up"}">${FXI[x[0]]||"•"}${v}</i>`};
 const btn=(label,sub,fn,g)=>({label,sub,fn,g});
 // 不能按的按鈕照樣顯示，灰掉並寫原因（冷卻、沒人在場、集點不夠…）；點了會提示原因
 const cdLeft=(r,key,mins)=>!/^(esc|yard|jv|slash|lic)/.test(String(key))?0:Math.max(0,Date.parse(((r.items||{}).cd||{})[key]||"1970")+mins*6e4-now());
@@ -781,8 +816,8 @@ const b=ev.target.closest("button[data-i]");if(!b||busy)return;const f=panelFns[
 
 {let pt=0,cur=null,eat=0;const card=()=>{let c=document.getElementById("fxcard");if(!c){c=document.createElement("div");c.id="fxcard";document.body.appendChild(c)}return c},hide=()=>{const c=document.getElementById("fxcard");if(c)c.style.display="none";cur=null};
  const show=el=>{const f=panelFns[el.dataset.i];if(!f||!R[me])return;const r=tickLocal(R[me],now()),F=f.g=="move"||f.info?{fx:[],need:[]}:fxOf(f,r),c=card();
-  const row=x=>{const w=Object.keys(FXW).find(k=>FXW[k]==x[0])||"錢";return `<div class="r">${fxChip(x)}<span>${x[0]=="money"?(x[1]<0?"花費":"獲得"):w}${x[2]?`（${esc(x[2])}）`:""}</span></div>`};
-  c.innerHTML=`<b>${esc(f.label.replace(/\p{Extended_Pictographic}️?/gu,"").trim())}</b>${f.sub?`<p>${esc(f.sub)}</p>`:""}${F.fx.map(row).join("")}${F.need.map(n=>`<div class="r"><i class="fc ${n[1]?"ok":"gate"}">${n[1]?"可":"要"}</i><span>${esc(n[0])}</span></div>`).join("")||(F.fx.length?"":"<p>沒有數值變化</p>")}<small>點別處關閉</small>`;
+  const row=x=>{const w=FXN[x[0]]||"";return `<div class="r">${fxChip(x)}<span>${x[0]=="money"?(x[1]<0?"花費":"獲得"):w}${x[2]?`（${esc(x[2])}）`:""}</span></div>`};
+  c.innerHTML=`<b>${esc(f.label.replace(/\p{Extended_Pictographic}️?/gu,"").trim())}</b>${F.rule?(F.rule.p?`<p>${esc(F.rule.p)}</p>`:""):(f.sub?`<p>${esc(f.sub)}</p>`:"")}${F.fx.map(row).join("")}${F.need.map(n=>`<div class="r"><i class="fc ${n[1]?"ok":"gate"}">${n[1]?"✓":"要"}</i><span>${esc(n[0])}</span></div>`).join("")||(F.fx.length?"":"<p>沒有數值變化</p>")}<small>點別處關閉</small>`;
   pxify(c);c.style.display="block";cur=el;eat=Date.now()};
  const A=$("acts");[A,$("tipbox"),$("pinbox")].forEach(a=>{a.addEventListener("pointerdown",e=>{const b=e.target.closest("button[data-i]");clearTimeout(pt);if(!b)return;if(e.pointerType=="mouse")return;pt=setTimeout(()=>{show(b)},400)});["pointerup","pointercancel","pointermove","scroll"].forEach(k=>a.addEventListener(k,()=>clearTimeout(pt),{passive:true}));
   a.addEventListener("click",e=>{if(Date.now()-eat<600&&cur){e.stopPropagation();e.preventDefault()}},true);a.addEventListener("contextmenu",e=>{if(e.target.closest("button[data-i]"))e.preventDefault()});
@@ -997,7 +1032,7 @@ function gamesModal(){$("modal").classList.remove("hide");const solo=SOLO.some(g
  $("mbody").innerHTML=menu?`<h2>🕹️ 小豬街機</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b> · 押注 €50～€1000 · 不限局數</p>
   <h3 class="gh">賭場（押錢）</h3><div class="gmenu">${gm(CASINO)}</div><h3 class="gh">單機（不押錢，心情 +2）</h3><div class="gmenu">${gm(SOLO)}</div><div class="row"><button id="mc">離開街機</button></div>`
   :`<h2>${(g=>gic(g[1])+" "+g[2])([...CASINO,...SOLO].find(g=>g[0]==gameTab))}</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b></p>
-  ${solo?"":`<div class="chips">押注 ${[50,100,200,500,1000].map(b=>`<button data-bet="${b}" class="${gameBet==b?"on":""}">€${b}</button>`).join("")}</div>`}
+  ${solo||gameTab=="dg"?"":`<div class="chips">押注 ${[50,100,200,500,1000].map(b=>`<button data-bet="${b}" class="${gameBet==b?"on":""}">€${b}</button>`).join("")}</div>`}
   <div id="gArea" class="garea"></div><div class="row"><button id="gback">回街機選單</button><button id="mc">離開街機</button></div>`;
  $("mc").onclick=()=>{gameTab="";$("modal").classList.add("hide");refresh().catch(()=>{})};
  if(!menu)$("gback").onclick=()=>{gameTab="";gamesModal()};
@@ -1052,17 +1087,18 @@ function gamesModal(){$("modal").classList.remove("hide");const solo=SOLO.some(g
   area.querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{area.querySelectorAll("[data-b]").forEach(x=>x.disabled=true);try{const g=await pg2("bacc",{choice:b.dataset.b});const side=g.pt>g.bt?"閒贏":g.bt>g.pt?"莊贏":"和局";
    $("gShow").innerHTML=`<p>閒 <b>${g.pt}</b></p>${cardsH(g.p)}<p>莊 <b>${g.bt}</b></p>${cardsH(g.b)}<p class="mut">${side}</p>`+result(g);money()}catch(e){$("gShow").innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
    area.querySelectorAll("[data-b]").forEach(x=>x.disabled=false)})}
-if(gameTab=="dg"){area.innerHTML=`<p class="mut">流程：付入場費 €${DGFEE}（進彩池）→ 看兩張龍門牌 → 放棄（只損失入場費），或選注碼下注。第三張在兩張之間才贏，贏拿彩池 1 倍押注；撞柱輸 2 倍，兩張龍門同點又撞中輸 3 倍；其他輸 1 倍。兩張相鄰不可能贏，自動重發、不收入場費。</p><p class="mut">彩池 €<b id="dgPot">…</b> · 目前最多可押 €<b id="dgMax">…</b>（彩池 ÷ 3、現金 ÷ 3）</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="dgGo">入場（付 €${DGFEE}）</button></div>`;
-  let dgm=1000;const potUp=g=>{$("dgPot").textContent=g.pot;dgm=g.maxBet!=null?g.maxBet:Math.min(1000,Math.floor(g.pot/3));$("dgMax").textContent=dgm};
-  const dgSync=()=>{const ok=gameBet<=dgm&&gameBet>=50;area.querySelectorAll("[data-dg]").forEach(x=>{if(x.dataset.dg!="pass")x.disabled=!ok});const n=$("dgNote");if(n)n.textContent=ok?"":(dgm<50?"現金或彩池不夠，只能放棄":`注碼太大，最多可押 €${dgm}`)};
-  area.addEventListener("betchg",dgSync);
+if(gameTab=="dg"){area.innerHTML=`<p class="mut">流程：付入場費 €${DGFEE}（進彩池）→ 看兩張龍門牌 → 放棄（只損失入場費），或自訂金額下注（€50～€${DGMAX}，只能賭彩池裡的錢，現金要有押注 3 倍）。第三張在兩張之間才贏，贏拿彩池 1 倍押注（抽 5% 進鎮基金）；撞柱輸 2 倍，兩張龍門同點又撞中輸 3 倍；其他輸 1 倍。兩張相鄰自動重發、不收入場費。彩池每 10 分鐘自動加 10%。</p><p class="mut">彩池 €<b id="dgPot">…</b> · 下次加碼 <b id="dgNext">…</b></p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="dgGo">入場（付 €${DGFEE}）</button></div>`;
+  let dgm=DGMAX,dgwhy="cap",dgt=0,dgBet=50;const WHY={pot:"彩池只有這些",cash:"現金 ÷ 3（撞柱要賠 3 倍）",cap:"單注上限"};
+  const tm=()=>{const n=$("dgNext");if(n)n.textContent=Math.floor(dgt/60)+":"+String(dgt%60).padStart(2,"0")};const tk=setInterval(()=>{if(!$("dgNext")){clearInterval(tk);return}dgt=dgt>0?dgt-1:600;tm()},1000);
+  const potUp=g=>{$("dgPot").textContent=g.pot;dgm=g.maxBet!=null?g.maxBet:DGMAX;dgwhy=g.why||"cap";if(g.next!=null)dgt=g.next;tm()};
+  const dgSync=()=>{const inp=$("dgIn");if(!inp)return;dgBet=Math.floor(+inp.value)||0;const ok=dgBet>=50&&dgBet<=dgm;area.querySelectorAll("[data-dg]").forEach(x=>{if(x.dataset.dg!="pass")x.disabled=!ok});area.querySelectorAll("[data-dgb]").forEach(x=>x.textContent=`押 €${dgBet}`);const n=$("dgNote");if(n)n.textContent=dgm<50?`現金或彩池不夠（${WHY[dgwhy]}），只能放棄`:`目前可押 €50～€${dgm}（${WHY[dgwhy]}）${dgBet>dgm?" · 金額太大":dgBet<50?" · 最少 €50":""}`};
   rpc("town_game2",{rid:me,pin,game:"dg_info",bet:0}).then(r=>{potUp(r.game)}).catch(()=>{});
-  const deal=async()=>{try{const g=await pg2("dg_start",{bet:0});const gt=g.gates,show=$("gShow");potUp(g);money();
-   show.innerHTML=`<div class="cards">${cardHTML(gt[0])}${cardHTML(0,true)}${cardHTML(gt[1])}</div><p class="mut">已付入場費 €${g.fee}${g.redeal?`（相鄰重發 ${g.redeal} 次，免費）`:""} · 選注碼後按「玩」</p><p class="mut" id="dgNote"></p>`;
-   area.querySelector(".gbtns").innerHTML=(g.same?[["hi","更大",g.canHi],["lo","更小",g.canLo]].filter(x=>x[2]).map(([k,n])=>`<button class="gbig" data-dg="${k}">${n}<span>押 €${gameBet}</span></button>`).join(""):`<button class="gbig" data-dg="in">玩！<span>押 €${gameBet}</span></button>`)+`<button class="gbig" data-dg="pass">放棄<span>只損失入場費</span></button>`;
-   dgSync();
-   area.querySelectorAll("[data-dg]").forEach(b=>b.onclick=async()=>{area.querySelectorAll("[data-dg]").forEach(x=>x.disabled=true);try{const r2=await pg2("dg_play",{bet:gameBet,choice:b.dataset.dg});potUp(r2);
-    if(r2.pass)show.innerHTML=`<p class="gres bad">放棄了，只損失入場費</p>`;else show.innerHTML=`<div class="cards">${cardHTML(gt[0])}${cardHTML(r2.card)}${cardHTML(gt[1])}</div><p class="gres ${r2.net>0?"good":"bad"}">${r2.net>0?`贏了 €${r2.net}！`:r2.mult>1?`撞柱！輸了 €${-r2.net}`:`輸了 €${-r2.net}`}</p>`;
+  const deal=async()=>{try{const g=await pg2("dg_start",{bet:0});const gt=g.gates,show=$("gShow");potUp(g);money();dgBet=Math.max(50,Math.min(dgBet,dgm||50));
+   show.innerHTML=`<div class="cards">${cardHTML(gt[0])}${cardHTML(0,true)}${cardHTML(gt[1])}</div><p class="mut">已付入場費 €${g.fee}${g.redeal?`（相鄰重發 ${g.redeal} 次，免費）`:""}</p><div class="dgbet"><input id="dgIn" type="number" inputmode="numeric" min="50" max="${dgm}" step="10" value="${dgBet}"><button data-q="min">最小</button><button data-q="half">一半</button><button data-q="max">最大</button></div><p class="mut" id="dgNote"></p>`;
+   area.querySelector(".gbtns").innerHTML=(g.same?[["hi","更大",g.canHi],["lo","更小",g.canLo]].filter(x=>x[2]).map(([k,n])=>`<button class="gbig" data-dg="${k}">${n}<span data-dgb>押 €${dgBet}</span></button>`).join(""):`<button class="gbig" data-dg="in">玩！<span data-dgb>押 €${dgBet}</span></button>`)+`<button class="gbig" data-dg="pass">放棄<span>只損失入場費</span></button>`;
+   $("dgIn").oninput=dgSync;show.querySelectorAll("[data-q]").forEach(q=>q.onclick=()=>{$("dgIn").value=q.dataset.q=="min"?50:q.dataset.q=="max"?Math.max(50,dgm):Math.max(50,Math.floor(dgm/2));dgSync()});dgSync();
+   area.querySelectorAll("[data-dg]").forEach(b=>b.onclick=async()=>{area.querySelectorAll("[data-dg]").forEach(x=>x.disabled=true);try{const r2=await pg2("dg_play",{bet:dgBet,choice:b.dataset.dg});potUp(r2);
+    if(r2.pass)show.innerHTML=`<p class="gres bad">放棄了，只損失入場費</p>`;else show.innerHTML=`<div class="cards">${cardHTML(gt[0])}${cardHTML(r2.card)}${cardHTML(gt[1])}</div><p class="gres ${r2.net>0?"good":"bad"}">${r2.net>0?`贏了 €${r2.net}！（已扣 5% 給鎮基金）`:r2.mult>1?`撞柱！輸了 €${-r2.net}`:`輸了 €${-r2.net}`}</p>`;
     money();area.querySelector(".gbtns").innerHTML=`<button class="pri" id="dgGo">再入場（付 €${DGFEE}）</button>`;$("dgGo").onclick=deal}catch(e){toast(e.message);dgSync();const ps=area.querySelector('[data-dg="pass"]');if(ps)ps.disabled=false}})}catch(e){toast(e.message)}};
   $("dgGo").onclick=deal}
  if(gameTab=="niu"){area.innerHTML=`<p class="mut">各 5 張牌，找 3 張湊成 10 的倍數，剩 2 張的個位數是妞點（0 = 妞妞最大，找不到 = 沒妞）。比大小，最大一張也同點算平手退押注（不比花色）。贏家牌型決定倍數，輸家付同樣倍數：沒妞、妞 1～6 = 1 倍；妞 7、8、9 = 2 倍；妞妞 = 3 倍（現金要有押注 3 倍）。你沒妞且沒有 Q 以上的牌：莊家直接贏（照莊家牌型付）。</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="nGo">開牌（押 €${gameBet}）</button></div>`;
@@ -1741,7 +1777,7 @@ function trainBtns(r){const out=[],p=r.place,it=r.items||{},a=it.at||{};
  return out}
 function facBtns(r){const p=r.place,out=[],it=r.items||{},doy=doyTP();
  const here=Object.values(R).filter(o=>o.id!=me&&o.place==p&&!o.sleeping&&!jailed(o));
- for(const k of Object.keys(FAC)){const d=FAC[k];if(!d[3].includes(p))continue;let name=d[0],sub=d[2],price=d[1];
+ for(const k of Object.keys(FAC)){const d=FAC[k];if(!d[3].includes(p))continue;let name=d[0],sub=d[2],price=d[1];const ru0=RULES.find(x=>x.m=="fac:"+k);if(ru0){const mo=ru0.fx.find(x=>x[0]=="money");price=mo?-mo[1]:0;sub=ru0.fx.filter(x=>x[0]!="money").map(x=>FXN[x[0]]+" "+(typeof x[1]=="number"&&x[1]>0?"+":"")+x[1]).join(" · ")+(ru0.p?" · "+ru0.p:"")}
   if(k=="special")name+="：「"+SPECS[doy%5]+"」";
   if(k=="film"){const f=FILMS[doy%4];name="看今日片：「"+f[0]+"」";sub=`心情 +${f[1]}${f[2]?` · 精力 ${f[2]}`:""} · 每天換片 · 1 小時一次`}
   if(k=="redeem")sub=`集點卡 ${it.cs||0}/8 · `+sub;
@@ -1755,7 +1791,7 @@ function facBtns(r){const p=r.place,out=[],it=r.items||{},doy=doyTP();
   else if(k=="checkin"&&it.gy&&it.gy.d==dayKey())dis="今天已經簽到過了";
   const label=`${name}${one?" "+one.name:""} ${FACI[k]||""}`.trim();
   const fn=()=>{if(real=="art")return artModal();if(need&&here.length>1)return choiceModal("和誰？","選一位在場的鄰居",here.map(o=>[o.name,"",()=>doFac(real,o.id)]));return doFac(real,need?here[0].id:null)};
-  out.push({...btn(label,(pr?`€${pr}${pr<price?"（常客價）":""} · `:"")+sub,fn,FACG[k]||"place"),dis})}
+  out.push({...btn(label,(pr?`€${pr}${pr<price?"（常客價）":""} · `:"")+sub,fn,FACG[k]||"place"),key:"fac:"+k,dis})}
  if(["restaurant","cafe","park","plaza"].includes(p)){const sit=it.sit,sitting=sit&&sit.pl==p;
   out.push(btn(sitting?"起身 🪑":"坐下逗留 🪑",sitting?`已經坐了 ${Math.max(0,Math.floor((now()-Date.parse(sit.at))/6e4))} 分鐘 · 坐越久恢復越多，上限 20 分鐘`:"每分鐘精力 +0.5、心情 +0.4，滿 20 分鐘，有人在場多 +2 心情",()=>doFac(sitting?"up":"sit"),"fun"))}
  const c=claimable(r);out.push(btn("每日任務板 ⭐",c?`${c} 個任務可以領獎`:"今天的三個小任務，各 €500",()=>taskModal(),"work"));

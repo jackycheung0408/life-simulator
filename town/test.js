@@ -225,6 +225,18 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check((tsql.match(/- 'fv'/g)||[]).length>=3,"town.sql：移動、離線回家睡、入獄都要清掉 fv");
  check(tjs.includes("function enterFriend(")&&tjs.includes("function exitFriend(")&&tjs.includes('btn("🚪 進去",')&&tjs.includes("!vin(r)"),"面板：門口只有進去，進去後才有煮飯、洗澡、叫醒、串門子與出門");}
 // 頂層函式（init() 外面）不可使用只在 init() 裡宣告的 me／$／esc／pxify／toast／pin／R／S（曾因 offTxt、updModal 用了 me／$ 而在畫面丟 "me is not defined"、更新紀錄打不開）
+{const fs=require("fs"),src=fs.readFileSync(__dirname+"/town.js","utf8"),blk=src.slice(src.indexOf("/*RULES:START*/"),src.indexOf("const FAC={special:")),{RULES,RULES_TODO}=new Function(blk+";return {RULES,RULES_TODO}")();
+ check(RULES.length>=30,"RULES 筆數太少 "+RULES.length);const keys=new Set();
+ RULES.forEach(ru=>{check(!keys.has(ru.k),"RULES k 重複 "+ru.k);keys.add(ru.k);const[file,needle]=String(ru.sql||"#").split("#"),p=__dirname+"/../supabase/"+file;
+  if(!file||!fs.existsSync(p)){check(false,"RULES "+ru.k+" 的 sql 檔不存在："+ru.sql);return}const q=fs.readFileSync(p,"utf8");check(needle&&q.includes(needle),"RULES "+ru.k+" 在 "+file+" 找不到："+needle);
+  (ru.chk||[]).forEach(c=>{const m=q.match(c[0]);if(!m){check(false,"RULES "+ru.k+" 的 SQL 正規式比對不到："+c[0]);return}const got=m.slice(1).join(",");check(got==c[1],"RULES "+ru.k+" 前端與 SQL 不一致："+got+" ≠ "+c[1])});
+  const fx=typeof ru.fx=="function"?ru.fx({items:{}},{hasF:()=>0,wage:()=>0}).concat(ru.fx({items:{}},{hasF:()=>1,wage:()=>0})):ru.fx;check(fx.length>0,"RULES "+ru.k+" 沒有效果")});
+ // 每顆 btn() 標籤：要有 RULES、NOFXRE（nofx）或待確認清單
+ const NOFX=new Function(src.slice(src.indexOf("const NOFXRE="),src.indexOf("const wageOf"))+";return NOFXRE")(),lre=/d?btn\((["`])((?:(?!\1).)*)\1\s*,/g;let mm,pend=new Set(),tot=0,hit=0;
+ while((mm=lre.exec(src))){const l=mm[2].replace(/\p{Extended_Pictographic}️?\s*/gu,"").trim();if(!l||l.includes("${"))continue;tot++;if(RULES.some(x=>x.m instanceof RegExp&&x.m.test(l)))hit++;else if(!NOFX.test(l)&&!RULES_TODO.test(l))pend.add(l)}
+ check(pend.size==0,"這些 btn() 沒有 RULES、nofx 也不在待確認清單："+[...pend].join("、"));console.log(`RULES ${RULES.length} 筆；靜態標籤 ${tot} 顆，其中 ${hit} 顆有規則`);
+ check(src.includes("fxcard"),"要有長按詳情卡 #fxcard")}
+require("./test_arcade2.js")(M,check);
 {const src=require("fs").readFileSync(__dirname+"/town.js","utf8").split("\n"),ii=src.findIndex(l=>l.startsWith("function init(){")),top=src.slice(0,ii);
  const strip=l=>l.replace(/\/\/.*$/,"").replace(/`(?:[^`\\]|\\.)*`/g,"``").replace(/"(?:[^"\\]|\\.)*"/g,'""').replace(/'(?:[^'\\]|\\.)*'/g,"''");
  const bad=[];top.forEach((l,i)=>{const s=strip(l);for(const n of ["me","$","esc","pxify","toast","pin","R","S"]){const re=new RegExp("(^|[^\\w$.])"+n.replace("$","\\$")+"(?![\\w$:])");if(re.test(s))bad.push(n+"@"+(i+1))}});
@@ -432,9 +444,6 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(!/40 局/.test(js.replace(/\/\/.*$/gm,"")),"town.js 不能再有「40 局」文字");
  check(js.includes('"town_game2"')&&fs.existsSync(__dirname+"/../supabase/town_arcade2_test.sql"),"前端要呼叫 town_game2、要有 town_arcade2_test.sql")}
 
-{const src=require("fs").readFileSync(__dirname+"/town.js","utf8"),h=src.slice(src.indexOf("const FXI="),src.indexOf("function fxOf")),pf=new Function(h+";return parseFx")(),f=(s)=>pf(s).fx.map(x=>x[0]+x[1]).join(","),n=(s)=>pf(s).need.map(x=>x[0]).join(",");
- check(f("飽足 +55 · 精力 +20 · 心情 +10 · €250")=="money-250,hunger55,energy20,fun10","parseFx 吃一頓："+f("飽足 +55 · 精力 +20 · 心情 +10 · €250"));
- check(f("好感 −1 · 30 分鐘一次")=="bond-1"&&n("好感 −1 · 30 分鐘一次")=="冷卻30分","parseFx 冷卻");
- check(f("領 €30")=="money30","parseFx 領錢");check(f("心情 +20")=="fun20","parseFx 心情");
+{const src=require("fs").readFileSync(__dirname+"/town.js","utf8");
  check(src.includes('id="fxcard"')||src.includes('id="fxcard')||src.includes("fxcard"),"要有長按詳情卡 #fxcard");check(src.includes("NOFXRE"),"要有 NOFXRE 清單")}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
