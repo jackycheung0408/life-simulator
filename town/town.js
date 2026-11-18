@@ -400,7 +400,7 @@ $("lg").innerHTML=`${LP.top(list)}
   <div id="lk"></div><p class="err" id="cerr"></p><div class="row"><button class="pri" id="create">建立小鎮，當鎮長</button></div></div>
   ${standalone?"":`<p style="margin-top:14px"><button class="ghost" id="inst2" style="width:100%">📲 加到主畫面，像 App 一樣打開</button></p>`}`;
  const show=k=>{$("fJoin").classList.toggle("hide",k!="j");$("fNew").classList.toggle("hide",k!="n");$("cJoin").classList.toggle("on",k=="j");$("cNew").classList.toggle("on",k=="n");(k=="j"?$("code"):$("tn")).focus()};
- if($("cRec"))$("cRec").onclick=()=>recFind();$("cJoin").onclick=()=>show("j");$("cNew").onclick=()=>show("n");if(LP.want=="r"){LP.want="";recFind();return}if(LP.want){show(LP.want);LP.want=""}
+ if($("cRec"))$("cRec").onclick=()=>recFind();$("cJoin").onclick=()=>show("j");$("cNew").onclick=()=>show("n");if(LP.want=="r"){LP.want="";if(window.RECOVERY_ON){recFind();return}}if(LP.want){show(LP.want);LP.want=""}
  $("lg").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));if($("inst2"))$("inst2").onclick=installHelp;
  $("join").onclick=async()=>{const c=$("code").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.length<4){$("jerr").textContent="邀請碼是 6 個英文或數字，檢查有沒有少打";return}
   // 小鎮代碼或邀請碼都可以；輸入的是邀請碼就記起來，等一下自動填好
@@ -1530,7 +1530,7 @@ const kb=document.createElement("div");kb.id="kbh";kb.textContent="方向鍵移�
 }
 $("home").onclick=()=>{camFree=false;sel=null;lastPanel="";renderPanel()};
 $("logout").onclick=()=>{if(!confirm("登出後要再輸入一次邀請碼才能進來。確定嗎？"))return;dropMine(TID);me=null;pin=null;townLogin()};
-$("towns").onclick=()=>go("");$("recBtn").onclick=()=>{closeMenu();recBindModal()};
+$("towns").onclick=()=>go("");if(window.RECOVERY_ON)$("recBtn").hidden=false;$("recBtn").onclick=()=>{closeMenu();recBindModal()};
 $("invite").onclick=async()=>{if(R[me].mayor){try{shareModal((await rpc("town_mayor",{rid:me,pin,act:"invite"})).invite)}catch(e){toast(e.message)}}else{const text=`來「${S.town.name}」當鄰居！🐷\n${townURL()}\n（邀請碼請問鎮長）`;try{await navigator.clipboard.writeText(text);toast("已複製網址，邀請碼請鎮長給")}catch(e){toast(townURL())}}};
 $("mayor").onclick=mayorPanel;// 抽屜：點一下在「一般 → 拉高 → 收起」之間切換；也可以上下滑
 const gripLabel=()=>{const p=$("panel");$("grip").textContent=p.classList.contains("min")?"▲ 展開":"▼ 收起"};

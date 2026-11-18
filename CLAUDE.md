@@ -501,7 +501,7 @@
 - 啟動：localStorage 有 `town-mine` 就照舊同步畫首頁（3 秒後補備份）；沒有才讀 IndexedDB，有備份先還原再畫（最多等 700ms），沒備份就立刻畫。首頁主體包在 `main()`。
 
 
-## 帳號救援（Email，2026-11-17；SQL 尚未套用正式站，要先在 Dashboard 設定，見 side-session-notes `town-email-design.md`）
+## 帳號救援（Email，2026-11-17；**入口預設關閉**：`index.html` 的 `window.RECOVERY_ON=false` 隱藏首頁「找回我的角色」與選單「帳號救援」。要開啟的前提：SQL 已套用＋Dashboard 設定完成＋有人實際收信驗證成功（需要使用者或測試信箱）；SQL 已於 2026-11-17 套用正式站並回滾實測通過、Dashboard 已設 OTP 6 位 600 秒與範本、SMTP 使用者已存，見 side-session-notes `town-email-design.md`）
 - Supabase Auth Email OTP 驗證 Email，JWT 帶去呼叫 `supabase/town_recovery.sql`（`town_recovery_status／bind／unbind／list／claim`，只存 Email SHA-256 雜湊與遮蔽提示，RLS 全關，同鎮一個角色）。實測 `town_recovery_test.sql`（回滾，REPORT）。不動免密碼裝置金鑰與邀請碼；救援成功＝多一把裝置金鑰。
 - 前端 `town.js`：`recAsk`（Email→6 位碼）、`recFind`（首頁「找回我的角色」`#cRec`，`LP.want="r"`）、`recBindModal`（選單「帳號救援」`#recBtn`）；錯 5 次鎖 30 分鐘存 localStorage `town-recf`。mock 的驗證碼是 `123456`。
 - 上線前提：Dashboard 開 Email OTP（6 位、600 秒）、範本顯示 `{{ .Token }}`、設 Custom SMTP（內建 SMTP 只寄團隊成員）。
