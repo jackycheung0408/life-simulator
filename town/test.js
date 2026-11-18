@@ -419,11 +419,13 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 {const h=require("fs").readFileSync(__dirname+"/index.html","utf8");for(const m of h.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g)){try{new Function(m[1])}catch(e){check(false,"index.html 內嵌 script 語法錯誤："+e.message)}}}
 {for(const [k,o] of Object.entries(M.OBJS)){const d=M.TAP_DEF[k];check(!!d,"TAP_DEF 缺物件 "+k);if(!d)continue;const m=(o.acts[0][1].match(/€(\d+)/)||[])[1];check((d.cost||0)==(m?+m:0),`TAP_DEF.${k} 價格要和 OBJS 說明一致`);if(d.cost>60)check(!d.ok,k+" 超過 $60 要確認條")}}
 {const fs=require("fs"),sq=fs.readFileSync(__dirname+"/../supabase/town_arcade2.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8");
- check(M.DGFEE==3&&M.DGPASS==10&&sq.includes("select ((b * 3 + 99) / 100)")&&sq.includes("select ((b * 10 + 99) / 100)"),"射龍門發牌費 3%、放棄費 10% 要和 SQL 一致");
- // 射龍門：精確窮舉，玩的期望 (2W-15)/13；玩家最佳策略（期望 < -放棄費率 就放棄）回報率 <= 0.97
- {const q=M.DGPASS/100,f=M.DGFEE/100;let s=0;for(let a=1;a<=13;a++)s+=1/145*Math.max((2*Math.max(13-a,a-1)-15)/13,-q);for(let d=2;d<=12;d++)s+=2*(13-d)/145*Math.max((2*(d-1)-15)/13,-q);
-  check(1+s-f<=0.97&&1+s-f>0.9,"射龍門最佳策略回報率要在 0.9～0.97："+(1+s-f))}
- check(sq.includes("amt >= 0")&&sq.includes("a > 100000")&&sq.includes("po < bet * 3")&&sq.includes("r.money < bet * 3 + public.town_dg_fee(bet)")&&sq.includes("exit when (c2 % 100) - (c1 % 100) <> 1"),"彩池（>=0、上限 10 萬、>=3 倍押注）與 3 倍現金檢查要在");
+ check(M.DGFEE==70&&sq.includes("select 70 $$")&&sq.includes("F = 70"),"射龍門入場費 70 要和 SQL 一致");
+ // 射龍門第三版：入場費 F、看完龍門才押注。每單位期望 (2W-15)/13，玩家最佳策略 = W>=8 押最大注 1000、其餘放棄；回報率 = 1 + 淨/(F + 1000*P(玩))
+ {const P={};const add=(W,c)=>P[W]=(P[W]||0)+c/145;for(let a=1;a<=13;a++)add(Math.max(13-a,a-1),1);for(let d=2;d<=12;d++)add(d-1,2*(13-d));
+  let Mq=0,pp=0;for(const [W,p] of Object.entries(P)){const e=(2*W-15)/13;if(e>0){Mq+=p*e;pp+=p}}
+  const net=-M.DGFEE+1000*Mq,rtp=1+net/(M.DGFEE+1000*pp);
+  check(net<0&&rtp<=0.97&&rtp>0.9&&Math.abs(Mq-0.05836)<1e-4,"射龍門最佳策略回報率要 <= 0.97："+rtp+" 淨 "+net)}
+ check(sq.includes("amt >= 0")&&sq.includes("a > 100000")&&sq.includes("po < bet * 3")&&sq.includes("r.money < bet * 3 then raise exception '現金要有押注的 3 倍")&&sq.includes("exit when (c2 % 100) - (c1 % 100) <> 1"),"彩池（>=0、上限 10 萬、>=3 倍押注）與 3 倍現金檢查要在");
  check(2*0.446147+0.095426<1&&1.95*0.458428+0.095426<1&&9*0.095426<1&&sq.includes("閒 1:1（期望 0.98772）"),"百家樂期望值要 < 1 並寫在 SQL");
  // 妞妞倍數：沒妞／妞1～6 = 1、妞7～9 = 2、妞妞 = 3，輸贏對稱、平手退注、不比花色
  check([0,1,6,7,9,10].map(M.NIUM).join()=="1,1,1,2,2,3"&&sq.includes("when ps >= 10000 then 3 when ps >= 7000 then 2 else 1")&&sq.includes("if ps = ds then win := bet;")&&sq.includes("key := cs[i] % 100;")&&sq.includes("if ps < 1000 and ps % 1000 < 12 then")&&sq.includes("回報率 = 1 − P(雙方都是")&&js.includes("莊家直接贏")&&sq.includes("r.money < bet * 3"),"妞妞倍數表／平手／不比花色／3 倍現金要和 SQL 一致");

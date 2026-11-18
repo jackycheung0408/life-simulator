@@ -6,14 +6,16 @@
 --   精確窮舉（13^6 種牌）：閒贏 0.446147、莊贏 0.458428、和 0.095426。
 --   賠率：閒 1:1（期望 0.98772）、莊 1:0.95（期望 0.98936）、和 8:1 即拿回 ×9（期望 0.85883）；和局時押閒莊退回押注。
 --
--- 【射龍門】（2026-11-18 改版：先下注、再發龍門、有彩池）牌獨立隨機（A 最小 K 最大，每個點數 1/13）。
---   流程：選押注 b → 發兩張龍門（相鄰＝差 1 不可能贏：免費、自動重發，不收任何費用）→ 收發牌費 ceil(b*3%) 進彩池 → 玩家「玩」或「放棄」。
---   放棄再付 ceil(b*10%)（進彩池）。贏 = 從彩池拿走 1 倍押注（固定 1:1）；輸 = 押注進彩池；撞 1 柱（第三張同其中一張龍門）輸 2 倍；
---   撞 2 柱（兩張龍門同點、第三張也同點）輸 3 倍。龍門同點只能猜大／小。
---   彩池：每鎮一個（town_pots），種子 3000，永遠 >= 0，上限 100000，超出進鎮基金；下注時要求彩池 >= 3 倍押注（可押上限 = floor(彩池/3)，最高 1000），現金 >= 3 倍押注 + 發牌費。
---   精確窮舉（非相鄰龍門共 145 組有序點數對，同點 13、差 d 的 2*(13-d) 組；W = 贏的點數個數）：玩的期望（淨，單位押注）= (2W-15)/13（兩種龍門公式相同；同點取較大的一邊）。
---   玩家最佳策略 = 玩的期望 < -0.1 就放棄：W <= 6 放棄（含同點龍門只有 a=7 的 W=6）、W >= 7 玩。最佳策略不含發牌費的期望 -0.0190，扣 3% 發牌費後回報率 0.9510（< 0.97）。
---   對照：若放棄費設 b/2，最佳策略不含發牌費就只有 0.732（太狠），所以放棄費定 10%；調整只要改下面三個常數（town_dg_fee_pct／town_dg_pass_pct／彩池上限）與前端 DGFEE／DGPASS。
+-- 【射龍門】（2026-11-18 第三版：先付固定入場費、看完龍門再決定押多少、有彩池）牌獨立隨機（A 最小 K 最大，每個點數 1/13）。
+--   流程：按「入場」付固定入場費 F = 70（進彩池）→ 發兩張龍門（相鄰＝差 1 不可能贏：自動重發、不收入場費，等於退費）→ 玩家「放棄」（只損失入場費）
+--   或選押注 b（50～1000；龍門同點時還要選大／小）→ 翻第三張。贏 = 從彩池拿走 1 倍押注；輸 1 倍；撞 1 柱（異點龍門第三張同其中一張）輸 2 倍；
+--   撞 2 柱（兩張龍門同點、第三張也同點）輸 3 倍；輸的進彩池。彩池 town_pots：每鎮一個、種子 3000、永遠 >= 0、上限 100000（超出進鎮基金）。
+--   入場要求彩池 >= 150（最小注的 3 倍）；下注要求彩池 >= 3b、現金 >= 3b（入場費已先扣）；可押上限 = min(1000, floor(彩池/3), floor(現金/3))。
+--   【精確窮舉】相鄰龍門自動重發，所以有效龍門是 145 組有序點數對（同點 13、差 d 的 2*(13-d) 組）。W = 贏的點數個數：不同點 W = 差-1；同點取較大的一邊 W = max(13-a, a-1)。
+--   每單位押注的期望（淨）= (2W-15)/13（兩種龍門公式相同，同點的撞 2 柱已算進去）。玩家看完龍門才下注，所以有資訊優勢：W >= 8 為正（W=8 +0.077 … W=12 +0.692）。
+--   最佳策略 = W >= 8 押最大注 B（1000），其餘放棄。正期望質量 M = Σ p(W)·max(0,(2W-15)/13) = 0.05836，玩的機率 20.69%：每手淨期望 = -F + 1000×M = -F + 58.36。
+--   F = 70：每手淨 -11.64，平均總投入 F + 1000×0.2069 = 276.9，回報率 = 1 + (-11.64/276.9) = 0.958（< 0.97）；任何較小的注都更差。F <= 58 時玩家有正期望，不可再降。
+--   改 F 要同步：town_dg_entry()、前端 DGFEE、town/test.js（會重算最佳策略回報率）。
 --
 -- 【妞妞】一副 52 張牌，玩家與莊家各 5 張；A=1、2～9、10JQK=10。五張中找 3 張總和為 10 的倍數，其餘 2 張個位數 = 妞點（0 = 妞妞，最大）；找不到 = 沒妞。
 --   比大小：妞妞 > 9 > ... > 1 > 沒妞；同級只比最大一張的點數（K>...>A），不比花色；連最大牌點數都一樣 = 平手，退回押注。
@@ -26,8 +28,9 @@
 create table if not exists public.town_pots (town_id text primary key references public.town_towns(id) on delete cascade, amt bigint not null default 3000 check (amt >= 0));
 alter table public.town_pots enable row level security;
 revoke all on public.town_pots from public, anon, authenticated;
-create or replace function public.town_dg_fee(b int) returns int language sql immutable as $$ select ((b * 3 + 99) / 100) $$;
-create or replace function public.town_dg_pass(b int) returns int language sql immutable as $$ select ((b * 10 + 99) / 100) $$;
+create or replace function public.town_dg_entry() returns int language sql immutable as $$ select 70 $$;
+drop function if exists public.town_dg_fee(int);
+drop function if exists public.town_dg_pass(int);
 create or replace function public.town_pot_get(tid text) returns bigint language plpgsql security definer set search_path = public as $$
 declare a bigint;
 begin
@@ -44,7 +47,7 @@ begin
   if ex > 0 then perform public.town_fund_add(tid, 'pot', least(ex, 2000000000)::int); end if;
   return a;
 end $$;
-revoke all on function public.town_dg_fee(int), public.town_dg_pass(int), public.town_pot_get(text), public.town_pot_add(text,bigint) from public, anon, authenticated;
+revoke all on function public.town_dg_entry(), public.town_pot_get(text), public.town_pot_add(text,bigint) from public, anon, authenticated;
 
 create or replace function public.town_bacc_val(c int) returns int language sql immutable as $$ select case when c % 100 >= 10 then 0 else c % 100 end $$;
 
@@ -79,36 +82,40 @@ begin
   if public.town_is_off(r.town_id, 'arcade') then raise exception '這個小鎮沒有開街機'; end if;
   if r.place <> 'plaza' then raise exception '街機在小豬廣場，走過去再玩'; end if;
   if game = 'dg_info' then
-    return json_build_object('game', jsonb_build_object('pot', public.town_pot_get(r.town_id), 'maxBet', least(1000, public.town_pot_get(r.town_id) / 3)), 'money', r.money);
+    po := public.town_pot_get(r.town_id);
+    return json_build_object('game', jsonb_build_object('pot', po, 'maxBet', least(1000, po / 3), 'entry', public.town_dg_entry()), 'money', r.money);
   end if;
   if game = 'dg_start' then
-    if bet is null or bet < 50 or bet > 1000 then raise exception '押注要在 €50～€1000 之間'; end if;
-    po := public.town_pot_get(r.town_id);
-    if po < bet * 3 then raise exception '彩池不夠，押小一點（最多可押 €%）', least(1000, po / 3); end if;
-    if r.money < bet * 3 + public.town_dg_fee(bet) then raise exception '現金要有押注的 3 倍再加發牌費'; end if;
+    po := public.town_pot_get(r.town_id); fee := public.town_dg_entry();
+    if po < 150 then raise exception '彩池不夠，現在不能入場'; end if;
+    if r.money < fee then raise exception '錢不夠付入場費'; end if;
     loop
       c1 := public.town_card(); c2 := public.town_card();
       if (c1 % 100) > (c2 % 100) then c3 := c1; c1 := c2; c2 := c3; end if;
       exit when (c2 % 100) - (c1 % 100) <> 1;
       re := re + 1;
     end loop;
-    fee := public.town_dg_fee(bet); r.money := r.money - fee; po := public.town_pot_add(r.town_id, fee);
-    r.items := jsonb_set(r.items, '{dg}', jsonb_build_object('g', jsonb_build_array(c1, c2), 'bet', bet));
+    r.money := r.money - fee; po := public.town_pot_add(r.town_id, fee);
+    r.items := jsonb_set(r.items, '{dg}', jsonb_build_object('g', jsonb_build_array(c1, c2)));
     ra := c1 % 100; rb := c2 % 100;
-    res := jsonb_build_object('gates', jsonb_build_array(c1, c2), 'same', ra = rb, 'fee', fee, 'pass', public.town_dg_pass(bet), 'bet', bet, 'pot', po, 'redeal', re,
+    res := jsonb_build_object('gates', jsonb_build_array(c1, c2), 'same', ra = rb, 'fee', fee, 'pot', po, 'maxBet', least(1000, least(po / 3, r.money / 3)), 'redeal', re,
       'canHi', ra = rb and ra < 13, 'canLo', ra = rb and ra > 1);
     update public.town_residents set money = r.money, items = r.items, seen_at = now() where id = rid;
     return json_build_object('game', res, 'money', r.money);
   end if;
   if game = 'dg_play' then
-    st := r.items->'dg'; if st is null then raise exception '先下注發龍門牌'; end if;
-    bet := (st->>'bet')::int; c1 := (st->'g'->>0)::int; c2 := (st->'g'->>1)::int; ra := c1 % 100; rb := c2 % 100;
-    r.items := r.items - 'dg';
+    st := r.items->'dg'; if st is null then raise exception '先入場發龍門牌'; end if;
+    c1 := (st->'g'->>0)::int; c2 := (st->'g'->>1)::int; ra := c1 % 100; rb := c2 % 100;
     if choice = 'pass' then
-      fee := public.town_dg_pass(bet); fee := least(fee, r.money); r.money := r.money - fee; po := public.town_pot_add(r.town_id, fee);
-      update public.town_residents set money = r.money, items = r.items, seen_at = now() where id = rid;
-      return json_build_object('game', jsonb_build_object('pass', true, 'cost', fee, 'pot', po), 'money', r.money);
+      r.items := r.items - 'dg';
+      update public.town_residents set items = r.items, seen_at = now() where id = rid;
+      return json_build_object('game', jsonb_build_object('pass', true, 'pot', public.town_pot_get(r.town_id)), 'money', r.money);
     end if;
+    if bet is null or bet < 50 or bet > 1000 then raise exception '押注要在 €50～€1000 之間'; end if;
+    po := public.town_pot_get(r.town_id);
+    if po < bet * 3 then raise exception '彩池不夠，押小一點（最多可押 €%）', least(1000, po / 3); end if;
+    if r.money < bet * 3 then raise exception '現金要有押注的 3 倍，押小一點或放棄'; end if;
+    r.items := r.items - 'dg';
     c3 := public.town_card(); rr := c3 % 100;
     if ra = rb then
       if coalesce(choice,'') not in ('hi','lo') then raise exception '龍門同點，猜更大或更小'; end if;
@@ -120,7 +127,7 @@ begin
       netw := (rr > ra and rr < rb)::int; mlt := case when rr = ra or rr = rb then 2 else 1 end;
     end if;
     if netw = 1 then
-      po := public.town_pot_get(r.town_id); fee := least(bet, po::int); r.money := r.money + fee; po := public.town_pot_add(r.town_id, -fee); net := fee;
+      fee := least(bet, po::int); r.money := r.money + fee; po := public.town_pot_add(r.town_id, -fee); net := fee;
     else
       fee := least(bet * mlt, r.money); r.money := r.money - fee; po := public.town_pot_add(r.town_id, fee); net := -fee;
     end if;
