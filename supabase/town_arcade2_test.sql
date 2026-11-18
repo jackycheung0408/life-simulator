@@ -48,7 +48,7 @@ begin
   begin perform public.town_game2(rid,'1234','niu',100); rep := rep||'niu need 3x ALLOWED'||E'\n'; exception when others then rep := rep||'niu 150 money bet 100: '||sqlerrm||E'\n'; end;
   update public.town_residents set money=40 where id = rid;
   begin perform public.town_game2(rid,'1234','bacc',50,'p'); rep := rep||'broke ALLOWED'||E'\n'; exception when others then rep := rep||'broke: '||sqlerrm||E'\n'; end;
-  -- 妞妞：理論 RTP 1.000（倍數 1／2／3，平手 2.74% 退注）；錢不變負、不限局數連玩 60 局
+  -- 妞妞：理論 RTP 0.9824（莊家優勢：沒妞且最大牌 < Q 無條件輸；平手 2.37% 退注）；錢不變負、不限局數連玩 60 局
   tot := 0; n := 4000; neg := 0; cnt := array[0,0,0,0,0,0,0,0,0,0,0];
   for i in 1..n loop
     update public.town_residents set money=100000 where id = rid;

@@ -426,7 +426,7 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(sq.includes("amt >= 0")&&sq.includes("a > 100000")&&sq.includes("po < bet * 3")&&sq.includes("r.money < bet * 3 + public.town_dg_fee(bet)")&&sq.includes("exit when (c2 % 100) - (c1 % 100) <> 1"),"彩池（>=0、上限 10 萬、>=3 倍押注）與 3 倍現金檢查要在");
  check(2*0.446147+0.095426<1&&1.95*0.458428+0.095426<1&&9*0.095426<1&&sq.includes("閒 1:1（期望 0.98772）"),"百家樂期望值要 < 1 並寫在 SQL");
  // 妞妞倍數：沒妞／妞1～6 = 1、妞7～9 = 2、妞妞 = 3，輸贏對稱、平手退注、不比花色
- check([0,1,6,7,9,10].map(M.NIUM).join()=="1,1,1,2,2,3"&&sq.includes("when ps >= 10000 then 3 when ps >= 7000 then 2 else 1")&&sq.includes("if ps = ds then win := bet;")&&sq.includes("key := cs[i] % 100;")&&sq.includes("r.money < bet * 3"),"妞妞倍數表／平手／不比花色／3 倍現金要和 SQL 一致");
+ check([0,1,6,7,9,10].map(M.NIUM).join()=="1,1,1,2,2,3"&&sq.includes("when ps >= 10000 then 3 when ps >= 7000 then 2 else 1")&&sq.includes("if ps = ds then win := bet;")&&sq.includes("key := cs[i] % 100;")&&sq.includes("if ps < 1000 and ps % 1000 < 12 then")&&sq.includes("回報率 = 1 − P(雙方都是")&&js.includes("莊家直接贏")&&sq.includes("r.money < bet * 3"),"妞妞倍數表／平手／不比花色／3 倍現金要和 SQL 一致");
  check(!/40 局/.test(js.replace(/\/\/.*$/gm,"")),"town.js 不能再有「40 局」文字");
  check(js.includes('"town_game2"')&&fs.existsSync(__dirname+"/../supabase/town_arcade2_test.sql"),"前端要呼叫 town_game2、要有 town_arcade2_test.sql")}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

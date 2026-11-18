@@ -18,7 +18,10 @@
 -- 【妞妞】一副 52 張牌，玩家與莊家各 5 張；A=1、2～9、10JQK=10。五張中找 3 張總和為 10 的倍數，其餘 2 張個位數 = 妞點（0 = 妞妞，最大）；找不到 = 沒妞。
 --   比大小：妞妞 > 9 > ... > 1 > 沒妞；同級只比最大一張的點數（K>...>A），不比花色；連最大牌點數都一樣 = 平手，退回押注。
 --   賠率（純贏倍數，不含本金；輸贏對稱）：贏家牌型決定倍數：沒妞、妞 1～6 = 1 倍；妞 7、8、9 = 2 倍；妞妞 = 3 倍；輸家付同樣倍數（玩家輸時付莊家牌型的倍數）。
---   精確窮舉（以點數組合統計，C(52,5)*C(47,5) 種）：平手 2.74%，期望淨 = 0（交換雙方是一一對應），回報率剛好 1.000。下注時現金要 >= 3 倍押注。
+--   莊家優勢（刻意）：玩家沒妞且最大牌小於 Q（沒有 Q、K）= 無條件輸，連莊家也沒妞也算玩家輸；莊家沒有這條限制。玩家沒妞但最大牌 Q／K 才正常比較。
+--   無條件輸時玩家付「莊家牌型的倍數」（和一般輸一樣：沒妞 1、妞 7～9 為 2、妞妞 3）。精確窮舉（以點數組合統計，C(52,5)*C(47,5) 種）：
+--   玩家無條件輸 14.02%、平手 2.37%、正常贏 47.93%；回報率 = 1 − P(雙方都是「沒妞且最大牌 < Q」) = 0.9824，與倍數表無關（每一對手牌與交換後的手牌互相抵銷，只剩雙方都被判輸的那一類）。
+--   若無條件輸只付 1 倍（不隨莊家牌型），回報率會變 1.0309（> 1，不可用），所以採莊家牌型倍數。下注時現金要 >= 3 倍押注。
 
 create table if not exists public.town_pots (town_id text primary key references public.town_towns(id) on delete cascade, amt bigint not null default 3000 check (amt >= 0));
 alter table public.town_pots enable row level security;
@@ -67,7 +70,7 @@ end $$;
 create or replace function public.town_game2(rid bigint, pin text, game text, bet int default 0, choice text default null) returns json
 language plpgsql security definer set search_path = public as $$
 #variable_conflict use_variable
-declare r public.town_residents; res jsonb; po bigint; fee int; re int := 0; mlt int; net int; win int := 0; pen int := 0; c1 int; c2 int; c3 int; a int; b int; ra int; rb int; rr int; w int; pc int; o int; st jsonb;
+declare r public.town_residents; res jsonb; po bigint; fee int; forced boolean := false; re int := 0; mlt int; net int; win int := 0; pen int := 0; c1 int; c2 int; c3 int; a int; b int; ra int; rb int; rr int; w int; pc int; o int; st jsonb;
   pt int; bk int; pcs int[]; bcs int[]; p3 int := 0; b3 int := 0; t1 int; t2 int; deck int[]; ps int; ds int; hit boolean; netw int;
 begin
   r := public.town_auth(rid, pin);
@@ -147,10 +150,11 @@ begin
   elsif game = 'niu' then
     select array_agg(c) into deck from (select (s * 100 + n) as c from generate_series(1,4) s, generate_series(1,13) n order by random() limit 10) q;
     pcs := deck[1:5]; bcs := deck[6:10]; ps := public.town_niu_score(pcs); ds := public.town_niu_score(bcs);
-    if ps = ds then win := bet;
+    if ps < 1000 and ps % 1000 < 12 then pen := bet * (case when ds >= 10000 then 3 when ds >= 7000 then 2 else 1 end) - bet; forced := true;
+    elsif ps = ds then win := bet;
     elsif ps > ds then win := bet + bet * (case when ps >= 10000 then 3 when ps >= 7000 then 2 else 1 end);
     else pen := bet * (case when ds >= 10000 then 3 when ds >= 7000 then 2 else 1 end) - bet; end if;
-    res := jsonb_build_object('p', to_jsonb(pcs), 'b', to_jsonb(bcs), 'pcl', ps / 1000, 'bcl', ds / 1000, 'win', win);
+    res := jsonb_build_object('p', to_jsonb(pcs), 'b', to_jsonb(bcs), 'pcl', ps / 1000, 'bcl', ds / 1000, 'win', win, 'forced', forced);
   end if;
   r.money := greatest(0, r.money - bet - pen) + win;
   r.items := jsonb_set(r.items, '{games}', jsonb_build_object('day', to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'), 'n', coalesce((r.items->'games'->>'n')::int,0) + 1));
