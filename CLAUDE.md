@@ -110,7 +110,7 @@
 - **互動動畫**：地圖上 `FAC_FX`（設施互動 → `spawnFx` 類型，新增 steam／notes／check／disc／fishing／flash，電影院、公園、廣場也有）；室內 `ROOM_ACT`（互動 → 物件代號）＋`playRoomFx`／`roomFxDraw`：角色走到物件旁（0.4 秒）→ 播動畫（0.9 秒）→ 走回（0.3 秒）。新增動畫用像素方塊或 `PIXICON_NAME`，不要用 emoji 文字。`node town/test.js` 檢查：地點存在、物件在格內不重疊、每個物件對得到按鈕、SQL 白名單和 `ROOMS` 一致、`fin` 判斷。
 - **新增可進入的設施**：`ROOMS` 加一列（物件要用 `ITEM` 已有的代號，新物件先加進 `ITEM`）、`town_fi.sql` 白名單（`pl not in (...)`，測試會比對）加地點、用 `tools/town-mock.js`（已有 `town_fi` 假回應）看畫面。目前有咖啡廳、餐廳、健身房、醫院、警察局、市政廳、監獄（醫院：昏倒／住院的人由 `town_admit` 直接寫 `items.fi = 'hospital'`，所以睡著的病人也算在裡面；監獄：入獄的人自動算在裡面，探監的人才需要「進去」；`town_fi.sql` 白名單含 jail），其餘設施之後陸續開放。
 
-## 所有設施都要進館（2026-11-18；前端已上線 v240；SQL **尚未套用正式站**）
+## 所有設施都要進館（2026-11-18；前端已上線 v240；SQL **已套用正式站 2026-11-18（順序 town_fi→town_infac→town.sql→town_fac→town_stock；回滾實測 town_infac_test.sql：62 項全過、0 錯，含不在室內被擋、進去可做、出門又被擋、入獄者先被監獄擋、開關關閉後不擋、錢 3884 不為負）**）
 - **範圍**：有建築門的設施全要進館（`ROOMS` 有場景）；公園、廣場與路邊物件是戶外，不用進。`ROOMS` 新增 超市／電影院／公司／拉菲／證交所／格鬥場／車行／屠宰場（物件對應面板按鈕文字；新圖示 `till／screen／seat／pc／ring／cleaver`；動畫 `wk_type／wk_scan／wk_docs／screen／till／pcs／ring／vcar／cleaver`，`ROOM_ALT` 讓 `spar` 在格鬥場找擂台）。打工動畫 `WORK_FX` 公司、拉菲、超市改在室內桌子／收銀台播。
 - **前端**：走到門口自動進去（沿用 `arrived`→`enterRoom`）；門口只留「進去」＋非設施按鈕；`act`（`FACTS` 清單）、`doFac`、股票買賣一開始都會 `ensureIn()` 自動先進去再做（建議下一步、鍵盤、點擊即互動都經過這裡）。**舊伺服器相容**：`town_fi` 回「這裡還不能進去」就記 `NOENTER[place]`，該地點門口照舊顯示全部設施動作，不會卡住玩家。
 - **伺服器**（`supabase/town_infac.sql`）：`town_infac_on()`（表 `town_flags` 的 `infac` 列，沒有 = 開；緊急關：`insert into town_flags values('infac',false) on conflict (k) do update set v=false`）、`town_need_in_pl(r,pl)`、`town_need_in(r,act,item)`。呼叫點（各一行）：`town_act` 在入獄與設施開關檢查之後（work、cowork、job、buy、browse、movie、spar、sneak、vbuy、license、insure、vfix、vsell、dine、coffee、workout）、`town_fac`（`pl := r.place` 之後，`claim`／`up` 除外）、`town_stock_trade`。例外：公園／廣場、入獄者、監獄／醫院／警察局／市政廳（各自的 RPC）、格鬥場邀約 PK（不檢查）。
@@ -535,6 +535,6 @@
 | 旅人／流動商人 | 旁邊 | 開對話／購買視窗 |
 睡著、入獄不自動做。面板會把「擊掌」（點朋友）、「打工…」（公司、拉菲）置頂（`tapHi`）；在自家門口再點家＝出門。**未做**：建議下一步（`nextStep`）還沒改用 `TAP_DEF`；巡警與店員點擊維持原樣。
 
-## 吃喝社交場館升級（2026-11-18，咖啡廳／餐廳／電影院／超市；SQL `supabase/town_venues1.sql` **尚未套用正式站**，在 `town.sql`、`town_fac.sql`、`town_pool.sql`、`town_infac.sql` 之後；實測 `town_venues1_test.sql`（回滾，REPORT）**尚未跑**）
+## 吃喝社交場館升級（2026-11-18，咖啡廳／餐廳／電影院／超市；SQL `supabase/town_venues1.sql` **已套用正式站 2026-11-18（回滾實測 town_venues1_test.sql：拉花／共點／套餐／外帶／情侶座／聊劇情／特價／試吃／點數兌換／常客委託各動作都成功，錢都不為負）**，在 `town.sql`、`town_fac.sql`、`town_pool.sql`、`town_infac.sql` 之後；實測 `town_venues1_test.sql`（回滾，REPORT）**尚未跑**）
 - 獨立 RPC `town_venue(rid,pin,act,target,num)`（不改 `town_act`／`town_fac`），前端 `VENACT` 集合的動作 `doFac` 會改打它；按鈕仍由 `FAC` 表產生（`node town/test.js` 比對價格與 SQL）。動作：咖啡廳 `art` 拉花小遊戲（€150，`artModal` 點對時機，num=品質 0～100，精力 15＋品質/4、心情 2＋品質/12、≥80 集點 +1）、`share` 共點一壺（€240，雙方精力 +25 心情 +6 好感 +3）；餐廳 `combo` 套餐 €320（飽足 +50 心情 +16）、`bring` 外帶給朋友 €200；電影院 `seat` 情侶座 €360（雙方心情 +20 好感 +4）、`chat` 聊劇情 €0（雙方心情 +6 好感 +2）；超市 `sale` 特價零食 €42（每天輪替名稱、會員點數 `items.mp` +1）、`sample` 試吃、`mredeem` 滿 10 點換 2 包零食；四間店員都有「常客」（`REG`，依日期輪替）`reg` 常客委託：付 €90／200／280／60、拿 €80／170／240／50，淨 −10～−40、心情 +6。價格走 `town_px`（全鎮事件）與常客折扣（`items.fq`），`sale`／`reg` 不打折。
 - 室內：咖啡廳加拉花台、茶壺桌（動畫 `latteart`／`pot`），電影院 `seat`、超市 `mshelf` 動畫，電影院與超市新增店員（小映、阿珍）；室內台灣 19～6 點加暗色疊層（`drawRoom`）。**還沒做**：人多時座位坐滿、每間 ≥12 個專屬事件情節（事件池 C 型仍是通用模板）、餐廳／超市新增物件、視覺基準圖更新。
