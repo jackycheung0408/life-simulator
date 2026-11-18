@@ -15,6 +15,7 @@
 - 互動一律用按鈕，不要用超連結
 - 要擬真，不要偏袒玩家
 - 回覆用繁體中文，簡短
+- **套用正式站 SQL 與跑回滾實測一律用 `tools/sql/sql.py`（見「SQL 套用工具」），Claude 不再開瀏覽器 SQL Editor（省額度）**
 - 需要使用者核准的步驟（套用正式站 SQL、對正式站資料庫寫入、建立或刪除 repo、推送別的 repo）一律用 AskUserQuestion 給按鈕（「可以，執行」「先不要」），不要要他打字；按鈕要由使用者本人點
 - 改了檔案分工、部署流程或規則，就順手更新這份 CLAUDE.md（使用者不想手動維護）
 - Supabase 專案 gerqdagicybtyilihvvm（三個遊戲共用）；SQL 放在 `supabase/`
@@ -155,6 +156,12 @@
 2. `town.sql`：`town_place_name`、`town_closed`（已取消營業時間，保留函式）、`town_feature`（對應開關）、`town_act` 的 move 白名單與位置上限（`px >`）、動作本身（冷卻存在 `items.cd`）、`town_features` 的白名單。
 3. `COLS` 不夠就加大（目前 71），server 的 `px >` 要同步（目前 71）；`layout3` 遷移是把站在新建築上的人移到廣場，再加大地圖要照樣加一個遷移。
 4. 前後端的價格、冷卻要一致。
+
+## SQL 套用工具（`tools/sql/`，2026-11-18；使用者自己在終端機執行，不花 Claude 額度）
+- **規則**：套用正式站 SQL、跑回滾實測、查正式站狀態，一律用 `python3 tools/sql/sql.py`。Claude 只負責寫檔、跑 `check`／離線測試，然後在回報裡列出「要貼給使用者在終端機執行的一行指令」（例：`python3 tools/sql/sql.py apply town_xxx.sql --test town_xxx_test.sql --prod`），使用者核准後自己執行並把 REPORT 貼回；Claude 沒有也不可要金鑰。瀏覽器 SQL Editor 只作備案（使用者沒設定金鑰時）。AskUserQuestion 核准規則不變。
+- 指令：`plan`（標準順序與每檔做什麼）、`check <檔>`（離線靜態檢查：檔頭註解、`$$` 成對、if…case 括號、變數 x／y／k、grant 簽名、manifest）、`apply <檔…> [--test <實測檔>] [--prod]`（預設 dry-run；`--prod` 要在終端機輸入 `APPLY`，含 drop／delete／update 再輸入 `DESTRUCTIVE`；不接受管線；拒絕不在 manifest 或已被取代的檔；結果寫 `tools/sql/logs/`，REPORT 含 ❌／失敗／FAIL 則 exit 1）、`query "select…"`（唯讀）、`drift`（用 `pg_get_functiondef` 比對正式站與 repo 最終版本，列不一致與 overload，例如 4 與 6 參數 `town_device`）、`setup`（一次性設定金鑰）。
+- `tools/sql/manifest.json` 是標準套用順序（後面蓋前面）；`kind` = base／patch／once／test，`needs` 前置，`superseded`（整檔作廢）或 `superseded_funcs`＋`superseded_by`（只有某些函式被取代：`town_authfix.sql` 的 `town_device` 被 `town_account.sql` 取代，所以 authfix 必須和 account 一起套用且 account 排後面）。**新增或改名 `supabase/*.sql` 要同步 manifest**（`node town/test.js` 會擋）；離線測試 `python3 tools/sql/test_sql.py`（假 API 伺服器，不連正式站）。
+- 後端：`SUPABASE_ACCESS_TOKEN`（Management API `POST /v1/projects/<ref>/database/query`）；備案 `DATABASE_URL`＋自行 `pip install pg8000`（未實測）。API 的 SQL 錯誤本文格式官方沒寫，工具以 `{"message":…}` 或純文字解析，第一次真的跑時若 REPORT 沒印出要回報。
 
 ## 測試與部署（重要）
 - 前端路線測試：`node town/test.js`（所有房子數量下每個設施走得到）。

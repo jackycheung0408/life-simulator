@@ -460,4 +460,7 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(!ih.includes("cAcct")&&js.includes("RECOVERY_ON")&&/window\.RECOVERY_ON\?'<div class="row" style="justify-content:flex-start"><button id="fgt">/.test(js),"忘記密碼入口要受 RECOVERY_ON 控制，首頁不放帳密入口");
  check(js.includes("data-pw")&&js.includes('op:"reset"')&&js.includes("acctForce"),"鎮長面板重設密碼與強制設密碼要在");
  check(fs.existsSync(__dirname+"/../supabase/town_account_test.sql"),"要有 town_account_test.sql")}
+{const fs=require("fs");const sd=__dirname+"/../supabase/",mf=JSON.parse(fs.readFileSync(__dirname+"/../tools/sql/manifest.json","utf8")),inM=new Set(mf.files.map(e=>e.file));
+ mf.files.forEach(e=>check(fs.existsSync(sd+e.file),"manifest 的 "+e.file+" 不存在（tools/sql/manifest.json）"));
+ fs.readdirSync(sd).filter(f=>f.endsWith(".sql")).forEach(f=>check(inM.has(f)||(mf.ignore||[]).includes(f),"supabase/"+f+" 要加進 tools/sql/manifest.json（files 或 ignore）"))}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

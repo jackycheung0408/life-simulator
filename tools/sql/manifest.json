@@ -1,0 +1,602 @@
+{
+ "project": "gerqdagicybtyilihvvm",
+ "ignore": [],
+ "files": [
+  {
+   "file": "town.sql",
+   "kind": "base",
+   "needs": []
+  },
+  {
+   "file": "town_social.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_fi.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_social.sql"
+   ]
+  },
+  {
+   "file": "town_jail.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_social.sql"
+   ],
+   "note": "全新資料庫：town_jail 要在 town.sql 之前或之後各套一次（town.sql 呼叫 town_pr_*，jail 呼叫 town_jailed）"
+  },
+  {
+   "file": "town_home.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ],
+   "note": "全新資料庫：先 town_home 再 town（town.sql 的 furn 分支呼叫 town_furn）"
+  },
+  {
+   "file": "town_infac.sql",
+   "kind": "patch",
+   "needs": [
+    "town_fi.sql"
+   ],
+   "note": "town.sql／town_fac／town_stock 含 town_need_in 呼叫；重套這三份前先套本檔"
+  },
+  {
+   "file": "town_mischief.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_social.sql"
+   ]
+  },
+  {
+   "file": "town_civic.sql",
+   "kind": "patch",
+   "needs": [
+    "town_fi.sql",
+    "town_jail.sql"
+   ]
+  },
+  {
+   "file": "town_visit.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_wake_out.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_fac.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_social.sql",
+    "town_infac.sql"
+   ]
+  },
+  {
+   "file": "town_pool.sql",
+   "kind": "patch",
+   "needs": [
+    "town_social.sql",
+    "town_stats2.sql"
+   ]
+  },
+  {
+   "file": "town_powers.sql",
+   "kind": "patch",
+   "needs": [
+    "town_civic.sql"
+   ]
+  },
+  {
+   "file": "town_stats.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_stats2.sql",
+   "kind": "patch",
+   "needs": [
+    "town_stats.sql",
+    "town_social.sql"
+   ]
+  },
+  {
+   "file": "town_roll.sql",
+   "kind": "patch",
+   "needs": [
+    "town_mischief.sql"
+   ]
+  },
+  {
+   "file": "town_tweaks.sql",
+   "kind": "patch",
+   "needs": [
+    "town_fi.sql",
+    "town_social.sql"
+   ]
+  },
+  {
+   "file": "town_stock.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_infac.sql"
+   ]
+  },
+  {
+   "file": "town_world.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_arcade2.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_npc.sql",
+   "kind": "patch",
+   "needs": [
+    "town_stats.sql"
+   ]
+  },
+  {
+   "file": "town_quest.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_traveler.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_venues1.sql",
+   "kind": "patch",
+   "needs": [
+    "town_fac.sql",
+    "town_pool.sql",
+    "town_infac.sql"
+   ]
+  },
+  {
+   "file": "town_recovery.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_push.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ],
+   "note": "另需部署 Edge Function town-push"
+  },
+  {
+   "file": "town_authfix.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ],
+   "superseded_funcs": [
+    "town_device"
+   ],
+   "superseded_by": "town_account.sql"
+  },
+  {
+   "file": "town_rafi2.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_hlfix.sql",
+   "kind": "once",
+   "needs": [
+    "town.sql"
+   ],
+   "note": "清理資料，已套用過"
+  },
+  {
+   "file": "town_account.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_authfix.sql"
+   ],
+   "note": "重套 town.sql 或 town_authfix.sql 後要再套一次"
+  },
+  {
+   "file": "town_unlock_once.sql",
+   "kind": "once",
+   "needs": [
+    "town_authfix.sql"
+   ],
+   "note": "已套用過（2026-11-18）"
+  },
+  {
+   "file": "town_account_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_account.sql"
+   ]
+  },
+  {
+   "file": "town_arcade2_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_arcade2.sql"
+   ]
+  },
+  {
+   "file": "town_arcade_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_arcade_test2.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_arcade_test3.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_arcade_test4.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_authfix_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_authfix.sql"
+   ]
+  },
+  {
+   "file": "town_balance2_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_balance_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_batch2_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_bond_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_civic_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_civic.sql"
+   ]
+  },
+  {
+   "file": "town_fac_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_fac.sql"
+   ]
+  },
+  {
+   "file": "town_faint_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_fi_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_fi.sql"
+   ]
+  },
+  {
+   "file": "town_furnfx_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_gov_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_hlfix_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_hlfix.sql"
+   ]
+  },
+  {
+   "file": "town_home_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_home.sql"
+   ]
+  },
+  {
+   "file": "town_infac_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_infac.sql"
+   ]
+  },
+  {
+   "file": "town_jail2_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_jail_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_jail.sql"
+   ]
+  },
+  {
+   "file": "town_jobs_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_level_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_mischief_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_mischief.sql"
+   ]
+  },
+  {
+   "file": "town_nowake_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_npc_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_npc.sql"
+   ]
+  },
+  {
+   "file": "town_pool_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_pool.sql"
+   ]
+  },
+  {
+   "file": "town_powers_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_powers.sql"
+   ]
+  },
+  {
+   "file": "town_price_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_quest_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_quest.sql"
+   ]
+  },
+  {
+   "file": "town_rafi2_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_rafi2.sql"
+   ]
+  },
+  {
+   "file": "town_ranks_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_recovery_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_recovery.sql"
+   ]
+  },
+  {
+   "file": "town_sink_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_sink_test2.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_social_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_social.sql"
+   ]
+  },
+  {
+   "file": "town_stats2_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_stats2.sql"
+   ]
+  },
+  {
+   "file": "town_stock_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_stock.sql"
+   ]
+  },
+  {
+   "file": "town_sub_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_traffic2_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_traffic3_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_traffic_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_traveler_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_traveler.sql"
+   ]
+  },
+  {
+   "file": "town_tweaks_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_tweaks.sql"
+   ]
+  },
+  {
+   "file": "town_venues1_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_venues1.sql"
+   ]
+  },
+  {
+   "file": "town_visit_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_visit.sql"
+   ]
+  },
+  {
+   "file": "town_wake_out_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_wake_out.sql"
+   ]
+  },
+  {
+   "file": "town_wake_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_workcd_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_world_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_world.sql"
+   ]
+  }
+ ]
+}
