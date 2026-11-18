@@ -598,5 +598,5 @@
 - `town_auth` 先驗憑證：金鑰或舊 pin 對就放行並清零 `fails`／`lock_until`（鎖定中也行）。長隨機金鑰（非 4 碼）失敗**不計次、不鎖**，raise「這台裝置的登入失效了，請重新登入」；只有舊 4 碼 pin 錯 5 次才鎖 10 分鐘（訊息含剩餘分鐘）。`town_device` 整鎮鎖改成邀請碼錯 20 次。
 - 前端 `rpc` 認得「登入失效」：`window.__lost` 停掉所有帶 pin 的 RPC、清 `town-mine` 該鎮的 `pin`（保留卡片與備份）、顯示「重新登入」畫面。mock：`sessionStorage.mockLost=1` 模擬失效。
 
-## 比大小狀態鍵修正（2026-11-18；SQL **尚未套用正式站**）
+## 比大小狀態鍵修正（2026-11-18；SQL **已套用正式站 2026-11-18（整份 town.sql＋town_hlfix.sql；回滾實測 town_hlfix_test.sql：舊寫法報錯重現、退回押注 1000、hl 已清；居民 26 的 items.hl 已不存在）**；town.sql 已移除舊 4 參數 town_device，test.js 擋 town.sql 的 town_device／town_auth 與單檔不一致）
 - 比大小進行中的牌局原本存 `items.hl`，和房子等級 `items.hl` 同鍵：牌局開著時 `town_login`／`town_rent` 讀 `(items->>'hl')::int` 報「invalid input syntax for type integer」，玩家登不進去（H7CE2M 居民 26 實例）。已改存 `items.hlg`（`town.sql`），清理檔 `supabase/town_hlfix.sql`（退回押注、移除物件型 hl），實測 `town_hlfix_test.sql`。套用順序：`town.sql` → `town_hlfix.sql` → `town_account.sql`。
