@@ -1,18 +1,19 @@
 -- 角色密碼回滾實測：結果在錯誤訊息 REPORT。接在 town_account.sql 之後貼上。
 do $$
-declare t text := 'ZZACC'; a bigint; b bigint; c bigint; j json; pw1 text; rep text := ''; i int; kk text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23';
+declare t text := 'ZZACC'; a bigint; b bigint; c bigint; d bigint; j json; pw1 text; rep text := ''; i int; kk text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23';
 begin
   insert into public.town_towns(id,name,invite) values (t,'密碼測試鎮','ZZACC1') on conflict do nothing;
   insert into public.town_residents(town_id,name,money,slot,x,y,place,pin_hash,mayor) values (t,'甲',100,0,10,10,'plaza',extensions.crypt('k1', extensions.gen_salt('bf')),true) returning id into a;
   insert into public.town_residents(town_id,name,money,slot,x,y,place,pin_hash) values (t,'乙乙',100,1,10,10,'plaza',extensions.crypt('k2', extensions.gen_salt('bf'))) returning id into b;
   insert into public.town_residents(town_id,name,money,slot,x,y,place,pin_hash) values (t,'丙丙',100,2,10,10,'plaza',extensions.crypt('k3', extensions.gen_salt('bf'))) returning id into c;
+  insert into public.town_residents(town_id,name,money,slot,x,y,place,pin_hash) values (t,'longname9',100,3,10,10,'plaza',extensions.crypt('k4', extensions.gen_salt('bf'))) returning id into d;
   rep := rep || ' 舊4參數函式已刪=' || (select count(*) from pg_proc where proname='town_device' and pronargs=4) || '(預期0)';
   rep := rep || ' 初值=邀請碼(pw)=' || (public.town_device(t,null,b,kk,'ZZACC1','c1')->>'ok');
   rep := rep || ' 初值=邀請碼(invite,舊客戶端)=' || (public.town_device(t,'ZZACC1',b,kk||'A')->>'ok');
   rep := rep || ' 邀請碼錯=' || public.town_device(t,null,b,kk,'WRONG1','c1')::text;
   rep := rep || ' 還沒設密碼status=' || public.town_acct(b,'k2','status')::text;
   rep := rep || ' 設密碼=邀請碼=' || public.town_acct(b,'k2','init','zzacc1')::text;
-  rep := rep || ' 設密碼=名稱=' || public.town_acct(b,'k2','init','乙乙乙乙乙乙')::text;
+  rep := rep || ' 設密碼=名稱=' || public.town_acct(d,'k4','init','LongName9')::text;
   rep := rep || ' 設密碼太短=' || public.town_acct(b,'k2','init','abc')::text;
   rep := rep || ' 設密碼=' || public.town_acct(b,'k2','init','mypass99')::text;
   rep := rep || ' 再init=' || public.town_acct(b,'k2','init','another99')::text;
