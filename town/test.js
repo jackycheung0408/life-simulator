@@ -170,6 +170,11 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
 // 走進設施裡面：ROOMS 的地點要存在、物件在 12×4 格內、點物件要對得到面板按鈕；SQL 的 town_fi 白名單要和 ROOMS 一致；fin 只有 items.fi 等於現在的 place 才算
 {const sql=require("fs").readFileSync(__dirname+"/../supabase/town_fi.sql","utf8"),labels=[...Object.values(M.FAC).map(d=>d[0]),"坐下逗留 🪑","起身 🪑","打工：咖啡師 💼","打工：服務生 💼","打工：健身教練 💼","喝咖啡 ☕","吃一頓","健身 🏋️","做牢裡的勞動 💼","放風 ☀️","申請假釋 🪪","越獄 🕳️","付保釋金出去 💰","探望 乙 🤝","替 乙 保釋 💰","掛號看診 🩺","出院 🚪","探病 乙 🤝","繳罰單（9 折）🧾","自首 👮","報案 📜","今日治安 📊","市政廳大廳 🏛️","打工 💼","打工：店員 💼","打工：行政專員 💼","和 乙 一起加班 💼","看電影 🎬","買禮物 🎁","買零食 🍪","🛍️ 造型與擺飾","逛逛","賣生豬肉 1 塊","看盤與買賣 📈","打擂台 🥊","邀請 乙 打一場 🥊","🎫 考機車駕照","🛡️ 保險、維修、賣車","🚲 買腳踏車","🏍️ 買機車","🚗 買汽車","溜進去偷飼料 🔪"];
  check(sql.includes("pl not in ("+Object.keys(M.ROOMS).map(k=>"'"+k+"'").join(",")+")"),"town_fi.sql 的地點白名單要和 ROOMS 一致");
+ {const fs=require("fs"),inf=fs.readFileSync(__dirname+"/../supabase/town_infac.sql","utf8"),pls=Object.keys(M.ROOMS).filter(k=>!["jail","hospital","police","townhall"].includes(k));
+  check(inf.includes("pl not in ("+pls.map(k=>"'"+k+"'").join(",")+")"),"town_infac.sql 要求進館的地點要和 ROOMS（扣掉監獄、醫院、警察局、市政廳）一致");
+  check(inf.split("\n").slice(0,8).every(l=>/^--/.test(l)||l.trim()==""),"town_infac.sql 檔頭每行都要是註解");
+  check(/town_need_in\(r, act, item\)/.test(fs.readFileSync(__dirname+"/../supabase/town.sql","utf8"))&&/town_need_in_pl\(r, pl\)/.test(fs.readFileSync(__dirname+"/../supabase/town_fac.sql","utf8"))&&/town_need_in_pl\(r, 'stock'\)/.test(fs.readFileSync(__dirname+"/../supabase/town_stock.sql","utf8")),"town_act／town_fac／town_stock_trade 要呼叫進館檢查");
+  check(fs.existsSync(__dirname+"/../supabase/town_infac_test.sql"),"要有 town_infac_test.sql")}
  const need={cafe:["coffee","jukebox","bar","table","plant"],restaurant:["kitchen","menu","bar","table","lamp"],gym:["treadmill","rack","bag","mirror","locker"],jail:["bars","vent","glass","gate","bailDesk","bunk","work","yard"],hospital:["hbed","reg","meds","cross"],police:["pdesk","pboard","prep","pstat","badge"],townhall:["annb","hall","ballot","cfund"],market:["till","giftshelf","snackshelf","clothes","job"],cinema:["screen","popcorn","seat"],office:["pc"],rafi:["pc"],stock:["board","pcs"],arena:["ring","sandbag"],carshop:["lic","gar","vcar","vmoto","vbike"],slaughter:["cleaver","hook"]};
  for(const [k,rm] of Object.entries(M.ROOMS)){check(M.PLACES[k],`ROOMS ${k} 不是地點`);const seen=new Set();
   for(const o of rm.items){const d=M.ITEM[o[0]];check(!!d,`${k} 的物件代號 ${o[0]} 沒有定義`);if(!d)continue;check(o[1]>=0&&o[1]<M.RW&&o[2]>=0&&o[2]<M.RH,`${k} 物件 ${o[0]} 超出格子`);check(!seen.has(o[1]+","+o[2]),`${k} 物件重疊 ${o[1]},${o[2]}`);seen.add(o[1]+","+o[2]);if(d[2])check(labels.some(l=>d[2].test(l)),`${k} 的 ${d[1]} 對不到任何按鈕`)}
@@ -337,7 +342,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(/hr >= 20 or hr < 6/.test(tw)&&/case when day then \.25 else \.5 end/.test(tw)&&/case when day then 2 else 4 end/.test(tw)&&/\(8 \+ \(id % 5\) \* 2\)::int/.test(tw)&&!/nightTW/.test(js),"喪屍豬全天隨機生成：白天 25%／最多 2 隻、夜間 50%／最多 4 隻、每隻活 8～16 分鐘");
  check(/energy = greatest\(0, energy - 8\), fun = greatest\(0, fun - 8\), hygiene = greatest\(0, hygiene - 10\)/.test(tw)&&!/money = money - /.test(tw)&&!/600 - got/.test(tw),"喪屍豬：打到精力 −8 心情 −8 清潔 −10、不扣錢、每天獎勵上限 600 已取消");
  check(/q\.place in \('street','plaza','park'\)/.test(tw)&&/town_fin\(q\)/.test(tw)&&/town_jailed\(q\)/.test(tw),"喪屍豬只打戶外、醒著、不在室內與監獄的人");
- for(const [n,t] of [["town_tweaks.sql",tw]]){const head=t.split("\n").slice(0,12).filter(l=>l.trim()&&!/^(do |create |declare|begin)/.test(l)).length;check(t.split("\n")[0].startsWith("--"),n+" 第一行要是註解")}
+ for(const [n,t] of [["town_tweaks.sql",tw]]){const head=t.split("\n").slice(0,8).filter(l=>l.trim()&&!/^(do |create |declare|begin)/.test(l)).length;check(t.split("\n")[0].startsWith("--"),n+" 第一行要是註解")}
  for(const n of ["town_tweaks.sql"]){const L=fs.readFileSync(__dirname+"/../supabase/"+n,"utf8").split("\n");let i=0;while(i<L.length&&/^--/.test(L[i]))i++;check(i>0&&L.slice(i).every(l=>true),n+" 開頭註解")}
 }
 // 股票：純隨機漫步（沒有拉回基準價的偏移）、bigint 防溢位、貨幣統一 $

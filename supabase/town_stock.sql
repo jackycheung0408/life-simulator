@@ -83,6 +83,7 @@ begin
  if op not in ('buy','sell') then raise exception '沒有這個操作'; end if;
  if public.town_is_off(r.town_id, 'stock') then raise exception '這個小鎮沒有開證券交易所'; end if;
  if r.place <> 'stock' then raise exception '要在證券交易所才能買賣'; end if;
+ perform public.town_need_in_pl(r, 'stock');
  if qty is null or qty < 1 or qty > 1000000000 then raise exception '股數不對'; end if;
  perform public.town_market_step();
  select * into s from public.town_market m where m.code = town_stock_trade.code;

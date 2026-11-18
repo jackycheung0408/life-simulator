@@ -1133,6 +1133,7 @@ begin
   if act <> 'wake' and public.town_jailed(r) and not public.town_is_off(r.town_id, 'jail') then raise exception '你被關在監獄裡，還有 % 分鐘', ceil(extract(epoch from ((r.items->>'jl')::timestamptz - now())) / 60)::int; end if;
   if public.town_closed(case when act = 'obj' then item when act = 'job' then public.town_pjob_key(item) else act end) is not null then raise exception '%', public.town_closed(case when act = 'obj' then item when act = 'job' then public.town_pjob_key(item) else act end); end if;
   if public.town_is_off(r.town_id, public.town_feature(case when act = 'move' then dest when act = 'job' then public.town_pjob_key(item) else act end)) then raise exception '這個小鎮沒有開這個設施'; end if;
+  perform public.town_need_in(r, act, item);
   if act = 'move' then
     if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter','rafi','stock','carshop','jail','hospital','police','townhall')
        or (dest ~ '^home:\d+$' and exists (select 1 from public.town_residents where id = substr(dest,6)::bigint and town_id = r.town_id))) then raise exception '去不了那裡'; end if;

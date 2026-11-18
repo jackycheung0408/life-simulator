@@ -39,6 +39,7 @@ begin
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if r.sleeping then raise exception '你在睡覺，先起床'; end if;
   pl := r.place;
+  if act not in ('claim','up') then perform public.town_need_in_pl(r, pl); end if;
   fa := case when r.items->'fa'->>'d' = today then r.items->'fa'
         else jsonb_build_object('d', today, 'n', 0, 'pl', '[]'::jsonb, 'who', '[]'::jsonb, 'k', '{}'::jsonb, 'tk', '[]'::jsonb) end;
   st := (rid % 8 + doy) % 8; ids := array[st, (st + 3) % 8, (st + 5) % 8];
