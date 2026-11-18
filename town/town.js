@@ -133,17 +133,17 @@ const tkDebt=r=>tkList(r).reduce((a,t)=>a+t.a,0);
 // ── 事故、保險、維修（要和 supabase/town.sql 的 town_crash／town_prem／vfix／vsell 一致）──
 const vwear=(r,k)=>+((((r&&r.items)||{}).veh||{}).w||{})[k]||0;
 const vspd=(r,k)=>VEH[k][2]*(vwear(r,k)>=85?.6:vwear(r,k)>=60?.8:1);
-const insLeft=(r,k,l)=>{const i=((((r&&r.items)||{}).ins||{})[k]||{})[l];return i?Date.parse(i)-now():0};
+const insLeft=(r,k,l)=>{const i=((((r&&r.items)||{}).ins||{})[k]||{})[l];return i?Date.parse(i)-nowFn():0};
 const debtOf=r=>+((((r&&r.items)||{}).db||{}).a)||0;
 const premMult=r=>{const it=(r&&r.items)||{};return Math.min(1.8,1+.05*Math.min(6,(it.tv||{}).n||0)+.1*Math.min(4,(it.ac||{}).n||0))};
 const PREM={c:{moto:[150,500],car:[300,1000]},f:{moto:[400,1400],car:[900,3000]}};
 const premOf=(r,k,l,d)=>Math.round(PREM[l][k][d==7?0:1]*premMult(r));
 const fixCost=(r,k)=>Math.ceil(VEH[k][1]*.15*vwear(r,k)/100);
 const sellVal=(r,k)=>Math.round(VEH[k][1]*.6*(1-vwear(r,k)/200));
-const rpLeft=(r,k)=>{const i=((((r&&r.items)||{}).veh||{}).rp||{})[k];return i?Date.parse(i)-now():0};
-const lkLeft=r=>{const i=(((r&&r.items)||{}).veh||{}).lk;return i?Date.parse(i)-now():0};
+const rpLeft=(r,k)=>{const i=((((r&&r.items)||{}).veh||{}).rp||{})[k];return i?Date.parse(i)-nowFn():0};
+const lkLeft=r=>{const i=(((r&&r.items)||{}).veh||{}).lk;return i?Date.parse(i)-nowFn():0};
 const fmtLeft=ms=>{const d=ms/864e5;return d>=1?`${d.toFixed(1)} 天`:`${Math.max(1,Math.round(ms/6e4))} 分鐘`};
-const susLeft=r=>{const s=r&&r.items&&r.items.sus;return s?Date.parse(s)-now():0};
+const susLeft=r=>{const s=r&&r.items&&r.items.sus;return s?Date.parse(s)-nowFn():0};
 const stepCost=(x,y,veh)=>isRoad(x,y)?(veh?1:isCross(x,y)?1:3):(veh?2:1);
 // 最短路徑（上下左右走，依成本），找不到就回傳 null
 function bfs(from,to,veh){const key=(x,y)=>y*COLS+x,dist=new Map([[key(...from),0]]),prev=new Map([[key(...from),null]]),B=[[from]];
@@ -229,6 +229,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"fix-1118-now",date:"11/18",title:"修好進不去小鎮",items:["有人被吊銷駕照或買保險時，大家會卡在登入","已修好，重新整理就能進"]},
   {id:"login-1118",date:"11/18",title:"登入更穩",items:["舊裝置不再害你被鎖","登入失效會告訴你怎麼辦"]},
   {id:"acct-1118",date:"11/18",title:"角色密碼",items:["每個角色要設自己的密碼","換手機：選角色後輸入密碼"]},
   {id:"btnfx-1118",date:"11/18",title:"按鈕顯示效果",items:["每顆按鈕寫出加減與門檻","長按按鈕看詳細說明"]},
