@@ -418,4 +418,16 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(fs.existsSync(__dirname+"/../supabase/town_recovery_test.sql"),"要有 town_recovery_test.sql")}
 {const h=require("fs").readFileSync(__dirname+"/index.html","utf8");for(const m of h.matchAll(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g)){try{new Function(m[1])}catch(e){check(false,"index.html 內嵌 script 語法錯誤："+e.message)}}}
 {for(const [k,o] of Object.entries(M.OBJS)){const d=M.TAP_DEF[k];check(!!d,"TAP_DEF 缺物件 "+k);if(!d)continue;const m=(o.acts[0][1].match(/€(\d+)/)||[])[1];check((d.cost||0)==(m?+m:0),`TAP_DEF.${k} 價格要和 OBJS 說明一致`);if(d.cost>60)check(!d.ok,k+" 超過 $60 要確認條")}}
+{const fs=require("fs"),sq=fs.readFileSync(__dirname+"/../supabase/town_arcade2.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8");
+ check(sq.includes("select ((100 * p + 1248 - 100 * w) / w)")&&M.dgOdds(5,2)==Math.floor((200+1248-500)/5),"射龍門賠率公式要和 SQL 一致");
+ // 射龍門：每種龍門的精確期望（回報率）<= 0.96；撞柱輸 2 倍，贏時拿回 押注+押注*o/100（1/13 一個點數）
+ let worst=0;const ev=(W,P)=>{const o=M.dgOdds(W,P),L=13-W-P;return 1+(o/100*W-2*P-L)/13};
+ for(let a=1;a<=13;a++)for(let b=a+2;b<=13;b++)worst=Math.max(worst,ev(b-a-1,2));
+ for(let a=1;a<=13;a++){if(13-a>0)worst=Math.max(worst,ev(13-a,1));if(a-1>0)worst=Math.max(worst,ev(a-1,1))}
+ check(worst<=0.96+1e-9,"射龍門有龍門期望值超過 0.96："+worst);
+ // 百家樂（無限副牌精確窮舉的結果寫在 SQL 註解）：閒 0.98772、莊 0.98936、和 0.85883 都 < 1
+ check(2*0.446147+0.095426<1&&1.95*0.458428+0.095426<1&&9*0.095426<1&&sq.includes("閒 1:1（期望 0.98772）"),"百家樂期望值要 < 1 並寫在 SQL");
+ check(sq.includes("回報率剛好 1.000")&&sq.includes("bet * case when ps >= 10000 then 3 else 2 end")&&sq.includes("r.money < bet * 2"),"妞妞賠率與 2 倍現金檢查要在");
+ check(!/40 局/.test(js.replace(/\/\/.*$/gm,"")),"town.js 不能再有「40 局」文字");
+ check(js.includes('"town_game2"')&&fs.existsSync(__dirname+"/../supabase/town_arcade2_test.sql"),"前端要呼叫 town_game2、要有 town_arcade2_test.sql")}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

@@ -1888,7 +1888,8 @@ begin
   best := coalesce((r.items->'sp'->>game)::int, 0);
   if score > best then best := score; r.items := jsonb_set(r.items, '{sp}', coalesce(r.items->'sp','{}'::jsonb) || jsonb_build_object(game, best)); end if;
   -- 不再有 5 分鐘冷卻：每次都給心情 +2，每天最多 10 次（items.dn.sp）
-  if coalesce((case when (r.items->'dn'->>'d') = to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD') then (r.items->'dn'->>'sp')::int end),0) < 10 then gain := 2; r.fun := least(100, r.fun + 2); r := public.town_dcap(r, 'sp', 10); end if;
+  -- 2026-11-18 起取消每天 10 次上限：每次心情 +2（心情不是錢）
+  gain := 2; r.fun := least(100, r.fun + 2);
   update public.town_residents set fun = r.fun, items = r.items, seen_at = now() where id = rid;
   return json_build_object('best', best, 'gain', gain);
 end $$;

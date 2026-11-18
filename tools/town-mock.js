@@ -21,6 +21,12 @@ if(!String(url).includes("/rpc/"))return _fetch(url,o);const fn=url.split("/rpc/
  if(fn=="town_game"){const r=R(b.rid);const g=b.game;let res;if(g=="rps"){const h=["r","p","s"][Math.floor(Math.random()*3)];res={you:b.choice,house:h,win:b.choice==h?b.bet:(b.choice+h).match(/rs|sp|pr/)?b.bet*2:0}}
   else if(g=="hl_start"){res={card:207}}else if(g=="hl_guess"){res={card:207,next:310,win:b.choice=="hi"?16:0}}else if(g=="dice"){res={dice:[3,3,5],win:0}}else if(g=="slots"){res={reels:[0,0,3],win:Math.floor(b.bet*1.1)}}else if(g=="bingo"){res={pick:[1,2,3],draw:[2,3,7,8,9],hit:2,win:Math.floor(b.bet*1.4)}}else if(g=="wheel"){res={slot:8,mult:2,win:b.bet*2}}else if(g=="bj_start"){res={p:[112,413],d:[301],done:false}}else if(g=="bj_hit"){res={p:[112,413,204],d:[301],done:false}}else{res={p:[112,413,204],d:[301,108],done:true,win:20}}
   return ok({game:res,money:r.money})}
+ if(fn=="town_game2"){const r=R(b.rid);const g=b.game,c=n=>(1+Math.floor(Math.random()*4))*100+1+Math.floor(Math.random()*13);let res;
+  if(g=="bacc")res={p:[c(),c()],b:[c(),c()],pt:6,bt:4,win:b.choice=="p"?b.bet*2:0,bet:b.bet,pick:b.choice};
+  else if(g=="dg_start"){r.__dg=1;res={gates:[203,410],abandon:false,same:false,odds:Math.floor((200+1248-500)/5)}}
+  else if(g=="dg_play"){if(b.choice=="pass")res={pass:true,win:0,bet:0,pen:0};else{const w=Math.random()<.4;res={gates:[203,410],card:w?306:112,win:w?b.bet*2:0,hit:false,bet:b.bet,pen:0}}}
+  else res={p:[c(),c(),c(),c(),c()],b:[c(),c(),c(),c(),c()],pcl:7,bcl:3,win:b.bet*2,bet:b.bet,pen:0};
+  return ok({game:res,money:r.money})}
  if(fn=="town_score"){const r=R(b.rid);r.items=r.items||{};const sp=r.items.sp=r.items.sp||{};if(b.score>(sp[b.game]||0))sp[b.game]=b.score;return ok({best:sp[b.game],gain:2})}
  if(fn=="town_device"){const t=db.towns[b.tid];if(b.invite!=t.invite)return ok({error:"邀請碼不對，請問鎮長"});R(b.rid).pin=b.key;return ok({ok:true})}
  if(fn=="town_login"){const r=R(b.rid);if(!r)return bad("找不到這位居民");if(r.pin!=b.pin)return ok({error:"密碼不對"});if(b.new_look)r.look=b.new_look;return ok({ok:true,town_id:r.town_id,last_seen:"2000-01-01T00:00:00Z"})}
