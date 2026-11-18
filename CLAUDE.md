@@ -593,3 +593,7 @@
 - **鎖定**：表 `town_pw_tries(rid,cid,…)`；`cid` = `localStorage town-cid`（前端隨機產生）。同一角色＋同一 cid 連錯 5 次鎖 30 分鐘；同一角色每小時全域錯 30 次限速 10 分鐘；**密碼正確一律放行並清零**；訊息統一「密碼不對」。長隨機裝置金鑰失效不計入（`town_auth`，見 `town_authfix.sql`）。
 - **重設**：鎮長面板「重設密碼」（`data-pw`，`op:"reset"`）產生 6 碼臨時密碼，明碼只給鎮長看一次；忘記密碼（要 Email 驗證）＝第 3 步「忘記密碼？」→ `recAsk` → `town_recovery_list`（只留本鎮）→ 選角色 → `town_recovery_reset` 設新密碼並取得金鑰。**「忘記密碼」與選單的「綁定 Email」只在 `window.RECOVERY_ON` 為 true 時出現（預設 false，要等真實寄信驗證成功）；在那之前鎮長重設是唯一重設途徑。**
 - 沒有「用帳號密碼登入」入口也沒有自訂帳號名（帳號＝選人物）。`town_accounts(rid,pw,temp,changed_at)`，RLS 全關。
+
+## 登入鎖定規則（2026-11-18；SQL `supabase/town_authfix.sql` **已套用正式站 2026-11-18**，回滾實測 `town_authfix_test.sql`（REPORT）：失效金鑰連打 30 次不鎖、4 碼 pin 錯 5 次才鎖且鎖中正確金鑰可登入、邀請碼錯 19 次不鎖／20 次鎖並回明確訊息、錢不變；一次性解鎖 `town_unlock_once.sql` 已跑，清了 1 個角色、0 個小鎮）
+- `town_auth` 先驗憑證：金鑰或舊 pin 對就放行並清零 `fails`／`lock_until`（鎖定中也行）。長隨機金鑰（非 4 碼）失敗**不計次、不鎖**，raise「這台裝置的登入失效了，請重新登入」；只有舊 4 碼 pin 錯 5 次才鎖 10 分鐘（訊息含剩餘分鐘）。`town_device` 整鎮鎖改成邀請碼錯 20 次。
+- 前端 `rpc` 認得「登入失效」：`window.__lost` 停掉所有帶 pin 的 RPC、清 `town-mine` 該鎮的 `pin`（保留卡片與備份）、顯示「重新登入」畫面。mock：`sessionStorage.mockLost=1` 模擬失效。
