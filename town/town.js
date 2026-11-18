@@ -6,8 +6,8 @@ typeof document!=="undefined"&&(()=>{const st=document.createElement("style");st
 // 小豬鎮：任何人都能建立自己的小鎮，拿邀請碼的朋友搬進來；需求隨現實時間下降，所有改動都經過 Supabase 的資料庫函式
 const SB="https://gerqdagicybtyilihvvm.supabase.co/rest/v1/rpc/",SBK="sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y";
 const rpcF=(fn,body={})=>{const b=JSON.stringify(body),p=window.LP&&LP.pre&&LP.pre[fn];if(p&&!p.used&&p.b==b&&Date.now()-p.t<2e4){p.used=1;return p.f}return fetch(SB+fn,{method:"POST",keepalive:true,headers:{apikey:SBK,"Content-Type":"application/json"},body:b})};
-let rpcHook=null;const rpc=(fn,body={})=>{if(rpcHook)try{rpcHook(fn,body)}catch(e){}return rpcF(fn,body).catch(()=>{throw new Error("連不上小鎮，檢查網路後再按一次")})
- .then(async r=>{const j=await r.json().catch(()=>null);if(!r.ok)throw new Error((j&&j.message)||"小鎮暫時沒回應，過一下再按一次");if(j&&j.error)throw new Error(j.error);return j})};
+let rpcHook=null,LOGIN_DEAD=0;const LOSTMSG="這台裝置的登入失效了";const rpc=(fn,body={})=>{if(LOGIN_DEAD&&body&&body.pin&&fn!="town_device")return Promise.reject(new Error(LOSTMSG+"，請重新登入"));if(rpcHook)try{rpcHook(fn,body)}catch(e){}return rpcF(fn,body).catch(()=>{throw new Error("連不上小鎮，檢查網路後再按一次")})
+ .then(async r=>{const j=await r.json().catch(()=>null);if(!r.ok){const m=(j&&j.message)||"小鎮暫時沒回應，過一下再按一次";if(m.indexOf(LOSTMSG)>=0&&body&&body.pin&&window.__lost)window.__lost();throw new Error(m)}if(j&&j.error){if(j.error.indexOf(LOSTMSG)>=0&&body&&body.pin&&window.__lost)window.__lost();throw new Error(j.error)}return j})};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 // ── 地圖：寬 34 格。市中心固定；住宅一排 3 間（5×4 格，門在正下方），住滿就往下多開一條街，最多 4 排 ──
@@ -229,6 +229,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"login-1118",date:"11/18",title:"登入更穩",items:["舊裝置不再害你被鎖","登入失效會告訴你怎麼辦"]},
   {id:"acct-1118",date:"11/18",title:"帳號密碼登入",items:["選單可產生密碼","換手機：首頁用帳號登入"]},
   {id:"btnfx-1118",date:"11/18",title:"按鈕顯示效果",items:["每顆按鈕寫出加減與門檻","長按按鈕看詳細說明"]},
   {id:"venues1-1118",date:"11/18",title:"吃喝社交場館升級",items:["咖啡廳拉花、共點，餐廳套餐、外帶","電影院情侶座、超市特價與點數","店員常客有委託，夜晚室內變暗"]},
@@ -451,6 +452,8 @@ const mine=()=>{try{return JSON.parse(localStorage.getItem("town-mine")||"[]")}c
 const saveMine=e=>{e.at=Date.now();const l=mine().filter(x=>x.tid!=e.tid);l.unshift(e);try{localStorage.setItem("town-mine",JSON.stringify(l.slice(0,10)))}catch(er){}try{LP.bk(l.slice(0,10))}catch(er){}};
 let mineAt=0;const touchMine=()=>{if(!TID||Date.now()-mineAt<6e4)return;mineAt=Date.now();try{const l=mine(),x=l.find(y=>y.tid==TID);if(x){x.at=Date.now();localStorage.setItem("town-mine",JSON.stringify(l))}}catch(e){}};
 const dropMine=tid=>{try{const l=mine().filter(x=>x.tid!=tid);localStorage.setItem("town-mine",JSON.stringify(l))}catch(e){}try{LP.bk(mine())}catch(e){}};
+const dropKey=tid=>{try{const l=mine();const x=l.find(y=>y.tid==tid);if(x)x.pin="";localStorage.setItem("town-mine",JSON.stringify(l));LP.bk(l)}catch(e){}};
+window.__lost=()=>{if(LOGIN_DEAD)return;dropKey(TID);if(!me)return;LOGIN_DEAD=1;setTimeout(()=>{try{document.body.classList.remove("ingame");$("game").classList.add("hide");$("modal").classList.add("hide");$("login").classList.remove("hide");$("lg").innerHTML=`${LP.scene(1)}<h2>登入失效了</h2><p>這台裝置的登入失效了（可能在別台裝置登入太多次）。</p><p class="mut">輸入一次小鎮邀請碼就能回來，你的角色和錢都還在。</p><div class="row"><button class="pri" id="relog">重新登入</button></div>`;$("relog").onclick=()=>{LOGIN_DEAD=0;location.reload()}}catch(e){location.reload()}},0)};
 const go=tid=>{location.search="?t="+tid};
 // 裝置金鑰：每台手機自動產生一組，代替密碼（存在這台手機上，不用記）
 const newKey=()=>{const a="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789",b=crypto.getRandomValues(new Uint8Array(32));return [...b].map(x=>a[x%a.length]).join("")};
@@ -552,7 +555,7 @@ function townLogin(){document.body.classList.remove("ingame");$("login").classLi
  $("lg").querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>pinStep(+b.dataset.id));
  if($("mv"))$("mv").onclick=()=>joinStep();$("home2").onclick=()=>go("")}
 const savedInv=()=>{try{return sessionStorage.getItem("town-inv-"+TID)||""}catch(e){return ""}};
-function pinStep(id){const r=R[id];$("lg").innerHTML=`${LP.scene(1)}${LP.stepBar(3)}<p><b>${esc(r.name)}</b>，歡迎回來</p><p class="mut">在新的手機或電腦上，輸入一次小鎮的邀請碼就好，之後這台裝置會一直記得你。</p>
+function pinStep(id){const r=R[id];$("lg").innerHTML=`${LP.scene(1)}${LP.stepBar(3)}<p><b>${esc(r.name)}</b>，歡迎回來</p><p class="mut">換新手機、清過瀏覽器資料或登入失效時，輸入一次邀請碼就好。</p>
   <label class="lpcode">邀請碼（邀請訊息裡有，或問鎮長）<input id="inv" maxlength="8" autocomplete="off" style="text-transform:uppercase" value="${esc(savedInv())}"></label><p class="err" id="lerr"></p>
   <div class="row"><button id="back">← 換人</button><button class="pri" id="go">進入小鎮</button></div>`;
  $("back").onclick=townLogin;$("inv").focus();
@@ -2050,7 +2053,7 @@ const slow=setTimeout(()=>{const x=document.querySelector("#lg .ld small");if(x)
 (async()=>{if(!TID){clearTimeout(slow);const l=mine();if(standalone&&l.length==1){go(l[0].tid);return}landing();return}
  try{await refresh()}catch(e){clearTimeout(slow);$("lg").innerHTML=`<h2>進不去這個小鎮</h2><p class="err">${esc(e.message)}</p><p class="mut">網路正常的話，可能是小鎮代碼打錯了。</p><div class="row" style="justify-content:flex-start"><button class="pri" id="retry3">再試一次</button><button id="home3">回小豬鎮首頁</button></div>`;$("home3").onclick=()=>go("");$("retry3").onclick=()=>location.reload();return}clearTimeout(slow);
  const a=mine().find(x=>x.tid==TID);
- if(a&&R[a.rid]){try{const res=await rpc("town_login",{rid:a.rid,pin:a.pin});me=a.rid;pin=a.pin;lastSeen=res.last_seen;await enter()}catch(e){if(me||/連不上|網路|fetch|Failed|Load failed/i.test(e.message||"")){$("login").classList.remove("hide");$("lg").innerHTML=`<h2>暫時進不去</h2><p class="err">${esc(e.message||e)}</p><p class="mut">你的登入還在，不用重輸邀請碼，再試一次就好。</p><div class="row" style="justify-content:flex-start"><button class="pri" id="retry4">再試一次</button></div>`;$("retry4").onclick=()=>location.reload()}else townLogin()}}else townLogin();
+ if(a&&a.pin&&R[a.rid]){try{const res=await rpc("town_login",{rid:a.rid,pin:a.pin});me=a.rid;pin=a.pin;lastSeen=res.last_seen;await enter()}catch(e){if(me||/連不上|網路|fetch|Failed|Load failed/i.test(e.message||"")){$("login").classList.remove("hide");$("lg").innerHTML=`<h2>暫時進不去</h2><p class="err">${esc(e.message||e)}</p><p class="mut">你的登入還在，不用重輸邀請碼，再試一次就好。</p><div class="row" style="justify-content:flex-start"><button class="pri" id="retry4">再試一次</button></div>`;$("retry4").onclick=()=>location.reload()}else townLogin()}}else townLogin();
  setInterval(()=>{if(document.visibilityState=="visible"&&S){touchMine();refresh().catch(()=>{})}},15000);setInterval(pePoll,20000)})();
 }
 

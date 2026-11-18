@@ -591,3 +591,8 @@
 - 初始密碼：已登入裝置在選單「帳號與密碼」（`acctModal`）按「產生初始密碼」，伺服器隨機 6 碼只回傳一次，之後要求改成自己的（改密碼要舊密碼、≥6 字、不能等於角色名稱）；鎮長在鎮長面板「重設密碼」產生臨時密碼（只顯示給鎮長一次，玩家登入後被要求改）。
 - 登入：首頁「用帳號密碼登入」（`LP.want="a"`，`acctLogin`）→ `town_acct_login` 回一把新裝置金鑰（舊金鑰仍有效），存 `town-mine`＋IndexedDB 備份。錯誤一律「帳號或密碼不對」，同角色連錯 5 次鎖 30 分鐘（鎖定時也是同一句）。
 - 旗標 `window.ACCT_ON`（`index.html`，預設 true）；SQL 沒套用時 RPC 會回「Could not find the function」，`acctGone` 偵測到就設成 false 並隱藏入口。與 `RECOVERY_ON`（Email 救援）互不相干。
+
+
+## 登入鎖定規則（2026-11-18；SQL `supabase/town_authfix.sql` **尚未套用正式站**，之後再跑一次性 `town_unlock_once.sql`；實測 `town_authfix_test.sql`（回滾，REPORT）**尚未跑**）
+- `town_auth` 先驗憑證：金鑰或舊 pin 對就放行並清零 `fails`／`lock_until`（鎖定中也行）。長隨機金鑰（非 4 碼）失敗**不計次、不鎖**，raise「這台裝置的登入失效了，請重新登入」；只有舊 4 碼 pin 錯 5 次才鎖 10 分鐘（訊息含剩餘分鐘）。`town_device` 整鎮鎖改成邀請碼錯 20 次。
+- 前端 `rpc` 認得「登入失效」：`window.__lost` 停掉所有帶 pin 的 RPC、清 `town-mine` 該鎮的 `pin`（保留卡片與備份）、顯示「重新登入」畫面；自動登入沒有 pin 時直接走選角色。mock：`sessionStorage.mockLost=1` 模擬失效。
