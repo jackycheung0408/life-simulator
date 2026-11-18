@@ -235,6 +235,7 @@ const UPDATES=[
   {id:"acct-1118",date:"11/18",title:"角色密碼",items:["每個角色要設自己的密碼","換手機：選角色後輸入密碼"]},
   {id:"btnfx-1118",date:"11/18",title:"按鈕顯示效果",items:["每顆按鈕寫出加減與門檻","長按按鈕看詳細說明"]},
   {id:"venues1-1118",date:"11/18",title:"吃喝社交場館升級",items:["咖啡廳拉花、共點，餐廳套餐、外帶","電影院情侶座、超市特價與點數","店員常客有委託，夜晚室內變暗"]},
+  {id:"dgpot-1118",date:"11/18",title:"射龍門彩池改版",items:["彩池由玩家輸的錢累積","彩池空了只能看牌、放棄"]},
   {id:"arcade2-1118",date:"11/18",title:"街機新三款",items:["新增百家樂、射龍門、妞妞","射龍門入場費 $50、自訂押注","新圖示，注碼按鈕同步"]},
   {id:"infac-1118",date:"11/18",title:"進館才能用",items:["超市、電影院、公司等也能走進去","設施功能要進去才能用"]},
   {id:"tap-1117",date:"11/17",title:"點了就做",items:["點物件、建築，走過去自動互動","花錢的會先問你"]},
@@ -1132,11 +1133,10 @@ function gamesModal(){$("modal").classList.remove("hide");const solo=SOLO.some(g
   area.querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{area.querySelectorAll("[data-b]").forEach(x=>x.disabled=true);try{const g=await pg2("bacc",{choice:b.dataset.b});const side=g.pt>g.bt?"閒贏":g.bt>g.pt?"莊贏":"和局";
    $("gShow").innerHTML=`<p>閒 <b>${g.pt}</b></p>${cardsH(g.p)}<p>莊 <b>${g.bt}</b></p>${cardsH(g.b)}<p class="mut">${side}</p>`+result(g);money()}catch(e){$("gShow").innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
    area.querySelectorAll("[data-b]").forEach(x=>x.disabled=false)})}
-if(gameTab=="dg"){area.innerHTML=`<p class="mut">流程：付入場費 €${DGFEE}（進彩池）→ 看兩張龍門牌 → 放棄（只損失入場費），或自訂金額下注（最少 €50，只能賭彩池裡的錢，現金要有押注 3 倍）。第三張在兩張之間才贏，贏拿彩池 1 倍押注（抽 5% 進鎮基金）；撞柱輸 2 倍，兩張龍門同點又撞中輸 3 倍；其他輸 1 倍。兩張相鄰自動重發、不收入場費。彩池每 10 分鐘自動加 10%。</p><p class="mut">彩池 €<b id="dgPot">…</b> · 下次加碼 <b id="dgNext">…</b></p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="dgGo">入場（付 €${DGFEE}）</button></div>`;
-  let dgm=0,dgwhy="pot",dgt=0,dgBet=50;const WHY={pot:"彩池只有這些",cash:"現金 ÷ 3（撞柱要賠 3 倍）"};
-  const tm=()=>{const n=$("dgNext");if(n)n.textContent=Math.floor(dgt/60)+":"+String(dgt%60).padStart(2,"0")};const tk=setInterval(()=>{if(!$("dgNext")){clearInterval(tk);return}dgt=dgt>0?dgt-1:600;tm()},1000);
-  const potUp=g=>{$("dgPot").textContent=g.pot;dgm=g.maxBet!=null?g.maxBet:0;dgwhy=g.why||"pot";if(g.next!=null)dgt=g.next;tm()};
-  const dgSync=()=>{const inp=$("dgIn");if(!inp)return;dgBet=Math.floor(+inp.value)||0;const ok=dgBet>=50&&dgBet<=dgm;area.querySelectorAll("[data-dg]").forEach(x=>{if(x.dataset.dg!="pass")x.disabled=!ok});area.querySelectorAll("[data-dgb]").forEach(x=>x.textContent=`押 €${dgBet}`);const n=$("dgNote");if(n)n.textContent=dgm<50?`現金或彩池不夠（${WHY[dgwhy]}），只能放棄`:`目前可押 €50～€${dgm}（${WHY[dgwhy]}）${dgBet>dgm?" · 金額太大":dgBet<50?" · 最少 €50":""}`};
+if(gameTab=="dg"){area.innerHTML=`<p class="mut">流程：付入場費 €${DGFEE}（進彩池）→ 看兩張龍門牌 → 放棄（只損失入場費），或自訂金額下注（最少 €50，只能賭彩池裡的錢，現金要有押注 3 倍）。第三張在兩張之間才贏，贏拿彩池 1 倍押注（抽 5% 進鎮基金）；撞柱輸 2 倍，兩張龍門同點又撞中輸 3 倍；其他輸 1 倍。輸家的錢和入場費都進彩池，彩池從 0 開始，只能賭池裡別人輸的錢。兩張相鄰自動重發、不收入場費。</p><p class="mut">彩池 €<b id="dgPot">…</b>（入場費 €${DGFEE} 進彩池）</p><p class="mut" id="dgEmpty"></p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="dgGo">入場（付 €${DGFEE}）</button></div>`;
+  let dgm=0,dgwhy="pot",dgBet=50;const WHY={pot:"池裡的錢（不含你剛付的入場費）",cash:"現金 ÷ 3（撞柱要賠 3 倍）"};
+  const potUp=g=>{$("dgPot").textContent=g.pot;dgm=g.maxBet!=null?g.maxBet:0;dgwhy=g.why||"pot";const em=$("dgEmpty");if(em)em.textContent=dgm<50?"彩池太少，等其他玩家輸了才有得賭（現在可以入場看龍門牌、放棄）":""};
+  const dgSync=()=>{const inp=$("dgIn");if(!inp)return;dgBet=Math.floor(+inp.value)||0;const ok=dgBet>=50&&dgBet<=dgm;area.querySelectorAll("[data-dg]").forEach(x=>{if(x.dataset.dg!="pass")x.disabled=!ok});area.querySelectorAll("[data-dgb]").forEach(x=>x.textContent=`押 €${dgBet}`);const n=$("dgNote");if(n)n.textContent=dgm<50?(dgwhy=="pot"?"彩池太少，等其他玩家輸了才有得賭，只能放棄":"現金不夠（要有押注 3 倍），只能放棄"):`目前可押 €50～€${dgm}（${WHY[dgwhy]}）${dgBet>dgm?" · 金額太大":dgBet<50?" · 最少 €50":""}`};
   rpc("town_game2",{rid:me,pin,game:"dg_info",bet:0}).then(r=>{potUp(r.game)}).catch(()=>{});
   const deal=async()=>{try{const g=await pg2("dg_start",{bet:0});const gt=g.gates,show=$("gShow");potUp(g);money();dgBet=Math.max(50,Math.min(dgBet,dgm||50));
    show.innerHTML=`<div class="cards">${cardHTML(gt[0])}${cardHTML(0,true)}${cardHTML(gt[1])}</div><p class="mut">已付入場費 €${g.fee}${g.redeal?`（相鄰重發 ${g.redeal} 次，免費）`:""}</p><div class="dgbet"><input id="dgIn" type="number" inputmode="numeric" min="50" max="${dgm}" step="10" value="${dgBet}"><button data-q="min">最小</button><button data-q="half">一半</button><button data-q="max">最大</button></div><p class="mut" id="dgNote"></p>`;

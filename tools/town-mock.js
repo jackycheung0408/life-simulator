@@ -26,9 +26,9 @@ if(!String(url).includes("/rpc/"))return _fetch(url,o);const fn=url.split("/rpc/
   return ok({game:res,money:r.money})}
  if(fn=="town_game2"){const r=R(b.rid);const g=b.game,c=n=>(1+Math.floor(Math.random()*4))*100+1+Math.floor(Math.random()*13);let res;
   if(g=="bacc")res={p:[c(),c()],b:[c(),c()],pt:6,bt:4,win:b.choice=="p"?b.bet*2:0,bet:b.bet,pick:b.choice};
-  else if(g=="dg_info")res={pot:3000,maxBet:Math.min(3000,Math.floor(r.money/3)),why:"pot",next:420,entry:50};
-  else if(g=="dg_start"){res={gates:[203,410],same:false,fee:50,pot:3050,maxBet:Math.min(3050,Math.floor((r.money-50)/3)),why:"pot",next:420,redeal:0,canHi:false,canLo:false}}
-  else if(g=="dg_play"){if(b.choice=="pass")res={pass:true,pot:3050,maxBet:3000,why:"pot",next:400};else{const w=Math.random()<.4,bt=b.bet;res={gates:[203,410],card:w?306:112,net:w?Math.floor(bt*.95):-bt,mult:1,win:w,bet:bt,pot:3050,maxBet:3000,why:"pot",next:400}}}
+  else if(g=="dg_info")res={pot:0,maxBet:0,why:"pot",entry:50};
+  else if(g=="dg_start"){res={gates:[203,410],same:false,fee:50,pot:50,maxBet:0,why:"pot",redeal:0,canHi:false,canLo:false}}
+  else if(g=="dg_play"){if(b.choice=="pass")res={pass:true,pot:50,maxBet:0,why:"pot"};else{const w=Math.random()<.4,bt=b.bet;res={gates:[203,410],card:w?306:112,net:w?Math.floor(bt*.95):-bt,mult:1,win:w,bet:bt,pot:50,maxBet:0,why:"pot"}}}
   else res={p:[c(),c(),c(),c(),c()],b:[c(),c(),c(),c(),c()],pcl:7,bcl:3,win:b.bet*3,bet:b.bet,pen:0};
   return ok({game:res,money:r.money})}
  if(fn=="town_score"){const r=R(b.rid);r.items=r.items||{};const sp=r.items.sp=r.items.sp||{};if(b.score>(sp[b.game]||0))sp[b.game]=b.score;return ok({best:sp[b.game],gain:2})}
