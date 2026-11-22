@@ -193,9 +193,9 @@ const MOOD={happy:["😊","開心","薪水 +10%、好感 ×1.2、打架 +5"],nor
 const MOOD_WAGE={happy:110,normal:100,annoyed:95,low:90,sad:70};
 const payOf=(base,r)=>Math.floor((base*MOOD_WAGE[moodOf(r)]*(hasT(r,"workaholic")?110:100)*2+10000)/20000);
 function tickLocal(r,now){const h=Math.min(72,Math.max(0,(now-Date.parse(r.updated_at))/36e5)),o={...r},hm=hasT(r,"clean")?.7:1;
- // 和 town_tick 一致：離線保護（最後動作 30 分鐘後，消耗 ×0.4、需求最低停在 15）；睡覺回精力與睡眠時數成正比；
+ // 和 town_tick 一致：離線保護（最後動作 30 分鐘後，消耗 ×0.4、需求最低停在 30）；睡覺回精力與睡眠時數成正比；
  // 快速睡覺（items.qs 到期自動醒，睡眠速率 ×2.5）；待機超過 60 分鐘算回家睡覺
- const sa=r.seen_at?Date.parse(r.seen_at)+18e5:Infinity,s60=r.seen_at&&!(r.items&&r.items.jl&&Date.parse(r.items.jl)>now)?Date.parse(r.seen_at)+36e5:Infinity,t0=now-h*36e5,fl=(v,d)=>Math.max(v-d,Math.min(v,15));
+ const sa=r.seen_at?Date.parse(r.seen_at)+18e5:Infinity,s60=r.seen_at&&!(r.items&&r.items.jl&&Date.parse(r.items.jl)>now)?Date.parse(r.seen_at)+36e5:Infinity,t0=now-h*36e5,fl=(v,d)=>Math.max(v-d,Math.min(v,30));
  const oh=(a,b)=>{const on=Math.max(0,Math.min(b,sa)-a);return[on/36e5,(b-a-on)/36e5]};
  const bed=hasF(r,"bed")?90:64,hb=hasF(r,"bed")?0:1,qe=r.items&&r.items.qs?Date.parse(r.items.qs):0;
  let aw0=t0,aw1=t0,ss0=t0,ss1=t0,mult=1;

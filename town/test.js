@@ -59,7 +59,7 @@ check(Math.abs(M.tickLocal({...base,sleeping:true,energy:0,items:{fu:["bed"]}},.
  check(Math.abs(q2.energy-20)<.01,"快速睡覺睡一半回一半："+q2.energy)}
 // 在屋裡／門口（和 town_inside 一致）：沒有旗標的舊角色視為在屋裡
 check(M.inside({id:5,place:"home:5",items:{}})&&M.inside({id:5,place:"home:5"})&&!M.inside({id:5,place:"home:5",items:{dr:1}})&&!M.inside({id:5,place:"street",items:{}})&&!M.inside({id:5,place:"home:6",items:{}}),"inside 判斷");
-// 離線保護：最後動作 30 分鐘之後 ×0.4、最低停在 15
+// 離線保護：最後動作 30 分鐘之後 ×0.4、最低停在 30（2026-11-22 由 15 改 30，要和 town_tick 一致）
 {const n=Date.UTC(2026,0,1,12,0,0),u=new Date(n-10*36e5).toISOString(),sa=new Date(n-10*36e5).toISOString();
  const a=M.tickLocal({...base,updated_at:u,seen_at:sa},n); // 前 0.5 小時上線（飽足 −4）、0.5～1 小時離線醒著 ×0.4（−1.6）、1 小時後待機太久回家睡覺（睡 9 小時、離線 ×0.4：−18）
  check(Math.abs(a.hunger-(80-4-1.6-18))<1e-6,"離線 ×0.4＋待機 60 分鐘後睡覺："+a.hunger);
@@ -67,8 +67,8 @@ check(M.inside({id:5,place:"home:5",items:{}})&&M.inside({id:5,place:"home:5"})&
  check(Math.abs(a1.hunger-74.4)<1e-6&&Math.abs(a1.energy-76.5)<1e-6,"待機正好 1 小時還沒睡："+a1.hunger+" "+a1.energy);
  check(Math.round(a.energy)==100,"待機睡覺會回精力");
  const b=M.tickLocal({...base,updated_at:new Date(n-72*36e5).toISOString(),seen_at:new Date(n-72*36e5).toISOString()},n);
- check(["hunger","bladder","hygiene","fun"].every(k=>b[k]>=15)&&b.energy>=15,"離線很久，需求最低停在 15："+JSON.stringify(b));
- const c=M.tickLocal({...base,hunger:10,updated_at:u,seen_at:sa},n);check(c.hunger==10||Math.abs(c.hunger-10)<1e-6||c.hunger<10,"本來低於 15 的不會被拉高到 15")}
+ check(["hunger","bladder","hygiene","fun"].every(k=>b[k]>=30)&&b.energy>=30,"離線很久，需求最低停在 30："+JSON.stringify(b));
+ const c=M.tickLocal({...base,hunger:10,updated_at:u,seen_at:sa},n);check(c.hunger==10||Math.abs(c.hunger-10)<1e-6||c.hunger<10,"本來低於 30 的不會被拉高到 30")}
 // 個性特質與心情（規則要和 town.sql 一致）
 const mk=(o,tr)=>({...base,...o,items:{tr}});
 check(M.moodOf(mk({},[]))=="happy","80 全滿應該開心");
