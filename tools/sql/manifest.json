@@ -5,7 +5,14 @@
   {
    "file": "town.sql",
    "kind": "base",
-   "needs": []
+   "needs": [],
+   "superseded_funcs": [
+    "town_login",
+    "town_al_touch",
+    "town_rent",
+    "town_wd_pct"
+   ],
+   "superseded_by": "town_retention.sql"
   },
   {
    "file": "town_social.sql",
@@ -188,7 +195,11 @@
    "kind": "patch",
    "needs": [
     "town.sql"
-   ]
+   ],
+   "superseded_funcs": [
+    "town_rec_eh"
+   ],
+   "superseded_by": "town_hardening_1122.sql"
   },
   {
    "file": "town_push.sql",
@@ -611,6 +622,34 @@
    "needs": [
     "town.sql"
    ]
+  },
+  {
+   "file": "town_retention.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_push.sql",
+    "town_recovery.sql"
+   ],
+   "note": "留存機制（連續上線日曆、新人保護、每日收成、午間市集、登入好壞事件）；另需重新部署 Edge Function town-push"
+  },
+  {
+   "file": "town_retention_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_retention.sql"
+   ]
+  },
+  {
+   "file": "town_hardening_1122.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_account.sql",
+    "town_push.sql",
+    "town_recovery.sql"
+   ],
+   "note": "收掉 town_pw_*／town_push_notify 的 anon 權限、town_rec_eh 要求已驗證 Email"
   }
  ]
 }
