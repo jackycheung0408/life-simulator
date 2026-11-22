@@ -312,7 +312,7 @@ create or replace function public.town_job_name(lv int) returns text language sq
   select (array['實習生','員工','組長','經理','主管','資深主管','協理','副總','總經理'])[lv + 1]
 $$;
 create or replace function public.town_wage(lv int) returns int language sql immutable as $$
-  select (array[190,260,350,520,650,800,1000,1250,1500])[lv + 1]
+  select (array[190,260,350,520,800,920,1050,1250,1500])[lv + 1]
 $$;
 -- 其他工作職階（2026-11-17 擴大；前 3 階不變）：階 0..6 = 累計 0／15／40／80／140／220／350 次，薪水倍率 100／115／130／140／152／165／180 %
 create or replace function public.town_pjob_tier(n int) returns int language sql immutable as $$
