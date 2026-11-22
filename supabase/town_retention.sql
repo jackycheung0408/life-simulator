@@ -201,7 +201,7 @@ begin
   r.money := r.money - p; r.items := jsonb_set(r.items, '{rent}', to_jsonb(day));
   perform public.town_fund_add(r.town_id, 'rent', p * 5 / 100);
   -- 財產稅：階梯制（town_tax）
-  tx := public.town_tax(r.money);
+  tx := public.town_tax(r.money + coalesce((r.items->'cs'->>'ch')::bigint, 0));  -- 財產稅基礎 = 現金 + 賭場籌碼（town_casino.sql）
   if tx > 0 then
     r.money := r.money - tx; r.items := jsonb_set(r.items, '{tx}', jsonb_build_object('d', day, 'a', tx));
     perform public.town_fund_add(r.town_id, 'tax', tx);
