@@ -659,6 +659,22 @@
     "town_push.sql"
    ],
    "note": "好感每日自然回復排程（pg_cron）"
+  },
+  {
+   "file": "town_casino.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_arcade2.sql"
+   ],
+   "note": "小豬賭場（階段 A）：town_casino／town_casino_state、押注上限、風險控管、輸贏記錄；town.sql 的 town_game 與 town_arcade2.sql 的 town_game2 已改成押錢遊戲要在賭場（town.casino）"
+  },
+  {
+   "file": "town_casino_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_casino.sql"
+   ]
   }
  ]
 }

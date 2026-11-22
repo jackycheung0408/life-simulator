@@ -21,5 +21,5 @@ create or replace function public.town_place_name(p text) returns text language 
   select case
     when p like 'home:%' then coalesce((select name from public.town_residents where id = substr(p,6)::bigint), '空屋') || ' 家'
     when p = 'plaza' then '廣場' when p = 'restaurant' then '餐廳' when p = 'market' then '超市'
-    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' when p = 'rafi' then '拉菲''s office' when p = 'stock' then '證券交易所' when p = 'carshop' then '車行' when p = 'jail' then '監獄' when p = 'hospital' then '醫院' when p = 'police' then '警察局' when p = 'townhall' then '市政廳' else '路上' end
+    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' when p = 'rafi' then '拉菲''s office' when p = 'stock' then '證券交易所' when p = 'carshop' then '車行' when p = 'jail' then '監獄' when p = 'hospital' then '醫院' when p = 'police' then '警察局' when p = 'townhall' then '市政廳' when p = 'casino' then '賭場' else '路上' end
 $$;

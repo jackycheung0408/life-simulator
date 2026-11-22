@@ -13,7 +13,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ── 地圖：寬 34 格。市中心固定；住宅一排 3 間（5×4 格，門在正下方），住滿就往下多開一條街，最多 4 排 ──
 const T=32,COLS=71,MAXROWS=4;let NR=2,OFF=new Set(),POOPS=[];
 // 鎮長可以關掉的設施
-const FEATS=[["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、比大小、輪盤、21 點、下戰帖"],["rafi","拉菲's office","白領打工，薪水較高"],["stock","證券交易所","買賣 8 檔小豬鎮股票"],["zombie","喪屍豬","夜間街上會出現喪屍豬，打倒領獎"],["carshop","車行","買腳踏車、機車、汽車"],["lux","奢侈品","高級套餐、溫泉、旅行（錢多的人花錢用）"],["jail","監獄","砍人被抓的人關在這裡，可勞動、探監、保釋"],["hospital","醫院","昏倒、住院的人送這裡，可看診、探病"],["police","警察局","繳罰單、自首、報案、治安統計"],["townhall","市政廳","鎮基金、公告、居民投票、建設案"]];
+const FEATS=[["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、打地鼠、記憶翻牌、下戰帖"],["casino","小豬賭場","押錢遊戲 9 種，有預算、冷靜與自我排除"],["rafi","拉菲's office","白領打工，薪水較高"],["stock","證券交易所","買賣 8 檔小豬鎮股票"],["zombie","喪屍豬","夜間街上會出現喪屍豬，打倒領獎"],["carshop","車行","買腳踏車、機車、汽車"],["lux","奢侈品","高級套餐、溫泉、旅行（錢多的人花錢用）"],["jail","監獄","砍人被抓的人關在這裡，可勞動、探監、保釋"],["hospital","醫院","昏倒、住院的人送這裡，可看診、探病"],["police","警察局","繳罰單、自首、報案、治安統計"],["townhall","市政廳","鎮基金、公告、居民投票、建設案"]];
 const setOff=a=>{OFF=new Set(a||[])};const isOn=k=>!OFF.has(k);
 const setRows=n=>{NR=clamp(n||2,2,MAXROWS)};
 const mapRows=()=>NR<=2?23:30+7*(NR-3);
@@ -39,6 +39,7 @@ const PLACES={
  hospital:{r:[59,9,5,5],door:[61,14],name:"醫院",block:1},
  police:{r:[56,17,6,4],door:[58,21],name:"警察局",block:1},
  townhall:{r:[66,0,5,5],door:[68,5],name:"市政廳",block:1},
+ casino:{r:[66,8,5,5],door:[68,13],name:"賭場",block:1},
  plaza:{r:[12,8,10,7],door:[14,11],name:"廣場"}};
 // 其他工作（和 town.sql 的 town_pjob_* 一致）：[名稱, 地點, 底薪, [精力,飽足,心情,清潔]]；熟練 15 次 ×1.15、40 次 ×1.3；拉菲底薪 320／450／650，要先升到「員工」
 const PJ={cafe:["咖啡師","cafe",200,[-19,-6,-6,-3],"cafe"],rest:["服務生","restaurant",210,[-22,-3,-8,-8],"restaurant"],gym:["健身教練","gym",260,[-32,-12,-4,-15],"gym"],shop:["店員","market",195,[-16,-6,-10,-2],"market"],rafi:["行政專員","rafi",320,[-25,-8,-18,-4],"rafi"]};
@@ -729,7 +730,7 @@ const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀
 // ── 下方面板：依所在地點顯示可以做的事 ──
 // ── 按鈕效果與門檻：全部出自 RULES（頂層）；b.key 或標籤比對 RULES，沒有規則的不顯示晶片（nofx 或待確認）──
 const FXI={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"💰",bond:"💗",fit:"💪"},FXN={hunger:"飽足",energy:"精力",bladder:"膀胱",hygiene:"清潔",fun:"心情",money:"錢",bond:"好感",fit:"體能"};
-const NOFXRE=/^(起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
+const NOFXRE=/^(起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
 const wageOf=r=>{const n=+((r.items||{}).works)||0;let w=JOBS[0][2];for(const j of JOBS)if(n>=j[1])w=j[2];return w};
 function ruleOf(b,r){if(b.key)return RULES.find(x=>x.m===b.key)||null;const l=String(b.label).replace(/\p{Extended_Pictographic}️?\s*/gu,"").trim();return RULES.find(x=>x.m instanceof RegExp&&x.m.test(l)&&(!x.at||x.at.includes(r.place)))||null}
 function fxOf(b,r){const ru=b.nofx?null:ruleOf(b,r);if(!ru)return{fx:[],need:[],chips:[],rule:null};const fx=typeof ru.fx=="function"?ru.fx(r,{hasF,wage:wageOf}):ru.fx.slice(),need=[];
@@ -760,10 +761,11 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
     list.push(btn("🚪 出門","回到他家門口",()=>exitFriend(),"pin"))}}}
  else if(p=="restaurant"){title="餐廳";list.push(btn("吃一頓","飽足 +55 · 精力 +20 · 心情 +10 · €250",()=>act("dine")),pjBtn("rest",r));note="朋友也在的話，點他可以請吃大餐 · "+pjNote("rest",r)}
  else if(p=="office"){title="公司";list.push(btn("打工",(wkLeft(R[me])?`休息中，${fmtLeft(wkLeft(R[me]))}後可再打 · `:"")+`+€${myWage()} · 精力 −25`,()=>act("work")));note=`今天已打工 ${workToday(R[me])} 次（第 3 次再領勤勞獎金 €500、第 6 次 €1000）。每天前 12 次薪水全額、13～24 次 50%、之後 10%，每次很耗精力，累了要回家睡。有同事在的話，點他可以一起加班，薪水加倍`}
- else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")));if(p=="plaza"&&isOn("arcade"))list.push(btn("小豬街機 🕹️","賭場 10 種＋單機 2 種",()=>gamesModal()))}
+ else if(p=="park"||p=="plaza"){title=placeName(p);list.push(btn("玩一下","心情 +20",()=>act("play")));if(p=="plaza"&&isOn("arcade"))list.push(btn("小豬街機 🕹️","猜拳＋單機 2 種（押錢遊戲搬到賭場了）",()=>{gameHall="arcade";gameTab="";gamesModal()}))}
  else if(p=="cafe"){title="咖啡廳";list.push(btn("喝咖啡 ☕","€90 · 精力 +50 · 膀胱 −10",()=>act("coffee")),pjBtn("cafe",r));note=pjNote("cafe",r)}
  else if(p=="rafi"){title="拉菲's office";list.push(pjBtn("rafi",r));note=pjNote("rafi",r)+" · 薪水比公司高但很傷心情"}
  else if(p=="stock"){title="證券交易所";list.push(btn("看盤與買賣 📈","8 檔股票、全天開、沒手續費",()=>stockModal()));note=`低買高賣賺差價，留意今日消息 · 持股 ${stockN(r)} 檔`}
+ else if(p=="casino"){title="賭場";if(isOn("casino"))list.push(btn("小豬賭場 🎰","押錢遊戲 9 種 · 預算、冷靜、自我排除",()=>casinoOpen()));else note="賭場被鎮長關閉了"}
  else if(p=="carshop"){title="車行";const own=vehOwn(r);for(const k of ["moto","car"])list.push(hasLic(r,k)?btn(`🎫 ${VEH[k][0]}駕照`,"已考到",()=>toast("你已經有這張駕照了")):btn(`🎫 考${VEH[k][0]}駕照`,`報名費 €${LICFEE[k]} · 三題答對兩題`,()=>licModal(k)));
   list.push(btn("🛡️ 保險、維修、賣車",own.some(k=>k!="bike")||own.length?"強制險、任意險、修車、二手車折價":"買了車才用得到",()=>garageModal()));
   for(const k in VEH){const v=VEH[k];list.push(own.includes(k)?btn(`${v[4]} ${v[0]}`,"已擁有 · 到路上就能上車",()=>toast("你已經有了")):btn(`${v[4]} 買${v[0]}`,`€${v[1]} · 速度 ×${v[2]} · ${v[3]?`油錢 €${v[3]}／格`:"不用油錢"}`,()=>act("vbuy",{item:k})))}note="路上騎車開車比走路快；機車和汽車每走一格扣油錢，沒錢加油會被迫下車。開車有機率出事故，買保險比較安心，車況差要記得修"}
@@ -1069,22 +1071,37 @@ const bjTotal=cs=>{let t=0,a=0;for(let c of cs){c%=100;if(c==1){a++;t+=11}else t
 const SUIT=["","suitS","suitH","suitD","suitC"],SUITRED=[0,0,1,1,0];
 const cardHTML=(n,hidden)=>{if(hidden)return `<span class="pcard back">?</span>`;const s=Math.floor(n/100);return `<span class="pcard${SUITRED[s]?" red":""}"><b>${CARD(n)}</b><img class="px" alt="" src="${window.PIXICON_NAME?PIXICON_NAME(SUIT[s]):""}"></span>`};
 const spOf=(r,k)=>((r.items||{}).sp||{})[k]||0;
-const CASINO=[["rps","g_rps","猜拳","贏 ×2，平手退回"],["hl","g_hl","比大小","一樣大退回，越難猜賠越多"],["wheel","g_wheel","輪盤","最高 ×4"],["bj","g_bj","21 點","開局 21 點 ×3"],["dice","g_dice","骰子大小","三顆骰，押大小或點數"],["slots","g_slots","老虎機","三個一樣最高 ×40"],["bingo","g_bingo","賓果","選 3 號，開 5 號"],["bacc","g_bacc","百家樂","押閒、莊、和"],["dg","g_dg","射龍門","看牌再決定押不押"],["niu","g_niu","妞妞","和莊家比 5 張牌"]],
+const ARCADE=[["rps","g_rps","猜拳","贏 ×2，平手退回"]],
+ CASINO=[["hl","g_hl","比大小","一樣大退回，越難猜賠越多"],["wheel","g_wheel","輪盤","最高 ×4"],["bj","g_bj","21 點","開局 21 點 ×3"],["dice","g_dice","骰子大小","三顆骰，押大小或點數"],["slots","g_slots","老虎機","三個一樣最高 ×40"],["bingo","g_bingo","賓果","選 3 號，開 5 號"],["bacc","g_bacc","百家樂","押閒、莊、和"],["dg","g_dg","射龍門","看牌再決定押不押"],["niu","g_niu","妞妞","和莊家比 5 張牌"]],
  SOLO=[["whack","🔨","打地鼠","30 秒，打越多越高分"],["memory","🧠","記憶翻牌","步數越少越高分"]];
-let gameTab="",gameBet=50;
+let gameTab="",gameBet=50,gameHall="arcade",CAS=null;
 const NIUC=c=>c==10?"妞妞":c==0?"沒妞":"妞"+c;
-async function playGame(game,extra={},fn="town_game"){const res=await rpc(fn,{rid:me,pin,game,bet:gameBet,...extra});R[me].money=res.money;renderNeeds();return res.game}
+async function playGame(game,extra={},fn){const res=await rpc(fn||(game=="rps"?"town_game":"town_casino"),{rid:me,pin,game,bet:gameBet,...extra});R[me].money=res.money;if(res.casino){CAS={...(CAS||{}),...res.casino};updBud()}renderNeeds();return res.game}
+const casMin=iso=>iso?Math.max(1,Math.ceil((Date.parse(iso)-now())/60000)):0;
+const budLine=()=>CAS?`今天預算剩 €${CAS.room}（上限 €${CAS.limit}，已輸 €${CAS.loss}）${CAS.cd?` · 休息中，約 ${casMin(CAS.cd)} 分鐘後可再玩`:""}`:"";
+function updBud(){const e=document.getElementById("gBud");if(e)e.textContent=budLine()}
+function casStatus(){if(!CAS)return"";const bud=[500,1000,2000,5000,10000,20000,50000].filter(v=>v<=CAS.cap);
+ return `<div class="mrow"><span><b>今天預算 €${CAS.budget}</b> <small class="mut">已輸 €${CAS.loss}，還能輸 €${CAS.room} · 輸到預算用完今天就不能玩；30 分鐘內輸太多會強制休息 30 分鐘${CAS.cd?` · 休息中約 ${casMin(CAS.cd)} 分鐘`:""}${CAS.x?` · 自我排除到 ${new Date(CAS.x).toLocaleString()}`:""}</small></span></div>
+ <div class="chips">調整預算（開始玩之後只能調低）${bud.map(v=>`<button data-cb="${v}" class="${CAS.budget==v?"on":""}">€${v}</button>`).join("")}</div>
+ <div class="row"><button data-cr="24">休息 24 小時</button><button data-cr="168">休息 7 天</button></div>`}
+async function casinoOpen(){try{CAS=await rpc("town_casino_state",{rid:me,pin,op:"view"})}catch(e){toast(e.message);return}gameHall="casino";gameTab="";if(gameBet>CAS.maxBet)gameBet=50;gamesModal()}
+async function casDo(op,val){try{CAS=await rpc("town_casino_state",{rid:me,pin,op,val});gamesModal()}catch(e){toast(e.message)}}
 function gamesModal(){$("modal").classList.remove("hide");const solo=SOLO.some(g=>g[0]==gameTab),menu=!gameTab;
  const gic=ic=>/^g_/.test(ic)&&window.PIXICON_NAME?`<img class="px" alt="" src="${PIXICON_NAME(ic)}">`:ic;
  const gm=l=>l.map(([k,ic,n,d])=>`<button class="gm" data-g="${k}"><span class="gi">${gic(ic)}</span><b>${n}</b><small>${d}${SOLO.some(g=>g[0]==k)?` · 最佳 ${spOf(R[me],k)}`:""}</small></button>`).join("");
- $("mbody").innerHTML=menu?`<h2>🕹️ 小豬街機</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b> · 押注 €50～€1000 · 不限局數</p>
-  <h3 class="gh">賭場（押錢）</h3><div class="gmenu">${gm(CASINO)}</div><h3 class="gh">單機（不押錢，心情 +2）</h3><div class="gmenu">${gm(SOLO)}</div><div class="row"><button id="mc">離開街機</button></div>`
-  :`<h2>${(g=>gic(g[1])+" "+g[2])([...CASINO,...SOLO].find(g=>g[0]==gameTab))}</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b></p>
-  ${solo||gameTab=="dg"?"":`<div class="chips">押注 ${[50,100,200,500,1000].map(b=>`<button data-bet="${b}" class="${gameBet==b?"on":""}">€${b}</button>`).join("")}</div>`}
-  <div id="gArea" class="garea"></div><div class="row"><button id="gback">回街機選單</button><button id="mc">離開街機</button></div>`;
+ const hall=gameHall=="casino",bets=hall?[50,100,200,500,1000,2000,5000,10000,20000,50000].filter(b=>b<=((CAS&&CAS.maxBet)||10000)):[50,100,200,500,1000],hn=hall?"賭場":"街機";
+ $("mbody").innerHTML=menu?(hall?`<h2>🎰 小豬賭場</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b> · 押注 €50～€${(CAS&&CAS.maxBet)||10000}（現金的 1%，最少 €10000）</p>${casStatus()}
+  <h3 class="gh">押錢遊戲（莊家有優勢，玩越久越可能輸）</h3><div class="gmenu">${gm(CASINO)}</div><div class="row"><button id="mc">離開賭場</button></div>`
+  :`<h2>🕹️ 小豬街機</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b> · 押注 €50～€1000 · 押錢遊戲搬到小豬賭場了</p>
+  <h3 class="gh">對電腦</h3><div class="gmenu">${gm(ARCADE)}</div><h3 class="gh">單機（不押錢，心情 +2）</h3><div class="gmenu">${gm(SOLO)}</div><div class="row"><button id="mc">離開街機</button></div>`)
+  :`<h2>${(g=>gic(g[1])+" "+g[2])([...ARCADE,...CASINO,...SOLO].find(g=>g[0]==gameTab))}</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b></p>${hall?`<p class="mut" id="gBud">${budLine()}</p>`:""}
+  ${solo||gameTab=="dg"?"":`<div class="chips">押注 ${bets.map(b=>`<button data-bet="${b}" class="${gameBet==b?"on":""}">€${b}</button>`).join("")}</div>`}
+  <div id="gArea" class="garea"></div><div class="row"><button id="gback">回${hn}選單</button><button id="mc">離開${hn}</button></div>`;
  $("mc").onclick=()=>{gameTab="";$("modal").classList.add("hide");refresh().catch(()=>{})};
  if(!menu)$("gback").onclick=()=>{gameTab="";gamesModal()};
  $("mbody").querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{gameTab=b.dataset.g;gamesModal()});
+ $("mbody").querySelectorAll("[data-cb]").forEach(b=>b.onclick=()=>casDo("budget",+b.dataset.cb));
+ $("mbody").querySelectorAll("[data-cr]").forEach(b=>b.onclick=()=>{if(confirm(`確定自我排除 ${+b.dataset.cr==24?"24 小時":"7 天"}？期間賭場不能玩，而且不能取消。`))casDo("rest",+b.dataset.cr)});
  if(menu)return;
  const betSync=()=>{$("mbody").querySelectorAll("[data-bet]").forEach(x=>x.classList.toggle("on",+x.dataset.bet==gameBet));const w=document.createTreeWalker($("gArea"),NodeFilter.SHOW_TEXT);for(let n;n=w.nextNode();)if(/押 [€$]\d+/.test(n.nodeValue))n.nodeValue=n.nodeValue.replace(/(押 [€$])\d+/g,"$1"+gameBet);$("gArea").dispatchEvent(new Event("betchg"))};
  $("mbody").querySelectorAll("[data-bet]").forEach(b=>b.onclick=()=>{gameBet=+b.dataset.bet;betSync()});
@@ -1130,7 +1147,7 @@ function gamesModal(){$("modal").classList.remove("hide");const solo=SOLO.some(g
   $("bgGo").onclick=async()=>{$("bgGo").disabled=true;try{const g=await playGame("bingo",{choice:pick.join(",")});nums().forEach(x=>{const n=+x.dataset.n;x.classList.toggle("hit",g.draw.includes(n));x.disabled=true});
    $("gShow").innerHTML=`<p class="mut">開出 ${g.draw.slice().sort((a,b)=>a-b).join("、")} · 中 ${g.hit} 個</p>`+result(g);money();area.querySelector(".gbtns").innerHTML=`<button class="pri" id="bgAgain">再來一局</button>`;$("bgAgain").onclick=()=>gamesModal()}catch(e){toast(e.message);$("bgGo").disabled=false}}}
 
- const pg2=(g,x)=>playGame(g,x,"town_game2"),cardsH=cs=>`<div class="cards">${cs.map(c=>cardHTML(c)).join("")}</div>`;
+ const pg2=(g,x)=>playGame(g,x,"town_casino"),cardsH=cs=>`<div class="cards">${cs.map(c=>cardHTML(c)).join("")}</div>`;
  if(gameTab=="bacc"){area.innerHTML=`<p class="mut">閒莊各發 2～3 張，點數接近 9 贏（A=1、10JQK=0、取個位）。閒 ×2，莊 ×1.95，和 ×9；和局時押閒莊退回押注。</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="gbig" data-b="p">閒<span>×2</span></button><button class="gbig" data-b="b">莊<span>×1.95</span></button><button class="gbig" data-b="t">和<span>×9</span></button></div><p class="mut">按一下就開局，可連續再玩（押 €${gameBet}）</p>`;
   area.querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{area.querySelectorAll("[data-b]").forEach(x=>x.disabled=true);try{const g=await pg2("bacc",{choice:b.dataset.b});const side=g.pt>g.bt?"閒贏":g.bt>g.pt?"莊贏":"和局";
    $("gShow").innerHTML=`<p>閒 <b>${g.pt}</b></p>${cardsH(g.p)}<p>莊 <b>${g.bt}</b></p>${cardsH(g.b)}<p class="mut">${side}</p>`+result(g);money()}catch(e){$("gShow").innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
@@ -1139,7 +1156,7 @@ if(gameTab=="dg"){area.innerHTML=`<p class="mut">流程：付入場費 €${DGFE
   let dgm=0,dgwhy="pot",dgBet=50;const WHY={pot:"池裡的錢（不含你剛付的入場費）",cash:"現金 ÷ 3（撞柱要賠 3 倍）"};
   const potUp=g=>{$("dgPot").textContent=g.pot;dgm=g.maxBet!=null?g.maxBet:0;dgwhy=g.why||"pot";const em=$("dgEmpty");if(em)em.textContent=dgm<50?"彩池太少，等其他玩家輸了才有得賭（現在可以入場看龍門牌、放棄）":""};
   const dgSync=()=>{const inp=$("dgIn");if(!inp)return;dgBet=Math.floor(+inp.value)||0;const ok=dgBet>=50&&dgBet<=dgm;area.querySelectorAll("[data-dg]").forEach(x=>{if(x.dataset.dg!="pass")x.disabled=!ok});area.querySelectorAll("[data-dgb]").forEach(x=>x.textContent=`押 €${dgBet}`);const n=$("dgNote");if(n)n.textContent=dgm<50?(dgwhy=="pot"?"彩池太少，等其他玩家輸了才有得賭，只能放棄":"現金不夠（要有押注 3 倍），只能放棄"):`目前可押 €50～€${dgm}（${WHY[dgwhy]}）${dgBet>dgm?" · 金額太大":dgBet<50?" · 最少 €50":""}`};
-  rpc("town_game2",{rid:me,pin,game:"dg_info",bet:0}).then(r=>{potUp(r.game)}).catch(()=>{});
+  rpc("town_casino",{rid:me,pin,game:"dg_info",bet:0}).then(r=>{potUp(r.game)}).catch(()=>{});
   const deal=async()=>{try{const g=await pg2("dg_start",{bet:0});const gt=g.gates,show=$("gShow");potUp(g);money();dgBet=Math.max(50,Math.min(dgBet,dgm||50));
    show.innerHTML=`<div class="cards">${cardHTML(gt[0])}${cardHTML(0,true)}${cardHTML(gt[1])}</div><p class="mut">已付入場費 €${g.fee}${g.redeal?`（相鄰重發 ${g.redeal} 次，免費）`:""}</p><div class="dgbet"><input id="dgIn" type="number" inputmode="numeric" min="50" max="${dgm}" step="10" value="${dgBet}"><button data-q="min">最小</button><button data-q="half">一半</button><button data-q="max">最大</button></div><p class="mut" id="dgNote"></p>`;
    area.querySelector(".gbtns").innerHTML=(g.same?[["hi","更大",g.canHi],["lo","更小",g.canLo]].filter(x=>x[2]).map(([k,n])=>`<button class="gbig" data-dg="${k}">${n}<span data-dgb>押 €${dgBet}</span></button>`).join(""):`<button class="gbig" data-dg="in">玩！<span data-dgb>押 €${dgBet}</span></button>`)+`<button class="gbig" data-dg="pass">放棄<span>只損失入場費</span></button>`;
@@ -1460,6 +1477,7 @@ bld("hospital","#f4f6fa","#d9534f",(X,Y,W,H)=>{m.fillStyle="#d9534f";m.fillRect(
  bld("cinema","#3b2a4a","#c0392b",(X,Y,W,H)=>{m.fillStyle="#1b1b2f";m.fillRect(X+20,Y+26,W-40,26);m.fillStyle="#fee761";m.font="16.5px Cubic11,monospace";m.textAlign="center";m.fillText("CINEMA",X+W/2,Y+46);for(let k=X+10;k<X+W-10;k+=16){m.fillStyle=night?"#ffe36a":"#d6b33a";m.fillRect(k,Y+58,6,6)}m.fillStyle="#7a1d2b";m.fillRect(X+W/2-20,Y+H-44,40,44)});
  bld("rafi","#dfe6ee","#1f3a5f",(X,Y,W,H)=>{for(let a=0;a<4;a++)for(let b=0;b<2;b++)win(X+14+a*50,Y+34+b*32);m.fillStyle="#1f3a5f";m.fillRect(X+W/2-14,Y+H-30,28,30);m.fillStyle="#9fd0ff";m.fillRect(X+W/2-10,Y+H-26,9,26);m.fillRect(X+W/2+1,Y+H-26,9,26)});
  bld("stock","#e9e4d4","#2c3e50",(X,Y,W,H)=>{for(let k=0;k<3;k++){m.fillStyle="#d8d0b8";m.fillRect(X+10+k*28,Y+50,10,H-80)}m.fillStyle="#1b1b2f";m.fillRect(X+8,Y+26,W-16,20);m.fillStyle="#63c74d";m.fillRect(X+14,Y+36,10,4);m.fillRect(X+26,Y+34,10,6);m.fillStyle="#e43b44";m.fillRect(X+40,Y+34,10,6);m.fillRect(X+52,Y+36,10,4);m.fillStyle="#555";m.fillRect(X+W/2-12,Y+H-30,24,30)});
+ bld("casino","#2a1a3a","#8e1b2e",(X,Y,W,H)=>{m.fillStyle="#1b1b2f";m.fillRect(X+8,Y+24,W-16,22);for(let i=0;i<8;i++){m.fillStyle=i%2?"#f1c40f":"#e74c3c";m.fillRect(X+12+i*Math.floor((W-32)/7),Y+30,8,8)}win(X+14,Y+54);win(X+W-30,Y+54);m.fillStyle="#f1c40f";m.fillRect(X+W/2-14,Y+H-34,28,34);m.fillStyle="#3a2a1a";m.fillRect(X+W/2-10,Y+H-30,9,30);m.fillRect(X+W/2+1,Y+H-30,9,30)});
  bld("carshop","#e8eef5","#c0392b",(X,Y,W,H)=>{m.fillStyle="#1b1b2f";m.fillRect(X+6,Y+24,W-12,44);m.fillStyle=night?"#ffe9a8":"#cfeefc";m.fillRect(X+8,Y+26,W-16,40);m.fillStyle="#c0392b";m.fillRect(X+14,Y+48,W-28,12);m.fillRect(X+20,Y+42,W-40,8);m.fillStyle="#222";m.fillRect(X+16,Y+58,8,8);m.fillRect(X+W-24,Y+58,8,8);m.fillStyle="#555";m.fillRect(X+W/2-10,Y+H-30,20,30);m.fillStyle="#f1c40f";m.fillRect(X+4,Y+22,W-8,3)});
  bld("gym","#c9d1dc","#34495e",(X,Y,W,H)=>{win(X+16,Y+40);win(X+W-32,Y+40);m.fillStyle="#222";m.fillRect(X+W/2-22,Y+34,44,6);m.fillRect(X+W/2-28,Y+28,8,18);m.fillRect(X+W/2+20,Y+28,8,18);m.fillStyle="#555";m.fillRect(X+W/2-12,Y+H-36,24,36)});
  const trees=[];for(let j=0;j<ROWS;j++)for(let i=0;i<COLS;i++)if(!blocked(i,j)&&!isRoad(i,j)&&!isSide(i,j)&&!inRect(i,j,PLACES.plaza.r)&&!inRect(i,j,PLACES.park.r)&&!Object.values(OBJS).some(q=>q.x==i&&q.y==j)&&grassV[j][i]<.1&&![...Array(NR*3).keys()].some(s=>{const d=door(s),[hx,hy]=homeXY(s);return (Math.abs(d[0]-i)<=1&&Math.abs(d[1]-j)<=1)||(j==hy+4&&i>=hx&&i<hx+5)}))trees.push([i,j]);
@@ -1480,7 +1498,7 @@ bld("hospital","#f4f6fa","#d9534f",(X,Y,W,H)=>{m.fillStyle="#d9534f";m.fillRect(
   S("dummy",()=>{R0(X+14,Y-10,4,40,"#6b4423");R0(X+4,Y-2,24,5,"#8b5a2b");R0(X+8,Y-22,16,14,"#e0c28a");R0(X+8,Y-22,16,3,"#c9a96a");R0(X+11,Y-17,3,3,"#222");R0(X+18,Y-17,3,3,"#222");R0(X+8,Y-6,16,16,"#d9a441");R0(X+12,Y-2,8,8,"#c0392b");R0(X+14,Y+0,4,4,"#fff")});
   S("lottery",()=>{R0(X+2,Y+8,28,16,"#c0392b");R0(X,Y-6,32,10,"#f1c40f");R0(X+8,Y+10,16,8,"#fff")});
   X=31*T;Y=21*T;R0(X,Y-24,4,30,"#6b4423");R0(X+28,Y-24,4,30,"#6b4423");R0(X,Y-26,32,4,"#6b4423");R0(X+10,Y-22,2,18,"#888");R0(X+20,Y-22,2,18,"#888");R0(X+8,Y-4,16,4,"#d8901a")}
- sign("公司",30.5*T,10);sign("餐廳",5*T,9*T+10);sign("超市",28*T,9*T+10);sign("公園",31.5*T,17*T+12);sign("小豬廣場",17*T,8*T+14);if(isOn("cafe"))sign("咖啡廳",39*T,10);if(isOn("cinema"))sign("電影院",40*T,9*T+10);if(isOn("gym"))sign("健身房",41*T,17*T+10);if(isOn("rafi"))sign("拉菲's office",49.5*T,17*T+10);if(isOn("stock"))sign("證交所",46*T,10);if(isOn("jail"))sign("監獄",61.5*T,10);if(isOn("hospital"))sign("醫院",61.5*T,9*T+10);if(isOn("police"))sign("警察局",59*T,17*T+10);if(isOn("townhall"))sign("市政廳",68.5*T,10);if(isOn("carshop"))sign("車行",47*T,9*T+14);if(isOn("arena"))sign("格鬥場",53.5*T,10);if(isOn("slaughter"))sign("屠宰場",53.5*T,9*T+10);
+ sign("公司",30.5*T,10);sign("餐廳",5*T,9*T+10);sign("超市",28*T,9*T+10);sign("公園",31.5*T,17*T+12);sign("小豬廣場",17*T,8*T+14);if(isOn("casino"))sign("賭場",68.5*T,8*T+10);if(isOn("cafe"))sign("咖啡廳",39*T,10);if(isOn("cinema"))sign("電影院",40*T,9*T+10);if(isOn("gym"))sign("健身房",41*T,17*T+10);if(isOn("rafi"))sign("拉菲's office",49.5*T,17*T+10);if(isOn("stock"))sign("證交所",46*T,10);if(isOn("jail"))sign("監獄",61.5*T,10);if(isOn("hospital"))sign("醫院",61.5*T,9*T+10);if(isOn("police"))sign("警察局",59*T,17*T+10);if(isOn("townhall"))sign("市政廳",68.5*T,10);if(isOn("carshop"))sign("車行",47*T,9*T+14);if(isOn("arena"))sign("格鬥場",53.5*T,10);if(isOn("slaughter"))sign("屠宰場",53.5*T,9*T+10);
  if(night){m.fillStyle="rgba(18,28,78,.45)";m.fillRect(0,0,c.width,c.height)}
  return c}
 // 畫一個角色：(x,y) 是身體中心，u 是一格像素的大小

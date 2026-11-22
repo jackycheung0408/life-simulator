@@ -442,7 +442,7 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  // 妞妞倍數：沒妞／妞1～6 = 1、妞7～9 = 2、妞妞 = 3，輸贏對稱、平手退注、不比花色
  check([0,1,6,7,9,10].map(M.NIUM).join()=="1,1,1,2,2,3"&&sq.includes("when ps >= 10000 then 3 when ps >= 7000 then 2 else 1")&&sq.includes("if ps = ds then win := bet;")&&sq.includes("key := cs[i] % 100;")&&sq.includes("if ps < 1000 and ps % 1000 < 12 then")&&sq.includes("回報率 = 1 − P(雙方都是")&&js.includes("莊家直接贏")&&sq.includes("r.money < bet * 3"),"妞妞倍數表／平手／不比花色／3 倍現金要和 SQL 一致");
  check(!/40 局/.test(js.replace(/\/\/.*$/gm,"")),"town.js 不能再有「40 局」文字");
- check(js.includes('"town_game2"')&&fs.existsSync(__dirname+"/../supabase/town_arcade2_test.sql"),"前端要呼叫 town_game2、要有 town_arcade2_test.sql")}
+ check(js.includes('"town_casino"')&&fs.existsSync(__dirname+"/../supabase/town_arcade2_test.sql"),"前端要呼叫 town_casino（賭場入口）、要有 town_arcade2_test.sql")}
 
 {const src=require("fs").readFileSync(__dirname+"/town.js","utf8");
  check(src.includes('id="fxcard"')||src.includes('id="fxcard')||src.includes("fxcard"),"要有長按詳情卡 #fxcard");check(src.includes("NOFXRE"),"要有 NOFXRE 清單")}

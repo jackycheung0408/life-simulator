@@ -94,7 +94,7 @@ create or replace function public.town_place_name(p text) returns text language 
   select case
     when p like 'home:%' then coalesce((select name from public.town_residents where id = substr(p,6)::bigint), '空屋') || ' 家'
     when p = 'plaza' then '廣場' when p = 'restaurant' then '餐廳' when p = 'market' then '超市'
-    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' when p = 'rafi' then '拉菲''s office' when p = 'stock' then '證券交易所' when p = 'carshop' then '車行' when p = 'jail' then '監獄' when p = 'hospital' then '醫院' when p = 'police' then '警察局' when p = 'townhall' then '市政廳' else '路上' end
+    when p = 'office' then '公司' when p = 'park' then '公園' when p = 'cafe' then '咖啡廳' when p = 'cinema' then '電影院' when p = 'gym' then '健身房' when p = 'arena' then '格鬥場' when p = 'slaughter' then '屠宰場' when p = 'rafi' then '拉菲''s office' when p = 'stock' then '證券交易所' when p = 'carshop' then '車行' when p = 'jail' then '監獄' when p = 'hospital' then '醫院' when p = 'police' then '警察局' when p = 'townhall' then '市政廳' when p = 'casino' then '賭場' else '路上' end
 $$;
 create or replace function public.town_name_ok(t text) returns boolean language sql immutable as $$
   select char_length(trim(t)) between 1 and 12 and trim(t) !~ '[<>"]' and not public.has_bad_words(t)
@@ -141,7 +141,7 @@ begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if not r.mayor then raise exception '只有鎮長可以做這件事'; end if;
-  if exists (select 1 from unnest(coalesce(off,'{}')) f where f not in ('cafe','cinema','gym','arena','slaughter','arcade','rafi','stock','carshop','lux','jail','hospital','police','townhall','zombie')) then raise exception '沒有這個設施'; end if;
+  if exists (select 1 from unnest(coalesce(off,'{}')) f where f not in ('cafe','cinema','gym','arena','slaughter','arcade','casino','rafi','stock','carshop','lux','jail','hospital','police','townhall','zombie')) then raise exception '沒有這個設施'; end if;
   update public.town_towns set off = coalesce(town_features.off,'{}') where id = r.town_id;
   -- 關掉的地方有人在，請他們回到路上
   update public.town_residents set place = 'street' where town_id = r.town_id and place = any(coalesce(town_features.off,'{}'));
@@ -1129,7 +1129,7 @@ begin
   if public.town_is_off(r.town_id, public.town_feature(case when act = 'move' then dest when act = 'job' then public.town_pjob_key(item) else act end)) then raise exception '這個小鎮沒有開這個設施'; end if;
   perform public.town_need_in(r, act, item);
   if act = 'move' then
-    if dest is null or not (dest in ('plaza','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter','rafi','stock','carshop','jail','hospital','police','townhall')
+    if dest is null or not (dest in ('plaza','casino','restaurant','market','office','park','street','cafe','cinema','gym','arena','slaughter','rafi','stock','carshop','jail','hospital','police','townhall')
        or (dest ~ '^home:\d+$' and exists (select 1 from public.town_residents where id = substr(dest,6)::bigint and town_id = r.town_id))) then raise exception '去不了那裡'; end if;
     if px is null or py is null or px < 0 or px > 71 or py < 0 or py > 40 then raise exception '位置不對'; end if;
     -- 走過別人留下的便便會踩到（路線離便便不到 0.6 格）
@@ -1164,7 +1164,7 @@ begin
       else r.money := r.money + 2000; tn := r.name || ' 買刮刮樂中了 €2000！🎉'; end if;
       insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', tn); tn := null;
     end if;
-    if dest in ('plaza','restaurant','market','park','cafe','cinema','gym','arena','slaughter','rafi','stock','carshop','jail','hospital','police','townhall') then
+    if dest in ('plaza','casino','restaurant','market','park','cafe','cinema','gym','arena','slaughter','rafi','stock','carshop','jail','hospital','police','townhall') then
       select string_agg(name, '、') into others from public.town_residents where town_id = r.town_id and place = dest and id <> rid and not sleeping;
       if others is not null and not exists (select 1 from public.town_events e where e.actor = rid and e.kind = 'meet' and e.at > now() - interval '2 hours') then
         insert into public.town_events(town_id,actor,kind,msg) values (r.town_id, rid, 'meet', r.name || ' 在' || public.town_place_name(dest) || '遇到了 ' || others);
