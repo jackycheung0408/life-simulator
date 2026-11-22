@@ -53,7 +53,7 @@ end $$;
 drop trigger if exists town_push_after on public.town_events;
 create trigger town_push_after after insert on public.town_events for each row execute function public.town_push_notify();
 
--- 每 30 分鐘檢查一次需求
+-- 每 30 分鐘檢查一次需求（pg_net 預設 5 秒逾時，Edge Function 冷啟動常超過，2026-11-22 起固定 15 秒）
 select cron.unschedule(jobid) from cron.job where jobname = 'town-push-needs';
 select cron.schedule('town-push-needs', '*/30 * * * *',
-  $c$ select net.http_post(url := 'https://gerqdagicybtyilihvvm.supabase.co/functions/v1/town-push', body := '{"check":true}'::jsonb, headers := '{"Content-Type":"application/json","apikey":"sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y"}'::jsonb) $c$);
+  $c$ select net.http_post(url := 'https://gerqdagicybtyilihvvm.supabase.co/functions/v1/town-push', body := '{"check":true}'::jsonb, headers := '{"Content-Type":"application/json","apikey":"sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y"}'::jsonb, timeout_milliseconds := 15000) $c$);
