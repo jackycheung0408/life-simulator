@@ -62,10 +62,10 @@ Deno.serve(async (req) => {
     let n = 0;
     for (const r of rs ?? []) {
       const url = `${SITE}?t=${r.town_id}`;
-      // 和資料庫 town_tick 同一套速率：醒著 飽足 8／精力 5／膀胱 10／清潔 5，睡覺 5／7／2.4；最後動作 30 分鐘後 ×0.4 且停在 15
+      // 和資料庫 town_tick 同一套速率：醒著 飽足 8／精力 5／膀胱 10／清潔 5，睡覺 5／7／2.4；最後動作 30 分鐘後 ×0.4 且停在 30
       const now = Date.now(), h = Math.min(72, (now - Date.parse(r.updated_at)) / 36e5), z = r.sleeping;
       const hon = Math.max(0, Math.min(h, (Date.parse(r.seen_at ?? r.updated_at) + 18e5 - (now - h * 36e5)) / 36e5)), hof = h - hon;
-      const dec = (v: number, rate: number) => Math.max(v - rate * hon - 0.4 * rate * hof, Math.min(v - rate * hon, 15));
+      const dec = (v: number, rate: number) => Math.max(v - rate * hon - 0.4 * rate * hof, Math.min(v - rate * hon, 30));
       const hunger = dec(r.hunger, z ? 5 : 8), bladder = dec(r.bladder, z ? 7 : 10), hygiene = dec(r.hygiene, z ? 2.4 : 5), energy = z ? 100 : dec(r.energy, 5);
       const faint = !!(r.items && r.items.faint);
       const msg = faint ? null : hunger < 20 ? "快餓昏了 🍚 再不吃東西就要昏倒了" : bladder < 20 ? "快憋不住了 🚽 再不上廁所就要大在路上了" : energy < 8 ? "累到快睡著了 ⚡ 回家睡一覺吧" : hygiene < 10 ? "身上開始發臭了 🛁 洗個澡吧" : null;

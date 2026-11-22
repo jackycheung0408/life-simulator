@@ -435,15 +435,15 @@ begin
   sho := sho + sqo; shf := shf + sqf;
   bedg := case when public.town_fu(r,'bed')=1 then 90 else 64 end; hm := case when public.town_has(r,'clean') then .7 else 1 end;
   -- 睡覺也會餓、會想上廁所、會出汗；睡覺精力回升不受離線影響。離線那段 ×0.4 且停在 15
-  r.hunger := r.hunger - 5*sho - 8*aho;  r.hunger := greatest(r.hunger - .4*(5*shf + 8*ahf), least(r.hunger, 15));
-  r.bladder := r.bladder - 7*sho - 10*aho; r.bladder := greatest(r.bladder - .4*(7*shf + 10*ahf), least(r.bladder, 15));
-  r.hygiene := r.hygiene - ((2.4 + case when public.town_fu(r,'bed')=1 then 0 else 1 end)*sho + 5*aho)*hm; r.hygiene := greatest(r.hygiene - .4*((2.4 + case when public.town_fu(r,'bed')=1 then 0 else 1 end)*shf + 5*ahf)*hm, least(r.hygiene, 15));
+  r.hunger := r.hunger - 5*sho - 8*aho;  r.hunger := greatest(r.hunger - .4*(5*shf + 8*ahf), least(r.hunger, 30));
+  r.bladder := r.bladder - 7*sho - 10*aho; r.bladder := greatest(r.bladder - .4*(7*shf + 10*ahf), least(r.bladder, 30));
+  r.hygiene := r.hygiene - ((2.4 + case when public.town_fu(r,'bed')=1 then 0 else 1 end)*sho + 5*aho)*hm; r.hygiene := greatest(r.hygiene - .4*((2.4 + case when public.town_fu(r,'bed')=1 then 0 else 1 end)*shf + 5*ahf)*hm, least(r.hygiene, 30));
   v := r.energy + bedg*sho + 1.5*bedg*sqo - 5*aho + case when public.town_has(r,'nightowl') then 1.0*nho else 0 end;
   dl := bedg*shf + 1.5*bedg*sqf - .4*5*ahf + case when public.town_has(r,'nightowl') then .4*1.0*nhf else 0 end;
-  r.energy := greatest(v + dl, least(v, 15));
+  r.energy := greatest(v + dl, least(v, 30));
   -- 又餓又髒又憋的時候心情掉更快（額外 −3／小時）
   if r.hunger < 20 or r.bladder < 20 or r.hygiene < 20 then exo := 3*aho; exf := .4*3*ahf; end if;
-  v := r.fun - 1.6*sho - 4*aho - exo;  r.fun := greatest(v - .4*(1.6*shf + 4*ahf) - exf, least(v, 15));
+  v := r.fun - 1.6*sho - 4*aho - exo;  r.fun := greatest(v - .4*(1.6*shf + 4*ahf) - exf, least(v, 30));
   hr := extract(hour from (now() at time zone 'Asia/Taipei'))::int;
   -- 半夜沒上線的人回家睡了：人在家裡；現在還是半夜就繼續睡，天亮（8 點後）就在家醒來
   -- 快速睡覺時間到：自動醒來
