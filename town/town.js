@@ -53,7 +53,7 @@ const PLACES={
  hospital:{r:[59,9,5,5],door:[61,14],name:"醫院",block:1},
  police:{r:[56,17,6,4],door:[58,21],name:"警察局",block:1},
  townhall:{r:[66,0,5,5],door:[68,5],name:"市政廳",block:1},
- casino:{r:[66,8,5,5],door:[68,13],name:"賭場",block:1},
+ casino:{r:[66,9,5,5],door:[68,14],name:"賭場",block:1},
  plaza:{r:[12,8,10,7],door:[14,11],name:"廣場"}};
 // 其他工作（和 town.sql 的 town_pjob_* 一致）：[名稱, 地點, 底薪, [精力,飽足,心情,清潔]]；熟練 15 次 ×1.15、40 次 ×1.3；拉菲底薪 320／450／650，要先升到「員工」
 const PJ={cafe:["咖啡師","cafe",200,[-19,-6,-6,-3],"cafe"],rest:["服務生","restaurant",210,[-22,-3,-8,-8],"restaurant"],gym:["健身教練","gym",260,[-32,-12,-4,-15],"gym"],shop:["店員","market",195,[-16,-6,-10,-2],"market"],rafi:["行政專員","rafi",320,[-25,-8,-18,-4],"rafi"]};

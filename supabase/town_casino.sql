@@ -1,5 +1,5 @@
 -- 小豬賭場（2026-11-22 階段 A，11-23 改成籌碼制、取消預算與上限）：街機的「押錢遊戲」搬進獨立設施 casino。可重複執行。
---   設施：casino「賭場」（地圖 [66,8,5,5]、門 (68,13)），鎮長可用功能開關 casino 關掉。廣場街機只留猜拳與單機。
+--   設施：casino「賭場」（地圖 [66,9,5,5]、門 (68,14)），鎮長可用功能開關 casino 關掉。廣場街機只留猜拳與單機。
 --   押錢遊戲（9 種）：比大小 hl、輪盤 wheel、21 點 bj、骰寶 dice、老虎機 slots、基諾 keno、百家樂 bacc、射龍門 dg、妞妞 niu（輪盤、21 點、骰寶、老虎機、基諾、射龍門的新規則在 town_casino2.sql）
 --   入口：RPC town_casino(rid,pin,game,bet,choice) 包住 town_game／town_game2；town_casino_state(rid,pin,op,val)：view／buy／sell／rest。
 --   籌碼制（2026-11-23 使用者決定）：進賭場用現金 1:1 換籌碼（buy），遊戲全部用籌碼押，換回現金（sell）時抽 5%（無條件進位）。
