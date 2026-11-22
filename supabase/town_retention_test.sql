@@ -58,6 +58,14 @@ begin
   select count(*) filter (where msg ~ '(撿到錢|發票|紅包|還錢|舊東西)'), count(*) filter (where msg ~ '(水管|意外的帳單|朋友騙|錢包掉|家電)') into good, bad from public.town_events where id > e0 and kind = 'luck';
   rep := rep || ' 窮人500次 好=' || good || ' 壞=' || bad || '（壞必須是 0）';
 
+  -- 小鎮人氣禮：甲、丙是活躍居民（登入 5 天），丁今天滿 3 天 → 活躍 3 位，pop=3，丁領 3 的禮（零食 2 包），隔天不重複
+  update public.town_residents set items = jsonb_set(items, '{al}', jsonb_build_object('n',5,'d',y1,'s',1,'lv',2)) where id in (a, c);
+  update public.town_residents set items = jsonb_set(items, '{al}', jsonb_build_object('n',2,'d',y1,'s',1,'lv',1)) where id = d;
+  select * into ra from public.town_residents where id = d; ra := public.town_al_touch(ra);
+  rep := rep || ' 人氣 丁滿3天 pop=' || (select pop from public.town_towns where id = t) || ' pm=' || (ra.items->'al'->>'pm') || ' snack=' || coalesce(ra.items->>'snack','0');
+  update public.town_residents set items = ra.items, money = ra.money where id = d;
+  ra.items := jsonb_set(ra.items, '{al,d}', to_jsonb(y1)); ra := public.town_al_touch(ra);
+  rep := rep || ' 隔天不重複 pm=' || (ra.items->'al'->>'pm');
   -- 午間薪水：現在若在 12,13,21,22 點是 +10%，否則 100
   rep := rep || ' 薪水倍率=' || public.town_wd_pct(t);
   raise exception 'REPORT %', rep;

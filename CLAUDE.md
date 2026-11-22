@@ -27,6 +27,7 @@
 - 登入：免密碼，每台裝置一把金鑰（只存雜湊在 `town_devices`），新裝置用邀請碼。
 - 登入鎖定（`town_auth`，2026-11-22 修正）：只有舊 4 碼 pin 算暴力猜測，錯 5 次鎖 10 分鐘，之後每多 5 次失敗鎖定時間加倍（上限 24 小時）；**鎖定中連正確的 4 碼 pin 也不放行**（以前正確的會通過，等於鎖定擋不住暴力猜測）；長隨機裝置金鑰不受鎖定影響，登入成功會清零。實測 `supabase/town_authfix_test.sql`。
 - 留存機制（`supabase/town_retention.sql`，2026-11-22；實測 `town_retention_test.sql`）：連續上線日曆（第 3／7／14／21／30／60／100 天給零食、限定造型、稱號；每週一次保護盾）、新人保護（登入未滿 7 天的居民每天被同一人打架／丟蛋／惡作劇最多 2 次、全部人最多 4 次，超過整個動作回滾，由 `town_events` 上的觸發器 `town_newcomer_guard` 擋）、每日收成（信箱＝零食、花圃＝€150、小豬雕像＝€500，隔天沒上線補領最多 3 天份）、午間市集 12～14 點與夜市 21～23 點打工薪水 +10%（`town_wd_pct`，開張時 `town_happy_touch` 公告一次）、登入隨機事件好壞各半。**獎勵與公告走小鎮動態；午間市集／夜市的 +10% 在畫面上方的事件橫幅（`#wev`，`happyAt`）顯示，和全鎮事件可同時出現（前端 `happyAt` 的時段要和 SQL `town_wd_pct` 一致）；打工薪水的數字本身（`payOf`）和全鎮事件一樣不含倍率，沒有另外加註。** 推播新增「連續上線快斷了」「市集開張」（`town_push_log` 每人每天每種一次）。
+- 小鎮人氣禮（邀請朋友獎勵，`town_retention.sql` 的 `town_pop_touch`，2026-11-22）：活躍居民（登入滿 3 天）累積到 3／4／6／8／12 位，小鎮動態公告，全鎮每位居民下次登入領禮（零食、€3000、限定造型「小豬耳朵」「洋裝」、稱號、€20000；已有的造型改領零食）。`town_towns.pop` 記已達成的最高門檻，`items.al.pm` 記個人領過的門檻（`town_al_touch` 重建 al 時要保留 `pm`，否則每天重領）。前端沒有畫面，走小鎮動態。
 - 資安補強（`supabase/town_hardening_1122.sql`）：`town_pw_ok/bad/blocked`、`town_push_notify` 收掉 anon／authenticated 執行權；`town_rec_eh` 只接受已驗證 Email。**在 Supabase，`revoke ... from public` 擋不住 anon／authenticated，要寫 `from public, anon, authenticated`**。`fb_guard`、`lives_guard` 屬於另外兩個遊戲的 repo，補強要寫在那邊。
 
 ## 自動更新（小豬鎮；玩家多半從主畫面開 web app，沒辦法重新整理）

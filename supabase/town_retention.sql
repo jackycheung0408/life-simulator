@@ -4,6 +4,7 @@
 --   3. 每日收成：登入時自動領（信箱＝零食、花圃＝€150、小豬雕像＝€500），隔天沒上線補領最多 3 天份
 --   4. 午間市集（12～14 點）與夜市（21～23 點）：打工薪水 +10%，開張時小鎮動態公告一次
 --   5. 登入隨機事件：每天 30%，好壞各半（壞事只發生在現金 > 10000，窮人只會遇到好事）
+--   6. 小鎮人氣禮（邀請朋友獎勵）：活躍居民（登入滿 3 天）累積到 3／4／6／8／12 位，全鎮每位居民下次登入都領禮（town_towns.pop、items.al.pm；town_pop_touch）
 -- 取代 town.sql 裡這幾個函式的舊版：town_login、town_al_touch、town_rent、town_wd_pct
 -- 需要 town_push.sql 的 Edge Function（連續上線快斷了、市集開張的推播）重新部署，見 supabase/functions/town-push
 -- 前端沒有對應畫面：獎勵與公告都走既有的小鎮動態（events）；午間薪水 +10% 前端算薪水的地方沒有顯示
@@ -13,6 +14,8 @@ alter table public.town_push_log enable row level security;
 create table if not exists public.town_happy (town_id text not null, win text not null, primary key (town_id, win));
 alter table public.town_happy enable row level security;
 create index if not exists town_events_target_at_idx on public.town_events (target, at desc);
+-- 小鎮人氣：已達成的最高活躍居民門檻（3／4／6／8／12）；每位居民領過的門檻記在 items.al.pm
+alter table public.town_towns add column if not exists pop int not null default 0;
 
 -- 午間市集／夜市公告：每個小鎮每個時段只公告一次（town_login 呼叫）
 create or replace function public.town_happy_touch(tid text) returns void
@@ -42,7 +45,60 @@ as $$
 $$;
 revoke all on function public.town_wd_pct(text) from public, anon, authenticated;
 
--- 每日第一次登入或動作：登入小禮、連續上線獎勵、保護盾、每日收成
+-- 小鎮人氣禮（邀請朋友獎勵）。活躍居民 = 登入滿 3 天（items.al.n >= 3），防止開一堆新帳號衝人數。
+-- 門檻 3：零食 2 包＋稱號「三人行」；4：€3000＋「小鎮成形」；6：限定造型「小豬耳朵」＋「熱鬧小鎮」；8：造型「洋裝」＋「人氣小鎮」；12：€20000＋「滿員小鎮」
+-- 已有的造型改領零食 3 包。達到門檻時小鎮動態公告一次，居民下次登入（town_al_touch）領獎，一次可領多個門檻。
+create or replace function public.town_pop_touch(r public.town_residents, n_old int, n_new int) returns public.town_residents
+ language plpgsql security definer set search_path = public
+as $$
+declare ms int[] := array[3,4,6,8,12]; m int; c int; reach int := 0; cur int; pm int; gid text; gname text; txt text;
+begin
+  if n_old < 3 and n_new >= 3 then
+    select count(*) into c from public.town_residents x where x.town_id = r.town_id and x.id <> r.id and coalesce((x.items->'al'->>'n')::int,0) >= 3;
+    c := c + 1;
+    foreach m in array ms loop if c >= m then reach := m; end if; end loop;
+    select pop into cur from public.town_towns where id = r.town_id for update;
+    if reach > coalesce(cur,0) then
+      update public.town_towns set pop = reach where id = r.town_id;
+      insert into public.town_events(town_id, actor, target, kind, msg) values (r.town_id, null, null, 'world', '🎉 小鎮有 ' || reach || ' 位活躍居民了！每位居民下次上線都能領「小鎮人氣禮」');
+    end if;
+  end if;
+  select pop into cur from public.town_towns where id = r.town_id;
+  pm := coalesce((r.items->'al'->>'pm')::int, 0);
+  if coalesce(cur,0) > pm then
+    foreach m in array ms loop
+      if m > pm and m <= cur then
+        txt := null;
+        if m = 3 then
+          r.items := jsonb_set(r.items, '{snack}', to_jsonb(coalesce((r.items->>'snack')::int,0) + 2)); txt := '零食 2 包 🍪';
+        elsif m = 4 then
+          r.money := r.money + 3000; txt := '€3000';
+        elsif m = 6 or m = 8 then
+          gid := case m when 6 then 'pigears' else 'dress' end;
+          select name into gname from public.town_shop where id = gid;
+          if coalesce(r.items->'w','[]'::jsonb) ? gid then
+            r.items := jsonb_set(r.items, '{snack}', to_jsonb(coalesce((r.items->>'snack')::int,0) + 3)); txt := '造型「' || coalesce(gname,gid) || '」已經有了，改領零食 3 包 🍪';
+          else
+            r.items := jsonb_set(r.items, '{w}', coalesce(r.items->'w','[]'::jsonb) || to_jsonb(gid)); txt := '限定造型「' || coalesce(gname,gid) || '」🎁';
+          end if;
+        elsif m = 12 then
+          r.money := r.money + 20000; txt := '€20000';
+        end if;
+        if m = 3 and not (coalesce(r.items->'titles','[]'::jsonb) ? '三人行') then r.items := jsonb_set(r.items, '{titles}', coalesce(r.items->'titles','[]'::jsonb) || to_jsonb('三人行'::text)); end if;
+        if m = 4 and not (coalesce(r.items->'titles','[]'::jsonb) ? '小鎮成形') then r.items := jsonb_set(r.items, '{titles}', coalesce(r.items->'titles','[]'::jsonb) || to_jsonb('小鎮成形'::text)); end if;
+        if m = 6 and not (coalesce(r.items->'titles','[]'::jsonb) ? '熱鬧小鎮') then r.items := jsonb_set(r.items, '{titles}', coalesce(r.items->'titles','[]'::jsonb) || to_jsonb('熱鬧小鎮'::text)); end if;
+        if m = 8 and not (coalesce(r.items->'titles','[]'::jsonb) ? '人氣小鎮') then r.items := jsonb_set(r.items, '{titles}', coalesce(r.items->'titles','[]'::jsonb) || to_jsonb('人氣小鎮'::text)); end if;
+        if m = 12 and not (coalesce(r.items->'titles','[]'::jsonb) ? '滿員小鎮') then r.items := jsonb_set(r.items, '{titles}', coalesce(r.items->'titles','[]'::jsonb) || to_jsonb('滿員小鎮'::text)); end if;
+        insert into public.town_events(town_id, actor, target, kind, msg) values (r.town_id, r.id, r.id, 'luck', r.name || ' 領到小鎮人氣禮（' || m || ' 位活躍居民）：' || txt);
+      end if;
+    end loop;
+    r.items := jsonb_set(r.items, '{al,pm}', to_jsonb(cur));
+  end if;
+  return r;
+end $$;
+revoke all on function public.town_pop_touch(public.town_residents, int, int) from public, anon, authenticated;
+
+-- 每日第一次登入或動作：登入小禮、連續上線獎勵、保護盾、每日收成、小鎮人氣禮
 create or replace function public.town_al_touch(r public.town_residents) returns public.town_residents
  language plpgsql
 as $$
@@ -58,7 +114,7 @@ begin
   elsif prev is not null and gap = 2 and sw <> wk and coalesce((al->>'s')::int,0) >= 2 then s := coalesce((al->>'s')::int,0) + 1; sw := wk; shielded := true;
   else s := 1; end if;
   bs := greatest(coalesce((al->>'bs')::int,0), s);
-  r.items := jsonb_set(r.items, '{al}', jsonb_build_object('n', n, 'd', day, 's', s, 'lv', v, 'sw', sw, 'bs', bs));
+  r.items := jsonb_set(r.items, '{al}', jsonb_build_object('n', n, 'd', day, 's', s, 'lv', v, 'sw', sw, 'bs', bs, 'pm', coalesce((al->>'pm')::int, 0)));
   g := (array[0,30,60,100,150])[v];
   if g > 0 then
     r.money := r.money + g;
@@ -98,6 +154,8 @@ begin
   if ttl is not null and not (coalesce(r.items->'titles','[]'::jsonb) ? ttl) then
     r.items := jsonb_set(r.items, '{titles}', coalesce(r.items->'titles','[]'::jsonb) || to_jsonb(ttl));
   end if;
+  -- 小鎮人氣禮：剛滿 3 天的居民可能讓小鎮達到新門檻；每位居民領自己還沒領的門檻
+  r := public.town_pop_touch(r, n - 1, n);
   mult := least(3, gap);
   if coalesce(r.items->'d','[]'::jsonb) ? 'mailbox' then
     r.items := jsonb_set(r.items, '{snack}', to_jsonb(coalesce((r.items->>'snack')::int,0) + mult));
