@@ -2,7 +2,7 @@
 -- 檢查：直接呼叫 town_game／town_game2 玩押錢遊戲被擋、不在賭場被擋、猜拳仍在廣場、現金換籌碼 1:1、籌碼換回現金抽 5% 進位、
 --       遊戲只動籌碼不動現金、沒有單注上限（只看籌碼）、籌碼不夠被擋、自我排除、回合間隔、輸贏記錄、百家樂莊家免佣的期望值、財產稅含籌碼。
 do $$
-declare t text := 'ZZCAS'; d bigint; mg record; a bigint; b bigint; c bigint; rep text := ''; x jsonb; i int; fund0 bigint; fund1 bigint; lg record; g json;
+declare t text := 'ZZCAS'; bh text; bhn int; d bigint; mg record; a bigint; b bigint; c bigint; rep text := ''; x jsonb; i int; fund0 bigint; fund1 bigint; lg record; g json;
   w6 bigint := 0; wb bigint := 0; ret numeric := 0; n int := 700; cash_before bigint; ch_before bigint;
 begin
   insert into public.town_towns(id,name,invite) values (t,'測試鎮','ZZCAS1') on conflict do nothing;
@@ -16,6 +16,17 @@ begin
   select items into x from public.town_residents where id = d;
   rep := rep || ' 集點卡相撞測試：cs=' || (x->>'cs') || '（應為 2） cas.ch 存在=' || ((x->'cas'->>'ch') is not null) || ' 查籌碼=' || ((public.town_casino_state(d,'x','view',null))::jsonb->>'chips') || '（應 ≥ 4900 且不是 0）';
   -- 遷移：資料庫裡預先放的壞資料（測試前 seed 的居民「壞」，cs=[2,{ch:32011},{ch:0}]）要被搬到 cas
+  -- 百家樂路單：玩兩局後 cas.bh 有 2 個字元（P／B／T）；超過 72 局只留最近 72
+  update public.town_residents set items = jsonb_set(items, '{cas,t}', to_jsonb((now() - interval '10 seconds')::text)) where id = d;
+  perform public.town_casino(d,'x','bacc',50,'b');
+  update public.town_residents set items = jsonb_set(items, '{cas,t}', to_jsonb((now() - interval '10 seconds')::text)) where id = d;
+  perform public.town_casino(d,'x','bacc',50,'p');
+  select items->'cas'->>'bh' into bh from public.town_residents where id = d;
+  rep := rep || ' 路單=' || bh || '（應 2 個字元 PBT）';
+  update public.town_residents set items = jsonb_set(items, '{cas}', (items->'cas') || jsonb_build_object('t', (now() - interval '10 seconds')::text, 'bh', repeat('B', 72))) where id = d;
+  perform public.town_casino(d,'x','bacc',50,'p');
+  select length(items->'cas'->>'bh') into bhn from public.town_residents where id = d;
+  rep := rep || ' 超過72局後長度=' || bhn || '（應 72） state 有 bh=' || (((public.town_casino_state(d,'x','view',null))::jsonb->>'bh') is not null);
   select * into mg from public.town_residents where town_id = t and name = '壞';
   if mg.id is not null then rep := rep || ' 遷移後 cs=' || coalesce(mg.items->>'cs','無') || '（應 2） 籌碼=' || coalesce(mg.items->'cas'->>'ch','無') || '（應 32011）'; end if;
   select fund into fund0 from public.town_towns where id = t;

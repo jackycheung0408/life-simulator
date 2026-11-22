@@ -27,5 +27,13 @@ module.exports=(M,check)=>{const fs=require("fs"),sq=fs.readFileSync(__dirname+"
   const red=[...code.matchAll(/red int\[\] := array\[([\d,]+)\]/g)][0][1].split(",").map(Number);check(JSON.stringify(red)==JSON.stringify(M.RRED),"輪盤紅號前端和 SQL 不一致")}
  // 21 點：6:5、莊家軟 17 要牌、無加倍分牌；玩家最佳策略 0.9600（無限副牌 DP 算出，見 town_casino2.sql 檔頭）
  check(code.includes("floor(bet * 2.2)")&&code.includes("town_bj_dealer_hits")&&code.includes("hard + 10 = 17")&&js.includes("6:5")&&js.includes("軟 17"),"21 點要 6:5 與莊家軟 17 要牌（SQL 與前端說明）");
+ // 籌碼面額與百家樂路單：堆疊加總等於押注、面額由小到大；路單大路連贏往下疊、滿 6 往右拐、換邊換欄、和局畫在前一顆；SQL 保留最近 72 局
+ {const D=M.CHIPD.map(x=>x[0]);check(D.every((v,i)=>i==0||v>D[i-1])&&D[0]==50,"籌碼面額要由小到大且最小 50");
+  for(const v of [50,150,1750,99950,1000000])check(M.chipStack(v).reduce((a,i)=>a+D[i],0)==v,"籌碼堆疊加總要等於押注："+v);
+  const b=M.baccBig("BBBBBBBPTPPBBTB"),w=c=>c.map(x=>x.w||".").join("");
+  check(w(b[0])=="BBBBBB"&&w(b[1])==".....B"&&w(b[2])=="PPP..."&&b[2][0].t==1&&w(b[3])=="BBB..."&&b[3][1].t==1,"百家樂大路排列不對："+b.map(w).join("|"));
+  check(M.baccBead("BPTBPTB")[0].join("")=="BPTBPT"&&M.baccBead("BPTBPTB")[1][0]=="B","百家樂珠盤路排列不對");
+  const q=code2=>code2.includes("right(coalesce(cs->>'bh', '')")&&code2.includes("), 72)");
+  check(q(fs.readFileSync(__dirname+"/../supabase/town_casino.sql","utf8"))&&js.includes("data-chip")&&js.includes("roadsHtml"),"路單 SQL（72 局）或前端籌碼／路單不見了")}
  // 莊家盈餘與籌碼制的前端文字
  check(js.includes('"town_casino_state"')&&js.includes("換回現金")&&js.includes("5%"),"前端要有換籌碼與換回現金（抽 5%）的說明")}

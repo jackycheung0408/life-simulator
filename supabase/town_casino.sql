@@ -10,7 +10,7 @@
 --   保留的保護：自我排除（24 小時／7 天，不能取消，排除期間也不能換籌碼）、冷靜（30 分鐘內籌碼淨輸 ≥ 視窗起始籌碼的 10%，至少 1000，強制休息 30 分鐘）、
 --     開局間隔至少 3 秒。
 --   輸贏記錄：town_casino_log（每人每天每遊戲：局數、總押注、淨輸贏，單位是籌碼），之後才量得出賭場吸走多少。
---   狀態存在 items.cas：ch 籌碼、t 上次開局、x 自我排除到、cd 冷靜到、w0／mw 30 分鐘視窗、fd／fp 盈餘已進基金（舊欄位 d／s0／b 是預算時期留下的，不再使用）。
+--   狀態存在 items.cas：ch 籌碼、t 上次開局、x 自我排除到、cd 冷靜到、w0／mw 30 分鐘視窗、bh 百家樂最近 72 局路單（P／B／T）、fd／fp 盈餘已進基金（舊欄位 d／s0／b 是預算時期留下的，不再使用）。
 -- 這個檔會用下面的 do 區塊「就地修改」正式站目前的 town_game／town_game2／town_rent（不複製整個函式，所以不管它們被改成什麼版本都能套用，可重複執行）：
 --   錢類遊戲要 town.casino=1 才通過、位置改 casino、功能開關改 casino、押注上限改 town_casino_maxbet（= 籌碼數量）；猜拳留在廣場（上限 10000、×2）；
 --   百家樂莊家免佣；財產稅基礎加上籌碼；另外把 casino 加進地點名稱、功能清單、可前往地點（town_place_name、town_features、town_act 的 move）。
@@ -133,6 +133,11 @@ begin
       on conflict on constraint town_casino_log_pkey do update set rounds = public.town_casino_log.rounds + excluded.rounds,
         wagered = public.town_casino_log.wagered + excluded.wagered, net = public.town_casino_log.net + excluded.net;
     if v_gate then cs := cs || jsonb_build_object('t', now()); end if;
+    -- 百家樂路單：最近 72 局的結果字串（P 閒、B 莊、T 和），前端畫大路與珠盤路
+    if game = 'bacc' then
+      cs := cs || jsonb_build_object('bh', right(coalesce(cs->>'bh', '') || (case when (res::jsonb->'game'->>'pt')::int > (res::jsonb->'game'->>'bt')::int then 'P'
+        when (res::jsonb->'game'->>'pt')::int < (res::jsonb->'game'->>'bt')::int then 'B' else 'T' end), 72));
+    end if;
     -- 30 分鐘視窗：籌碼淨輸 ≥ 視窗起始籌碼的 10%（至少 1000）就強制休息 30 分鐘
     w0 := (cs->>'w0')::timestamptz; mw := (cs->>'mw')::bigint;
     if w0 is null or now() - w0 > interval '30 minutes' then w0 := now(); mw := v_chips; end if;
@@ -152,7 +157,7 @@ begin
     end if;
   end if;
   update public.town_residents p set money = v_cash, items = jsonb_set(p.items, '{cas}', cs) where p.id = rid;
-  return (res::jsonb || jsonb_build_object('money', v_cash, 'casino', jsonb_build_object('chips', m1,
+  return (res::jsonb || jsonb_build_object('money', v_cash, 'casino', jsonb_build_object('chips', m1, 'bh', coalesce(cs->>'bh', ''),
     'cd', case when (cs->>'cd')::timestamptz > now() then cs->>'cd' else null end)))::json;
 end $$;
 
@@ -190,7 +195,7 @@ begin
     update public.town_residents p set items = jsonb_set(p.items, '{cas}', cs) where p.id = rid;
   elsif op <> 'view' then raise exception '未知動作'; end if;
   select coalesce(sum(l.rounds), 0), coalesce(sum(l.net), 0) into v_rounds, v_net from public.town_casino_log l where l.rid = rid and l.day = v_day;
-  return json_build_object('ok', true, 'money', r.money, 'chips', v_chips, 'rounds', v_rounds, 'net', v_net,
+  return json_build_object('ok', true, 'money', r.money, 'chips', v_chips, 'rounds', v_rounds, 'net', v_net, 'bh', coalesce(cs->>'bh', ''),
     'cd', case when (cs->>'cd')::timestamptz > now() then cs->>'cd' else null end, 'x', case when (cs->>'x')::timestamptz > now() then cs->>'x' else null end);
 end $$;
 
