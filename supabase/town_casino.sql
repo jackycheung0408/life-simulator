@@ -4,16 +4,32 @@
 --   入口：RPC town_casino(rid,pin,game,bet,choice) 包住 town_game／town_game2；town_casino_state(rid,pin,op,val)：view／buy／sell／rest。
 --   籌碼制（2026-11-23 使用者決定）：進賭場用現金 1:1 換籌碼（buy），遊戲全部用籌碼押，換回現金（sell）時抽 5%（無條件進位）。
 --     遊戲本身不再抽 5%：猜拳 ×2、百家樂改免佣（莊贏 ×2，但莊以 6 點贏只賠 ×1.5，期望 0.9857）。其他遊戲的賠率不動。
---     抽成處理：換回現金的 5% 手續費一半進鎮基金（fund_log.casino）、一半銷毀。籌碼放在 items.cs.ch，財產稅的基礎 = 現金 + 籌碼。
+--     抽成處理：換回現金的 5% 手續費一半進鎮基金（fund_log.casino）、一半銷毀。籌碼放在 items.cas.ch，財產稅的基礎 = 現金 + 籌碼。
 --     實作：town_casino 在呼叫 town_game／town_game2 前把居民的 money 暫時換成籌碼、呼叫完換回現金（同一個交易內，出錯整個回滾）。
 --   不設預算、不設單注上限、不設每日淨輸上限（只受籌碼數量限制；妞妞與射龍門仍要有押注 3 倍的籌碼）。
 --   保留的保護：自我排除（24 小時／7 天，不能取消，排除期間也不能換籌碼）、冷靜（30 分鐘內籌碼淨輸 ≥ 視窗起始籌碼的 10%，至少 1000，強制休息 30 分鐘）、
 --     開局間隔至少 3 秒。
 --   輸贏記錄：town_casino_log（每人每天每遊戲：局數、總押注、淨輸贏，單位是籌碼），之後才量得出賭場吸走多少。
---   狀態存在 items.cs：ch 籌碼、t 上次開局、x 自我排除到、cd 冷靜到、w0／mw 30 分鐘視窗、fd／fp 盈餘已進基金（舊欄位 d／s0／b 是預算時期留下的，不再使用）。
+--   狀態存在 items.cas：ch 籌碼、t 上次開局、x 自我排除到、cd 冷靜到、w0／mw 30 分鐘視窗、fd／fp 盈餘已進基金（舊欄位 d／s0／b 是預算時期留下的，不再使用）。
 -- 這個檔會用下面的 do 區塊「就地修改」正式站目前的 town_game／town_game2／town_rent（不複製整個函式，所以不管它們被改成什麼版本都能套用，可重複執行）：
 --   錢類遊戲要 town.casino=1 才通過、位置改 casino、功能開關改 casino、押注上限改 town_casino_maxbet（= 籌碼數量）；猜拳留在廣場（上限 10000、×2）；
 --   百家樂莊家免佣；財產稅基礎加上籌碼；另外把 casino 加進地點名稱、功能清單、可前往地點（town_place_name、town_features、town_act 的 move）。
+
+-- 遷移（可重複執行）：早期版本把賭場狀態放在 items.cs，但 cs 是咖啡集點卡的整數，兩者相撞（整數 || 物件 → 陣列 [2,{"ch":..}]，之後籌碼永遠讀成 0）。
+-- 把 cs 裡的物件（可能多個）合併搬到 items.cas（籌碼 ch 加總），整數還回 cs。
+do $mig$
+declare r record; el jsonb; n int; cas jsonb; chs bigint;
+begin
+  for r in select id, items from public.town_residents where jsonb_typeof(items->'cs') in ('array','object') loop
+    n := null; chs := 0; cas := coalesce(r.items->'cas','{}'::jsonb);
+    for el in select e from jsonb_array_elements(case when jsonb_typeof(r.items->'cs') = 'array' then r.items->'cs' else jsonb_build_array(r.items->'cs') end) e loop
+      if jsonb_typeof(el) = 'number' then n := (el #>> '{}')::numeric::int;
+      elsif jsonb_typeof(el) = 'object' then chs := chs + coalesce((el->>'ch')::bigint, 0); cas := cas || (el - 'ch'); end if;
+    end loop;
+    cas := cas || jsonb_build_object('ch', coalesce((cas->>'ch')::bigint, 0) + chs);
+    update public.town_residents p set items = case when n is null then p.items - 'cs' else jsonb_set(p.items, '{cs}', to_jsonb(n)) end || jsonb_build_object('cas', cas) where p.id = r.id;
+  end loop;
+end $mig$;
 
 create table if not exists public.town_casino_log (
   rid bigint not null, day text not null, game text not null,
@@ -53,7 +69,9 @@ begin
     (null::text, $o$if dest in ('plaza','restaurant','market','park','cafe'$o$, $n$if dest in ('plaza','casino','restaurant','market','park','cafe'$n$, $c$if dest in ('plaza','casino','restaurant','market','park'$c$),
     ('town_game', $o$(choice,house) in (('r','s'),('s','p'),('p','r')) then win := floor(bet * 1.95)::int; end if;$o$, $n$(choice,house) in (('r','s'),('s','p'),('p','r')) then win := bet * 2; end if;$n$, $c$then win := bet * 2; end if;$c$),
     ('town_game2', $o$elsif bk > pt and choice = 'b' then win := floor(bet * 1.95)::int; end if;$o$, $n$elsif bk > pt and choice = 'b' then win := case when bk = 6 then bet + bet / 2 else bet * 2 end; end if;$n$, $c$case when bk = 6 then bet + bet / 2$c$),
-    ('town_rent', $o$tx := public.town_tax(r.money);$o$, $n$tx := public.town_tax(r.money + coalesce((r.items->'cs'->>'ch')::bigint, 0));$n$, $c$'cs'->>'ch'$c$)
+    ('town_rent', $o$tx := public.town_tax(r.money);$o$, $n$tx := public.town_tax(r.money + coalesce((r.items->'cas'->>'ch')::bigint, 0));$n$, $c$'cas'->>'ch'$c$),
+    -- 早期版本把籌碼放 items.cs（和咖啡集點卡撞名），已改 items.cas；已套用舊版的 town_rent 改讀新 key
+    ('town_rent', $o$r.items->'cs'->>'ch'$o$, $n$r.items->'cas'->>'ch'$n$, $c$'cas'->>'ch'$c$)
   ) as t(fname, o, nw, chk) loop
     for f in select p.oid from pg_proc p where p.pronamespace = 'public'::regnamespace
         and ((rec.fname is null and p.proname not in ('town_game','town_game2','town_score','town_duel')) or p.proname = rec.fname)
@@ -87,7 +105,7 @@ begin
   v_bet := game in ('hl_start','wheel','bj_start','dice','slots','keno','bacc','niu','dg_play');
   v_gate := v_bet or game = 'dg_start';
   v_round := v_bet and not (game = 'dg_play' and coalesce(choice, '') = 'pass');
-  cs := coalesce(r.items->'cs','{}'::jsonb);
+  cs := coalesce(r.items->'cas','{}'::jsonb);
   v_cash := r.money; v_chips := coalesce((cs->>'ch')::bigint, 0);
   if v_gate then
     if (cs->>'x') is not null and (cs->>'x')::timestamptz > now() then
@@ -107,7 +125,7 @@ begin
   elsif game in ('bacc','niu') then res := public.town_game2(rid, pin, game, bet, choice);
   else res := public.town_cgame(rid, pin, game, bet, choice); end if;
   select p.money, p.items into m1, its from public.town_residents p where p.id = rid;
-  cs := coalesce(its->'cs','{}'::jsonb) || jsonb_build_object('ch', m1);
+  cs := coalesce(its->'cas','{}'::jsonb) || jsonb_build_object('ch', m1);
   if game <> 'dg_info' then
     v_delta := m1 - v_chips;
     insert into public.town_casino_log(rid, day, game, rounds, wagered, net)
@@ -133,7 +151,7 @@ begin
       cs := cs || jsonb_build_object('fd', v_day, 'fp', v_fp);
     end if;
   end if;
-  update public.town_residents p set money = v_cash, items = jsonb_set(p.items, '{cs}', cs) where p.id = rid;
+  update public.town_residents p set money = v_cash, items = jsonb_set(p.items, '{cas}', cs) where p.id = rid;
   return (res::jsonb || jsonb_build_object('money', v_cash, 'casino', jsonb_build_object('chips', m1,
     'cd', case when (cs->>'cd')::timestamptz > now() then cs->>'cd' else null end)))::json;
 end $$;
@@ -146,7 +164,7 @@ declare r public.town_residents; cs jsonb; v_day text := to_char(now() at time z
 begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
-  cs := coalesce(r.items->'cs','{}'::jsonb);
+  cs := coalesce(r.items->'cas','{}'::jsonb);
   v_chips := coalesce((cs->>'ch')::bigint, 0);
   if op = 'buy' then
     if r.place <> 'casino' then raise exception '要在賭場櫃台才能換籌碼'; end if;
@@ -154,7 +172,7 @@ begin
     if val is null or val < 1 then raise exception '要換多少？'; end if;
     if val > r.money then raise exception '現金不夠'; end if;
     v_chips := v_chips + val; cs := cs || jsonb_build_object('ch', v_chips);
-    update public.town_residents p set money = p.money - val, items = jsonb_set(p.items, '{cs}', cs) where p.id = rid;
+    update public.town_residents p set money = p.money - val, items = jsonb_set(p.items, '{cas}', cs) where p.id = rid;
     r.money := r.money - val;
   elsif op = 'sell' then
     if r.place <> 'casino' then raise exception '要在賭場櫃台才能換回現金'; end if;
@@ -162,14 +180,14 @@ begin
     if val > v_chips then raise exception '籌碼不夠'; end if;
     v_fee := (val::bigint * 5 + 99) / 100;
     v_chips := v_chips - val; cs := cs || jsonb_build_object('ch', v_chips);
-    update public.town_residents p set money = p.money + (val - v_fee), items = jsonb_set(p.items, '{cs}', cs) where p.id = rid;
+    update public.town_residents p set money = p.money + (val - v_fee), items = jsonb_set(p.items, '{cas}', cs) where p.id = rid;
     r.money := r.money + (val - v_fee);
     perform public.town_fund_add(r.town_id, 'casino', (v_fee / 2)::int);
   elsif op = 'rest' then
     if val is null or val not in (24, 168) then raise exception '自我排除只有 24 小時或 7 天'; end if;
     if (cs->>'x') is not null and (cs->>'x')::timestamptz > now() + make_interval(hours => val) then raise exception '你已經排除得比這更久了'; end if;
     cs := cs || jsonb_build_object('x', now() + make_interval(hours => val));
-    update public.town_residents p set items = jsonb_set(p.items, '{cs}', cs) where p.id = rid;
+    update public.town_residents p set items = jsonb_set(p.items, '{cas}', cs) where p.id = rid;
   elsif op <> 'view' then raise exception '未知動作'; end if;
   select coalesce(sum(l.rounds), 0), coalesce(sum(l.net), 0) into v_rounds, v_net from public.town_casino_log l where l.rid = rid and l.day = v_day;
   return json_build_object('ok', true, 'money', r.money, 'chips', v_chips, 'rounds', v_rounds, 'net', v_net,

@@ -2,13 +2,22 @@
 -- 檢查：直接呼叫 town_game／town_game2 玩押錢遊戲被擋、不在賭場被擋、猜拳仍在廣場、現金換籌碼 1:1、籌碼換回現金抽 5% 進位、
 --       遊戲只動籌碼不動現金、沒有單注上限（只看籌碼）、籌碼不夠被擋、自我排除、回合間隔、輸贏記錄、百家樂莊家免佣的期望值、財產稅含籌碼。
 do $$
-declare t text := 'ZZCAS'; a bigint; b bigint; c bigint; rep text := ''; x jsonb; i int; fund0 bigint; fund1 bigint; lg record; g json;
+declare t text := 'ZZCAS'; d bigint; mg record; a bigint; b bigint; c bigint; rep text := ''; x jsonb; i int; fund0 bigint; fund1 bigint; lg record; g json;
   w6 bigint := 0; wb bigint := 0; ret numeric := 0; n int := 700; cash_before bigint; ch_before bigint;
 begin
   insert into public.town_towns(id,name,invite) values (t,'測試鎮','ZZCAS1') on conflict do nothing;
   insert into public.town_residents(town_id,name,money,slot,x,y,place,pin_hash,items) values (t,'甲',1000000,0,10,10,'casino',extensions.crypt('x', extensions.gen_salt('bf')),'{}'::jsonb) returning id into a;
   insert into public.town_residents(town_id,name,money,slot,x,y,place,pin_hash,items) values (t,'乙',3000,1,10,10,'casino',extensions.crypt('x', extensions.gen_salt('bf')),'{}'::jsonb) returning id into b;
   insert into public.town_residents(town_id,name,money,slot,x,y,place,pin_hash,items) values (t,'丙',100000,2,10,10,'plaza',extensions.crypt('x', extensions.gen_salt('bf')),'{}'::jsonb) returning id into c;
+  -- 和咖啡集點卡（items.cs 整數）不撞名：換籌碼、玩一局後，cs 仍是 2、籌碼存在 items.cas
+  insert into public.town_residents(town_id,name,money,slot,x,y,place,pin_hash,items) values (t,'丁',50000,3,10,10,'casino',extensions.crypt('x', extensions.gen_salt('bf')),'{"cs":2}'::jsonb) returning id into d;
+  x := (public.town_casino_state(d,'x','buy',5000))::jsonb;
+  perform public.town_casino(d,'x','slots',100,null);
+  select items into x from public.town_residents where id = d;
+  rep := rep || ' 集點卡相撞測試：cs=' || (x->>'cs') || '（應為 2） cas.ch 存在=' || ((x->'cas'->>'ch') is not null) || ' 查籌碼=' || ((public.town_casino_state(d,'x','view',null))::jsonb->>'chips') || '（應 ≥ 4900 且不是 0）';
+  -- 遷移：資料庫裡預先放的壞資料（測試前 seed 的居民「壞」，cs=[2,{ch:32011},{ch:0}]）要被搬到 cas
+  select * into mg from public.town_residents where town_id = t and name = '壞';
+  if mg.id is not null then rep := rep || ' 遷移後 cs=' || coalesce(mg.items->>'cs','無') || '（應 2） 籌碼=' || coalesce(mg.items->'cas'->>'ch','無') || '（應 32011）'; end if;
   select fund into fund0 from public.town_towns where id = t;
   begin perform public.town_game(a,'x','slots',50,null); rep := rep || ' 舊入口slots=沒擋'; exception when others then rep := rep || ' 舊入口slots=擋'; end;
   begin perform public.town_game2(a,'x','bacc',50,'p'); rep := rep || ' 舊入口bacc=沒擋'; exception when others then rep := rep || ' 舊入口bacc=擋'; end;
@@ -20,9 +29,9 @@ begin
   rep := rep || ' 換籌碼30萬 現金=' || (x->>'money') || ' 籌碼=' || (x->>'chips');
   begin perform public.town_casino_state(c,'x','buy',1000); rep := rep || ' 不在賭場換籌碼=沒擋'; exception when others then rep := rep || ' 不在賭場換籌碼=擋'; end;
   perform public.town_casino(a,'x','slots',100000,null);
-  select (items->'cs'->>'ch')::bigint, money into ch_before, cash_before from public.town_residents where id = a;
+  select (items->'cas'->>'ch')::bigint, money into ch_before, cash_before from public.town_residents where id = a;
   rep := rep || ' 押10萬後 現金=' || cash_before || '（應為 700000） 籌碼=' || ch_before;
-  update public.town_residents set items = jsonb_set(items, '{cs,t}', to_jsonb((now() - interval '10 seconds')::text)) where id = a;
+  update public.town_residents set items = jsonb_set(items, '{cas,t}', to_jsonb((now() - interval '10 seconds')::text)) where id = a;
   begin perform public.town_casino(a,'x','slots', (ch_before + 1)::int, null); rep := rep || ' 押超過籌碼=沒擋'; exception when others then rep := rep || ' 押超過籌碼=擋:' || left(sqlerrm,8); end;
   begin perform public.town_casino(a,'x','slots',500,null); rep := rep || ' 連續開局=沒擋'; exception when others then rep := rep || ' 連續開局=擋:' || left(sqlerrm,8); end;
   select money into cash_before from public.town_residents where id = a;
