@@ -778,7 +778,7 @@ create or replace function public.town_pjob_fx(k text) returns int[] language sq
 $$;
 create or replace function public.town_pjob_wage(k text, n int) returns int language sql immutable as $$
   select case when k = 'rafi' then (array[320,450,650,690,740,840,950,1050,1200,1400])[public.town_rafi_tier(n) + 1]
-    else (case k when 'cafe' then 200 when 'rest' then 210 when 'gym' then 230 when 'shop' then 195 end) * (array[100,115,130,140,152,165,180])[public.town_pjob_tier(n) + 1] / 100 end
+    else (case k when 'cafe' then 200 when 'rest' then 210 when 'gym' then 260 when 'shop' then 195 end) * (array[100,118,138,160,185,210,240])[public.town_pjob_tier(n) + 1] / 100 end
 $$;
 create or replace function public.town_pjob_name(k text, n int) returns text language sql immutable as $$
   select case k
