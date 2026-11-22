@@ -25,6 +25,7 @@
 - 後端：`supabase/town.sql`，全部邏輯在 plpgsql security definer 函式（`town_state/create/join/login/device/find/act/mayor/features/game/duel/push_sub`）。資料表全開 RLS、不給直接權限。這個檔可重複執行。
 - 推播：`supabase/functions/town-push`（Verify JWT 要保持關閉）＋ `supabase/town_push.sql`。function 內的消耗速率、離線保護要和 `town_tick` 同步；改了要重新部署：`supabase functions deploy town-push --project-ref gerqdagicybtyilihvvm --no-verify-jwt`（需要 CLI 登入；自動模式會擋，要使用者自己跑）。
 - 登入：免密碼，每台裝置一把金鑰（只存雜湊在 `town_devices`），新裝置用邀請碼。
+- 登入鎖定（`town_auth`，2026-11-22 修正）：只有舊 4 碼 pin 算暴力猜測，錯 5 次鎖 10 分鐘，之後每多 5 次失敗鎖定時間加倍（上限 24 小時）；**鎖定中連正確的 4 碼 pin 也不放行**（以前正確的會通過，等於鎖定擋不住暴力猜測）；長隨機裝置金鑰不受鎖定影響，登入成功會清零。實測 `supabase/town_authfix_test.sql`。
 - 留存機制（`supabase/town_retention.sql`，2026-11-22；實測 `town_retention_test.sql`）：連續上線日曆（第 3／7／14／21／30／60／100 天給零食、限定造型、稱號；每週一次保護盾）、新人保護（登入未滿 7 天的居民每天被同一人打架／丟蛋／惡作劇最多 2 次、全部人最多 4 次，超過整個動作回滾，由 `town_events` 上的觸發器 `town_newcomer_guard` 擋）、每日收成（信箱＝零食、花圃＝€150、小豬雕像＝€500，隔天沒上線補領最多 3 天份）、午間市集 12～14 點與夜市 21～23 點打工薪水 +10%（`town_wd_pct`，開張時 `town_happy_touch` 公告一次）、登入隨機事件好壞各半。**前端沒有對應畫面，獎勵與公告都走小鎮動態；前端算薪水的地方沒有顯示 +10%，改前端時要補。** 推播新增「連續上線快斷了」「市集開張」（`town_push_log` 每人每天每種一次）。
 - 資安補強（`supabase/town_hardening_1122.sql`）：`town_pw_ok/bad/blocked`、`town_push_notify` 收掉 anon／authenticated 執行權；`town_rec_eh` 只接受已驗證 Email。**在 Supabase，`revoke ... from public` 擋不住 anon／authenticated，要寫 `from public, anon, authenticated`**。`fb_guard`、`lives_guard` 屬於另外兩個遊戲的 repo，補強要寫在那邊。
 

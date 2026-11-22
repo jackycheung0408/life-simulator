@@ -15,6 +15,7 @@ begin
   select * into r from public.town_residents where id = rid;
   rep := rep || format('2 pin錯5次 fails=%s 鎖=%s; ', r.fails, r.lock_until is not null);
   begin perform public.town_auth(rid, '9999'); exception when others then rep := rep || '鎖中錯pin訊息=' || sqlerrm || '; '; end;
+  begin perform public.town_auth(rid, '1234'); rep := rep || '鎖中正確4碼=通過(漏洞!); '; exception when others then rep := rep || '鎖中正確4碼=擋住(' || sqlerrm || '); '; end;
   r := public.town_auth(rid, k); rep := rep || '鎖中正確金鑰=' || (r.id is not null) || ' ';
   select * into r from public.town_residents where id = rid; rep := rep || format('清零後 fails=%s lock=%s; ', r.fails, r.lock_until);
   -- 3 town_device 錯 19 次不鎖、第 20 次鎖

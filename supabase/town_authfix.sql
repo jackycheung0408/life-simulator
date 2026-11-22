@@ -1,4 +1,4 @@
--- 登入鎖定修正：town_auth（長金鑰失效不鎖人）與 town_device（整鎮鎖放寬到 20 次）。
+-- 登入鎖定修正：town_auth（長金鑰失效不鎖人；4 碼舊 pin 鎖定中連正確的也擋；鎖定時間隨失敗次數加倍）與 town_device（整鎮鎖放寬到 20 次）。
 -- 內容必須與 town.sql 內的同名函式一致（node town/test.js 會比對）；可重複執行。
 -- 之後若要解除現有鎖定，另外執行 town_unlock_once.sql（一次性）。
 
@@ -11,18 +11,23 @@ declare r public.town_residents; ok boolean; mins int;
 begin
   select * into r from public.town_residents where id = rid for update;
   if not found then raise exception '找不到這位居民，可能已經搬走了'; end if;
-  -- 先驗證憑證：比對成功就放行並清零（鎖定中也一樣）
+  -- 4 碼舊 pin 鎖定中：連正確的 pin 也不放行（否則鎖定擋不住暴力猜測，2026-11-22 修正）；長隨機裝置金鑰不受影響
+  if coalesce(pin,'') ~ '^\d{4}$' and r.lock_until is not null and r.lock_until > now() then
+    mins := greatest(1, ceil(extract(epoch from (r.lock_until - now())) / 60)::int);
+    raise exception '密碼錯太多次，還要約 % 分鐘', mins;
+  end if;
+  -- 比對成功就放行並清零
   ok := extensions.crypt(coalesce(pin,''), r.pin_hash) = r.pin_hash
      or exists (select 1 from public.town_devices d where d.resident_id = rid and extensions.crypt(coalesce(pin,''), d.key_hash) = d.key_hash);
   if not ok then
     -- 長隨機金鑰失效：不累加、不鎖定，直接回明確錯誤（沒有狀態要保留，raise 無副作用）
     if coalesce(pin,'') !~ '^\d{4}$' then raise exception '這台裝置的登入失效了，請重新登入'; end if;
-    -- 只有舊 4 碼 pin 才算暴力猜測：5 次鎖 10 分鐘
+    -- 只有舊 4 碼 pin 才算暴力猜測：5 次鎖 10 分鐘，之後每多 5 次失敗鎖定時間加倍（最長 24 小時）
     if r.lock_until is not null and r.lock_until > now() then
       mins := greatest(1, ceil(extract(epoch from (r.lock_until - now())) / 60)::int);
       raise exception '密碼錯太多次，還要約 % 分鐘', mins;
     end if;
-    update public.town_residents set fails = fails + 1, lock_until = (case when fails + 1 >= 5 then now() + interval '10 minutes' end) where id = rid;
+    update public.town_residents set fails = fails + 1, lock_until = (case when fails + 1 >= 5 then now() + least(interval '24 hours', interval '10 minutes' * power(2, least(10, (fails + 1) / 5 - 1))) end) where id = rid;
     r.id := null; return r;
   end if;
   if r.fails > 0 or r.lock_until is not null then update public.town_residents set fails = 0, lock_until = null where id = rid; end if;
