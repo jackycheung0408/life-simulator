@@ -36,6 +36,12 @@ typeof document!=="undefined"&&(()=>{const st=document.createElement("style");st
 .bg.B,.bg.P{background:none;border:3px solid #d64541}.bg.P{border-color:#3b7dd8}.bg.T{background:none}
 .bg s{position:absolute;left:-1px;top:7px;width:18px;height:3px;background:#2e9e5b;transform:rotate(-45deg)}
 .rb{color:#d64541}.rp{color:#3b7dd8}.rt{color:#2e9e5b}
+/* 防晃動：賭場視窗靠上對齊（高度變了不會整個面板上下跳）、牌桌固定框線與最小高度、「莊家發牌中」浮在牌桌上不佔版面、捲軸槽固定 */
+#modal:has(.gmenu),#modal:has(.garea){align-items:flex-start;padding-top:12px}
+#modal .card{scrollbar-gutter:stable}
+.gshow{position:relative;box-sizing:border-box;border:3px solid transparent;padding:8px;min-height:150px}
+.gshow .dealer{position:absolute;top:2px;right:8px;margin:0;z-index:2;font-size:11px;pointer-events:none}
+.nochip{margin:6px 0}
 `;document.head.appendChild(st)})();
 // 小豬鎮：任何人都能建立自己的小鎮，拿邀請碼的朋友搬進來；需求隨現實時間下降，所有改動都經過 Supabase 的資料庫函式
 const SB="https://gerqdagicybtyilihvvm.supabase.co/rest/v1/rpc/",SBK="sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y";
@@ -1161,7 +1167,7 @@ function gamesModal(){$("modal").classList.remove("hide");if(!window._dealObs){w
   :`<h2>🕹️ 小豬街機</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b> · 押注 €50～€1000 · 押錢遊戲搬到小豬賭場了</p>
   <h3 class="gh">對電腦</h3><div class="gmenu">${gm(ARCADE)}</div><h3 class="gh">單機（不押錢，心情 +2）</h3><div class="gmenu">${gm(SOLO)}</div><div class="row"><button id="mc">離開街機</button></div>`)
   :`<h2>${(g=>gic(g[1])+" "+g[2])([...ARCADE,...CASINO,...SOLO].find(g=>g[0]==gameTab))}</h2><p class="mut">${hall?"籌碼":"你有"} €<b id="gMoney">${hall&&CAS?CAS.chips:R[me].money}</b></p>${hall?`<p class="mut" id="gBud">${chipLine()}</p>`:""}
-  ${solo?"":hall?chipTray((CAS&&CAS.chips)||0):`<div class="chips">押注 ${bets.map(b=>`<button data-bet="${b}" class="${gameBet==b?"on":""}">€${b}</button>`).join("")}</div>`}
+  ${solo?"":hall?((!CAS||CAS.chips<50)?`<p class="gres bad nochip">請先到櫃台換籌碼，現金不能直接賭</p>`:"")+chipTray((CAS&&CAS.chips)||0):`<div class="chips">押注 ${bets.map(b=>`<button data-bet="${b}" class="${gameBet==b?"on":""}">€${b}</button>`).join("")}</div>`}
   <div id="gArea" class="garea"></div><div class="row"><button id="gback">回${hn}選單</button><button id="mc">離開${hn}</button></div>`;
  $("mc").onclick=()=>{gameTab="";$("modal").classList.add("hide");refresh().catch(()=>{})};
  if(!menu)$("gback").onclick=()=>{gameTab="";gamesModal()};
@@ -1221,7 +1227,7 @@ function gamesModal(){$("modal").classList.remove("hide");if(!window._dealObs){w
    $("gShow").innerHTML=`<p class="mut">開出 ${g.draw.slice().sort((a,b)=>a-b).join("、")} · 中 ${g.hit} 個</p>`+result(g);money();area.querySelector(".gbtns").innerHTML=`<button class="pri" id="bgAgain">再來一局</button>`;$("bgAgain").onclick=()=>gamesModal()}catch(e){toast(e.message);$("bgGo").disabled=false}}}
 
  const pg2=(g,x)=>playGame(g,x,"town_casino"),cardsH=cs=>`<div class="cards">${cs.map(c=>cardHTML(c)).join("")}</div>`;
- if(gameTab=="bacc"){area.innerHTML=`<p class="mut">閒莊各發 2～3 張，點數接近 9 贏（A=1、10JQK=0、取個位）。閒 ×2，莊 ×2（莊以 6 點贏只賠 ×1.5，免佣），和 ×9；和局時押閒莊退回押注。</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="gbig" data-b="p">閒<span>×2</span></button><button class="gbig" data-b="b">莊<span>×2（6 點 ×1.5）</span></button><button class="gbig" data-b="t">和<span>×9</span></button></div><p class="mut">按一下就開局，可連續再玩（押 €${gameBet}）</p><div id="roads">${roadsHtml(CAS&&CAS.bh)}</div>`;
+ if(gameTab=="bacc"){area.innerHTML=`<p class="mut">閒莊各發 2～3 張，點數接近 9 贏（A=1、10JQK=0、取個位）。閒 ×2，莊 ×2（莊以 6 點贏只賠 ×1.5，免佣），和 ×9；和局時押閒莊退回押注。</p><div class="gbtns"><button class="gbig" data-b="p">閒<span>×2</span></button><button class="gbig" data-b="b">莊<span>×2（6 點 ×1.5）</span></button><button class="gbig" data-b="t">和<span>×9</span></button></div><div id="gShow" class="gshow"></div><p class="mut">按一下就開局，可連續再玩（押 €${gameBet}）</p><div id="roads">${roadsHtml(CAS&&CAS.bh)}</div>`;
   area.querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{area.querySelectorAll("[data-b]").forEach(x=>x.disabled=true);try{const g=await pg2("bacc",{choice:b.dataset.b});const side=g.pt>g.bt?"閒贏":g.bt>g.pt?"莊贏":"和局";
    $("gShow").innerHTML=`<p>閒 <b>${g.pt}</b></p>${cardsH(g.p)}<p>莊 <b>${g.bt}</b></p>${cardsH(g.b)}<p class="mut">${side}</p>`+result(g);money()}catch(e){$("gShow").innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
    area.querySelectorAll("[data-b]").forEach(x=>x.disabled=false)})}

@@ -2,7 +2,7 @@
 -- 檢查：直接呼叫 town_game／town_game2 玩押錢遊戲被擋、不在賭場被擋、猜拳仍在廣場、現金換籌碼 1:1、籌碼換回現金抽 5% 進位、
 --       遊戲只動籌碼不動現金、沒有單注上限（只看籌碼）、籌碼不夠被擋、自我排除、回合間隔、輸贏記錄、百家樂莊家免佣的期望值、財產稅含籌碼。
 do $$
-declare t text := 'ZZCAS'; bh text; bhn int; d bigint; mg record; a bigint; b bigint; c bigint; rep text := ''; x jsonb; i int; fund0 bigint; fund1 bigint; lg record; g json;
+declare t text := 'ZZCAS'; gname text; gn int := 0; gb int := 0; bh text; bhn int; d bigint; mg record; a bigint; b bigint; c bigint; rep text := ''; x jsonb; i int; fund0 bigint; fund1 bigint; lg record; g json;
   w6 bigint := 0; wb bigint := 0; ret numeric := 0; n int := 700; cash_before bigint; ch_before bigint;
 begin
   insert into public.town_towns(id,name,invite) values (t,'測試鎮','ZZCAS1') on conflict do nothing;
@@ -27,6 +27,13 @@ begin
   perform public.town_casino(d,'x','bacc',50,'p');
   select length(items->'cas'->>'bh') into bhn from public.town_residents where id = d;
   rep := rep || ' 超過72局後長度=' || bhn || '（應 72） state 有 bh=' || (((public.town_casino_state(d,'x','view',null))::jsonb->>'bh') is not null);
+  -- 有現金沒籌碼：每一種押錢遊戲都被擋（籌碼不夠），現金一分不少；換籌碼後玩只動籌碼
+  foreach gname in array array['hl_start','wheel','bj_start','dice','slots','keno','bacc','niu','dg_play'] loop
+    gn := gn + 1;
+    begin perform public.town_casino(b,'x',gname,500,case gname when 'wheel' then 'red' when 'dice' then 'big' when 'keno' then '1,2,3,4,5' when 'bacc' then 'p' when 'dg_play' then 'in' else 'r' end);
+    exception when others then if sqlerrm like '籌碼不夠%' then gb := gb + 1; end if; end;
+  end loop;
+  rep := rep || ' 有現金沒籌碼：押錢遊戲 ' || gn || ' 種，被籌碼不夠擋下 ' || gb || '（應相同） 乙現金=' || (select money from public.town_residents where id = b) || '（應 3000）';
   select * into mg from public.town_residents where town_id = t and name = '壞';
   if mg.id is not null then rep := rep || ' 遷移後 cs=' || coalesce(mg.items->>'cs','無') || '（應 2） 籌碼=' || coalesce(mg.items->'cas'->>'ch','無') || '（應 32011）'; end if;
   select fund into fund0 from public.town_towns where id = t;

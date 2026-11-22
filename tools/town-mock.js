@@ -24,6 +24,14 @@ if(!String(url).includes("/rpc/"))return _fetch(url,o);const fn=url.split("/rpc/
  if(fn=="town_game"){const r=R(b.rid);const g=b.game;let res;if(g=="rps"){const h=["r","p","s"][Math.floor(Math.random()*3)];res={you:b.choice,house:h,win:b.choice==h?b.bet:(b.choice+h).match(/rs|sp|pr/)?b.bet*2:0}}
   else if(g=="hl_start"){res={card:207}}else if(g=="hl_guess"){res={card:207,next:310,win:b.choice=="hi"?16:0}}else if(g=="dice"){res={dice:[3,3,5],win:0}}else if(g=="slots"){res={reels:[0,0,3],win:Math.floor(b.bet*1.1)}}else if(g=="bingo"){res={pick:[1,2,3],draw:[2,3,7,8,9],hit:2,win:Math.floor(b.bet*1.4)}}else if(g=="wheel"){res={slot:8,mult:2,win:b.bet*2}}else if(g=="bj_start"){res={p:[112,413],d:[301],done:false}}else if(g=="bj_hit"){res={p:[112,413,204],d:[301],done:false}}else{res={p:[112,413,204],d:[301,108],done:true,win:20}}
   return ok({game:res,money:r.money})}
+ if(fn=="town_casino_state"){const r=R(b.rid);r.items=r.items||{};const c=r.items.cas=r.items.cas||{ch:0,bh:""};if(b.op=="buy"){if(b.val>r.money)return bad("現金不夠");r.money-=b.val;c.ch+=b.val}else if(b.op=="sell"){if(b.val>c.ch)return bad("籌碼不夠");c.ch-=b.val;r.money+=b.val-Math.ceil(b.val*.05)}return ok({ok:true,money:r.money,chips:c.ch,rounds:0,net:0,bh:c.bh||""})}
+ if(fn=="town_casino"){const r=R(b.rid);r.items=r.items||{};const c=r.items.cas=r.items.cas||{ch:0,bh:""},g=b.game,cd=()=>(1+Math.floor(Math.random()*4))*100+1+Math.floor(Math.random()*13);if(r.place!="casino")return bad("賭場在小豬賭場，走過去再玩");if(!/^(hl_guess|bj_hit|bj_stand|dg_info)$/.test(g)&&b.bet>c.ch)return bad("籌碼不夠（你有 €"+c.ch+" 籌碼），到櫃台用現金換籌碼");let res,win=0;
+  if(g=="bacc"){const pt=Math.floor(Math.random()*10),bt=Math.floor(Math.random()*10);win=pt==bt?(b.choice=="t"?b.bet*9:b.bet):pt>bt&&b.choice=="p"?b.bet*2:bt>pt&&b.choice=="b"?b.bet*2:0;res={p:pt<6?[cd(),cd(),cd()]:[cd(),cd()],b:[cd(),cd()],pt,bt,win,pick:b.choice,bet:b.bet};c.bh=((c.bh||"")+(pt>bt?"P":pt<bt?"B":"T")).slice(-72)}
+  else if(g=="wheel"){win=Math.random()<.47?b.bet*2:0;res={slot:5,label:"5",color:"red",win,pick:b.choice,bet:b.bet}}
+  else if(g=="dice"){win=Math.random()<.48?b.bet*2:0;res={dice:[3,4,5],win,pick:b.choice,bet:b.bet}}
+  else if(g=="slots"){win=Math.random()<.3?b.bet*3:0;res={reels:[0,1,2],win,bet:b.bet}}
+  else return bad("測試用 mock 只支援 bacc／wheel／dice／slots");
+  c.ch+=win-b.bet;return ok({game:res,money:r.money,casino:{chips:c.ch,bh:c.bh||"",cd:null}})}
  if(fn=="town_game2"){const r=R(b.rid);const g=b.game,c=n=>(1+Math.floor(Math.random()*4))*100+1+Math.floor(Math.random()*13);let res;
   if(g=="bacc")res={p:[c(),c()],b:[c(),c()],pt:6,bt:4,win:b.choice=="p"?b.bet*2:0,bet:b.bet,pick:b.choice};
   else if(g=="dg_info")res={pot:0,maxBet:0,why:"pot",entry:50};
