@@ -26,6 +26,7 @@
 - 推播：`supabase/functions/town-push`（Verify JWT 要保持關閉）＋ `supabase/town_push.sql`。function 內的消耗速率、離線保護要和 `town_tick` 同步；改了要重新部署：`supabase functions deploy town-push --project-ref gerqdagicybtyilihvvm --no-verify-jwt`（需要 CLI 登入；自動模式會擋，要使用者自己跑）。
 - 登入：免密碼，每台裝置一把金鑰（只存雜湊在 `town_devices`），新裝置用邀請碼。
 - 留存機制（`supabase/town_retention.sql`，2026-11-22；實測 `town_retention_test.sql`）：連續上線日曆（第 3／7／14／21／30／60／100 天給零食、限定造型、稱號；每週一次保護盾）、新人保護（登入未滿 7 天的居民每天被同一人打架／丟蛋／惡作劇最多 2 次、全部人最多 4 次，超過整個動作回滾，由 `town_events` 上的觸發器 `town_newcomer_guard` 擋）、每日收成（信箱＝零食、花圃＝€150、小豬雕像＝€500，隔天沒上線補領最多 3 天份）、午間市集 12～14 點與夜市 21～23 點打工薪水 +10%（`town_wd_pct`，開張時 `town_happy_touch` 公告一次）、登入隨機事件好壞各半。**前端沒有對應畫面，獎勵與公告都走小鎮動態；前端算薪水的地方沒有顯示 +10%，改前端時要補。** 推播新增「連續上線快斷了」「市集開張」（`town_push_log` 每人每天每種一次）。
+- 公司打工底薪（`town_wage`，按累計打工次數 0／10／30／70／150／250／400／650／1000 升級）：190／260／350／520／**650**／**800**／**1000**／1250／1500（2026-11-22 把 4～6 級從 800／920／1050 平滑成 650／800／1000，避免 3→4 級一次跳 +54%；當時沒有任何玩家在 4～7 級，沒人被降薪）。Rafi 與其他打工的薪水另算（`town_pjob_wage`）。
 - 資安補強（`supabase/town_hardening_1122.sql`）：`town_pw_ok/bad/blocked`、`town_push_notify` 收掉 anon／authenticated 執行權；`town_rec_eh` 只接受已驗證 Email。**在 Supabase，`revoke ... from public` 擋不住 anon／authenticated，要寫 `from public, anon, authenticated`**。`fb_guard`、`lives_guard` 屬於另外兩個遊戲的 repo，補強要寫在那邊。
 
 ## 自動更新（小豬鎮；玩家多半從主畫面開 web app，沒辦法重新整理）
