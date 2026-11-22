@@ -193,7 +193,7 @@ grant execute on function public.town_features(bigint,text,text[]) to anon, auth
 -- 好感度 7 階；跨過一階會上小鎮動態
 create or replace function public.town_tier(v int) returns text language sql immutable as $$
   select case when v >= 60 then '生死之交' when v >= 30 then '好麻吉' when v >= 10 then '好朋友'
-    when v <= -50 then '宿敵' when v <= -20 then '死對頭' when v <= -5 then '有點不爽' else '普通鄰居' end
+    when v <= -50 then '宿敵' when v <= -20 then '死對頭' when v <= -8 then '有點不爽' else '普通鄰居' end
 $$;
 create or replace function public.town_bond_get(x bigint, y bigint) returns int language sql stable as $$
   select coalesce((select score from public.town_bonds where a = least(x,y) and b = greatest(x,y)), 0)
@@ -254,7 +254,7 @@ revoke all on function public.town_at(public.town_residents,text), public.town_a
 create or replace function public.town_pay(base int, m text, workaholic boolean) returns int language sql immutable as $$
   select (base * public.town_mood_wage(m) * (case when workaholic then 110 else 100 end) * 2 + 10000) / 20000
 $$;
--- 好感增加的倍率由 town_act 開頭存在交易設定 town.bm（百分比 ×100：心情 × 社交達人）；只放大正數
+-- 好感倍率由 town_act 開頭存在交易設定 town.bm（百分比 ×100：心情 × 社交達人）：正數乘以倍率，負數除以倍率（心情差、不洗澡的人更傷感情；心情好的人更溫和），最少 ±1
 alter table public.town_bonds add column if not exists dday text;
 alter table public.town_bonds add column if not exists dpos int not null default 0;
 alter table public.town_bonds add column if not exists dneg int not null default 0;
@@ -263,7 +263,7 @@ create or replace function public.town_bond(tid text, x bigint, y bigint, d int)
 declare o int := public.town_bond_get(x,y); n int; na text; nb text; bmp int := coalesce(nullif(current_setting('town.bm', true), ''), '10000')::int;
   today text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); dp int := 0; dn int := 0; bd text;
 begin
-  if d > 0 then d := greatest(1, (d * bmp * 2 + 10000) / 20000); end if;
+  if d > 0 then d := greatest(1, (d * bmp * 2 + 10000) / 20000); elsif d < 0 then d := -greatest(1, round(-d * 10000.0 / greatest(bmp, 1000))::int); end if;
   select dday, dpos, dneg into bd, dp, dn from public.town_bonds where a = least(x,y) and b = greatest(x,y);
   if bd is distinct from today then dp := 0; dn := 0; end if;
   if d > 0 then dp := dp + d;  -- 2026-11-16 起取消每日好感上限

@@ -650,6 +650,15 @@
     "town_recovery.sql"
    ],
    "note": "收掉 town_pw_*／town_push_notify 的 anon 權限、town_rec_eh 要求已驗證 Email"
+  },
+  {
+   "file": "town_bond_recover.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_push.sql"
+   ],
+   "note": "好感每日自然回復排程（pg_cron）"
   }
  ]
 }
