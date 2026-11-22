@@ -192,6 +192,8 @@ function moodOf(r){if(r.items&&r.items.sad)return"sad";const a=(r.hunger+r.energ
 const MOOD={happy:["😊","開心","薪水 +10%、好感 ×1.2、打架 +5"],normal:["🙂","普通","沒有加成"],annoyed:["😤","煩躁","薪水 −5%、好感 ×0.8、打架 −3"],low:["🥺","低落","薪水 −10%、好感 ×0.7、打架 −8"],sad:["🥺","心情谷底","薪水 −30%、好感 ×0.7、打架 −8，心情回到 20 才恢復"]};
 const MOOD_WAGE={happy:110,normal:100,annoyed:95,low:90,sad:70};
 const payOf=(base,r)=>Math.floor((base*MOOD_WAGE[moodOf(r)]*(hasT(r,"workaholic")?110:100)*2+10000)/20000);
+// 午間市集 12:00～14:00、夜市 21:00～23:00（台灣時間）打工薪水 +10%，要和 SQL town_wd_pct／town_happy_touch 一致；回傳 {k,n,left(分)} 或 null
+const happyAt=ms=>{const t=new Date(ms+8*36e5),h=t.getUTCHours(),m=t.getUTCMinutes();if(h==12||h==13)return{k:"noon",n:"🌞 午間市集",left:(14-h)*60-m};if(h==21||h==22)return{k:"night",n:"🌙 夜市",left:(23-h)*60-m};return null};
 function tickLocal(r,now){const h=Math.min(72,Math.max(0,(now-Date.parse(r.updated_at))/36e5)),o={...r},hm=hasT(r,"clean")?.7:1;
  // 和 town_tick 一致：離線保護（最後動作 30 分鐘後，消耗 ×0.4、需求最低停在 30）；睡覺回精力與睡眠時數成正比；
  // 快速睡覺（items.qs 到期自動醒，睡眠速率 ×2.5）；待機超過 60 分鐘算回家睡覺
@@ -404,7 +406,7 @@ const fin=r=>!!r&&!!r.items&&!!ROOMS[r.place]&&(r.items.fi===r.place||(r.place==
 const visitHost=(r,RR)=>{const h=RR&&r&&r.place&&r.place.startsWith("home:")&&r.place!="home:"+r.id?RR[r.place.slice(5)]:null;return h&&inside(h)?h:null};// 在朋友家門口、他人在屋裡 → 看得到他家室內
 const roomOf=(r,RR)=>!r?null:fin(r)?ROOMS[r.place]:(r.place=="home:"+r.id&&inside(r))?homeRoom(r):visitHost(r,RR)?{...homeRoom(visitHost(r,RR)),visit:true,inn:vin(r)}:null;// RR = 居民表（頂層函式拿不到 init 裡的 R，由呼叫的人傳進來）
 const DGFEE=50,NIUM=c=>c==10?3:c>=7?2:1;
-if(typeof module!=="undefined")module.exports={DGFEE,NIUM,VENACT,HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,TAP_DEF,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,JOBS,PJT,PJM,PJN,RFT,RFW,pjTier,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
+if(typeof module!=="undefined")module.exports={DGFEE,NIUM,VENACT,HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,TAP_DEF,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,JOBS,PJT,PJM,PJN,RFT,RFW,pjTier,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,happyAt,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
 
 function init(){
 
@@ -2020,9 +2022,12 @@ setInterval(zbPoll,4000);
 const WEV={market:["市集日","吃喝價格 85%"],boom:["景氣好","打工薪水 115%"],bust:["景氣差","打工薪水 90%、吃喝價格 110%"],blackout:["停電","打工薪水 95%"],festival:["小鎮慶典","吃喝價格 90%、打工薪水 105%"]};
 let wevK=null,wevUntil=0,wevBusy=false;
 let wevHide=null;
-function wevDraw(){let b=$("wev");if(!wevK||wevUntil<Date.now()||wevHide===wevK){if(b)b.classList.remove("on");return}
- if(!b){b=document.createElement("div");b.id="wev";b.onclick=()=>{wevHide=wevK;b.classList.remove("on")};document.body.appendChild(b)}
- const m=Math.max(1,Math.ceil((wevUntil-Date.now())/6e4));b.textContent=`${WEV[wevK][0]}：${WEV[wevK][1]} · 剩 ${m} 分`;b.classList.add("on")}
+let wevKey="";
+function wevDraw(){let b=$("wev");const on=!!wevK&&wevUntil>=Date.now(),hp=happyAt(Date.now());wevKey=(on?wevK:"")+"|"+(hp?hp.k:"");
+ if((!on&&!hp)||wevHide===wevKey){if(b)b.classList.remove("on");return}
+ if(!b){b=document.createElement("div");b.id="wev";b.onclick=()=>{wevHide=wevKey;b.classList.remove("on")};document.body.appendChild(b)}
+ const parts=[];if(on)parts.push(`${WEV[wevK][0]}：${WEV[wevK][1]} · 剩 ${Math.max(1,Math.ceil((wevUntil-Date.now())/6e4))} 分`);if(hp)parts.push(`${hp.n}：打工薪水 +10% · 剩 ${hp.left} 分`);
+ b.textContent=parts.join("　");b.classList.add("on")}
 let NPCV=null;
 const NPCI=[["tonic","特調補品","€1500 · 心情 +30、清潔 +30"],["toy","小豬玩偶","€2500 · 收藏品，純裝飾"],["book","訓練手冊","€2000 · 隨機一項能力進度 +2"]];
 async function npcPoll(){if(document.visibilityState!="visible"||!me||!S)return;try{const j=await rpc("town_npc",{rid:me,pin,op:"view"});if(j&&!j.error){const was=NPCV&&NPCV.here;NPCV=j;if(j.here&&!was)toast("流動商人來了，在"+(j.place=="plaza"?"廣場":"公園"))}}catch(e){}}

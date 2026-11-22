@@ -77,6 +77,7 @@ check(M.moodOf(mk({fun:70,hunger:15},[]))=="annoyed","有一項低於 20 應該�
 check(M.moodOf(mk({fun:10},[]))=="low","心情 10 應該低落");
 check(M.moodOf(mk({hunger:20,energy:20,bladder:20,hygiene:20,fun:60},[]))=="low","平均 < 35 應該低落");
 check(M.moodOf(mk({fun:60},[]))=="normal","心情 60、其他 80 應該普通");
+check(JSON.stringify([M.happyAt(Date.UTC(2026,0,1,3,59)),M.happyAt(Date.UTC(2026,0,1,4,0)),M.happyAt(Date.UTC(2026,0,1,5,59)),M.happyAt(Date.UTC(2026,0,1,6,0)),M.happyAt(Date.UTC(2026,0,1,13,30)),M.happyAt(Date.UTC(2026,0,1,14,59)),M.happyAt(Date.UTC(2026,0,1,15,0))].map(x=>x&&[x.k,x.left]))==JSON.stringify([null,["noon",120],["noon",1],null,["night",90],["night",1],null]),"午間市集／夜市時段（台灣 12～14、21～23 點）不對");
 check(M.payOf(100,mk({},[]))==110&&M.payOf(130,mk({fun:30},[]))==124&&M.payOf(100,mk({fun:10},[]))==90&&M.payOf(100,mk({fun:60},["workaholic"]))==110&&M.payOf(100,mk({},["workaholic"]))==121,"薪水算法不對");
 check(Math.abs(M.tickLocal(mk({},["clean"]),10*36e5).hygiene-(80-35))<1e-6,"愛乾淨醒著 10 小時清潔應該掉 35");
 {const n=Date.UTC(2026,0,1,15,0,0),u=new Date(n-4*36e5).toISOString(); // 台灣 23:00，前 4 小時從 19:00 起，22～23 點 1 小時算夜間
