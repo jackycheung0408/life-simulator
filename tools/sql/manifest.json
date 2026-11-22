@@ -675,6 +675,21 @@
    "needs": [
     "town_casino.sql"
    ]
+  },
+  {
+   "file": "town_casino2.sql",
+   "kind": "patch",
+   "needs": [
+    "town_casino.sql"
+   ],
+   "note": "賭場階段 B＋C：town_cgame（美式輪盤、21 點 6:5、骰寶、新老虎機、基諾、莊家制射龍門）；套用順序在 town_casino.sql 之前也可以（town_casino 在執行時才呼叫它）"
+  },
+  {
+   "file": "town_casino2_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_casino2.sql"
+   ]
   }
  ]
 }

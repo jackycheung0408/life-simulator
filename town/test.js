@@ -243,6 +243,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(pend.size==0,"這些 btn() 沒有 RULES、nofx 也不在待確認清單："+[...pend].join("、"));console.log(`RULES ${RULES.length} 筆；靜態標籤 ${tot} 顆，其中 ${hit} 顆有規則`);
  check(src.includes("fxcard"),"要有長按詳情卡 #fxcard")}
 require("./test_arcade2.js")(M,check);
+require("./test_casino2.js")(M,check);
 {const src=require("fs").readFileSync(__dirname+"/town.js","utf8").split("\n"),ii=src.findIndex(l=>l.startsWith("function init(){")),top=src.slice(0,ii);
  const strip=l=>l.replace(/\/\/.*$/,"").replace(/`(?:[^`\\]|\\.)*`/g,"``").replace(/"(?:[^"\\]|\\.)*"/g,'""').replace(/'(?:[^'\\]|\\.)*'/g,"''");
  const bad=[];top.forEach((l,i)=>{const s=strip(l);for(const n of ["me","$","esc","pxify","toast","pin","R","S"]){const re=new RegExp("(^|[^\\w$.])"+n.replace("$","\\$")+"(?![\\w$:])");if(re.test(s))bad.push(n+"@"+(i+1))}});

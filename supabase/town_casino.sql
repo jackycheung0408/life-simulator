@@ -1,6 +1,6 @@
 -- 小豬賭場（2026-11-22 階段 A，11-23 改成籌碼制、取消預算與上限）：街機的「押錢遊戲」搬進獨立設施 casino。可重複執行。
 --   設施：casino「賭場」（地圖 [66,8,5,5]、門 (68,13)），鎮長可用功能開關 casino 關掉。廣場街機只留猜拳與單機。
---   押錢遊戲（9 種）：比大小 hl、輪盤 wheel、21 點 bj、骰子 dice、老虎機 slots、賓果 bingo、百家樂 bacc、射龍門 dg、妞妞 niu
+--   押錢遊戲（9 種）：比大小 hl、輪盤 wheel、21 點 bj、骰寶 dice、老虎機 slots、基諾 keno、百家樂 bacc、射龍門 dg、妞妞 niu（輪盤、21 點、骰寶、老虎機、基諾、射龍門的新規則在 town_casino2.sql）
 --   入口：RPC town_casino(rid,pin,game,bet,choice) 包住 town_game／town_game2；town_casino_state(rid,pin,op,val)：view／buy／sell／rest。
 --   籌碼制（2026-11-23 使用者決定）：進賭場用現金 1:1 換籌碼（buy），遊戲全部用籌碼押，換回現金（sell）時抽 5%（無條件進位）。
 --     遊戲本身不再抽 5%：猜拳 ×2、百家樂改免佣（莊贏 ×2，但莊以 6 點贏只賠 ×1.5，期望 0.9857）。其他遊戲的賠率不動。
@@ -81,10 +81,10 @@ begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
   if r.sleeping then raise exception '你在睡覺，先起床'; end if;
-  if game not in ('hl_start','hl_guess','wheel','bj_start','bj_hit','bj_stand','dice','slots','bingo','bacc','niu','dg_info','dg_start','dg_play') then raise exception '沒有這個遊戲'; end if;
+  if game not in ('hl_start','hl_guess','wheel','bj_start','bj_hit','bj_stand','dice','slots','keno','bacc','niu','dg_info','dg_start','dg_play') then raise exception '沒有這個遊戲'; end if;
   if public.town_is_off(r.town_id, 'casino') then raise exception '這個小鎮沒有開賭場'; end if;
   if r.place <> 'casino' then raise exception '賭場在小豬賭場，走過去再玩'; end if;
-  v_bet := game in ('hl_start','wheel','bj_start','dice','slots','bingo','bacc','niu','dg_play');
+  v_bet := game in ('hl_start','wheel','bj_start','dice','slots','keno','bacc','niu','dg_play');
   v_gate := v_bet or game = 'dg_start';
   v_round := v_bet and not (game = 'dg_play' and coalesce(choice, '') = 'pass');
   cs := coalesce(r.items->'cs','{}'::jsonb);
@@ -102,8 +102,10 @@ begin
   -- 暫時把 money 換成籌碼，讓 town_game／town_game2 用籌碼下注；結束後換回現金（同一個交易，出錯整個回滾）
   perform set_config('town.casino', '1', true);
   update public.town_residents p set money = v_chips where p.id = rid;
-  if game in ('bacc','niu','dg_info','dg_start','dg_play') then res := public.town_game2(rid, pin, game, bet, choice);
-  else res := public.town_game(rid, pin, game, bet, choice); end if;
+  -- 路由：比大小、百家樂、妞妞沿用舊函式；輪盤、21 點、骰寶、老虎機、基諾、射龍門是 town_casino2.sql 的新規則 town_cgame
+  if game in ('hl_start','hl_guess') then res := public.town_game(rid, pin, game, bet, choice);
+  elsif game in ('bacc','niu') then res := public.town_game2(rid, pin, game, bet, choice);
+  else res := public.town_cgame(rid, pin, game, bet, choice); end if;
   select p.money, p.items into m1, its from public.town_residents p where p.id = rid;
   cs := coalesce(its->'cs','{}'::jsonb) || jsonb_build_object('ch', m1);
   if game <> 'dg_info' then
