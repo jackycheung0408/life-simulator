@@ -736,13 +736,20 @@
    ]
   },
   {
+   "file": "town_usage.sql",
+   "kind": "patch",
+   "needs": [],
+   "note": "匿名使用統計：表 town_usage(day,k,n)、town_usage_hit（anon 可呼叫，白名單、去重、2000 種上限）、town_usage_hit_int、town_usage_report（管理員唯讀）；不記任何個資"
+  },
+  {
    "file": "town_casino_pop.sql",
    "kind": "patch",
    "needs": [
+    "town_usage.sql",
     "town_casino4.sql",
     "town_casino_fi.sql"
    ],
-   "note": "賭場玩家人氣排行：表 town_casino_pop、town_casino_pop_add／top；就地在 town_casino 加累加一行、town_casino_state 回傳 pop（前 8 名遊戲代號）"
+   "note": "賭場玩家人氣排行：計數寫進 town_usage（play:<遊戲>）；town_casino_pop_add／top；就地在 town_casino 加累加一行、town_casino_state 回傳 pop（前 8 名遊戲代號）；要在 town_usage.sql 之後"
   },
   {
    "file": "town_ticket_sus.sql",

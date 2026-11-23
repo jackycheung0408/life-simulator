@@ -173,11 +173,21 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  const town=require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8");
  check(town.includes("town_jailed")&&town.includes("when p = 'jail' then '監獄'")&&town.includes("'carshop','jail','hospital','police','townhall')"),"town.sql 要有 town_jailed 與 jail 地點");
  const near=Object.entries(M.PLACES).filter(([k,p])=>k!="jail"&&p.block).filter(([k,p])=>{const [x,y,w,h]=P.r,[a,b,c,d]=p.r;return !(a>=x+w+2||a+c<=x-2||b>=y+h+2||b+d<=y-2)});check(near.length==0,"監獄離其他建築至少要 2 格："+near.map(x=>x[0]))}
+// 匿名使用統計：SQL 不含個資欄位、hit 有白名單與上限、只開放 hit 給 anon；前端不上傳輸入框文字、金額
+{const fs=require("fs"),sql=fs.readFileSync(__dirname+"/../supabase/town_usage.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8"),pv=fs.readFileSync(__dirname+"/privacy.html","utf8");
+ check(sql.split("\n").slice(0,7).every(l=>/^--/.test(l)||l.trim()==""),"town_usage.sql 檔頭每行都要是註解");
+ check(/create table if not exists public\.town_usage \(\s*day date not null,\s*k text not null[^;]*n bigint not null default 0,\s*primary key \(day, k\)\s*\);/.test(sql)&&!/\b(rid|town_id|device|ip|resident|pin)\b/.test(sql.split("create or replace function public.town_usage_hit_int")[0].split("create table")[1]),"town_usage 表只能有 day／k／n，不能有角色、小鎮、裝置欄位");
+ check(/enable row level security/.test(sql)&&/revoke all on public\.town_usage from public, anon, authenticated/.test(sql),"town_usage 要開 RLS 並收回權限");
+ check(/least\(coalesce\(array_length\(keys, 1\), 0\), 20\)/.test(sql)&&/kk !~ '\^\[A-Za-z0-9:_\.\\-[^\]]+\]\{1,40\}\$'/.test(sql)&&/total >= 2000/.test(sql)&&/least\(greatest\(counts\[i\], 1\), 50\)/.test(sql),"town_usage_hit 要限 20 個、白名單字元、2000 種上限、每個最多 50");
+ check(/grant execute on function public\.town_usage_hit\(text\[\], int\[\]\) to anon/.test(sql)&&(sql.match(/grant execute/g)||[]).length==1&&/revoke all on function public\.town_usage_report\(int\) from public, anon, authenticated/.test(sql)&&/revoke all on function public\.town_usage_hit_int\(text, int\) from public, anon, authenticated/.test(sql),"town_usage 只能開放 hit 給 anon，report 與 hit_int 要收回");
+ check(/const UT=\(\(\)=>/.test(js)&&/doNotTrack/.test(js)&&/closest\("textarea,input,select"\)/.test(js)&&/replace\(\/\[\^A-Za-z\\u4e00-\\u9fff\]\/g,""\)/.test(js),"前端 UT 要有 Do Not Track、跳過輸入框、標籤只留英文與中文（去掉數字與金額）");
+ const ut=js.slice(js.indexOf("const UT=("),js.indexOf("let rpcHook=null"));check(!/\.value\b/.test(ut)&&!/localStorage|sessionStorage/.test(ut)&&!/rid|pin\b/.test(ut.replace(/pinned/g,"")),"UT 不能讀輸入框 value、存瀏覽器資料或帶角色／金鑰");
+ check(/匿名使用統計/.test(pv)&&/Do Not Track/.test(pv),"privacy.html 要說明匿名使用統計")}
 // 賭場人氣排行：SQL 單檔就地改 town_casino／state、前端有 pop 排序與退回固定清單
 {const fs=require("fs"),sql=fs.readFileSync(__dirname+"/../supabase/town_casino_pop.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8");
  check(sql.split("\n").slice(0,6).every(l=>/^--/.test(l)||l.trim()==""),"town_casino_pop.sql 檔頭每行都要是註解");
  check(/town_casino_pop_add\(r\.town_id, game, choice\)/.test(sql)&&/town_casino_pop_top\(r\.town_id\)/.test(sql)&&!/create or replace function public\.town_casino\(/.test(sql)&&!/create or replace function public\.town_casino_state\(/.test(sql),"town_casino_pop.sql 要就地改 town_casino／state，不能重建");
- check(/enable row level security/.test(sql)&&/revoke all on public\.town_casino_pop from public, anon, authenticated/.test(sql),"town_casino_pop 表要開 RLS 並收回權限");
+ check(/town_usage_hit_int\('play:' \|\| gk, 1\)/.test(sql)&&/from public\.town_usage u/.test(sql)&&!/create table/.test(sql),"town_casino_pop 要讀寫 town_usage（play:<遊戲>），不另建表");
  const keys=[...sql.matchAll(/then '(\w+)'/g)].map(m=>m[1]).concat(["dg","wheel","dice","slots","keno","bacc","niu","sangong","shiba","pigrace","plinko","cups","scratch"]);
  check([...js.match(/CASINO=\[(\[.*?\]),?\n/s)[0].matchAll(/\["(\w+)","g_/g)].every(m=>keys.includes(m[1])),"town_casino_pop_key 要涵蓋 CASINO 所有遊戲代號");
  check(/const gmPop=/.test(js)&&/HOTK\.indexOf\(k\)/.test(js)&&/CAS&&CAS\.pop/.test(js),"前端要有人氣 pop 排序並退回固定熱門")}

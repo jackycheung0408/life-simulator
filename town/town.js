@@ -82,7 +82,20 @@ typeof document!=="undefined"&&(()=>{const st=document.createElement("style");st
 // 小豬鎮：任何人都能建立自己的小鎮，拿邀請碼的朋友搬進來；需求隨現實時間下降，所有改動都經過 Supabase 的資料庫函式
 const SB="https://gerqdagicybtyilihvvm.supabase.co/rest/v1/rpc/",SBK="sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y";
 const rpcF=(fn,body={})=>{const b=JSON.stringify(body),p=window.LP&&LP.pre&&LP.pre[fn];if(p&&!p.used&&p.b==b&&Date.now()-p.t<2e4){p.used=1;return p.f}return fetch(SB+fn,{method:"POST",keepalive:true,headers:{apikey:SBK,"Content-Type":"application/json"},body:b})};
-let rpcHook=null,LOGIN_DEAD=0;const LOSTMSG="這台裝置的登入失效了";const rpc=(fn,body={})=>{if(LOGIN_DEAD&&body&&body.pin&&fn!="town_device")return Promise.reject(new Error(LOSTMSG+"，請重新登入"));if(rpcHook)try{rpcHook(fn,body)}catch(e){}return rpcF(fn,body).catch(()=>{throw new Error("連不上小鎮，檢查網路後再按一次")})
+// 匿名使用統計（supabase/town_usage.sql）：只記「哪個功能被用幾次」，不記角色、小鎮、裝置、輸入文字、金額；記憶體批次，每 20 秒或頁面隱藏時送一次，失敗靜默；瀏覽器開了 Do Not Track 就完全不送
+const UT=(()=>{const W=typeof window!=="undefined"?window:{},Q=new Map(),SEEN=new Set(),OK=new RegExp("^[A-Za-z0-9:_.\\-\\u4e00-\\u9fff]{1,40}"+String.fromCharCode(36)),NM=[],off=typeof navigator!=="undefined"&&(navigator.doNotTrack=="1"||W.doNotTrack=="1");let tm=0,started=0,lastTitle="",mo=null;
+ const clean=t=>{let s=String(t||"");for(const n of NM)if(n)s=s.split(n).join("某人");return s.replace(/[^A-Za-z\u4e00-\u9fff]/g,"").slice(0,12)};
+ const send=()=>{tm=0;while(Q.size){const ks=[...Q.keys()].slice(0,20),cs=ks.map(k=>Math.min(50,Q.get(k)));ks.forEach(k=>Q.delete(k));try{fetch(SB+"town_usage_hit",{method:"POST",keepalive:true,headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify({keys:ks,counts:cs})}).catch(()=>{})}catch(e){}}};
+ const hit=(k,n)=>{if(off||!k)return;k=String(k).slice(0,40);if(!OK.test(k))return;Q.set(k,(Q.get(k)||0)+(n||1));if(Q.size>=20)send();else if(!tm)tm=setTimeout(send,2e4)};
+ const once=k=>{if(SEEN.has(k))return;SEEN.add(k);hit(k)};
+ const ctx=b=>b.closest("#ptabs")?"ui:tab":b.closest("#modal")?"ui:modal":b.closest("#panel")?"ui:act":b.closest(".bar,.tools")?"ui:nav":b.closest("#login,#lg")?"ui:login":"ui:btn";
+ const start=()=>{if(started||off)return;started=1;once("session:start");
+  document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.target.closest("button");if(!b||b.closest("textarea,input,select"))return;if(b.dataset.chip){hit("casino:chip");return}const l=clean(b.textContent);if(l)hit(ctx(b)+":"+l)},true);
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState=="hidden")send()});addEventListener("pagehide",send);
+  const m=document.getElementById("modal");if(m&&W.MutationObserver){let was=!m.classList.contains("hide");mo=new MutationObserver(()=>{const open=!m.classList.contains("hide");if(open==was)return;was=open;if(open)setTimeout(()=>{const h=m.querySelector("h2,h3");lastTitle=clean(h&&h.textContent)||"modal";hit("modal:"+lastTitle)},80);else if(lastTitle)hit("exit:modal:"+lastTitle)});mo.observe(m,{attributes:true,attributeFilter:["class"]})}};
+ const q=W.UTQ;W.UTQ={push:once};if(Array.isArray(q))q.forEach(once);
+ return{hit,once,start,send,clean,names:a=>{NM.length=0;NM.push(...a)}}})();
+let rpcHook=null,LOGIN_DEAD=0;const LOSTMSG="這台裝置的登入失效了";const rpc=(fn,body={})=>{if(LOGIN_DEAD&&body&&body.pin&&fn!="town_device")return Promise.reject(new Error(LOSTMSG+"，請重新登入"));if(rpcHook)try{rpcHook(fn,body)}catch(e){}return rpcF(fn,body).catch(()=>{UT.hit("err:rpc:"+fn);throw new Error("連不上小鎮，檢查網路後再按一次")})
  .then(async r=>{const j=await r.json().catch(()=>null);if(!r.ok){const m=(j&&j.message)||"小鎮暫時沒回應，過一下再按一次";if(m.indexOf(LOSTMSG)>=0&&body&&body.pin&&window.__lost)window.__lost();throw new Error(m)}if(j&&j.error){if(j.error.indexOf(LOSTMSG)>=0&&body&&body.pin&&window.__lost)window.__lost();throw new Error(j.error)}return j})};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
@@ -580,7 +593,7 @@ $("lg").innerHTML=`${LP.top(list)}
  $("lg").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));if($("inst2"))$("inst2").onclick=installHelp;
  $("join").onclick=async()=>{const c=$("code").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.length<4){$("jerr").textContent="邀請碼是 6 個英文或數字，檢查有沒有少打";return}
   // 小鎮代碼或邀請碼都可以；輸入的是邀請碼就記起來，等一下自動填好
-  try{const f=await rpc("town_find",{code:c});if(!f){$("jerr").textContent="找不到這個小鎮，檢查有沒有打錯，或請朋友再傳一次";return}try{sessionStorage.setItem("town-inv-"+f.town_id,c)}catch(e){}go(f.town_id)}catch(e){$("jerr").textContent=e.message}};
+  try{const f=await rpc("town_find",{code:c});if(!f){$("jerr").textContent="找不到這個小鎮，檢查有沒有打錯，或請朋友再傳一次";return}try{sessionStorage.setItem("town-inv-"+f.town_id,c)}catch(e){}UT.once("funnel:invite");go(f.town_id)}catch(e){$("jerr").textContent=e.message}};
  let look=randLook();lookPicker($("lk"),look,l=>look=l);
  $("create").onclick=async()=>{const tn=$("tn").value.trim(),mn=$("mn").value.trim(),p=newKey();
   if(!tn){$("cerr").textContent="先幫小鎮取個名字，再按建立";return}if(!mn){$("cerr").textContent="再填你的名字，鎮上大家會這樣叫你";return}
@@ -590,7 +603,7 @@ $("lg").innerHTML=`${LP.top(list)}
 // ── 鎮內登入：我住在這裡，或用邀請碼搬進來 ──
 let refAt=0;async function refresh(){const st=await rpc("town_state",{tid:TID});refAt=Date.now();apply(st);if(me&&!acctChk&&!modalOpen()){acctChk=1;setTimeout(()=>acctModal(1),500)}else if(me&&acctForce&&!modalOpen())setTimeout(()=>acctModal(1),300);if(me)try{checkInvite();checkPk();checkWoken();checkPwn()}catch(e){}if(Date.now()-civT>6e4)civSync()}
 const seenLuck=new Set();
-function apply(st){S=st;setTimeout(popCheck,0);POOPS=st.poops||[];CUR="$";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>(e.kind=="luck"||e.kind=="rent"||e.kind=="ticket"||e.kind=="crash")&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
+function apply(st){S=st;try{UT.names(Object.values(R).map(r=>r.name))}catch(e){}setTimeout(popCheck,0);POOPS=st.poops||[];CUR="$";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>(e.kind=="luck"||e.kind=="rent"||e.kind=="ticket"||e.kind=="crash")&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
  st.residents.forEach(r=>{R[r.id]=r;const w=walkers[r.id];
   if(!w)walkers[r.id]={x:r.x,y:r.y,path:[],tx:r.x,ty:r.y};else if(r.id!=me&&(Math.abs(w.tx-r.x)>.01||Math.abs(w.ty-r.y)>.01)){const p=route([Math.round(w.x),Math.round(w.y)],[Math.round(r.x),Math.round(r.y)],vehOf(r));w.path=p?p.slice(1):[[r.x,r.y]]}
   walkers[r.id].tx=r.x;walkers[r.id].ty=r.y});
@@ -650,7 +663,7 @@ async function acctModal(force){$("modal").classList.remove("hide");$("mbody").i
    try{await rpc("town_acct",{rid:me,pin,op:st.has?"setpw":"init",note1:st.has?$("ap1").value:n,note2:n});lastPw="";acctForce=false;st.has=true;st.temp=false;toast("密碼設好了");
     if(window.RECOVERY_ON){draw()}else shut()}catch(e){$("aerr").textContent=e.message;$("asp").disabled=false}}};
  draw()}
-function townLogin(){document.body.classList.remove("ingame");$("login").classList.remove("hide");$("game").classList.add("hide");const res=Object.values(R),full=res.length>=12;
+function townLogin(){UT.once("funnel:pick");document.body.classList.remove("ingame");$("login").classList.remove("hide");$("game").classList.add("hide");const res=Object.values(R),full=res.length>=12;
  $("lg").innerHTML=`${LP.scene(1)}${LP.stepBar(2)}<h2>${esc(S.town.name)}</h2><p class="mut">住了 ${res.length} 人${savedInv()?" · 邀請碼已自動填好":""}</p>
   ${res.length?`<h2>選你的角色</h2><div class="who">${res.map(r=>`<button data-id="${r.id}"><canvas width="40" height="44" data-look='${esc(JSON.stringify(r.look||{}))}'></canvas><b>${esc(r.name)}</b><small>${r.mayor?"鎮長":houseName(r.slot)}</small></button>`).join("")}</div>`:""}
   ${full?`<p class="mut">小鎮已經住滿 12 人了。</p>`:`<h2>我要搬進來</h2><div class="row" style="justify-content:flex-start"><button class="pri" id="mv">用邀請碼搬進來</button></div>`}
@@ -660,7 +673,7 @@ function townLogin(){document.body.classList.remove("ingame");$("login").classLi
  if($("mv"))$("mv").onclick=()=>joinStep();$("home2").onclick=()=>go("")}
 const savedInv=()=>{try{return sessionStorage.getItem("town-inv-"+TID)||""}catch(e){return ""}};
 const cid=()=>{try{let c=localStorage.getItem("town-cid");if(!c){c=newKey();localStorage.setItem("town-cid",c)}return c}catch(e){return "none"}};
-function pinStep(id){const r=R[id];$("lg").innerHTML=`${LP.scene(1)}${LP.stepBar(3)}<p><b>${esc(r.name)}</b>，歡迎回來</p>
+function pinStep(id){UT.once("funnel:pin");const r=R[id];$("lg").innerHTML=`${LP.scene(1)}${LP.stepBar(3)}<p><b>${esc(r.name)}</b>，歡迎回來</p>
   <label class="lpcode">密碼<input id="pw" type="password" maxlength="40" autocomplete="current-password"></label><p class="mut">還沒設過密碼的角色，初始密碼是邀請碼。</p><p class="err" id="lerr"></p>
   <div class="row"><button id="back">← 換人</button><button class="pri" id="go">進入小鎮</button></div>${window.RECOVERY_ON?'<div class="row" style="justify-content:flex-start"><button id="fgt">忘記密碼？</button></div>':""}`;
  $("back").onclick=townLogin;$("pw").focus();if($("fgt"))$("fgt").onclick=()=>forgotPw(id);
@@ -731,7 +744,7 @@ function updModal(all){const seen=all?null:upsSeen();let list=all?UPDATES:seen?U
  $("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>${all?"更新紀錄":"小鎮更新了"}</h2><div class="list" style="max-height:60vh;overflow:auto">${updHtml(list)}</div><div class="row"><button id="updok" class="pri">好</button></div>`;
  $("updok").onclick=()=>{$("modal").classList.add("hide");upsMark()};if(!all)upsMark();pxify($("mbody"));return true}
 function updCheck(){if(!me||!$("modal").classList.contains("hide"))return;updModal(false)}
-async function enter(){document.body.classList.add("ingame");$("menuBtn").classList.remove("hide");if(Date.now()-refAt>3000)await refresh();else if(me)apply(S);setTimeout(()=>{const r=R[me];if(r&&$("modal").classList.contains("hide")){if(!r.items||r.items.tr===undefined)traitModal();else if(!r.items.wish)wishModal();else if(!(r.items.at&&r.items.at.init))statsModal(true)}},1500);{const r0=R[me],fresh=!upsSeen()&&r0&&r0.items&&r0.items.tr===undefined;if(fresh)upsMark();else setTimeout(()=>{try{updCheck()}catch(e){}},2600)}tipsWhenFree();refreshBell().catch(()=>{});autoPush().catch(()=>{});$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
+async function enter(){UT.start();UT.once("funnel:enter");document.body.classList.add("ingame");$("menuBtn").classList.remove("hide");if(Date.now()-refAt>3000)await refresh();else if(me)apply(S);setTimeout(()=>{const r=R[me];if(r&&$("modal").classList.contains("hide")){if(!r.items||r.items.tr===undefined)traitModal();else if(!r.items.wish)wishModal();else if(!(r.items.at&&r.items.at.init))statsModal(true)}},1500);{const r0=R[me],fresh=!upsSeen()&&r0&&r0.items&&r0.items.tr===undefined;if(fresh)upsMark();else setTimeout(()=>{try{updCheck()}catch(e){}},2600)}tipsWhenFree();refreshBell().catch(()=>{});autoPush().catch(()=>{});$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
  const w=walkers[me];cam.x=w.x*T;cam.y=w.y*T;resize();$("mayor").classList.toggle("hide",!R[me].mayor);
  const ent=mine().find(x=>x.tid==TID);if(ent&&ent.invite){shareModal(ent.invite,true);delete ent.invite;saveMine(ent);return}
  const mineEv=(S.events||[]).filter(e=>e.target==me&&(!lastSeen||e.at>lastSeen));
@@ -801,7 +814,7 @@ const clearWorking=()=>$("acts").querySelectorAll(".working").forEach(x=>x.class
 function feedback(ok,msg){clearWorking();const b=pressed!=null&&$("acts").querySelector(`[data-i="${pressed}"]`);pressed=null;
  if(b){b.classList.remove("ok","err");void b.offsetWidth;b.classList.add(ok?"ok":"err");setTimeout(()=>b.classList.remove("ok","err"),700)}
  const f=$("fb");if(f&&msg){f.textContent=(ok?"✓ ":"✗ ")+msg;f.className=ok?"good":"bad";pxify(f);clearTimeout(fbTimer);fbTimer=setTimeout(()=>{f.className="hide"},3200)}}
-async function act(a,extra={}){if(busy)return;if(FACTS.has(a))await ensureIn();busy=true;spotsBefore={...lastSpots};$("acts").classList.add("busy");const b0=tickLocal(R[me],now());try{const st=await rpc("town_act",{rid:me,pin,act:a,...extra});await wkPlay(a,extra);apply(st);
+async function act(a,extra={}){if(busy)return;UT.hit("act:"+a);if(FACTS.has(a))await ensureIn();busy=true;spotsBefore={...lastSpots};$("acts").classList.add("busy");const b0=tickLocal(R[me],now());try{const st=await rpc("town_act",{rid:me,pin,act:a,...extra});await wkPlay(a,extra);apply(st);
   if(ACT_FX[a])spawnFx(ACT_FX[a],me);playRoomFx(a,extra.target);if(a=="buy"){spawnFx("bag",me);toast("已放進背包")}if(a=="obj"&&OBJ_FX[extra.item])spawnFx(OBJ_FX[extra.item],me);
   const b1=tickLocal(R[me],now()),ic={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"€"};let k=0;
     window.SFX&&SFX.act(a,extra,b1.money-b0.money);if(a!="move")feedback(true,sumChanges(b0,b1,ic))}
@@ -1223,7 +1236,8 @@ function gmPush(k){try{const a=[k,...gmRecent().filter(x=>x!=k)].slice(0,3);loca
 const gmPop=()=>{const a=CAS&&CAS.pop;return Array.isArray(a)&&a.length?a.slice(0,8):null};// 全鎮人氣前 8（town_casino_state 回傳 pop）；沒資料退回固定熱門清單
 function gmSort(list,key){const rc=gmRecent(),pp=gmPop(),rk=x=>{const k=key(x),i=rc.indexOf(k),h=pp?pp.indexOf(k):-1,f=HOTK.indexOf(k);return i>=0?i:h>=0?10+h:f>=0?30+f:100};return list.map((x,n)=>[x,n]).sort((a,b)=>rk(a[0])-rk(b[0])||a[1]-b[1]).map(a=>a[0])}
 const gmTag=k=>gmRecent().includes(k)?"最近":(gmPop()||HOTK).includes(k)?"熱門":"";
-async function casinoOpen(tab){await ensureIn();try{CAS=await rpc("town_casino_state",{rid:me,pin,op:"view"})}catch(e){toast(e.message);return}gameHall="casino";gameTab=typeof tab=="string"?tab:"";betHist=[];if(gameBet>CAS.chips)gameBet=50;gamesModal()}
+let utTab="";
+async function casinoOpen(tab){UT.hit("casino:open");await ensureIn();try{CAS=await rpc("town_casino_state",{rid:me,pin,op:"view"})}catch(e){toast(e.message);return}gameHall="casino";gameTab=typeof tab=="string"?tab:"";betHist=[];if(gameBet>CAS.chips)gameBet=50;gamesModal()}
 async function casDo(op,val){try{CAS=await rpc("town_casino_state",{rid:me,pin,op,val});R[me].money=CAS.money;renderNeeds();gamesModal()}catch(e){toast(e.message)}}
 // 發牌臨場感：新出現的牌從牌堆滑進來、蓋牌翻面、一張一張發，結果文字等牌發完才出現；每個畫面只動「新」的牌；系統設定「減少動態效果」時不做
 const DEALT=new Set(),DEAL_MS=170;
@@ -1237,7 +1251,7 @@ function dealFx(root){
  root.querySelectorAll(".gres").forEach(e=>{if(e.dataset.fx)return;e.dataset.fx="1";if(!any)return;e.classList.add("late");e.style.setProperty("--d",(d+240)+"ms");
   const good=e.classList.contains("good"),bad=e.classList.contains("bad");setTimeout(()=>{if(window.SFX&&(good||bad))SFX.play(good?"coin":"pay")},d+280)});
  if(any){root.classList.add("felt");const p=document.createElement("p");p.className="dealer";p.textContent="莊家發牌中…";root.prepend(p);setTimeout(()=>p.remove(),d+250)}}
-function gamesModal(){$("modal").classList.remove("hide");if(!window._dealObs){window._dealObs=new MutationObserver(()=>{dealFx($("gShow"));foldRules()});window._dealObs.observe($("mbody"),{childList:true,subtree:true})}const solo=SOLO.some(g=>g[0]==gameTab),menu=!gameTab;if(gameTab&&gameHall=="casino"&&CASINO.some(g=>g[0]==gameTab))gmPush(gameTab);
+function gamesModal(){$("modal").classList.remove("hide");if(!window._dealObs){window._dealObs=new MutationObserver(()=>{dealFx($("gShow"));foldRules()});window._dealObs.observe($("mbody"),{childList:true,subtree:true})}const solo=SOLO.some(g=>g[0]==gameTab),menu=!gameTab;if(gameTab&&gameHall=="casino"&&CASINO.some(g=>g[0]==gameTab)){gmPush(gameTab);if(utTab!=gameTab){utTab=gameTab;UT.hit("casino:tab:"+gameTab)}}else if(!gameTab)utTab="";
  const gic=ic=>/^g_/.test(ic)&&window.PIXICON_NAME?`<img class="px" alt="" src="${PIXICON_NAME(ic)}">`:ic;
  const gm=l=>l.map(([k,ic,n,d])=>`<button class="gm" data-g="${k}"><span class="gi">${gic(ic)}</span><b>${n}${hall&&gmTag(k)?`<em class="hot">${gmTag(k)}</em>`:""}</b><small>${d}${SOLO.some(g=>g[0]==k)?` · 最佳 ${spOf(R[me],k)}`:""}</small></button>`).join("");
  const hall=gameHall=="casino",bets=hall?[...[50,100,200,500,1000,2000,5000,10000,20000,50000,100000,500000,1000000].filter(b=>b<((CAS&&CAS.chips)||0)),...(CAS&&CAS.chips>=50?[CAS.chips]:[])]:[50,100,200,500,1000],hn=hall?"賭場":"街機";
@@ -2053,7 +2067,7 @@ const taskDone=(r,i)=>{const a=faOf(r),k=a.k||{};return[workToday(r)>=3,(a.n||0)
 const fqOf=(r,p)=>((r.items||{}).fq||{})[p]||0,discOf=n=>n>=15?15:n>=5?10:0,facPrice=(r,p,b)=>Math.floor((b*(100-discOf(fqOf(r,p)))+50)/100);
 const tierOf=n=>n>=15?"熟客（−15%）":n>=5?"常客（−10%）":"";
 const claimable=r=>taskIds().filter((t,i)=>taskDone(r,t)&&!(faOf(r).tk||[]).includes(t)).length;
-async function doFac(act,target,item){await ensureIn();try{const j=VENACT.has(act)?await rpc("town_venue",{rid:me,pin,act,target:target||null,num:+item||0}):await rpc("town_fac",{rid:me,pin,act,item:item||null,target:target||null});await refresh();spawnFx(FAC_FX[act]||(j.m<0?"coins":"sparkle"),me,target&&walkers[target]?target:null);playRoomFx(act);const t=`${j.msg||""} · ${fxText(j)}`;toast(t);feedback(true,t)}catch(e){toast(e.message);feedback(false,e.message)}renderPanel()}
+async function doFac(act,target,item){UT.hit("fac:"+String(R[me]&&R[me].place).replace(/^home:.*/,"home")+":"+act);await ensureIn();try{const j=VENACT.has(act)?await rpc("town_venue",{rid:me,pin,act,target:target||null,num:+item||0}):await rpc("town_fac",{rid:me,pin,act,item:item||null,target:target||null});await refresh();spawnFx(FAC_FX[act]||(j.m<0?"coins":"sparkle"),me,target&&walkers[target]?target:null);playRoomFx(act);const t=`${j.msg||""} · ${fxText(j)}`;toast(t);feedback(true,t)}catch(e){toast(e.message);feedback(false,e.message)}renderPanel()}
 async function doJail(a,target){try{const j=await rpc("town_jail",{rid:me,pin,act:a,item:null,target:target||null});await refresh();spawnFx(j.caught||j.escaped===false?"crash":j.m<0?"coins":a=="slash"?"fight":"sparkle",me);playRoomFx(a);const t=j.msg||"";toast(t);feedback(true,t)}catch(e){toast(e.message);feedback(false,e.message)}renderPanel()}
 function escapeModal(){choiceModal("真的要越獄嗎？",`成功約 ${escP()}%：逃出監獄，但被通緝 ${JAILX.wanted[0]} 小時，出門被巡警抓回牢裡的機率很高（躲在家最安全）。失敗：加刑 ${JAILX.esc[2]} 分鐘、罰款最多 €${JAILX.esc[3]}、精力 −15 心情 −10，而且算惹事，這次不能假釋。越獄不會死`,[["試試看",`精力 ≥ ${JAILX.esc[0]} · ${JAILX.esc[4]} 分鐘一次`,()=>doJail("escape")],["算了","",()=>{}]])}
 function slashModal(t){choiceModal(`真的要砍 ${t.name} 嗎？`,`你們有仇，只有這種人才能動手。他精力 −${JAIL.hurt[0]}、心情 −${JAIL.hurt[1]}，精力歸零會倒地送醫院，醫藥費由你付；你精力 −${JAIL.self[0]}。被巡警抓到（約 ${JAIL.catchP}%，倒地 ${JAIL.catchFallP}%）要關 1～3 小時，好感也會大跌。${priorOn(R[me])||wantedOn(R[me])?"你現在有前科或被通緝，被抓的機率更高。":""}角色不會死`,[["確定動手","30 分鐘一次",()=>doJail("slash",t.id)],["算了","",()=>{}]])}
@@ -2108,8 +2122,8 @@ async function exitFriend(){const r=R[me];if(vin(r)){r.items={...r.items};delete
 const NOENTER={};
 const FACTS=new Set(["work","cowork","job","buy","browse","movie","spar","sneak","vbuy","license","insure","vfix","vsell","dine","coffee","workout","paytk"]);
 async function ensureIn(){const r=R[me];if(!r||!ROOMS[r.place]||NOENTER[r.place]||fin(r)||r.sleeping||jailed(r)||r.place=="jail"||walkers[me]&&walkers[me].path.length)return;await enterRoom(r.place,true)}
-async function enterRoom(pl,quiet){try{await rpc("town_fi",{rid:me,pin,op:"enter",pl});window.SFX&&SFX.play("door");await refresh()}catch(e){if(/還不能進去/.test(e.message))NOENTER[pl]=1;else if(!quiet)toast(e.message)}renderPanel()}
-async function exitRoom(){leaveRoomLocal();try{await rpc("town_fi",{rid:me,pin,op:"exit"});await refresh()}catch(e){toast(e.message)}renderPanel()}
+async function enterRoom(pl,quiet){try{await rpc("town_fi",{rid:me,pin,op:"enter",pl});UT.hit("fac:enter:"+pl);window.SFX&&SFX.play("door");await refresh()}catch(e){if(/還不能進去/.test(e.message))NOENTER[pl]=1;else if(!quiet)toast(e.message)}renderPanel()}
+async function exitRoom(){const xp=R[me]&&R[me].place;leaveRoomLocal();try{await rpc("town_fi",{rid:me,pin,op:"exit"});UT.hit("fac:exit:"+String(xp).replace(/^home:.*/,"home"));await refresh()}catch(e){toast(e.message)}renderPanel()}
 function leaveRoomLocal(){const r=R[me];if(vin(r)){r.items={...r.items};delete r.items.fv}if(!fin(r))return false;r.items={...r.items};delete r.items.fi;rpc("town_fi",{rid:me,pin,op:"exit"}).catch(()=>{});return true}
 // 室內互動動畫：角色走到對應物件旁（約 0.4 秒）→ 播動畫（約 0.9 秒）→ 走回來（約 0.3 秒），共 1.7 秒；只畫在 12×5 的小畫布，手機不卡
 // 打工動畫：種類 → [room 室內物件代號, 室內動畫碼, 地圖動畫碼]；室內沒有物件或不在室內時用地圖動畫（書桌、掃描、文件）
