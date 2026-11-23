@@ -935,6 +935,21 @@
    "needs": [
     "town_catalog2.sql"
    ]
+  },
+  {
+   "file": "town_shops2.sql",
+   "kind": "patch",
+   "needs": [
+    "town_shops1.sql"
+   ],
+   "note": "購買一律在設施（第二批）：家具行、服飾店"
+  },
+  {
+   "file": "town_shops2_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_shops2.sql"
+   ]
   }
  ]
 }

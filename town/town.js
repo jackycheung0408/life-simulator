@@ -109,7 +109,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ── 地圖：寬 34 格。市中心固定；住宅一排 3 間（5×4 格，門在正下方），住滿就往下多開一條街，最多 4 排 ──
 const T=32,COLS=85,MAXROWS=4;let NR=2,OFF=new Set(),POOPS=[];
 // 鎮長可以關掉的設施
-const FEATS=[["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、打地鼠、記憶翻牌、下戰帖"],["casino","小豬賭場","押錢遊戲 9 種，用籌碼玩，換回現金抽 0.5%"],["rafi","拉菲's office","白領打工，薪水較高"],["stock","證券交易所","買賣 8 檔小豬鎮股票"],["zombie","喪屍豬","夜間街上會出現喪屍豬，打倒領獎"],["carshop","車行","買腳踏車、機車、汽車"],["lux","奢侈品","高級套餐、溫泉、旅行（錢多的人花錢用）"],["jail","監獄","砍人被抓的人關在這裡，可勞動、探監、保釋"],["hospital","醫院","昏倒、住院的人送這裡，可看診、探病"],["police","警察局","繳罰單、自首、報案、治安統計"],["townhall","市政廳","鎮基金、公告、居民投票、建設案"],["realty","不動產公司","房子升級、買莊園"],["harbor","碼頭船行","買遊艇"]];
+const FEATS=[["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、打地鼠、記憶翻牌、下戰帖"],["casino","小豬賭場","押錢遊戲 9 種，用籌碼玩，換回現金抽 0.5%"],["rafi","拉菲's office","白領打工，薪水較高"],["stock","證券交易所","買賣 8 檔小豬鎮股票"],["zombie","喪屍豬","夜間街上會出現喪屍豬，打倒領獎"],["carshop","車行","買腳踏車、機車、汽車"],["lux","奢侈品","高級套餐、溫泉、旅行（錢多的人花錢用）"],["jail","監獄","砍人被抓的人關在這裡，可勞動、探監、保釋"],["hospital","醫院","昏倒、住院的人送這裡，可看診、探病"],["police","警察局","繳罰單、自首、報案、治安統計"],["townhall","市政廳","鎮基金、公告、居民投票、建設案"],["realty","不動產公司","房子升級、買莊園"],["harbor","碼頭船行","買遊艇"],["furnshop","家具行","買家具、小道具、門口擺飾"],["wearshop","服飾店","買造型服飾、試穿"]];
 const setOff=a=>{OFF=new Set(a||[])};const isOn=k=>!OFF.has(k);
 const setRows=n=>{NR=clamp(n||2,2,MAXROWS)};
 const mapRows=()=>NR<=2?23:30+7*(NR-3);
@@ -138,6 +138,8 @@ const PLACES={
  casino:{r:[66,9,5,5],door:[68,14],name:"賭場",block:1},
  realty:{r:[73,0,6,5],door:[75,5],name:"不動產公司",block:1},
  harbor:{r:[73,17,6,4],door:[74,21],name:"碼頭船行",block:1},
+ furnshop:{r:[73,9,6,5],door:[75,14],name:"家具行",block:1},
+ wearshop:{r:[81,9,4,5],door:[82,14],name:"服飾店",block:1},
  plaza:{r:[12,8,10,7],door:[14,11],name:"廣場"}};
 // 其他工作（和 town.sql 的 town_pjob_* 一致）：[名稱, 地點, 底薪, [精力,飽足,心情,清潔]]；熟練 15 次 ×1.15、40 次 ×1.3；拉菲底薪 320／450／650，要先升到「員工」
 const PJ={cafe:["咖啡師","cafe",200,[-19,-6,-6,-3],"cafe"],rest:["服務生","restaurant",210,[-22,-3,-8,-8],"restaurant"],gym:["健身教練","gym",260,[-32,-12,-4,-15],"gym"],shop:["店員","market",195,[-16,-6,-10,-2],"market"],rafi:["行政專員","rafi",320,[-25,-8,-18,-4],"rafi"]};
@@ -330,6 +332,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"shops2-1123",date:"11/23",title:"家具行與服飾店",items:["家具、擺飾到家具行買","衣服到服飾店買、試穿","拍賣、捐款在市政廳"]},
   {id:"goods2-1123",date:"11/23",title:"店裡新菜單",items:["咖啡廳、餐廳、電影院有新品","健身房、公園、廣場也有","包場、煙火、套圈圈"]},
   {id:"goods1-1123",date:"11/23",title:"超市新貨架",items:["20 種新商品，每天特價","飲料、日用、掌機、扭蛋","背包多了「物品」頁"]},
   {id:"shops1-1123",date:"11/23",title:"新店開張",items:["不動產公司：升級房子、買莊園","碼頭船行：買遊艇","地圖往東變寬了"]},
@@ -525,7 +528,7 @@ const VENACT=new Set(["art","share","combo","bring","seat","chat","sale","sample
 const REG={cafe:["老王","Amy","阿嬤"],restaurant:["胖叔","小雯","老闆娘的朋友"],cinema:["影迷阿凱","小琪","退休老師"],market:["王媽媽","陳伯","小美"]},REGP={cafe:[90,80],restaurant:[200,170],cinema:[280,240],market:[60,50]},REGQ={cafe:"幫我帶一杯咖啡",restaurant:"幫我帶一份便當",cinema:"幫我買一張票",market:"幫我拿一包零食"};
 const TASKS=["今天打工 3 次","做 3 次設施互動","去 3 個不同地點互動","和 2 位鄰居一起互動","健身房簽到","釣到一條魚","點歌或請客一次","吃今日特餐或野餐"];
 const RW=12,RH=5,RC=24;
-const ITEM={rcounter:["till","房仲櫃檯",/^升級|房子已是豪宅/,1],rmodel:["house","房型模型",null,1],deed:["scroll","莊園權狀櫃",/莊園/,1],ycounter:["till","船行櫃檯",/遊艇/,1],ymodel:["boat","遊艇模型",null,1],seachart:["map","海圖桌",/碼頭出海/,1],buoy:["shield","救生圈",null,0],coffee:["cup","咖啡機",/特調咖啡/,1],cake:["cookie","蛋糕櫃",/看菜單|換咖啡/,1],lamp:["lamp","立燈",null,1],jukebox:["guitar","點歌機",/點歌/,1],job:["case","員工通道",/^打工|^應徵/,0],bar:["plate","吧台",/請客|吃一頓/,1],table:["bench","桌椅",/坐下|起身/,1],plant:["plant","盆栽",null,1],
+const ITEM={fcounter:["till","家具櫃台",/逛家具/,1],fdeco:["picture","擺飾架",/門口擺飾/,1],fsofa:["sofa","展示沙發",null,1],fbed:["bed","展示床",null,1],ffridge:["fridge","展示冰箱",null,1],wcounter:["till","服飾櫃台",/逛新衣/,1],wmirror:["picture","試衣鏡",/試穿/,1],wrack:["shirt","衣架",null,1],rcounter:["till","房仲櫃檯",/^升級|房子已是豪宅/,1],rmodel:["house","房型模型",null,1],deed:["scroll","莊園權狀櫃",/莊園/,1],ycounter:["till","船行櫃檯",/遊艇/,1],ymodel:["boat","遊艇模型",null,1],seachart:["map","海圖桌",/碼頭出海/,1],buoy:["shield","救生圈",null,0],coffee:["cup","咖啡機",/特調咖啡/,1],cake:["cookie","蛋糕櫃",/看菜單|換咖啡/,1],lamp:["lamp","立燈",null,1],jukebox:["guitar","點歌機",/點歌/,1],job:["case","員工通道",/^打工|^應徵/,0],bar:["plate","吧台",/請客|吃一頓/,1],table:["bench","桌椅",/坐下|起身/,1],plant:["plant","盆栽",null,1],
  kitchen:["meat","廚房窗口",/今日特餐|主餐＋飲料套餐/,1],latteart:["cup","拉花台",/拉花/,1],pot:["plate","共享茶壺桌",/共點/,1],menu:["picture","菜單板",/看菜單|高級套餐/,0],pack:["box","打包櫃檯",/打包|外帶/,1],mirror:["picture","鏡子",null,0],locker:["lock","置物櫃",/櫃台商品|每日簽到/,0],spa:["drops","溫泉池",/溫泉/,0],treadmill:["walk","跑步機",/^健身/,1],rack:["dumbbell","啞鈴架",/^健身/,1],bag:["fist","拳擊沙包",/對練/,1],
  bars:["bars","鐵窗",null,0],vent:["vent","通風口",/越獄/,0],glass:["glass","探監窗口",/探望/,0],gate:["door","大門（假釋）",/假釋/,0],bailDesk:["ticket","保釋櫃檯",/保釋/,1],bunk:["bed","上下鋪",null,1],work:["hammer","勞動工作台",/牢裡的勞動/,1],yard:["tree","放風場",/放風/,0],
  hbed:["bed","病床",null,1],reg:["ticket","掛號櫃檯",/掛號看診|^出院/,1],meds:["box","藥櫃",null,1],cross:["cross","十字標誌",null,0],
@@ -557,11 +560,13 @@ Object.assign(ROOMS,{
  casino:{floor:["#5a1f2e","#511b29"],wall:"#1b1b2f",items:[["slotm",1,0],["slotm",2,0],["slotm",3,0],["lamp",5,0],["lamp",7,0],["cashier",9,0],["lamp",11,0],["rwheel",1,2],["btable",4,2],["btable",5,2],["bjt",7,2],["dtable",10,2],["minet",3,2],["plk",8,2],["crm",2,4],["cupt",4,4],["scm",7,4],["chst",9,4],["plant",0,4],["plant",11,4]]},
  realty:{floor:["#c9b79c","#bfae93"],wall:"#2f5d50",items:[["mirror",1,0],["lamp",3,0],["rcounter",6,0],["deed",9,0],["lamp",11,0],["rmodel",2,3],["rmodel",9,3],["plant",0,4],["plant",11,4]]},
  harbor:{floor:["#b08a5a","#a57f50"],wall:"#1d4e89",items:[["lamp",1,0],["buoy",3,0],["ycounter",6,0],["seachart",9,0],["lamp",11,0],["ymodel",2,3],["ymodel",8,3],["ymodel",10,2],["plant",0,4],["plant",11,4]]},
+ furnshop:{floor:["#c8a77a","#bd9c70"],wall:"#6b4a2b",items:[["lamp",1,0],["fcounter",5,0],["fdeco",8,0],["lamp",11,0],["fsofa",2,2],["fbed",5,3],["ffridge",9,2],["plant",0,4],["plant",11,4]]},
+ wearshop:{floor:["#e8d5e0","#dfc9d6"],wall:"#7a3b6e",items:[["wrack",1,0],["wrack",3,0],["wcounter",6,0],["wmirror",9,0],["lamp",11,0],["wrack",2,3],["wrack",9,3],["plant",0,4],["plant",11,4]]},
  slaughter:{floor:["#8a8a85","#7f7f7a"],wall:"#5a1a1a",items:[["hook",1,0],["hook",3,0],["lamp",5,0],["hook",8,0],["hook",10,0],["cleaver",5,2],["cleaver",6,2],["mshelf",1,3],["mshelf",10,3],["plant",0,4]]}});
 // 店員 NPC：固定在櫃台旁、不佔玩家站位、純表現（不動數值、不寫資料庫）
-ROOMS.cafe.npc=[3,1];ROOMS.cinema.npc=[10,1];ROOMS.market.npc=[10,1];ROOMS.restaurant.npc=[3,1];ROOMS.gym.npc=[5,1];ROOMS.hospital.npc=[7,1];ROOMS.police.npc=[7,1];ROOMS.townhall.npc=[5,1];ROOMS.casino.npc=[8,1];ROOMS.realty.npc=[5,1];ROOMS.harbor.npc=[5,1];
-const NPCS={cafe:{n:"小咪",hair:"#7a4a24",job:"咖啡師",base:90,item:"特調咖啡"},restaurant:{n:"阿福",hair:"#222",job:"店長",base:250,item:"餐廳套餐"},gym:{n:"阿力",hair:"#c0392b",job:"教練",base:0,item:""},hospital:{n:"白護理師",hair:"#e8c27a",job:"護理師",base:0,item:""},police:{n:"小林警員",hair:"#222",job:"警員",base:0,item:""},cinema:{n:"小映",hair:"#3b2f6b",job:"售票員",base:300,item:"電影票"},market:{n:"阿珍",hair:"#8a5a2b",job:"店員",base:0,item:""},casino:{n:"荷官小莉",hair:"#222",job:"荷官",base:0,item:""},townhall:{n:"陳櫃員",hair:"#555",job:"櫃員",base:0,item:""},realty:{n:"房仲小陳",hair:"#333",job:"房仲",base:0,item:""},harbor:{n:"船長老王",hair:"#b8b8b8",job:"船長",base:0,item:""}};
-const NPC_LINES={realty:["想換大一點的房子嗎？","豪宅的視野最好","莊園可以辦派對喔","頭期款不用，現金就好","今天有人來看房呢"],harbor:["遊艇停碼頭，風景不一樣","出海要帶朋友才熱鬧","今天風浪不大","船要定期保養喔","船長帽借你戴一下？"],casino:["願賭服輸，量力而為","籌碼放好，別弄丟了","輪盤剛轉完，下一局？","百家樂桌還有位子","離場會自動換回現金喔","今天手氣如何？"],cafe:["今天的豆子很香喔","要不要來杯特調？","歡迎光臨～","外面好像要下雨了","拉花台今天心情很好","集滿 8 點有免費的喔"],cinema:["今天的片很好哭","爆米花剛出爐","情侶座還有位子","散場記得聊聊劇情"],market:["今天的特價別錯過","試吃區有新口味","集滿 10 點換零食","小心地板剛拖過"],restaurant:["今天的菜很新鮮","歡迎光臨，幾位？","小心燙喔","廚房正在忙～","套餐附飲料喔","要外帶也可以"],gym:["多喝水、多伸展","今天練哪裡？","別硬撐，慢慢來","加油，再一組！"],hospital:["有哪裡不舒服嗎？","請多休息","保重身體喔","小聲一點，病人在睡"],police:["遵守交通規則喔","有事可以報案","最近鎮上很平靜","騎車要慢一點"],townhall:["有事可以看公告","投票別忘了","鎮長最近很忙","歡迎來市政廳"]};
+ROOMS.cafe.npc=[3,1];ROOMS.cinema.npc=[10,1];ROOMS.market.npc=[10,1];ROOMS.restaurant.npc=[3,1];ROOMS.gym.npc=[5,1];ROOMS.hospital.npc=[7,1];ROOMS.police.npc=[7,1];ROOMS.townhall.npc=[5,1];ROOMS.casino.npc=[8,1];ROOMS.realty.npc=[5,1];ROOMS.harbor.npc=[5,1];ROOMS.furnshop.npc=[4,1];ROOMS.wearshop.npc=[5,1];
+const NPCS={cafe:{n:"小咪",hair:"#7a4a24",job:"咖啡師",base:90,item:"特調咖啡"},restaurant:{n:"阿福",hair:"#222",job:"店長",base:250,item:"餐廳套餐"},gym:{n:"阿力",hair:"#c0392b",job:"教練",base:0,item:""},hospital:{n:"白護理師",hair:"#e8c27a",job:"護理師",base:0,item:""},police:{n:"小林警員",hair:"#222",job:"警員",base:0,item:""},cinema:{n:"小映",hair:"#3b2f6b",job:"售票員",base:300,item:"電影票"},market:{n:"阿珍",hair:"#8a5a2b",job:"店員",base:0,item:""},casino:{n:"荷官小莉",hair:"#222",job:"荷官",base:0,item:""},townhall:{n:"陳櫃員",hair:"#555",job:"櫃員",base:0,item:""},realty:{n:"房仲小陳",hair:"#333",job:"房仲",base:0,item:""},harbor:{n:"船長老王",hair:"#b8b8b8",job:"船長",base:0,item:""},furnshop:{n:"木工阿福",hair:"#7a4a24",job:"木工",base:0,item:""},wearshop:{n:"裁縫小美",hair:"#d1426e",job:"裁縫",base:0,item:""}};
+const NPC_LINES={furnshop:["好床睡得比較香","冰箱買了吃飯比較省","相框掛牆上最好看","每種家具只能買一件喔","門口擺個花圃吧"],wearshop:["皇冠今天最搶手","試穿看看吧","圍巾很適合你","情侶 T 要好麻吉才能穿","換個造型換個心情"],realty:["想換大一點的房子嗎？","豪宅的視野最好","莊園可以辦派對喔","頭期款不用，現金就好","今天有人來看房呢"],harbor:["遊艇停碼頭，風景不一樣","出海要帶朋友才熱鬧","今天風浪不大","船要定期保養喔","船長帽借你戴一下？"],casino:["願賭服輸，量力而為","籌碼放好，別弄丟了","輪盤剛轉完，下一局？","百家樂桌還有位子","離場會自動換回現金喔","今天手氣如何？"],cafe:["今天的豆子很香喔","要不要來杯特調？","歡迎光臨～","外面好像要下雨了","拉花台今天心情很好","集滿 8 點有免費的喔"],cinema:["今天的片很好哭","爆米花剛出爐","情侶座還有位子","散場記得聊聊劇情"],market:["今天的特價別錯過","試吃區有新口味","集滿 10 點換零食","小心地板剛拖過"],restaurant:["今天的菜很新鮮","歡迎光臨，幾位？","小心燙喔","廚房正在忙～","套餐附飲料喔","要外帶也可以"],gym:["多喝水、多伸展","今天練哪裡？","別硬撐，慢慢來","加油，再一組！"],hospital:["有哪裡不舒服嗎？","請多休息","保重身體喔","小聲一點，病人在睡"],police:["遵守交通規則喔","有事可以報案","最近鎮上很平靜","騎車要慢一點"],townhall:["有事可以看公告","投票別忘了","鎮長最近很忙","歡迎來市政廳"]};
 const NPC_NIGHT=["這麼晚了還沒睡？","夜深了，早點休息","夜班真安靜"],NPC_BUSY=["今天好熱鬧！","人好多，慢慢來","大家都來了呢"],NPC_EMPTY=["今天好安靜…","只有你一位呢","歡迎，隨便坐"];
 const npcSay=(p,t,cnt)=>{const hr=new Date(Date.now()+8*36e5).getUTCHours(),L=NPC_LINES[p].slice();if(hr>=22||hr<6)L.push(...NPC_NIGHT);if(cnt>=3)L.push(...NPC_BUSY);else if(cnt==0)L.push(...NPC_EMPTY);const k=Math.floor(t/9000);return L[(k*7+p.length)%L.length]};
 // 站位：沒被擋住的地板格，離場景中央近的先排
@@ -917,7 +922,7 @@ const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀
 // ── 下方面板：依所在地點顯示可以做的事 ──
 // ── 按鈕效果與門檻：全部出自 RULES（頂層）；b.key 或標籤比對 RULES，沒有規則的不顯示晶片（nofx 或待確認）──
 const FXI={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"💰",bond:"💗",fit:"💪"},FXN={hunger:"飽足",energy:"精力",bladder:"膀胱",hygiene:"清潔",fun:"心情",money:"錢",bond:"好感",fit:"體能"};
-const NOFXRE=/^(應戰|逛貨架|看菜單|福利社|櫃台商品|小攤販|攤位|拍賣與捐款|莊園|遊艇|升級|房子已是豪宅|買莊園|莊園 |買遊艇|遊艇 |去碼頭出海|出海|辦派對|幫他取外號|我的人設|報案|叫他出來|申請假釋|出院|自首|會員點數換|看排行榜|起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|玩(輪盤|老虎機|百家樂|21點|骰寶|比大小|基諾|射龍門|妞妞|三公|十八啦|賽豬|牌九|地雷|彈珠台|飛行器|猜杯子|刮刮樂|開寶箱)|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
+const NOFXRE=/^(逛家具|逛門口擺飾|逛新衣|試穿換造型|家具、服飾、擺飾|應戰|逛貨架|看菜單|福利社|櫃台商品|小攤販|攤位|拍賣與捐款|莊園|遊艇|升級|房子已是豪宅|買莊園|莊園 |買遊艇|遊艇 |去碼頭出海|出海|辦派對|幫他取外號|我的人設|報案|叫他出來|申請假釋|出院|自首|會員點數換|看排行榜|起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|玩(輪盤|老虎機|百家樂|21點|骰寶|比大小|基諾|射龍門|妞妞|三公|十八啦|賽豬|牌九|地雷|彈珠台|飛行器|猜杯子|刮刮樂|開寶箱)|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
 const wageOf=r=>{const n=+((r.items||{}).works)||0;let w=JOBS[0][2];for(const j of JOBS)if(n>=j[1])w=j[2];return w};
 function ruleOf(b,r){if(b.key)return RULES.find(x=>x.m===b.key)||null;const l=String(b.label).replace(/\p{Extended_Pictographic}️?\s*/gu,"").trim();return RULES.find(x=>x.m instanceof RegExp&&x.m.test(l)&&(!x.at||x.at.includes(r.place)))||null}
 function fxOf(b,r){const ru=b.nofx?null:ruleOf(b,r);if(!ru)return{fx:[],need:[],chips:[],rule:null};const fx=typeof ru.fx=="function"?ru.fx(r,{hasF,wage:wageOf}):ru.fx.slice(),need=[];
@@ -960,7 +965,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  else if(p=="gym"){title="健身房";list.push(btn("健身 🏋️",`精力 −15 · 心情 +10 · 打架更強（${Math.min(10,(r.items||{}).fit||0)}/10）`,()=>act("workout")),pjBtn("gym",r));note=pjNote("gym",r)}
  else if(p=="arena"){title="格鬥場";const it=r.items||{};list.push(btn("打擂台 🥊",`精力 −12 · 贏了拿獎金、連勝越多越貴 · 目前 ${it.streak||0} 連勝（最高 ${it.best||0}）`,()=>act("spar")));note="點別人可約打，贏的拿 €100"}
  else if(p=="slaughter"){title="屠宰場";list.push(btn("溜進去偷飼料 🔪","買通守衛 €400 · 精力 −10 · 約四成賺 €500～900 · 可能被屠夫追、被抓去賠 €1200 · 一天最多 3 次",()=>act("sneak")));note="健身越多，越跑得掉"}
- else if(p=="market"){title="超市";list.push(btn("逛貨架 🛒","飲料、日用、掌機、扭蛋，每天特價",()=>goodsModal("market")),btn("買禮物 🎁","€300 · 送朋友心情 +20",()=>act("buy",{item:"gift"})),btn("買零食 🍪","€60 · 隨時吃，飽足 +20",()=>act("buy",{item:"snack"})),btn("🛍️ 造型與擺飾","新衣服、家門口擺飾",()=>shopModal()),btn("逛逛","心情 +6",()=>act("browse")),pjBtn("shop",r));note=pjNote("shop",r)}
+ else if(p=="market"){title="超市";list.push(btn("逛貨架 🛒","飲料、日用、掌機、扭蛋，每天特價",()=>goodsModal("market")),btn("買禮物 🎁","€300 · 送朋友心情 +20",()=>act("buy",{item:"gift"})),btn("買零食 🍪","€60 · 隨時吃，飽足 +20",()=>act("buy",{item:"snack"})),btn("🛍️ 家具、服飾、擺飾","改到家具行、服飾店買（這裡是舊入口，之後移除）",()=>shopModal()),btn("逛逛","心情 +6",()=>act("browse")),pjBtn("shop",r));note=pjNote("shop",r)}
  else if(p=="jail"){title="監獄";const inm=Object.values(R).filter(o=>o.id!=me&&o.place=="jail"&&jailed(o)),stat=statLine(r),dz=(b,m)=>m?{...b,dis:m}:b;
   if(jailed(r)){const jp=jpOf(r)||{},ps=paroleWhy(r),eL=cdLeft(r,"esc",JAILX.esc[4]);
    note=`你被關著，還有 ${fmtLeft(jlLeft(r))}${jp.bad?"，不能假釋":""}`;
@@ -987,6 +992,10 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  else if(p=="harbor"){title="碼頭船行";note="買遊艇；出海要到碼頭邊（船行裡不能出海）";const lx=(r.items||{}).lx||{};
   list.push(lx.yacht?btn("遊艇 ✔","已擁有 · 到碼頭邊就能出海",()=>toast("你已經有遊艇了"),"place"):btn("買遊艇 $200,000","稱號「遊艇船長」· 可帶朋友出海 · 心情 +25",()=>econBuy("yacht"),"place"));
   list.push(btn("去碼頭出海","走到碼頭邊 · 船主才能出海",()=>walkTo("street",[68,16]),"move"))}
+ else if(p=="furnshop"){title="家具行";note="床、冰箱、沙發…買了放背包，回家「室內」擺放，每種一件";
+  list.push(btn("逛家具 🛋️","床、冰箱、沙發、馬桶、淋浴間、小道具",()=>{UT.hit("shop:furn");shopModal("furn")},"place"),btn("逛門口擺飾 🌷","花圃、信箱、路燈、長椅（最多放 4 樣）",()=>{UT.hit("shop:deco");shopModal("deco")},"place"))}
+ else if(p=="wearshop"){title="服飾店";note="新衣服買了自動穿上；已經有的可以試穿換造型";
+  list.push(btn("逛新衣 👗","髮型、衣服、帽子",()=>{UT.hit("shop:wear");shopModal("wear")},"place"),btn("試穿換造型 🪞","換上已經買的衣服",()=>{UT.hit("shop:try");$("relook").click()},"place"))}
  else if(p=="townhall"){title="市政廳";note="鎮基金、公告欄、居民投票。鎮基金只能花在居民投票通過的建設案，不能轉給任何人";list.push(btn("市政廳大廳 🏛️","看鎮基金、公告、投票與建設案",()=>civicModal()),btn("拍賣與捐款","每週拍賣稱號、捐款給鎮基金",()=>econModal(),"place"))}
  else{title="路上";note="路邊久了會遇到壞事，點地點走過去"}
  if(!sel&&!r.sleeping&&!jailed(r)&&!(walkers[me]&&walkers[me].path.length))list.push(...trainBtns(r));
@@ -1549,15 +1558,16 @@ function duelModal(id,duel){const t=R[id];let bet=200,mv=null;$("modal").classLi
 // 超市：造型與擺飾
 // 穿上某件造型（買了自動穿、背包裡也能換）
 async function wearOn(id){const k=["style","top","acc"].find(k=>WEAR[k].some(a=>a[0]==id));if(!k)return;const look=normLook(R[me].look);look[k]=id;try{await rpc("town_login",{rid:me,pin,new_look:look});mapKey="";await refresh();toast("穿上了")}catch(e){toast(e.message)}}
-function shopModal(){const it=R[me].items||{},w=new Set(it.w||[]),d=new Set(it.d||[]),f=new Set(it.f||[]);$("modal").classList.remove("hide");
+function shopModal(mode){const it=R[me].items||{},w=new Set(it.w||[]),d=new Set(it.d||[]),f=new Set(it.f||[]);$("modal").classList.remove("hide");
  const row=(id,name,price,has,kind)=>`<div class="mrow"><span><b>${name}</b> <small class="mut">€${price}</small></span>${has?`<small class="mut">✔ 已在背包</small>`:`<button data-b="${kind}:${id}">買</button>`}</div>`;
- $("mbody").innerHTML=`<h2>🛍️ 造型與擺飾</h2><p class="mut">你有 €${R[me].money} · 背包：零食 ${it.snack||0}、禮物 ${it.gift||0}。買了放進背包；造型自動穿上，擺飾自動放門口（最多 4 樣）。</p>
-  <h3>造型</h3>${["style","top","acc"].map(k=>WEAR[k].filter(a=>a[2]).map(a=>row(a[0],a[1],a[2],w.has(a[0]),"w")).join("")).join("")}
-  <p class="mut">🔒 情侶 T：和人變成好麻吉就能穿。繃帶頭：被扁 10 次就能戴。</p>
-  <h3>門口擺飾</h3>${DECO.map(([id,n,pr])=>row(id,n,pr,d.has(id),"d")).join("")}
-  <h3>室內家具</h3><p class="mut">買了放進背包，到家裡「室內」擺放，每種一件。</p>${FURN.map(([id,n,pr,ds])=>`<div class="mrow"><span><b>${n}</b> <small class="mut">€${pr} · ${ds}</small></span>${f.has(id)?`<small class="mut">✔ 已在背包</small>`:`<button data-b="f:${id}">買</button>`}</div>`).join("")}<div class="row"><button id="bagGo">看背包</button><button id="mc">關閉</button></div>`;
+ const sec={wear:`<h3>造型</h3>${["style","top","acc"].map(k=>WEAR[k].filter(a=>a[2]).map(a=>row(a[0],a[1],a[2],w.has(a[0]),"w")).join("")).join("")}<p class="mut">🔒 情侶 T：和人變成好麻吉就能穿。繃帶頭：被扁 10 次就能戴。</p>`,
+  deco:`<h3>門口擺飾</h3>${DECO.map(([id,n,pr])=>row(id,n,pr,d.has(id),"d")).join("")}`,
+  furn:`<h3>室內家具</h3><p class="mut">買了放進背包，到家裡「室內」擺放，每種一件。</p>${FURN.map(([id,n,pr,ds])=>`<div class="mrow"><span><b>${n}</b> <small class="mut">€${pr} · ${ds}</small></span>${f.has(id)?`<small class="mut">✔ 已在背包</small>`:`<button data-b="f:${id}">買</button>`}</div>`).join("")}`};
+ const head=mode?`<h2>${{wear:"服飾店",deco:"門口擺飾",furn:"家具行"}[mode]}</h2>`:`<h2>🛍️ 造型、擺飾、家具</h2><p class="mut">現在改到店裡買：</p><div class="row"><button data-go="furnshop">去家具行</button><button data-go="wearshop">去服飾店</button></div><p class="mut">下面是舊入口，之後會移除。</p>`;
+ $("mbody").innerHTML=`${head}<p class="mut">你有 €${R[me].money} · 背包：零食 ${it.snack||0}、禮物 ${it.gift||0}。造型自動穿上，擺飾自動放門口（最多 4 樣）。</p>${mode?sec[mode]:sec.wear+sec.deco+sec.furn}<div class="row"><button id="bagGo">看背包</button><button id="mc">關閉</button></div>`;
  $("mc").onclick=()=>$("modal").classList.add("hide");$("bagGo").onclick=()=>bagModal();
- $("mbody").querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{b.disabled=true;const [k,id]=b.dataset.b.split(":"),had=((R[me].items||{})[k]||[]).includes(id);await act("buy",{item:b.dataset.b});if(k=="w"&&!had&&((R[me].items||{}).w||[]).includes(id))await wearOn(id);shopModal()})}
+ $("mbody").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{const k=b.dataset.go;UT.hit("shop:go:"+k);$("modal").classList.add("hide");walkTo(k,PLACES[k].door)});
+ $("mbody").querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{b.disabled=true;const [k,id]=b.dataset.b.split(":"),had=((R[me].items||{})[k]||[]).includes(id);await act("buy",{item:b.dataset.b});if(k=="w"&&!had&&((R[me].items||{}).w||[]).includes(id))await wearOn(id);if(!had&&((R[me].items||{})[k]||[]).includes(id))playRoomFx(k=="w"?"buyw":"buyf");shopModal(mode)})}
 // 背包：把 snack、gift、rg、w、f、d 整理成分類（讀取層，不搬資料）
 const FIC={bed:"🛏️",sofa:"🛋️",fridge:"🧊",plant:"🪴",shelf:"📚",massage:"💺",rug:"🟥",tvcab:"📺",frame:"🖼️",painting:"🎨",desklamp:"💡",toy:"🎲",books:"📚",toilet:"🚽",shower:"🚿"},DIC={flowers:"🌷",mailbox:"✉️",lamp:"💡",bench:"🪑",tree:"🌳",pigstatue:"🏛️"};
 const BAG_TABS=[["food","食物"],["goods","物品"],["gift","禮物"],["wear","服飾"],["furn","家具"],["deco","擺飾"]];
@@ -1619,8 +1629,8 @@ function bagModal(tab){tab=tab||"food";const r=R[me],it=r.items||{},look=normLoo
  if(tab=="wear")body=(it.w||[]).map(id=>{const k=["style","top","acc"].find(k=>WEAR[k].some(a=>a[0]==id)),a=k&&wInfo(k,id),on=k&&look[k]==id;return row("👗",a?a[1]:id,on?"穿著中":"",on?"":`<button data-w="${id}">穿上</button>`)}).join("")||'<p class="mut">沒有特別款服飾。超市可以買</p>';
  if(tab=="furn")body=(it.f||[]).map(k=>{const a=FURN.find(x=>x[0]==k)||[k,k],pl=fu.includes(k);return row(FIC[k]||"🛍️",a[1],pl?"已擺在家裡":"在背包，還沒擺",pl?"":`<button data-p="1">去擺放</button>`)}).join("")||'<p class="mut">沒有家具。超市可以買</p>';
  if(tab=="deco")body=(it.d||[]).map(k=>{const a=DECO.find(x=>x[0]==k)||[k,k];return row(DIC[k]||"🛍️",a[1],"放在門口","")}).join("")||'<p class="mut">沒有擺飾。超市可以買</p>';
- $("mbody").innerHTML=`<h2>🛍️ 背包</h2><div class="chips">${BAG_TABS.map(([k,n])=>`<button data-t="${k}" class="${tab==k?"on":""}">${n}${cnt[k]?" "+cnt[k]:""}</button>`).join("")}</div>${body}<div class="row"><button id="mc">關閉</button></div>`;
- $("mc").onclick=()=>$("modal").classList.add("hide");
+ $("mbody").innerHTML=`<h2>🛍️ 背包</h2><div class="chips">${BAG_TABS.map(([k,n])=>`<button data-t="${k}" class="${tab==k?"on":""}">${n}${cnt[k]?" "+cnt[k]:""}</button>`).join("")}</div>${body}<div class="row"><button id="bagShop">去買更多</button><button id="mc">關閉</button></div>`;
+ if($("bagShop"))$("bagShop").onclick=()=>shopModal();$("mc").onclick=()=>$("modal").classList.add("hide");
  if(tab=="goods")goodsBag($("gbag"));
  $("mbody").querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>bagModal(b.dataset.t));
  const bind=(sel,fn)=>$("mbody").querySelectorAll(sel).forEach(b=>b.onclick=async()=>{b.disabled=true;await fn(b);bagModal(tab)});
@@ -1911,6 +1921,8 @@ bld("hospital","#f4f6fa","#d9534f",(X,Y,W,H)=>{m.fillStyle="#d9534f";m.fillRect(
  bld("casino","#2a1a3a","#8e1b2e",(X,Y,W,H)=>{m.fillStyle="#1b1b2f";m.fillRect(X+8,Y+24,W-16,22);for(let i=0;i<8;i++){m.fillStyle=i%2?"#f1c40f":"#e74c3c";m.fillRect(X+12+i*Math.floor((W-32)/7),Y+30,8,8)}win(X+14,Y+54);win(X+W-30,Y+54);m.fillStyle="#f1c40f";m.fillRect(X+W/2-14,Y+H-34,28,34);m.fillStyle="#3a2a1a";m.fillRect(X+W/2-10,Y+H-30,9,30);m.fillRect(X+W/2+1,Y+H-30,9,30)});
  bld("realty","#f3e9d2","#2f7d6d",(X,Y,W,H)=>{win(X+14,Y+44);win(X+W-30,Y+44);m.fillStyle="#2f5d50";m.fillRect(X+W/2-22,Y+30,44,10);m.fillStyle="#fee761";m.fillRect(X+W/2-18,Y+33,36,4);m.fillStyle="#7a4a24";m.fillRect(X+W/2-12,Y+H-34,24,34);m.fillStyle="#fee761";m.fillRect(X+W/2+6,Y+H-18,3,3)});
  bld("harbor","#dfe9f2","#1d4e89",(X,Y,W,H)=>{win(X+14,Y+34);win(X+W-30,Y+34);m.fillStyle="#fff";m.fillRect(X+W/2-3,Y+24,6,24);m.fillRect(X+W/2-14,Y+26,12,18);m.fillStyle="#e43b44";m.fillRect(X+W/2-20,Y+46,40,8);m.fillStyle="#555";m.fillRect(X+W/2-10,Y+H-30,20,30)});
+ bld("furnshop","#efe0c4","#8a5a2b",(X,Y,W,H)=>{win(X+14,Y+40);win(X+W-30,Y+40);m.fillStyle="#7a4a24";m.fillRect(X+W/2-20,Y+28,40,10);m.fillStyle="#fee761";m.fillRect(X+W/2-14,Y+31,28,4);m.fillStyle="#9b5de5";m.fillRect(X+16,Y+H-30,24,12);m.fillStyle="#555";m.fillRect(X+W/2-10,Y+H-34,20,34)});
+ bld("wearshop","#f6e3ee","#c2417a",(X,Y,W,H)=>{win(X+12,Y+40);m.fillStyle="#fff";m.fillRect(X+W-34,Y+34,8,22);m.fillStyle="#3a86e0";m.fillRect(X+W-38,Y+38,16,12);m.fillStyle="#7a4a24";m.fillRect(X+W/2-12,Y+H-32,22,32);m.fillStyle="#fee761";m.fillRect(X+W/2+6,Y+H-16,3,3)});
  bld("carshop","#e8eef5","#c0392b",(X,Y,W,H)=>{m.fillStyle="#1b1b2f";m.fillRect(X+6,Y+24,W-12,44);m.fillStyle=night?"#ffe9a8":"#cfeefc";m.fillRect(X+8,Y+26,W-16,40);m.fillStyle="#c0392b";m.fillRect(X+14,Y+48,W-28,12);m.fillRect(X+20,Y+42,W-40,8);m.fillStyle="#222";m.fillRect(X+16,Y+58,8,8);m.fillRect(X+W-24,Y+58,8,8);m.fillStyle="#555";m.fillRect(X+W/2-10,Y+H-30,20,30);m.fillStyle="#f1c40f";m.fillRect(X+4,Y+22,W-8,3)});
  bld("gym","#c9d1dc","#34495e",(X,Y,W,H)=>{win(X+16,Y+40);win(X+W-32,Y+40);m.fillStyle="#222";m.fillRect(X+W/2-22,Y+34,44,6);m.fillRect(X+W/2-28,Y+28,8,18);m.fillRect(X+W/2+20,Y+28,8,18);m.fillStyle="#555";m.fillRect(X+W/2-12,Y+H-36,24,36)});
  const trees=[];for(let j=0;j<ROWS;j++)for(let i=0;i<COLS;i++)if(!blocked(i,j)&&!isRoad(i,j)&&!isSide(i,j)&&!inRect(i,j,PLACES.plaza.r)&&!inRect(i,j,PLACES.park.r)&&!Object.values(OBJS).some(q=>q.x==i&&q.y==j)&&grassV[j][i]<.1&&![...Array(NR*3).keys()].some(s=>{const d=door(s),[hx,hy]=homeXY(s);return (Math.abs(d[0]-i)<=1&&Math.abs(d[1]-j)<=1)||(j==hy+4&&i>=hx&&i<hx+5)}))trees.push([i,j]);
@@ -1933,7 +1945,7 @@ bld("hospital","#f4f6fa","#d9534f",(X,Y,W,H)=>{m.fillStyle="#d9534f";m.fillRect(
    const sx=STATUEP[0]*T,sy=STATUEP[1]*T;Q(sx+2,sy+16,28,10,"#9aa0a6");Q(sx+4,sy+14,24,3,"#c5cacf");Q(sx+2,sy+24,28,2,"#6b7075")}
   S("lottery",()=>{R0(X+2,Y+8,28,16,"#c0392b");R0(X,Y-6,32,10,"#f1c40f");R0(X+8,Y+10,16,8,"#fff")});
   X=31*T;Y=21*T;R0(X,Y-24,4,30,"#6b4423");R0(X+28,Y-24,4,30,"#6b4423");R0(X,Y-26,32,4,"#6b4423");R0(X+10,Y-22,2,18,"#888");R0(X+20,Y-22,2,18,"#888");R0(X+8,Y-4,16,4,"#d8901a")}
- sign("公司",30.5*T,10);if(isOn("realty"))sign("不動產",76*T,10);if(isOn("harbor"))sign("碼頭船行",76*T,17*T+10);sign("餐廳",5*T,9*T+10);sign("超市",28*T,9*T+10);sign("公園",31.5*T,17*T+12);sign("小豬廣場",17*T,8*T+14);if(isOn("casino"))sign("賭場",68.5*T,8*T+10);if(isOn("cafe"))sign("咖啡廳",39*T,10);if(isOn("cinema"))sign("電影院",40*T,9*T+10);if(isOn("gym"))sign("健身房",41*T,17*T+10);if(isOn("rafi"))sign("拉菲's office",49.5*T,17*T+10);if(isOn("stock"))sign("證交所",46*T,10);if(isOn("jail"))sign("監獄",61.5*T,10);if(isOn("hospital"))sign("醫院",61.5*T,9*T+10);if(isOn("police"))sign("警察局",59*T,17*T+10);if(isOn("townhall"))sign("市政廳",68.5*T,10);if(isOn("carshop"))sign("車行",47*T,9*T+14);if(isOn("arena"))sign("格鬥場",53.5*T,10);if(isOn("slaughter"))sign("屠宰場",53.5*T,9*T+10);
+ sign("公司",30.5*T,10);if(isOn("realty"))sign("不動產",76*T,10);if(isOn("furnshop"))sign("家具行",76*T,9*T+10);if(isOn("wearshop"))sign("服飾店",83*T,9*T+10);if(isOn("harbor"))sign("碼頭船行",76*T,17*T+10);sign("餐廳",5*T,9*T+10);sign("超市",28*T,9*T+10);sign("公園",31.5*T,17*T+12);sign("小豬廣場",17*T,8*T+14);if(isOn("casino"))sign("賭場",68.5*T,8*T+10);if(isOn("cafe"))sign("咖啡廳",39*T,10);if(isOn("cinema"))sign("電影院",40*T,9*T+10);if(isOn("gym"))sign("健身房",41*T,17*T+10);if(isOn("rafi"))sign("拉菲's office",49.5*T,17*T+10);if(isOn("stock"))sign("證交所",46*T,10);if(isOn("jail"))sign("監獄",61.5*T,10);if(isOn("hospital"))sign("醫院",61.5*T,9*T+10);if(isOn("police"))sign("警察局",59*T,17*T+10);if(isOn("townhall"))sign("市政廳",68.5*T,10);if(isOn("carshop"))sign("車行",47*T,9*T+14);if(isOn("arena"))sign("格鬥場",53.5*T,10);if(isOn("slaughter"))sign("屠宰場",53.5*T,9*T+10);
  if(night){m.fillStyle="rgba(18,28,78,.45)";m.fillRect(0,0,c.width,c.height)}
  return c}
 // 畫一個角色：(x,y) 是身體中心，u 是一格像素的大小
@@ -2328,7 +2340,7 @@ function wkPlay(a,x){const k=wkKey(a,x),W=k&&WORK_FX[k];if(!W||wkBusy||!R[me])re
  if(it){roomAnim={code:W[1],it,tv:null,home:false,w:rw(rm),h:rh(rm),born:performance.now(),dur:D,age:0};loopRoom()}
  else{spawnFx(W[2],me);if(a=="cowork"&&x.target&&walkers[x.target])spawnFx(W[2],x.target)}
  return new Promise(r=>setTimeout(()=>{wkBusy=false;r()},D))}
-const ROOM_ACT={upgrade:"rcounter",estate:"rcounter",yacht:"ycounter",art:"latteart",share:"pot",combo:"kitchen",bring:"pack",seat:"seat",chat:"screen",sale:"snackshelf",sample:"mshelf",mredeem:"till",latte:"coffee",coffee:"coffee",special:"kitchen",dine:"bar",takeout:"pack",song:"jukebox",treat:"bar",redeem:"cake",spar:"bag",checkin:"locker",workout:"treadmill",spa:"spa",feast:"menu",labor:"work",yard:"yard",visit:"glass",escape:"vent",parole:"gate",bail:"bailDesk",consult:"reg",discharge:"reg",hvisit:"hbed",pay:"pdesk",surrender:"pboard",report:"prep",stats:"pstat",civic:"annb",movie:"screen",popcorn:"popcorn",browse:"till",buy:"till",sneak:"cleaver",vbuy:"vcar",license:"lic",insure:"gar",vfix:"gar",vsell:"gar",trade:"pcs"};
+const ROOM_ACT={buyf:"fcounter",buyw:"wcounter",upgrade:"rcounter",estate:"rcounter",yacht:"ycounter",art:"latteart",share:"pot",combo:"kitchen",bring:"pack",seat:"seat",chat:"screen",sale:"snackshelf",sample:"mshelf",mredeem:"till",latte:"coffee",coffee:"coffee",special:"kitchen",dine:"bar",takeout:"pack",song:"jukebox",treat:"bar",redeem:"cake",spar:"bag",checkin:"locker",workout:"treadmill",spa:"spa",feast:"menu",labor:"work",yard:"yard",visit:"glass",escape:"vent",parole:"gate",bail:"bailDesk",consult:"reg",discharge:"reg",hvisit:"hbed",pay:"pdesk",surrender:"pboard",report:"prep",stats:"pstat",civic:"annb",movie:"screen",popcorn:"popcorn",browse:"till",buy:"till",sneak:"cleaver",vbuy:"vcar",license:"lic",insure:"gar",vfix:"gar",vsell:"gar",trade:"pcs"};
 const ROOM_ALT={spar:"ring"};
 let lastSpots={},spotsBefore=null;let roomAnim=null;
 const HOME_ACT={toilet:"toilet",shower:"shower",eat:"fridge",tv:"tvcab",nap:"massage",qsleep:"bed",sleep:"bed",feed:"fridge",wakeup:"bed",visit:"sofa"};// 家裡：互動 → 家具（沒有那件家具就在房間中央演）
@@ -2364,7 +2376,7 @@ function roomFxDraw(c){const A=roomAnim,C=RC,k=Math.max(0,Math.min(1,(A.age-.25)
   case "wk_scan":{const f=Math.floor(k*10)%2;P(ox-9,oy-4,18,2,"#e43b44");if(f)P(ox-9,oy-10,18,2,"#fff");for(let j=0;j<3;j++)P(ox-6+j*6,oy-12-((k*40+j*9)%14),3,3,"#fee761");break}
   case "wk_docs":for(let j=0;j<4;j++){const y=oy-8-((k*50+j*10)%24),x=ox-9+j*6+Math.sin(k*8+j)*3;P(x,y,6,8,"#fff");P(x+1,y+2,4,1,"#1b1b2f");P(x+1,y+5,3,1,"#1b1b2f")}break;
   case "screen":case "popcorn":{const fl=Math.floor(k*12)%3;P(ox-10,oy-6,20,10,["#6fc6ff","#fee761","#ff8fb3"][fl]);for(let j=0;j<3;j++)P(ox-8+j*7,oy+8+((k*30+j*5)%8),3,3,"#fff");break}
-  case "till":case "rcounter":case "ycounter":for(let j=0;j<3;j++)P(ox-6+j*6,oy-2-((k*44+j*9)%18),4,4,"#fee761");P(ox-7,oy-7,14,3,"#6fc6ff");break;
+  case "till":case "rcounter":case "ycounter":case "fcounter":case "wcounter":for(let j=0;j<3;j++)P(ox-6+j*6,oy-2-((k*44+j*9)%18),4,4,"#fee761");P(ox-7,oy-7,14,3,"#6fc6ff");break;
   case "pcs":case "board":{const u=Math.floor(k*10)%2;for(let j=0;j<5;j++){const h=3+((j*7+Math.floor(k*14))%9);P(ox-10+j*4,oy+4-h,3,h,(j+u)%2?"#e43b44":"#63c74d")}break}
   case "ring":for(let j=0;j<6;j++){const a2=j*1.05+k*6;P(ox+Math.cos(a2)*10,oy+Math.sin(a2)*8,3,3,j%2?"#fee761":"#fff")}if(Math.floor(k*10)%2)P(ox-8,oy-12,16,3,"#e74c3c");break;
   case "vcar":case "vmoto":case "vbike":for(let j=0;j<5;j++){const a2=j*1.25+k*5;P(ox+Math.cos(a2)*11,oy+Math.sin(a2)*8,2,2,"#fff")}break;
