@@ -145,7 +145,7 @@ const pjTier=(k,n)=>(k=="rafi"?RFT:PJT).reduce((a,t,i)=>n>=t?i:a,0);
 const pjWage=(k,n)=>k=="rafi"?RFW[pjTier(k,n)]:Math.floor(PJ[k][2]*PJM[pjTier(k,n)]/100);
 const pjName=(k,n)=>PJN[k][pjTier(k,n)];
 const JOBS=[["實習生",0,190],["員工",10,260],["組長",30,350],["經理",70,520],["主管",150,800],["資深主管",250,920],["協理",400,1050],["副總",650,1250],["總經理",1000,1500]];
-const FOUNTAIN=[16,10,2,3];const BOARDP=[13,9],STATUEP=[15,9];
+const FOUNTAIN=[16,10,2,3];const DOCK=[66,17,5,4];const BOARDP=[13,9],STATUEP=[15,9];
 // 路上物件：位置要和資料庫 town_obj_near 一致；用法：[名稱, 按鈕, 說明]
 const OBJS={vend:{x:19,y:5,name:"自動販賣機",acts:[["投一罐飲料 🥤","€30 · 精力 +12 · 偶爾掉兩罐"]]},trash:{x:8,y:14,name:"垃圾桶",acts:[["撿垃圾 🗑️","心情 +4 · 說不定撿到東西"]]},
  stall:{x:22,y:14,name:"烤地瓜攤",acts:[["買烤地瓜 🍠","€60 · 飽足 +25"]]},well:{place:"plaza",name:"小豬噴水池",acts:[["丟硬幣許願 🪙","€10 · 小機率願望成真"]]},
@@ -205,7 +205,7 @@ const inRect=(x,y,[rx,ry,rw,rh])=>x>=rx&&x<rx+rw&&y>=ry&&y<ry+rh;
 const roadRowsAt=y=>y==6||y==7||y==15||y==16||(y>=22&&(y-22)%7<2&&Math.floor((y-22)/7)+2<NR);
 const isRoad=(x,y)=>y<mapRows()&&(roadRowsAt(y)||((x==16||x==17)&&!(y>=8&&y<=14)));
 const slotAt=(x,y)=>{for(let s=0;s<NR*3;s++){const [hx,hy]=homeXY(s);if(inRect(x,y,[hx,hy,5,4]))return s}return -1};
-function blocked(x,y){if(x<0||y<0||x>=COLS||y>=mapRows())return true;if(inRect(x,y,FOUNTAIN))return true;if(slotAt(x,y)>=0)return true;
+function blocked(x,y){if(x<0||y<0||x>=COLS||y>=mapRows())return true;if(inRect(x,y,FOUNTAIN)||inRect(x,y,DOCK))return true;if(slotAt(x,y)>=0)return true;
  for(const k in PLACES)if(PLACES[k].block&&isOn(k)&&inRect(x,y,PLACES[k].r))return true;return false}
 // ── 交通工具（價格、速度、油錢要和 town.sql 的 vbuy／move 一致）：[名稱, 價格, 速度倍率, 每格油錢, 圖示] ──
 const VEH={bike:["腳踏車",3000,1.5,0,"🚲"],moto:["機車",30000,2.5,.4,"🏍️"],car:["汽車",90000,3,1,"🚗"]};
@@ -330,6 +330,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 const UPDATES=[
   {id:"meet-1123",date:"11/23",title:"揪團上線",items:["選單「揪團」約吃約玩","到點在場才算出席","可分享給群組"]},
   {id:"persona-1123",date:"11/23",title:"我的人設",items:["選單設外號與口頭禪","朋友可幫你取外號","名牌顯示外號、冒口頭禪"]},
+  {id:"yacht-1123",date:"11/23",title:"碼頭與莊園",items:["地圖東南角有碼頭","買遊艇會停在碼頭","買莊園房子變莊園"]},
   {id:"econ-1123",date:"11/23",title:"小鎮經濟",items:["選單「小鎮經濟」看報表","鎮基金每週發補差金、辦慶典","新增遊艇、莊園、拍賣、捐款"]},
   {id:"notif-fav-1123",date:"11/23",title:"通知與常用",items:["通知分「要回應」「系統」，可全部已讀","常用列可長按釘選","面板不再亂跳、牌桌不能拖"]},
   {id:"u99-loading",date:"11/23",title:"載入畫面更新",items:["顯示四個載入步驟","等待時會輪播小提示","網路慢時可按「再試一次」"]},
@@ -1840,6 +1841,7 @@ function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas")
    if(hl>=2){m.fillStyle="rgba(0,0,0,.22)";m.fillRect(X-8,Y+T+10,W+16,6);[X+20,X+W-36].forEach(a=>{m.fillStyle="#8b5a2b";m.fillRect(a-2,Y+T+40,20,6);m.fillStyle="#e74c3c";m.fillRect(a,Y+T+36,4,4);m.fillStyle="#f1c40f";m.fillRect(a+8,Y+T+36,4,4)})}
    if(hl>=3){m.fillStyle="#8d8d8d";m.fillRect(X+W-30,Y-16,16,24);m.fillStyle="#6d6d6d";m.fillRect(X+W-32,Y-20,20,6);m.fillStyle="#f4f1de";for(let k=-6;k<W+8;k+=14){if(k>W/2-26&&k<W/2+26)continue;m.fillRect(X+k,Y+3*T+14,4,18)}m.fillRect(X-6,Y+3*T+20,W/2-26+6,3);m.fillRect(X+W/2+26,Y+3*T+20,W/2-26+6,3)}
    if(hl>=4){m.fillStyle="#f1c40f";m.fillRect(X-8,Y,W+16,5);m.fillStyle="#e8d9a8";[W/2-30,W/2+22].forEach(a=>{m.fillRect(X+a,Y+T+30,8,2*T-12);m.fillStyle="#cdbb85";m.fillRect(X+a-2,Y+T+26,12,6);m.fillStyle="#e8d9a8"})}}
+  if(o&&it.lx&&it.lx.estate){m.fillStyle="#f1c40f";m.fillRect(X-14,Y-10,W+28,6);m.fillRect(X+W/2-14,Y-24,28,16);m.fillStyle="#e74c3c";m.fillRect(X+W/2-2,Y-40,3,18);m.fillRect(X+W/2+1,Y-40,14,8);m.fillStyle="#fff";[8,W-16].forEach(a=>m.fillRect(X+a,Y+T+8,8,3*T-14));m.fillStyle="#c9a227";m.fillRect(X-8,Y+3*T-8,W+16,6);m.fillStyle="#5aa84f";[-14,W+6].forEach(a=>m.fillRect(X+a,Y+3*T+8,10,3*T-16))}
   sign(o?o.name+" 的家":"空屋",X+W/2,Y+T/2+6,o?null:"rgba(90,90,90,.85)");
   ((it.d)||[]).slice(0,4).forEach((d,i)=>deco(m,d,X+[16,48,144,172][i],Y+4*T+18,night))}
  const bld=(k,wall,roof,deco)=>{if(!isOn(k))return;const [x,y,w,h]=PLACES[k].r,X=x*T,Y=y*T,W=w*T,H=h*T;m.fillStyle="rgba(0,0,0,.18)";m.fillRect(X+8,Y+16,W,H);m.fillStyle=wall;m.fillRect(X,Y+14,W,H-14);m.fillStyle=roof;m.fillRect(X-6,Y,W+12,20);deco(X,Y,W,H)};
@@ -1939,6 +1941,10 @@ function moodLine(id,r){const c=[];if(r.hunger<25)c.push("好餓…🍚","肚子
 function drawLights(){const ms=now();for(let y=0;y<mapRows();y++){if(!roadRowsAt(y)||roadRowsAt(y-1))continue;const ph=lightG(ms,y),X=16*T,Y=y*T,lamp=(x,yy,green)=>{g.fillStyle="#1b1b2f";g.fillRect(x,yy,10,16);g.fillStyle=green?"#2f5a35":"#e43b44";g.fillRect(x+2,yy+2,6,5);g.fillStyle=green?"#63c74d":"#6b2a2a";g.fillRect(x+2,yy+9,6,5)};
  lamp(X-12,Y+2,ph==0);lamp(X+2*T+2,Y+2*T-18,ph==0);lamp(X+2,Y-18,ph==1);lamp(X+2*T-12,Y+2*T+2,ph==1)}}
 // 市政廳建好的設施（每幀畫在地圖上，建好就看得到）
+function drawDock(){if(!g)return;const [dx,dy,dw,dh]=DOCK,X=dx*T,Y=dy*T;g.fillStyle="#3b7fc4";g.fillRect(X,Y,dw*T,dh*T);g.fillStyle="#6aa9e0";for(let i=0;i<dw*T;i+=24)for(let j=6;j<dh*T;j+=32)g.fillRect(X+i+((j>>5)%2)*10,Y+j,10,2);g.fillStyle="#8b5a2b";g.fillRect(X-4,Y-4,dw*T+8,6);g.fillRect(X-4,Y+dh*T-2,dw*T+8,6);g.fillRect(X-4,Y-4,6,dh*T+8);
+ const own=(S&&S.residents||[]).filter(r=>r.items&&r.items.lx&&r.items.lx.yacht).slice(0,4);own.forEach((r,i)=>{const bx=X+10,by=Y+i*T+6;g.fillStyle="#f4f4f4";g.fillRect(bx,by+12,112,14);g.fillRect(bx+112,by+16,8,6);g.fillStyle="#c0392b";g.fillRect(bx,by+22,112,4);g.fillStyle="#7a4a24";g.fillRect(bx+30,by+4,36,8);g.fillStyle="#8fd3ff";g.fillRect(bx+36,by+6,8,4);g.fillRect(bx+50,by+6,8,4);g.fillStyle="#f1c40f";g.fillRect(bx+80,by,3,12);g.fillRect(bx+83,by,10,6);
+  g.font="11px Cubic11,monospace";g.textAlign="left";g.textBaseline="middle";const t=r.name+" 的遊艇",w=g.measureText(t).width+8;g.fillStyle="rgba(20,20,20,.8)";g.fillRect(bx+2,by+24,w,12);g.fillStyle="#fff";g.fillText(t,bx+6,by+30)});
+ g.font="11px Cubic11,monospace";g.fillStyle="rgba(20,20,20,.8)";g.fillRect(X+4,Y-22,50,14);g.fillStyle="#fff";g.textAlign="left";g.fillText("碼頭",X+8,Y-14)}
 function drawCivic(){const nt=isNight();for(const k of CIVP){const o=CIVIC[k];if(!o)continue;const X=o[2]*T,Y=o[3]*T;
  if(k=="bench2"){g.fillStyle="#8b5a2b";g.fillRect(X+2,Y+8,28,5);g.fillStyle="#6b4423";g.fillRect(X+2,Y+14,28,6);g.fillRect(X+4,Y+20,4,8);g.fillRect(X+24,Y+20,4,8)}
  else if(k=="lamp"){if(nt){g.fillStyle="rgba(255,244,180,.22)";g.beginPath();g.arc(X+16,Y-12,44,0,7);g.fill()}g.fillStyle="#3a3a3a";g.fillRect(X+14,Y-12,4,40);g.fillStyle=nt?"#fff3a8":"#fee761";g.fillRect(X+8,Y-22,16,10);g.fillStyle="#3a3a3a";g.fillRect(X+6,Y-24,20,3)}
@@ -1959,7 +1965,7 @@ function frame(t){const dt=Math.min(.1,(t-last)/1000);last=t;tk++;requestAnimati
  cam.x=bx[0]>bx[1]?MW/2:clamp(cam.x,bx[0],bx[1]);cam.y=by[0]>by[1]?MH/2+(pb-pt)/2:clamp(cam.y,by[0],by[1]);
  const ks=dpr*cam.s,ox=Math.round((cam.x-vw/2)*ks)/ks,oy=Math.round((cam.y-vh/2)*ks)/ks;cam.ox=ox;cam.oy=oy;
  if(drawRoomStage())return;
- g.setTransform(1,0,0,1,0,0);g.fillStyle="#3d6b35";g.fillRect(0,0,cv.width,cv.height);g.setTransform(dpr*cam.s,0,0,dpr*cam.s,-ox*dpr*cam.s,-oy*dpr*cam.s);g.imageSmoothingEnabled=false;g.drawImage(maps[key],0,0);drawLights();drawCivic();
+ g.setTransform(1,0,0,1,0,0);g.fillStyle="#3d6b35";g.fillRect(0,0,cv.width,cv.height);g.setTransform(dpr*cam.s,0,0,dpr*cam.s,-ox*dpr*cam.s,-oy*dpr*cam.s);g.imageSmoothingEnabled=false;g.drawImage(maps[key],0,0);drawLights();drawCivic();drawDock();
  const fx=17*T,fy=11.5*T;g.fillStyle="#9a9a9a";g.beginPath();g.arc(fx,fy,48,0,7);g.fill();g.fillStyle="#4aa3e0";g.beginPath();g.arc(fx,fy,40,0,7);g.fill();g.strokeStyle="#bfe6ff";g.lineWidth=2;g.beginPath();g.arc(fx,fy,18+(tk%50)/2.2,0,7);g.stroke();
  g.fillStyle="#f6a5c0";g.beginPath();g.arc(fx,fy-4,15,0,7);g.fill();g.fillRect(fx-15,fy-21,8,9);g.fillRect(fx+7,fy-21,8,9);g.fillStyle="#ec7fa6";g.fillRect(fx-7,fy-2,14,9);g.fillStyle="#8a3a55";g.fillRect(fx-4,fy+1,3,3);g.fillRect(fx+2,fy+1,3,3);g.fillStyle="#222";g.fillRect(fx-8,fy-11,3,3);g.fillRect(fx+5,fy-11,3,3);
  g.fillStyle="#bfe6ff";g.fillRect(fx-1,fy-26-((tk%30)/30)*16,3,5);
