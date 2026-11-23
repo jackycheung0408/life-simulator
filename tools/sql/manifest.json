@@ -700,6 +700,16 @@
    ]
   },
   {
+   "file": "town_casino_fi.sql",
+   "kind": "patch",
+   "needs": [
+    "town_fi.sql",
+    "town_infac.sql",
+    "town_casino3.sql"
+   ],
+   "note": "賭場內部（進館）：town_fi 白名單加 casino、town_need_in_pl 加 casino、town_casino／town_casino_state 開頭檢查進館；不動 town_casino_leave"
+  },
+  {
    "file": "town_ticket_sus.sql",
    "kind": "patch",
    "needs": [
