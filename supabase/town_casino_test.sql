@@ -1,6 +1,6 @@
 -- 小豬賭場（籌碼制）回滾實測：結果在錯誤訊息 REPORT。接在 town_casino.sql 之後貼上，全部回滾。
 -- 檢查：直接呼叫 town_game／town_game2 玩押錢遊戲被擋、不在賭場被擋、猜拳仍在廣場、現金換籌碼 1:1、籌碼換回現金抽 5% 進位、
---       遊戲只動籌碼不動現金、沒有單注上限（只看籌碼）、籌碼不夠被擋、自我排除、回合間隔、輸贏記錄、百家樂莊家免佣的期望值、財產稅含籌碼。
+--       遊戲只動籌碼不動現金、沒有單注上限（只看籌碼）、籌碼不夠被擋、回合間隔、輸贏記錄、百家樂莊家免佣的期望值、財產稅含籌碼。
 do $$
 declare t text := 'ZZCAS'; e1 bigint; e2 bigint; e3 bigint; lm bigint; lc text; cdv text; gname text; gn int := 0; gb int := 0; bh text; bhn int; d bigint; mg record; a bigint; b bigint; c bigint; rep text := ''; x jsonb; i int; fund0 bigint; fund1 bigint; lg record; g json;
   w6 bigint := 0; wb bigint := 0; ret numeric := 0; n int := 700; cash_before bigint; ch_before bigint;
@@ -83,9 +83,6 @@ begin
   begin perform public.town_casino_state(a,'x','sell', 2000000000); rep := rep || ' 換回超過籌碼=沒擋'; exception when others then rep := rep || ' 換回超過籌碼=擋'; end;
   select * into lg from public.town_casino_log where rid = a and game = 'slots';
   rep := rep || ' 記錄 局數=' || lg.rounds || ' 押注=' || lg.wagered;
-  perform public.town_casino_state(b,'x','rest',24);
-  begin perform public.town_casino_state(b,'x','buy',1000); rep := rep || ' 排除中換籌碼=沒擋'; exception when others then rep := rep || ' 排除中換籌碼=擋'; end;
-  begin perform public.town_casino_state(b,'x','rest',5); rep := rep || ' 排除5小時=沒擋'; exception when others then rep := rep || ' 排除5小時=擋'; end;
   -- 百家樂莊家免佣：直接用內部函式（設旗標）玩 n 局押莊，量贏 200、贏 150（莊以 6 點贏）的次數與回報
   perform set_config('town.casino','1',true);
   update public.town_residents set money = 1000000000 where id = a;

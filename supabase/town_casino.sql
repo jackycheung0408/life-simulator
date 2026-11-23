@@ -7,10 +7,10 @@
 --     抽成處理：換回現金的 5% 手續費一半進鎮基金（fund_log.casino）、一半銷毀。籌碼放在 items.cas.ch，財產稅的基礎 = 現金 + 籌碼。
 --     實作：town_casino 在呼叫 town_game／town_game2 前把居民的 money 暫時換成籌碼、呼叫完換回現金（同一個交易內，出錯整個回滾）。
 --   不設預算、不設單注上限、不設每日淨輸上限（只受籌碼數量限制；妞妞與射龍門仍要有押注 3 倍的籌碼）。
---   保留的保護：自我排除（玩家自願按的，24 小時／7 天，不能取消，排除期間也不能換籌碼）、開局間隔至少 3 秒（防腳本連點）。
+--   唯一保留的限制：開局間隔至少 3 秒（防腳本連點）。自我排除已於 2026-11-23 取消（使用者決定）。
 --     已取消：30 分鐘連輸強制休息（冷靜）；無限玩。離場強制換回現金見檔尾的觸發器 town_casino_leave。
 --   輸贏記錄：town_casino_log（每人每天每遊戲：局數、總押注、淨輸贏，單位是籌碼），之後才量得出賭場吸走多少。
---   狀態存在 items.cas：ch 籌碼、t 上次開局、x 自我排除到、bh 百家樂最近 72 局路單（P／B／T）、fd／fp 盈餘已進基金（舊欄位 d／s0／b 是預算時期留下的，不再使用）。
+--   狀態存在 items.cas：ch 籌碼、t 上次開局、bh 百家樂最近 72 局路單（P／B／T）、fd／fp 盈餘已進基金（舊欄位 d／s0／b 是預算時期留下的，不再使用）。
 -- 這個檔會用下面的 do 區塊「就地修改」正式站目前的 town_game／town_game2／town_rent（不複製整個函式，所以不管它們被改成什麼版本都能套用，可重複執行）：
 --   錢類遊戲要 town.casino=1 才通過、位置改 casino、功能開關改 casino、押注上限改 town_casino_maxbet（= 籌碼數量）；猜拳留在廣場（上限 10000、×2）；
 --   百家樂莊家免佣；財產稅基礎加上籌碼；另外把 casino 加進地點名稱、功能清單、可前往地點（town_place_name、town_features、town_act 的 move）。
@@ -108,9 +108,6 @@ begin
   cs := coalesce(r.items->'cas','{}'::jsonb);
   v_cash := r.money; v_chips := coalesce((cs->>'ch')::bigint, 0);
   if v_gate then
-    if (cs->>'x') is not null and (cs->>'x')::timestamptz > now() then
-      raise exception '你設了自我排除，賭場到 % 才開放', to_char((cs->>'x')::timestamptz at time zone 'Asia/Taipei','MM/DD HH24:MI');
-    end if;
     if (cs->>'t') is not null and now() - (cs->>'t')::timestamptz < interval '3 seconds' then raise exception '慢一點，每局至少間隔 3 秒'; end if;
     if v_bet and coalesce(bet, 0) > v_chips then raise exception '籌碼不夠（你有 €% 籌碼），到櫃台用現金換籌碼', v_chips; end if;
   end if;
@@ -136,7 +133,7 @@ begin
         when (res::jsonb->'game'->>'pt')::int < (res::jsonb->'game'->>'bt')::int then 'B' else 'T' end), 72));
     end if;
     -- 30 分鐘視窗：籌碼淨輸 ≥ 視窗起始籌碼的 10%（至少 1000）就強制休息 30 分鐘
-    cs := cs - 'cd' - 'w0' - 'mw';  -- 已取消連輸強制休息（舊資料清掉）
+    cs := cs - 'cd' - 'w0' - 'mw' - 'x';  -- 已取消連輸強制休息與自我排除（舊資料清掉）
     -- 莊家盈餘：沒有進行中的牌局時，非射龍門遊戲今天淨輸的 50% 進鎮基金（另 50% 銷毀）
     v_pend := (its ? 'hlg') or (its ? 'bj');
     if not v_pend then
@@ -151,7 +148,7 @@ begin
   return (res::jsonb || jsonb_build_object('money', v_cash, 'casino', jsonb_build_object('chips', m1, 'bh', coalesce(cs->>'bh', ''))))::json;
 end $$;
 
--- 櫃台與狀態：view 看狀態、buy 現金換籌碼（1:1）、sell 籌碼換回現金（抽 5%，無條件進位）、rest 自我排除
+-- 櫃台與狀態：view 看狀態、buy 現金換籌碼（1:1）、sell 籌碼換回現金（抽 5%，無條件進位）
 create or replace function public.town_casino_state(rid bigint, pin text, op text default 'view', val int default null) returns json
 language plpgsql security definer set search_path = public as $$
 #variable_conflict use_variable
@@ -163,7 +160,6 @@ begin
   v_chips := coalesce((cs->>'ch')::bigint, 0);
   if op = 'buy' then
     if r.place <> 'casino' then raise exception '要在賭場櫃台才能換籌碼'; end if;
-    if (cs->>'x') is not null and (cs->>'x')::timestamptz > now() then raise exception '自我排除中，不能換籌碼'; end if;
     if val is null or val < 1 then raise exception '要換多少？'; end if;
     if val > r.money then raise exception '現金不夠'; end if;
     v_chips := v_chips + val; cs := cs || jsonb_build_object('ch', v_chips);
@@ -178,15 +174,9 @@ begin
     update public.town_residents p set money = p.money + (val - v_fee), items = jsonb_set(p.items, '{cas}', cs) where p.id = rid;
     r.money := r.money + (val - v_fee);
     perform public.town_fund_add(r.town_id, 'casino', (v_fee / 2)::int);
-  elsif op = 'rest' then
-    if val is null or val not in (24, 168) then raise exception '自我排除只有 24 小時或 7 天'; end if;
-    if (cs->>'x') is not null and (cs->>'x')::timestamptz > now() + make_interval(hours => val) then raise exception '你已經排除得比這更久了'; end if;
-    cs := cs || jsonb_build_object('x', now() + make_interval(hours => val));
-    update public.town_residents p set items = jsonb_set(p.items, '{cas}', cs) where p.id = rid;
   elsif op <> 'view' then raise exception '未知動作'; end if;
   select coalesce(sum(l.rounds), 0), coalesce(sum(l.net), 0) into v_rounds, v_net from public.town_casino_log l where l.rid = rid and l.day = v_day;
-  return json_build_object('ok', true, 'money', r.money, 'chips', v_chips, 'rounds', v_rounds, 'net', v_net, 'bh', coalesce(cs->>'bh', ''),
-    'x', case when (cs->>'x')::timestamptz > now() then cs->>'x' else null end);
+  return json_build_object('ok', true, 'money', r.money, 'chips', v_chips, 'rounds', v_rounds, 'net', v_net, 'bh', coalesce(cs->>'bh', ''));
 end $$;
 
 revoke all on function public.town_casino_maxbet(bigint), public.town_casino_norm(text) from public, anon, authenticated;
