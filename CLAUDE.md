@@ -294,7 +294,7 @@
 
 ### 按鈕效果表
 <!-- RULES:START -->
-（由 `node tools/town-rules-doc.mjs` 從 `town/town.js` 的 `RULES` 產生，請勿手改；共 62 筆）
+（由 `node tools/town-rules-doc.mjs` 從 `town/town.js` 的 `RULES` 產生，請勿手改；共 67 筆）
 
 | 互動 | 效果 | 門檻 | 機率／備註 | SQL 出處 |
 |---|---|---|---|---|
@@ -360,6 +360,11 @@
 | 送禮物 | 心情 +5、好感 +4 | 背包有禮物 | 他心情 +20、拿到一份未拆禮物；浪漫個性效果加倍；用手機寄送要運費 $60、你沒有心情加成 | `town.sql#elsif act = 'egg' then` |
 | 打擂台 | 精力 −12、飽足 −8、錢 +100＋連勝×50、心情 +15（贏）／−10（輸） | 精力≥15 | 勝負看精力、心情、體能、力量；輸了鼻青臉腫 1 小時、清潔 −10；每小時獎金超過 $600 後只給 25% | `town.sql#elsif act = 'spar' then` |
 | 叫醒到門外 | 好感 −1 | 站在他家門口、他睡著 | 叫不醒機率 = min(70%, 25% + (100−他精力)/2 %)，叫不醒擋 3 分鐘；成功他心情 −3、走到門口（精力不補）；成功後 1 小時內不能再叫 | `town_wake_out.sql#t.sleeping := false; t.fun := t.fun - 3` |
+| 買禮物 | 錢 −300、心情 +3 | 背包未滿 | 禮物 +1，可送朋友 | `town.sql#n := case item when 'gift' then 300 else 60 end;` |
+| 買零食 | 錢 −60、心情 +3 | 背包未滿 | 零食 +1 | `town.sql#n := case item when 'gift' then 300 else 60 end;` |
+| 清掉便便 | 錢 +30 | 便便 2 格內、2 小時內 | — | `town.sql#elsif act = 'sweep' then` |
+| 打喪屍豬 | 精力 −5、錢 +60～140（打倒時） | 精力≥5 | 牠 3 點血，要在 3 格內；25% 反咬心情 −3；每人每天獎勵最多 $600；打倒 35% 掉生豬肉 | `town_tweaks.sql#if op = 'hit' then` |
+| 賣生豬肉 | 錢 +30／塊 | 生豬肉 | — | `town_tweaks.sql#elsif op = 'sell' then` |
 <!-- RULES:END -->
 
 ## 按鈕分類（2026-11-17 整理；`GORD`／`TABOF`／`btn(...,g)`）
