@@ -790,6 +790,42 @@
     "town_casino.sql"
    ],
    "note": "排行榜加賭場榜：town_casino_log 近 7 天淨贏（只列 >0）；重建 town_rank，不動 town_casino"
+  },
+  {
+   "file": "town_econ.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_retention.sql",
+    "town_casino.sql",
+    "town_fac.sql",
+    "town_world.sql",
+    "town_civic.sql",
+    "town_infac.sql"
+   ],
+   "note": "金錢宏觀調控：自動調節器（稅／補助／奢侈品係數）＋鎮基金週回流；就地改 town_rent、town_fac，重套那兩份後要再套本檔"
+  },
+  {
+   "file": "town_econ_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_econ.sql"
+   ]
+  },
+  {
+   "file": "town_econ_sink.sql",
+   "kind": "patch",
+   "needs": [
+    "town_econ.sql"
+   ],
+   "note": "大額出口：遊艇／莊園、每週拍賣會、慈善捐款（RPC town_econ_use）"
+  },
+  {
+   "file": "town_econ_sink_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_econ_sink.sql"
+   ]
   }
  ]
 }

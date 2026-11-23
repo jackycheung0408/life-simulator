@@ -688,3 +688,11 @@
 ## 2026-11-18 沒收汽車（**已取消，從未執行**）
 - 鎮長（使用者）2026-11-23 決定「不沒收車子」：`town_confiscate_car_1118.sql`（以及更早含扣錢的 `town_confiscate_1118.sql`）都已刪除、從未在正式站執行（2026-11-23 唯讀確認居民 26 仍有汽車、機車、腳踏車）。補發 `town_grant_3150_1118.sql`（居民 26 現金 +3150，標記 `grant_3150_1118`）是否已執行，以使用者回報為準。
 
+
+## 金錢宏觀調控（2026-11-23；SQL `supabase/town_econ.sql`＋`town_econ_sink.sql` **尚未套用正式站**；實測 `town_econ_test.sql`、`town_econ_sink_test.sql`（回滾，REPORT）；設計與試算見 `tools/econ-sim.py`）
+- **自動調節器**（`town_econ_tick`，每個台灣日在 `town_rent` 第一次跑時惰性結算；表 `town_econ`）：依活躍居民（近 3 天上線）的人均現金（含籌碼）、首富占比、窮人比例（<1 萬）調 `kt` 財產稅 0.8～1.2、`kp` 奢侈品價格 0.9～1.2、`ks` 生活補助金額與門檻 0.8～1.3，每天最多 ±2%，起算 1.0；活躍 < 3 人凍結並每天 2% 回到 1.0。係數只乘在之後發生的稅（`town_tax_k`）、補助（`town_econ_sub`／`_thr`）、奢侈品價（`town_econ_px`），不回頭扣錢；變動 ≥ 1% 寫 `world` 動態。**`town_rent`、`town_fac` 是用 pg_get_functiondef 就地改文字（同 town_casino.sql 做法）；重套 `town.sql`／`town_retention.sql`／`town_fac.sql` 後要再套 `town_econ.sql`。**
+- **鎮基金週回流**（同一個 tick，每 7 天、活躍 ≥ 3 人、基金 ≥ 3000）：可動用 = 基金 70%：40% 補差金（只發活躍且 `al.n` ≥ 3 的居民，額度 max(0, 2×中位數 − 現金籌碼)，單人 ≤ 補差金 40%，存 `town_econ.pend`，居民下次 `town_rent` 領，14 天沒領退回基金）、30% 全鎮慶典 24 小時、30% 累積到夠就自動蓋下一個建設案（bench2→lamp→gazebo→statue，全蓋完就不扣）。事件 kind `fund`。
+- **開關**：`town_flags` 的 `econ` 列（緊急：`insert into public.town_flags(k,v) values ('econ',false) on conflict (k) do update set v=false;`）與每鎮 `town_econ.enabled`（鎮長在選單「小鎮經濟」開關）；關掉 = 係數視為 1.0、不結算、不回流、新出口也擋。報表 `town_econ_view(rid,pin,op)`（view 所有居民、on／off 鎮長）。
+- **大額出口**（`town_econ_use(rid,pin,op,item,num)`，op = view／buy／donate／bid）：遊艇 $200,000（稱號「遊艇船長」）、莊園 $600,000（「莊園主人」），價格乘 `kp`，7 成銷毀 3 成進基金；捐款 ≥ $1000 全進基金，累計 1 萬／10 萬／100 萬給稱號，不減稅；每週拍賣會（`town_auction`，台灣週一起算）：一件限量稱號、底價 max(5000, 活躍人均 5%)、加價 ≥ 5%（至少 +500）、出價先托管被超過即退回、週結算得標金進基金。
+- 前端：選單「小鎮經濟」（`econBtn` 由 JS 動態插在 `powBtn` 後，因 index.html 已近 45KB 上限）→ `econModal`。奢侈品面板價格仍是固定文字，`kp` ≠ 1 時實際價以伺服器為準（錯誤訊息會寫要多少）。
+- 套用：`python3 tools/sql/sql.py apply town_econ.sql town_econ_sink.sql --test town_econ_test.sql --prod`（先 dry-run），實測檔各自貼 SQL Editor 或用 `--test`。
