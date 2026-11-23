@@ -50,6 +50,9 @@ typeof document!=="undefined"&&(()=>{const st=document.createElement("style");st
 #modal .card:has(.garea)>*{flex:none}
 #modal .card:has(.garea)>.garea{flex:1 1 auto;min-height:96px;overflow-y:auto;overscroll-behavior:contain}
 #modal .card:has(.garea)>.betbar{position:static;margin:8px 0 0}
+body.ingame #modal:has(.garea) .card{touch-action:pan-y}
+.gshow.hold::after{pointer-events:none}
+.gshow *{pointer-events:auto}.gshow .dealer{pointer-events:none}
 .gshow{position:relative;box-sizing:border-box;border:3px solid transparent;padding:8px;min-height:150px}
 .gshow .dealer{position:absolute;top:2px;right:8px;margin:0;z-index:2;font-size:11px;pointer-events:none}
 .nochip{margin:6px 0}
