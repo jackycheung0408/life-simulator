@@ -290,11 +290,11 @@ var DB="town-bk";
 function idb(f){try{var q=indexedDB.open(DB,1);q.onupgradeneeded=function(){q.result.createObjectStore("k")};q.onsuccess=function(){try{f(q.result)}catch(e){}};q.onerror=function(){}}catch(e){}}
 LP.bk=function(l){try{var o=(l||[]).map(function(x){return{tid:x.tid,name:x.name,rid:x.rid,pin:x.pin,me:x.me,at:x.at}});idb(function(d){var s=d.transaction("k","readwrite").objectStore("k");if(o.length)s.put(o,"mine");else s["delete"]("mine")});try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}}catch(e){}};
 function main(){
-if(T){var NS=["載入程式","連線小鎮","讀取角色","進入小鎮"],TP=["吃飽、洗澡、睡飽，心情才會好","朋友家門口能留言、送禮","打工越多次，職稱越高","點地圖上的東西會自動走過去"],ti=0,tt,ts,lgd=document.getElementById("lg");
+if(T){var NS=["載入程式","連線小鎮","讀取角色","進入小鎮"],TP=["吃飽睡飽，心情才會好","朋友家門口能留言、送禮","打工越多，職稱越高","點地圖上的東西會自動走過去"],ti=0,tt,ts,lgd=document.getElementById("lg");
 function tip(){var e=document.getElementById("ldx");if(e)e.textContent="小提示：「"+TP[ti++%TP.length]+"」"}
 LP.stage=function(n){if(!n){clearInterval(tt);clearTimeout(ts);return}var l=lgd.firstChild;if(!l||l.className!="ld")return;[].forEach.call(l.querySelectorAll(".ls i"),function(x,i){x.className=i<n-1?"on":i==n-1?"on cur":""});document.getElementById("ldt").textContent=n+"／4 "+NS[n-1]+"…"};
 lgd.innerHTML='<div class="ld"><div class="ldp">'+PIG+'</div><b>小豬鎮</b><div class="ls"><i></i><i></i><i></i><i></i></div><small id="ldt"></small><small id="ldx"></small><div id="lds"></div></div>';LP.stage(1);tip();tt=setInterval(tip,3000);
-ts=setTimeout(function(){document.getElementById("ldx").textContent="網路比較慢，再等或重試";var b=document.createElement("button");b.className="ldr";b.textContent="再試一次";b.onclick=function(){location.reload()};document.getElementById("lds").appendChild(b)},6000);
+ts=setTimeout(function(){clearInterval(tt);document.getElementById("ldx").textContent="網路比較慢，再等或重試";var b=document.createElement("button");b.className="ldr";b.textContent="再試一次";b.onclick=function(){location.reload()};document.getElementById("lds").appendChild(b)},6000);
 try{var SB="https://gerqdagicybtyilihvvm.supabase.co/rest/v1/rpc/",K="sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y",pre=LP.pre={};
 function pf(fn,o){var b=JSON.stringify(o);pre[fn]={b:b,t:Date.now(),f:fetch(SB+fn,{method:"POST",keepalive:true,headers:{apikey:K,"Content-Type":"application/json"},body:b})};pre[fn].f.catch(function(){})}
 pf("town_state",{tid:T.toUpperCase().slice(0,8)});var a0=mine().filter(function(x){return x.tid==T.toUpperCase()})[0];if(a0&&a0.rid)pf("town_login",{rid:a0.rid,pin:a0.pin})}catch(e){}
