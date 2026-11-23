@@ -36,7 +36,7 @@ const SC=[
  {n:"modal-feed",mut:r=>{r.place="street";r.x=15;r.y=12},run:async p=>{await p.click("#feedBtn");await p.waitForTimeout(300)}},
  {n:"modal-menu",mut:r=>{r.place="street";r.x=15;r.y=12},run:async p=>{await p.click("#menuBtn");await p.waitForTimeout(300)}},
  {n:"modal-updates",mut:r=>{r.place="street";r.x=15;r.y=12},run:async p=>{await p.click("#menuBtn");await p.click("#updBtn");await p.waitForTimeout(300)}},
- {n:"modal-casino",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino";r.items.cas={ch:20000,bh:"PBPBBTPPBB"};r.money=5000},run:async p=>{await clickText(p,"玩百家樂");await p.waitForTimeout(600)},soft:1},
+ {n:"modal-casino",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino";r.items.cas={ch:20000,bh:"PBPBBTPPBB"};r.money=5000},run:async p=>{await clickText(p,"百家樂");await p.waitForTimeout(600)},soft:1},
  {n:"modal-casino-mines",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino";r.items.cas={ch:20000,bh:""};r.money=5000},run:async p=>{await clickText(p,"玩地雷");await clickText(p,"開局");await p.waitForTimeout(400);await p.click(".mc:not([disabled])");await p.waitForTimeout(300);await p.click(".mc:not([disabled])");await p.waitForTimeout(400)},soft:1},
  {n:"modal-casino-plinko",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino";r.items.cas={ch:20000,bh:""};r.money=5000},run:async p=>{await clickText(p,"玩彈珠台");await clickText(p,"投球");await p.waitForTimeout(2200)},soft:1},
  {n:"modal-casino-crash",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino";r.items.cas={ch:20000,bh:""};r.money=5000},run:async p=>{await clickText(p,"玩飛行器");await clickText(p,"起飛");await p.waitForTimeout(2500);await clickText(p,"收手");await p.waitForTimeout(500)},soft:1},

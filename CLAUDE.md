@@ -269,6 +269,11 @@
 
 - **2026-11-17 晚改成「實心分列」**（覆蓋上面 HUD／圓鈕敘述）：由上到下全是不透明獨立列、互不重疊——狀態列 `#needs`（0～安全區＋46px）→ 人物頁籤 `#strip`（52px）→ 訊息槽（28px，`#wev` 事件橫幅與 `#toast` 共用同一個位置，toast 蓋過橫幅）→ 地圖 `#stage`（`top:var(--top)`，`bottom:phpx+56px`，**canvas 只有這塊可視範圍，鏡頭置中、`pt/pb` 只留 8px**；`resize()` 由 ResizeObserver 觸發）→ 工具列（選單／我／看全鎮／動態，4 等寬鈕，56px，`.bar`＋`.tools`）→ 面板（固定高度 `--ph`，整體可捲、`#panel>*{flex-shrink:0}`、置頂的 `pin`／`tip` 按鈕 sticky）。不用 backdrop-filter／filter／漸層。面板內的小室內畫布 `#room` 遊戲中一律隱藏（改看主畫面）；進去／出門（朋友家、設施）是 `g:"pin"` 置頂。灰色「❯」是 iOS 系統的邊緣返回提示，不是遊戲元素。
 - **2026-11-17 深夜「手機遊戲標準版型」（覆蓋上面的列結構）**：頂 `#needs` 44px 實心 HUD（＋安全區）→ 舞台 `#stage`（地圖／室內，`top:hud`，`bottom:phpx+nav`，canvas 只用這塊）→ 面板 `#panel`（`bottom:var(--nav)`，高 `--ph=clamp(250px,32vh,340px)`；`--phpx` 由 `fit()`／ResizeObserver 寫入實際高度，**注意舊規則 `max-height:30vh` 已用 `max-height:none` 蓋掉**）→ 底部導覽列 56px（選單、我、看全鎮、朋友、動態；`.bar`＋`.tools`，背景是 `body::after`）。人物頁籤 `#strip` 平常隱藏，按「朋友」才顯示在面板上緣（`body.fr`）。面板結構：標題單行（`#here`，進去／出門 `#pinbox` 在右側）→ 一行小字 `#note` → 建議 `#tipbox`（≤2）→ 分類頁籤 `#ptabs`（不隨內容捲）→ 按鈕區 `#acts`（3 欄、`grid-auto-rows:60px`、`fit()` 把高度裁成整排、scroll-snap、底部淡出 `.more`）。訊息 `#toast`／`#wev` 是舞台上緣的實心膠囊（toast 蓋過橫幅）。`#room` 小畫布遊戲中隱藏。尺寸實測（mock）：390x844 地圖 56%、375x667 48%、430x932 57%，各尺寸按鈕區都是整排。
+## 底部抽屜與主動作列（2026-11-23，B 案「拇指區優先」第一階段）
+- 面板新增 `#mainrow`（`mainRow()`）：固定 3 顆貼在面板底、導覽列正上方——建議下一步（≤2）→ 最近用（`localStorage town-recent`，`recentAdd`）→ 其他可按的；第 3 格是「進去／出門」（pin），沒有就補一顆。`#tipbox`／`#pinbox` 保留 DOM 但 CSS 隱藏（內容改進主動作列）。手機（≤700px）第一次預設收合（`#panel.min`：只剩 grip＋主動作列），拉過 grip 後記 `town-drw`；抽屜操作 `UT.hit("drawer:main|list")`。樣式在 `drawcss`（town.js 第 3～4 行）。
+- 賭場按鈕標籤去掉「玩」前綴（`輪盤`、`百家樂`…）；ITEM 比對與 visual 情境同步；`集點卡換一杯` → `換咖啡`。
+- 尚未做：導覽列縮成四顆（仍 5 顆）、抽屜搜尋、分組小標（牌桌／骰盤／單人）、其餘標籤縮短與合併、PC 橫向版、室內舞台按內容放大、視覺基準圖更新。
+
 ## 像素風規則（2026-11-17）
 - 全遊戲維持像素風：字型只 Cubic 11（11／16.5／22px、不用粗體、字距 0），`-webkit-font-smoothing:none`；canvas 文字也用 Cubic 11，`fillText` 座標取整，`strokeText` 被改成 1px 四向硬描邊（`town.js` 開頭 `pxcss` 與 prototype 補丁）。
 - canvas 一律 `imageSmoothingEnabled=false`＋`image-rendering:pixelated`；地圖縮放 `snapS` 對齊整數裝置像素，鏡頭偏移 `ox/oy` 取整到裝置像素。
@@ -301,7 +306,7 @@
 | 今日特餐 | 錢 −200、飽足 +40、心情 +12 | — | — | `town_fac.sql#act = 'special'` |
 | 打包帶走 | 錢 −120、心情 +3 | 背包未滿 | 另得零食 1 包 | `town_fac.sql#act = 'takeout'` |
 | 特調咖啡 | 錢 −300、精力 +45、心情 +4 | — | 另得集點 +1 | `town_fac.sql#act = 'latte'` |
-| 集點卡換一杯 | 精力 +45、心情 +6 | 集點卡 8 點 | — | `town_fac.sql#act = 'redeem'` |
+| 換咖啡 | 精力 +45、心情 +6 | 集點卡 8 點 | — | `town_fac.sql#act = 'redeem'` |
 | 請客 | 錢 −200、心情 +4、好感 +3 | 要有人在場 | 對方心情 +10 | `town_fac.sql#act = 'treat'` |
 | 點歌 | 錢 −50、心情 +6 | — | 在場的人心情 +3 | `town_fac.sql#act = 'song'` |
 | 看今日片 | 錢 −280、心情 +16～22、精力 −4～0 | — | 每天換片 | `town_fac.sql#act = 'film'` |
