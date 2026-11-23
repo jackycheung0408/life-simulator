@@ -828,6 +828,21 @@
    ]
   },
   {
+   "file": "town_econ_use2.sql",
+   "kind": "patch",
+   "needs": [
+    "town_econ_sink.sql"
+   ],
+   "note": "遊艇出海、莊園派對（RPC town_econ_fun）"
+  },
+  {
+   "file": "town_econ_use2_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_econ_use2.sql"
+   ]
+  },
+  {
    "file": "town_persona.sql",
    "kind": "patch",
    "needs": [
@@ -852,6 +867,13 @@
   },
   {
    "file": "town_meet_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_meet.sql"
+   ]
+  },
+  {
+   "file": "town_meet_test2.sql",
    "kind": "test",
    "needs": [
     "town_meet.sql"
