@@ -322,7 +322,6 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
-  {id:"drawer-1123",date:"11/23",title:"單手好按",items:["下方三顆主按鈕，拇指直達","面板預設收起，上拉展開","按鈕名稱變短"]},
   {id:"rank-board-1123",date:"11/23",title:"廣場排行榜",items:["廣場新看板，看全鎮前 10 名","旁邊有首富雕像"]},
   {id:"casino-6new-1123",date:"11/23",title:"賭場新增六款",items:["地雷、彈珠台、飛行器","猜杯子、刮刮樂、開寶箱","點賭場裡的桌子開玩"]},
   {id:"casino-fee-1123",date:"11/23",title:"賭場手續費降價",items:["換回現金手續費降到 1.5%"]},
@@ -430,7 +429,7 @@ const RULES=[
 {k:"f:special",m:"fac:special",t:"今日特餐",fx:[["money",-200],["hunger",40],["fun",12]],sql:"town_fac.sql#act = 'special'",chk:[[/when 'special' then (\d+)/,"200"],[/act = 'special' then h := (\d+); f := (\d+)/,"40,12"]]},
 {k:"f:takeout",m:"fac:takeout",t:"打包帶走",fx:[["money",-120],["fun",3]],need:[["item","背包未滿"]],p:"另得零食 1 包",sql:"town_fac.sql#act = 'takeout'",chk:[[/when 'takeout' then (\d+)/,"120"],[/打包了一份帶走/,""]]},
 {k:"f:latte",m:"fac:latte",t:"特調咖啡",fx:[["money",-300],["energy",45],["fun",4]],p:"另得集點 +1",sql:"town_fac.sql#act = 'latte'",chk:[[/when 'latte' then (\d+)/,"300"],[/act = 'latte' then\s+e := (\d+); f := (\d+)/,"45,4"]]},
-{k:"f:redeem",m:"fac:redeem",t:"換咖啡",fx:[["energy",45],["fun",6]],need:[["item","集點卡 8 點"]],sql:"town_fac.sql#act = 'redeem'",chk:[[/act = 'redeem' then.*?e := (\d+); f := (\d+)/s,"45,6"]]},
+{k:"f:redeem",m:"fac:redeem",t:"集點卡換一杯",fx:[["energy",45],["fun",6]],need:[["item","集點卡 8 點"]],sql:"town_fac.sql#act = 'redeem'",chk:[[/act = 'redeem' then.*?e := (\d+); f := (\d+)/s,"45,6"]]},
 {k:"f:treat",m:"fac:treat",t:"請客",fx:[["money",-200],["fun",4],["bond",3]],need:[["near","要有人在場"]],p:"對方心情 +10",sql:"town_fac.sql#act = 'treat'",chk:[[/when 'treat' then (\d+)/,"200"],[/act = 'treat' then\s+f := (\d+); b := (\d+); t\.fun := t\.fun \+ (\d+)/,"4,3,10"]]},
 {k:"f:song",m:"fac:song",t:"點歌",fx:[["money",-50],["fun",6]],p:"在場的人心情 +3",sql:"town_fac.sql#act = 'song'",chk:[[/when 'song' then (\d+)/,"50"],[/act = 'song' then\s+f := (\d+).*?fun \+ (\d+)\)/,"6,3"]]},
 {k:"f:film",m:"fac:film",t:"看今日片",fx:[["money",-280],["fun","+16～22"],["energy","−4～0"]],p:"每天換片",sql:"town_fac.sql#act = 'film'",chk:[[/when 'film' then (\d+)/,"280"],[/f := \(array\[(\d+),(\d+),(\d+),(\d+)\]\)\[i \+ 1\]; e := \(array\[(-?\d+),(-?\d+),(-?\d+),(-?\d+)\]\)/,"18,22,16,20,-2,0,0,-4"]]},
@@ -451,7 +450,7 @@ const RULES=[
 /*RULES:END*/
 const RULES_TODO=/^(申請假釋|繳罰單|叫醒|叫他出來|旅人|找流動|和旅人|自首|出院|丟雞蛋|串門子|幫他洗澡|煮飯給他|送禮物|買禮物|買零食|惡作劇|打擂台|打喪屍豬|賣生豬肉|清掉便便|溜進去偷飼料|快速睡覺|做牢裡的勞動|付保釋金|替 |探病|越獄|報案|逛逛|買|探|應戰|向 |邀請|謝謝|換|看室內|裝潢|拉花|共點|主餐|外帶|情侶座|看完聊|今日特價|試吃|會員點數|常客|打工|每日任務|坐下|起身|丟飛盤|釣魚|健身房對練)/;
 const FAC={special:["今日特餐",200,"飽足 +40 · 心情 +12",["restaurant"],0],takeout:["打包帶走",120,"一份零食放進背包",["restaurant"],0],
- latte:["特調咖啡",300,"精力 +45 · 心情 +4 · 集點卡 +1",["cafe"],0],redeem:["換咖啡",0,"集滿 8 點免費換一杯 · 精力 +45 · 心情 +6",["cafe"],0],
+ latte:["特調咖啡",300,"精力 +45 · 心情 +4 · 集點卡 +1",["cafe"],0],redeem:["集點卡換一杯",0,"集滿 8 點免費換一杯 · 精力 +45 · 心情 +6",["cafe"],0],
  treat:["請客",200,"請在場的人喝咖啡：對方心情 +10、你 +4、好感 +3",["cafe"],1],song:["點歌",50,"你心情 +6，在場的人心情 +3",["cafe"],0],
  film:["看今日片",280,"",["cinema"],0],popcorn:["爆米花",80,"飽足 +12 · 心情 +4",["cinema"],0],
  spar:["對練",0,"雙方精力 −12、心情 +6、好感 +2 · 雙方精力要 ≥25",["gym"],1],checkin:["每日簽到",0,"心情 +3 · 連續 3 天 +€60、7 天 +€200",["gym"],0],
@@ -462,7 +461,7 @@ const VENACT=new Set(["art","share","combo","bring","seat","chat","sale","sample
 const REG={cafe:["老王","Amy","阿嬤"],restaurant:["胖叔","小雯","老闆娘的朋友"],cinema:["影迷阿凱","小琪","退休老師"],market:["王媽媽","陳伯","小美"]},REGP={cafe:[90,80],restaurant:[200,170],cinema:[280,240],market:[60,50]},REGQ={cafe:"幫我帶一杯咖啡",restaurant:"幫我帶一份便當",cinema:"幫我買一張票",market:"幫我拿一包零食"};
 const TASKS=["今天打工 3 次","做 3 次設施互動","去 3 個不同地點互動","和 2 位鄰居一起互動","健身房簽到","釣到一條魚","點歌或請客一次","吃今日特餐或野餐"];
 const RW=12,RH=5,RC=24;
-const ITEM={coffee:["cup","咖啡機",/特調咖啡/,1],cake:["cookie","蛋糕櫃",/換咖啡/,1],lamp:["lamp","立燈",null,1],jukebox:["guitar","點歌機",/點歌/,1],job:["case","員工通道",/^打工|^應徵/,0],bar:["plate","吧台",/請客|吃一頓/,1],table:["bench","桌椅",/坐下|起身/,1],plant:["plant","盆栽",null,1],
+const ITEM={coffee:["cup","咖啡機",/特調咖啡/,1],cake:["cookie","蛋糕櫃",/集點卡/,1],lamp:["lamp","立燈",null,1],jukebox:["guitar","點歌機",/點歌/,1],job:["case","員工通道",/^打工|^應徵/,0],bar:["plate","吧台",/請客|吃一頓/,1],table:["bench","桌椅",/坐下|起身/,1],plant:["plant","盆栽",null,1],
  kitchen:["meat","廚房窗口",/今日特餐|主餐＋飲料套餐/,1],latteart:["cup","拉花台",/拉花/,1],pot:["plate","共享茶壺桌",/共點/,1],menu:["picture","菜單板",/高級套餐/,0],pack:["box","打包櫃檯",/打包|外帶/,1],mirror:["picture","鏡子",null,0],locker:["lock","置物櫃",/每日簽到/,0],spa:["drops","溫泉池",/溫泉/,0],treadmill:["walk","跑步機",/^健身/,1],rack:["dumbbell","啞鈴架",/^健身/,1],bag:["fist","拳擊沙包",/對練/,1],
  bars:["bars","鐵窗",null,0],vent:["vent","通風口",/越獄/,0],glass:["glass","探監窗口",/探望/,0],gate:["door","大門（假釋）",/假釋/,0],bailDesk:["ticket","保釋櫃檯",/保釋/,1],bunk:["bed","上下鋪",null,1],work:["hammer","勞動工作台",/牢裡的勞動/,1],yard:["tree","放風場",/放風/,0],
  hbed:["bed","病床",null,1],reg:["ticket","掛號櫃檯",/掛號看診|^出院/,1],meds:["box","藥櫃",null,1],cross:["cross","十字標誌",null,0],
@@ -474,7 +473,7 @@ const ITEM={coffee:["cup","咖啡機",/特調咖啡/,1],cake:["cookie","蛋糕�
  ring:["ring","擂台",/打擂台|打一場/,1],sandbag:["fist","沙包",null,1],trophy:["trophy","獎盃櫃",null,1],blades:["swords","兵器架",null,1],
  vbike:["bike","腳踏車展示台",/腳踏車/,1],vmoto:["moto","機車展示台",/機車/,1],vcar:["car","汽車展示台",/汽車/,1],lic:["ticket","駕照報名櫃檯",/駕照/,1],gar:["wrench","保險維修櫃檯",/保險、維修/,1],
  cleaver:["cleaver","屠宰檯",/偷飼料/,1],hook:["meat","掛肉鉤",null,1],
- slotm:["slot","老虎機",/老虎機/,1],rwheel:["wheel","輪盤",/輪盤/,1],btable:["ctable","百家樂桌",/百家樂/,1],bjt:["card","21 點桌",/21點/,1],dtable:["dice","骰寶桌",/骰寶/,1],cashier:["chipstack","籌碼櫃台",/小豬賭場/,1],minet:["g_mn","地雷桌",/地雷/,1],plk:["g_plk","彈珠台",/彈珠台/,1],crm:["g_cr","飛行器",/飛行器/,1],cupt:["g_cp","猜杯子桌",/猜杯子/,1],scm:["g_sc","刮刮樂機",/刮刮樂/,1],chst:["g_ch","寶箱桌",/開寶箱/,1]};
+ slotm:["slot","老虎機",/玩老虎機/,1],rwheel:["wheel","輪盤",/玩輪盤/,1],btable:["ctable","百家樂桌",/玩百家樂/,1],bjt:["card","21 點桌",/玩21點/,1],dtable:["dice","骰寶桌",/玩骰寶/,1],cashier:["chipstack","籌碼櫃台",/小豬賭場/,1],minet:["g_mn","地雷桌",/玩地雷/,1],plk:["g_plk","彈珠台",/玩彈珠台/,1],crm:["g_cr","飛行器",/玩飛行器/,1],cupt:["g_cp","猜杯子桌",/玩猜杯子/,1],scm:["g_sc","刮刮樂機",/玩刮刮樂/,1],chst:["g_ch","寶箱桌",/玩開寶箱/,1]};
 const ROOMS={
  cafe:{floor:["#d9b48a","#cfa67a"],wall:"#7a4a24",items:[["coffee",1,0],["cake",3,0],["lamp",5,0],["latteart",6,0],["jukebox",8,0],["job",10,0],["bar",2,1],["pot",6,3],["table",4,3],["table",8,3],["plant",0,4],["plant",11,4]]},
  restaurant:{floor:["#f1e0c6","#e6d0ae"],wall:"#c0392b",items:[["kitchen",1,0],["menu",3,0],["lamp",5,0],["lamp",8,0],["job",10,0],["bar",2,1],["pack",4,1],["table",3,3],["table",7,3],["table",10,3],["plant",0,4],["plant",11,4]]},
@@ -887,7 +886,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  else if(p=="cafe"){title="咖啡廳";list.push(btn("喝咖啡 ☕","€90 · 精力 +50 · 膀胱 −10",()=>act("coffee")),pjBtn("cafe",r));note=pjNote("cafe",r)}
  else if(p=="rafi"){title="拉菲's office";list.push(pjBtn("rafi",r));note=pjNote("rafi",r)+" · 薪水比公司高但很傷心情"}
  else if(p=="stock"){title="證券交易所";list.push(btn("看盤與買賣 📈","8 檔股票、全天開、沒手續費",()=>stockModal()));note=`低買高賣賺差價，留意今日消息 · 持股 ${stockN(r)} 檔`}
- else if(p=="casino"){title="賭場";if(isOn("casino")){list.push(btn("小豬賭場 🪙","籌碼櫃台與全部押錢遊戲 · 離場自動換回現金（1.5%）",()=>casinoOpen()));if(fin(r))gmSort([["輪盤 🎡","美式輪盤","wheel"],["老虎機 🎰","三個一樣最高 ×100","slots"],["百家樂 🃏","押閒、莊、和","bacc"],["21點 🃏","6:5，莊家軟 17 要牌","bj"],["骰寶 🎲","大小、三顆一樣、單點","dice"],["地雷 💣","5×5 翻格，隨時收手","mines"],["彈珠台 🔵","12 層落珠，三種風險","plinko"],["飛行器 ✈️","墜毀前收手","crash"],["猜杯子 🍵","3 杯 1 球 ×2.88","cups"],["刮刮樂 🧧","9 格刮三個一樣","scratch"],["開寶箱 🗝️","5 箱 1 空，可換箱","chest"],["比大小 🔼","一樣大退回，越難猜賠越多","hl"],["基諾 🧮","80 選 5，開 20","keno"],["射龍門 🎯","莊家制，不賭可免費放棄","dg"],["妞妞 🐮","和莊家比 5 張牌","niu"],["三公 🀄","三張牌比點","sangong"],["十八啦 🔟","四顆骰找一對比點","shiba"],["賽豬 🐖","單勝、前二名","pigrace"],["牌九 🎴","分兩墩和莊家比","pj"]],x=>x[2]).forEach(([l,d,k],n)=>list.push(btn(l,(gmTag(k)?gmTag(k)+" · ":"")+d,()=>casinoOpen(k))))}else note="賭場被鎮長關閉了"}
+ else if(p=="casino"){title="賭場";if(isOn("casino")){list.push(btn("小豬賭場 🪙","籌碼櫃台與全部押錢遊戲 · 離場自動換回現金（1.5%）",()=>casinoOpen()));if(fin(r))gmSort([["玩輪盤 🎡","美式輪盤","wheel"],["玩老虎機 🎰","三個一樣最高 ×100","slots"],["玩百家樂 🃏","押閒、莊、和","bacc"],["玩21點 🃏","6:5，莊家軟 17 要牌","bj"],["玩骰寶 🎲","大小、三顆一樣、單點","dice"],["玩地雷 💣","5×5 翻格，隨時收手","mines"],["玩彈珠台 🔵","12 層落珠，三種風險","plinko"],["玩飛行器 ✈️","墜毀前收手","crash"],["玩猜杯子 🍵","3 杯 1 球 ×2.88","cups"],["玩刮刮樂 🧧","9 格刮三個一樣","scratch"],["玩開寶箱 🗝️","5 箱 1 空，可換箱","chest"],["玩比大小 🔼","一樣大退回，越難猜賠越多","hl"],["玩基諾 🧮","80 選 5，開 20","keno"],["玩射龍門 🎯","莊家制，不賭可免費放棄","dg"],["玩妞妞 🐮","和莊家比 5 張牌","niu"],["玩三公 🀄","三張牌比點","sangong"],["玩十八啦 🔟","四顆骰找一對比點","shiba"],["玩賽豬 🐖","單勝、前二名","pigrace"],["玩牌九 🎴","分兩墩和莊家比","pj"]],x=>x[2]).forEach(([l,d,k],n)=>list.push(btn(l,(gmTag(k)?gmTag(k)+" · ":"")+d,()=>casinoOpen(k))))}else note="賭場被鎮長關閉了"}
  else if(p=="carshop"){title="車行";const own=vehOwn(r);for(const k of ["moto","car"])list.push(hasLic(r,k)?btn(`🎫 ${VEH[k][0]}駕照`,"已考到",()=>toast("你已經有這張駕照了")):btn(`🎫 考${VEH[k][0]}駕照`,`報名費 €${LICFEE[k]} · 三題答對兩題`,()=>licModal(k)));
   list.push(btn("🛡️ 保險、維修、賣車",own.some(k=>k!="bike")||own.length?"強制險、任意險、修車、二手車折價":"買了車才用得到",()=>garageModal()));
   for(const k in VEH){const v=VEH[k];list.push(own.includes(k)?btn(`${v[4]} ${v[0]}`,"已擁有 · 到路上就能上車",()=>toast("你已經有了")):btn(`${v[4]} 買${v[0]}`,`€${v[1]} · 速度 ×${v[2]} · ${v[3]?`油錢 €${v[3]}／格`:"不用油錢"}`,()=>act("vbuy",{item:k})))}note="路上騎車開車比走路快；機車和汽車每走一格扣油錢，沒錢加油會被迫下車。開車有機率出事故，買保險比較安心，車況差要記得修"}
