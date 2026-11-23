@@ -28,6 +28,8 @@ const SC=[
  {n:"in-arena",mut:r=>{r.place="arena";r.x=53;r.y=6;r.items.fi="arena"}},
  {n:"in-carshop",mut:r=>{r.place="carshop";r.x=46;r.y=14;r.items.fi="carshop"}},
  {n:"in-slaughter",mut:r=>{r.place="slaughter";r.x=53;r.y=14;r.items.fi="slaughter"}},
+ {n:"drawer-casino",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino"},run:async p=>{await p.click("#grip");await p.waitForTimeout(500)},soft:1},
+ {n:"drawer-cafe",mut:r=>{r.place="cafe";r.x=38;r.y=5;r.items.fi="cafe"},run:async p=>{await p.click("#grip");await p.waitForTimeout(500)},soft:1},
  {n:"in-casino",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino"}},
  {n:"home-inside",mut:r=>{r.place="home:1"}},
  {n:"friend-door",mut:r=>{r.place="home:3";r.items.dr=0}},
@@ -76,8 +78,8 @@ const CHECK=()=>{
   if(r.left<-1||r.right>W+1||r.bottom>H+1||r.top<-1)add("btn-out",`「${t}」超出視窗 (${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.right)},${Math.round(r.bottom)})`);
   if(mobile&&r.height<43.5)add("btn-small",`「${t}」高度 ${Math.round(r.height)}px`);
   if(mobile&&sc!="#mbody"&&r.width<43.5)add("btn-small",`「${t}」寬度 ${Math.round(r.width)}px`)}
- // 導覽列五顆
- const nav=["#menuBtn","#home","#zoom","#friendBtn","#feedBtn"].map(s=>({s,r:R(s)}));
+ // 導覽列四顆（看全鎮改浮在舞台右上）
+ const nav=["#menuBtn","#home","#friendBtn","#feedBtn"].map(s=>({s,r:R(s)}));
  if(!document.querySelector("#modal:not(.hide)")){const miss=nav.filter(x=>!x.r);if(miss.length&&mobile)add("nav",`導覽列缺：${miss.map(x=>x.s).join(",")}`);
   const ws=nav.filter(x=>x.r).map(x=>Math.round(x.r.width));if(mobile&&ws.length>1&&Math.max(...ws)-Math.min(...ws)>3)add("nav",`導覽列寬度不等 ${ws.join("/")}`)}
  // 訊息槽不與 HUD 重疊
