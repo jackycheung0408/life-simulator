@@ -512,7 +512,7 @@ const RULES=[
 {k:"inv:yes",m:/^邀請 .* 一起/,t:"邀請一起做",fx:[["fun","+12"],["energy","+5"],["bond",1]],need:[["near","對方同地點醒著"]],p:"對方 1 分鐘內接受才生效，雙方都加成；同一對 30 分鐘一次",sql:"town_social.sql#r := public.town_tg(r, 12, 5)",chk:[[/town_tg\(r, (\d+), (\d+)\); t := public\.town_tg\(t, (\d+), (\d+)\)/,"12,5,12,5"]]},
 ];
 /*RULES:END*/
-const RULES_TODO=/^(旅人|找流動|和旅人|替 |報案|買|探|應戰|向 |換|看室內|常客|打工|每日任務|坐下|起身|丟飛盤|釣魚|健身房對練)/;
+const RULES_TODO=/^(旅人|找流動|和旅人|替 |買|探|向 |換|看室內|常客|打工|每日任務|坐下|起身)/;
 const FAC={special:["今日特餐",200,"飽足 +40 · 心情 +12",["restaurant"],0],takeout:["打包帶走",120,"一份零食放進背包",["restaurant"],0],
  latte:["特調咖啡",300,"精力 +45 · 心情 +4 · 集點卡 +1",["cafe"],0],redeem:["換咖啡",0,"集滿 8 點免費換一杯 · 精力 +45 · 心情 +6",["cafe"],0],
  treat:["請客",200,"請在場的人喝咖啡：對方心情 +10、你 +4、好感 +3",["cafe"],1],song:["點歌",50,"你心情 +6，在場的人心情 +3",["cafe"],0],
@@ -917,7 +917,7 @@ const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀
 // ── 下方面板：依所在地點顯示可以做的事 ──
 // ── 按鈕效果與門檻：全部出自 RULES（頂層）；b.key 或標籤比對 RULES，沒有規則的不顯示晶片（nofx 或待確認）──
 const FXI={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"💰",bond:"💗",fit:"💪"},FXN={hunger:"飽足",energy:"精力",bladder:"膀胱",hygiene:"清潔",fun:"心情",money:"錢",bond:"好感",fit:"體能"};
-const NOFXRE=/^(逛貨架|看菜單|福利社|櫃台商品|小攤販|攤位|拍賣與捐款|莊園|遊艇|升級|房子已是豪宅|買莊園|莊園 |買遊艇|遊艇 |去碼頭出海|出海|辦派對|幫他取外號|我的人設|報案|叫他出來|申請假釋|出院|自首|會員點數換|看排行榜|起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|玩(輪盤|老虎機|百家樂|21點|骰寶|比大小|基諾|射龍門|妞妞|三公|十八啦|賽豬|牌九|地雷|彈珠台|飛行器|猜杯子|刮刮樂|開寶箱)|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
+const NOFXRE=/^(應戰|逛貨架|看菜單|福利社|櫃台商品|小攤販|攤位|拍賣與捐款|莊園|遊艇|升級|房子已是豪宅|買莊園|莊園 |買遊艇|遊艇 |去碼頭出海|出海|辦派對|幫他取外號|我的人設|報案|叫他出來|申請假釋|出院|自首|會員點數換|看排行榜|起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|玩(輪盤|老虎機|百家樂|21點|骰寶|比大小|基諾|射龍門|妞妞|三公|十八啦|賽豬|牌九|地雷|彈珠台|飛行器|猜杯子|刮刮樂|開寶箱)|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
 const wageOf=r=>{const n=+((r.items||{}).works)||0;let w=JOBS[0][2];for(const j of JOBS)if(n>=j[1])w=j[2];return w};
 function ruleOf(b,r){if(b.key)return RULES.find(x=>x.m===b.key)||null;const l=String(b.label).replace(/\p{Extended_Pictographic}️?\s*/gu,"").trim();return RULES.find(x=>x.m instanceof RegExp&&x.m.test(l)&&(!x.at||x.at.includes(r.place)))||null}
 function fxOf(b,r){const ru=b.nofx?null:ruleOf(b,r);if(!ru)return{fx:[],need:[],chips:[],rule:null};const fx=typeof ru.fx=="function"?ru.fx(r,{hasF,wage:wageOf}):ru.fx.slice(),need=[];
