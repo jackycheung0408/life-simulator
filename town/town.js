@@ -45,6 +45,11 @@ typeof document!=="undefined"&&(()=>{const st=document.createElement("style");st
 /* 防晃動：賭場視窗靠上對齊（高度變了不會整個面板上下跳）、牌桌固定框線與最小高度、「莊家發牌中」浮在牌桌上不佔版面、捲軸槽固定 */
 #modal:has(.gmenu),#modal:has(.garea){align-items:flex-start;padding-top:12px}
 #modal .card{scrollbar-gutter:stable}
+/* 牌桌分區：視窗內 標題／遊戲區（可捲、結果與「再來一局」都在這）／下注列（固定不蓋住遊戲區） */
+#modal .card:has(.garea){display:flex;flex-direction:column;overflow:hidden;max-height:calc(100dvh - 24px)}
+#modal .card:has(.garea)>*{flex:none}
+#modal .card:has(.garea)>.garea{flex:1 1 auto;min-height:96px;overflow-y:auto;overscroll-behavior:contain}
+#modal .card:has(.garea)>.betbar{position:static;margin:8px 0 0}
 .gshow{position:relative;box-sizing:border-box;border:3px solid transparent;padding:8px;min-height:150px}
 .gshow .dealer{position:absolute;top:2px;right:8px;margin:0;z-index:2;font-size:11px;pointer-events:none}
 .nochip{margin:6px 0}
