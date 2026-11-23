@@ -710,6 +710,15 @@
    "note": "賭場內部（進館）：town_fi 白名單加 casino、town_need_in_pl 加 casino、town_casino／town_casino_state 開頭檢查進館；不動 town_casino_leave"
   },
   {
+   "file": "town_casino_fee.sql",
+   "kind": "patch",
+   "needs": [
+    "town_casino.sql",
+    "town_casino_fi.sql"
+   ],
+   "note": "賭場換回現金手續費 5% → 1.5%（town_casino_state 的 sell 就地改、town_casino_leave 重建）"
+  },
+  {
    "file": "town_ticket_sus.sql",
    "kind": "patch",
    "needs": [

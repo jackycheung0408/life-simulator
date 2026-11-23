@@ -2,9 +2,9 @@
 --   設施：casino「賭場」（地圖 [66,9,5,5]、門 (68,14)），鎮長可用功能開關 casino 關掉。廣場街機只留猜拳與單機。
 --   押錢遊戲（9 種）：比大小 hl、輪盤 wheel、21 點 bj、骰寶 dice、老虎機 slots、基諾 keno、百家樂 bacc、射龍門 dg、妞妞 niu（輪盤、21 點、骰寶、老虎機、基諾、射龍門的新規則在 town_casino2.sql）
 --   入口：RPC town_casino(rid,pin,game,bet,choice) 包住 town_game／town_game2；town_casino_state(rid,pin,op,val)：view／buy／sell／rest。
---   籌碼制（2026-11-23 使用者決定）：進賭場用現金 1:1 換籌碼（buy），遊戲全部用籌碼押，換回現金（sell）時抽 5%（無條件進位）。
+--   籌碼制（2026-11-23 使用者決定）：進賭場用現金 1:1 換籌碼（buy），遊戲全部用籌碼押，換回現金（sell）時抽 1.5%（無條件進位）。
 --     遊戲本身不再抽 5%：猜拳 ×2、百家樂改免佣（莊贏 ×2，但莊以 6 點贏只賠 ×1.5，期望 0.9857）。其他遊戲的賠率不動。
---     抽成處理：換回現金的 5% 手續費一半進鎮基金（fund_log.casino）、一半銷毀。籌碼放在 items.cas.ch，財產稅的基礎 = 現金 + 籌碼。
+--     抽成處理：換回現金的 1.5% 手續費一半進鎮基金（fund_log.casino）、一半銷毀。籌碼放在 items.cas.ch，財產稅的基礎 = 現金 + 籌碼。
 --     實作：town_casino 在呼叫 town_game／town_game2 前把居民的 money 暫時換成籌碼、呼叫完換回現金（同一個交易內，出錯整個回滾）。
 --   不設預算、不設單注上限、不設每日淨輸上限（只受籌碼數量限制；妞妞與射龍門仍要有押注 3 倍的籌碼）。
 --   唯一保留的限制：開局間隔至少 3 秒（防腳本連點）。自我排除已於 2026-11-23 取消（使用者決定）。
@@ -148,7 +148,7 @@ begin
   return (res::jsonb || jsonb_build_object('money', v_cash, 'casino', jsonb_build_object('chips', m1, 'bh', coalesce(cs->>'bh', ''))))::json;
 end $$;
 
--- 櫃台與狀態：view 看狀態、buy 現金換籌碼（1:1）、sell 籌碼換回現金（抽 5%，無條件進位）
+-- 櫃台與狀態：view 看狀態、buy 現金換籌碼（1:1）、sell 籌碼換回現金（抽 1.5%，無條件進位）
 create or replace function public.town_casino_state(rid bigint, pin text, op text default 'view', val int default null) returns json
 language plpgsql security definer set search_path = public as $$
 #variable_conflict use_variable
@@ -169,7 +169,7 @@ begin
     if r.place <> 'casino' then raise exception '要在賭場櫃台才能換回現金'; end if;
     if val is null or val < 1 then raise exception '要換回多少？'; end if;
     if val > v_chips then raise exception '籌碼不夠'; end if;
-    v_fee := (val::bigint * 5 + 99) / 100;
+    v_fee := (val::bigint * 15 + 999) / 1000;
     v_chips := v_chips - val; cs := cs || jsonb_build_object('ch', v_chips);
     update public.town_residents p set money = p.money + (val - v_fee), items = jsonb_set(p.items, '{cas}', cs) where p.id = rid;
     r.money := r.money + (val - v_fee);
@@ -184,14 +184,14 @@ revoke all on function public.town_casino_maxbet(bigint), public.town_casino_nor
 revoke all on function public.town_casino(bigint,text,text,int,text), public.town_casino_state(bigint,text,text,int) from public;
 grant execute on function public.town_casino(bigint,text,text,int,text), public.town_casino_state(bigint,text,text,int) to anon, authenticated;
 -- 離場強制換回現金（使用者 2026-11-23）：居民的 place 從 casino 變成別處（走出去、回家、睡覺、入獄、送醫、離線自動回家、傳送……任何路徑）時，
--- 剩下的籌碼自動換回現金（手續費 5% 無條件進位，一半進鎮基金、一半銷毀），寫一行動態；沒有籌碼就什麼都不做；換完籌碼歸零，不會重複結算。
+-- 剩下的籌碼自動換回現金（手續費 1.5% 無條件進位，一半進鎮基金、一半銷毀），寫一行動態；沒有籌碼就什麼都不做；換完籌碼歸零，不會重複結算。
 -- 用資料表觸發器做，所以不用一個個去改 town_act／town_tick／入獄等函式。
 create or replace function public.town_casino_leave() returns trigger language plpgsql security definer set search_path = public as $$
 declare v_chips bigint; v_fee bigint; v_back bigint;
 begin
   v_chips := coalesce((NEW.items->'cas'->>'ch')::bigint, 0);
   if v_chips <= 0 then return NEW; end if;
-  v_fee := (v_chips * 5 + 99) / 100; v_back := v_chips - v_fee;
+  v_fee := (v_chips * 15 + 999) / 1000; v_back := v_chips - v_fee;
   NEW.money := NEW.money + v_back;
   NEW.items := jsonb_set(NEW.items, '{cas,ch}', '0'::jsonb);
   perform public.town_fund_add(NEW.town_id, 'casino', (v_fee / 2)::int);

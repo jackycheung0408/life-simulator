@@ -42,4 +42,4 @@ module.exports=(M,check)=>{const fs=require("fs"),sq=fs.readFileSync(__dirname+"
   check(c1.includes("town_casino_leave")&&c1.includes("before update of place")&&!c1.includes("賭場請你休息一下")&&c1.includes("每局至少間隔 3 秒")&&!c1.includes("你設了自我排除"),"賭場 SQL：要有離場觸發器、不能有冷靜休息、不能有自我排除、要保留 3 秒間隔");
   check(js.includes("squeezeDeal")&&js.includes("foldRules")&&js.includes("自動換回現金"),"前端要有咪牌、規則折疊與離場自動換回現金的說明")}
  // 莊家盈餘與籌碼制的前端文字
- check(js.includes('"town_casino_state"')&&js.includes("換回現金")&&js.includes("5%"),"前端要有換籌碼與換回現金（抽 5%）的說明")}
+ check(js.includes('"town_casino_state"')&&js.includes("換回現金")&&js.includes("1.5%"),"前端要有換籌碼與換回現金（抽 1.5%）的說明")}

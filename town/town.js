@@ -88,7 +88,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ── 地圖：寬 34 格。市中心固定；住宅一排 3 間（5×4 格，門在正下方），住滿就往下多開一條街，最多 4 排 ──
 const T=32,COLS=71,MAXROWS=4;let NR=2,OFF=new Set(),POOPS=[];
 // 鎮長可以關掉的設施
-const FEATS=[["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、打地鼠、記憶翻牌、下戰帖"],["casino","小豬賭場","押錢遊戲 9 種，用籌碼玩，換回現金抽 5%"],["rafi","拉菲's office","白領打工，薪水較高"],["stock","證券交易所","買賣 8 檔小豬鎮股票"],["zombie","喪屍豬","夜間街上會出現喪屍豬，打倒領獎"],["carshop","車行","買腳踏車、機車、汽車"],["lux","奢侈品","高級套餐、溫泉、旅行（錢多的人花錢用）"],["jail","監獄","砍人被抓的人關在這裡，可勞動、探監、保釋"],["hospital","醫院","昏倒、住院的人送這裡，可看診、探病"],["police","警察局","繳罰單、自首、報案、治安統計"],["townhall","市政廳","鎮基金、公告、居民投票、建設案"]];
+const FEATS=[["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、打地鼠、記憶翻牌、下戰帖"],["casino","小豬賭場","押錢遊戲 9 種，用籌碼玩，換回現金抽 1.5%"],["rafi","拉菲's office","白領打工，薪水較高"],["stock","證券交易所","買賣 8 檔小豬鎮股票"],["zombie","喪屍豬","夜間街上會出現喪屍豬，打倒領獎"],["carshop","車行","買腳踏車、機車、汽車"],["lux","奢侈品","高級套餐、溫泉、旅行（錢多的人花錢用）"],["jail","監獄","砍人被抓的人關在這裡，可勞動、探監、保釋"],["hospital","醫院","昏倒、住院的人送這裡，可看診、探病"],["police","警察局","繳罰單、自首、報案、治安統計"],["townhall","市政廳","鎮基金、公告、居民投票、建設案"]];
 const setOff=a=>{OFF=new Set(a||[])};const isOn=k=>!OFF.has(k);
 const setRows=n=>{NR=clamp(n||2,2,MAXROWS)};
 const mapRows=()=>NR<=2?23:30+7*(NR-3);
@@ -307,6 +307,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"casino-fee-1123",date:"11/23",title:"賭場手續費降價",items:["換回現金手續費降到 1.5%"]},
   {id:"casino-room-1123",date:"11/23",title:"賭場有室內了",items:["進賭場，點賭桌開玩","下注更順、開牌更快","桌上可直接換遊戲"]},
   {id:"casino4-1123",date:"11/23",title:"賭場四款新遊戲",items:["新增三公、十八啦","新增賽豬、牌九"]},
   {id:"sus-1123",date:"11/23",title:"車子比較不會被吊銷",items:["違規記滿 10 點才暫停","暫停改成 6 小時"]},
@@ -799,7 +800,7 @@ async function act(a,extra={}){if(busy)return;if(FACTS.has(a))await ensureIn();b
  catch(e){toast(e.message);feedback(false,e.message)}busy=false;$("acts").classList.remove("busy");renderPanel()}
 function sumChanges(b0,b1,ic){const o=[];for(const f of ["money",...NEEDS]){const d=Math.round(b1[f]-b0[f]);if(Math.abs(d)>=1)o.push(f=="money"?`${d>0?"+":"−"}€${Math.abs(d)}`:`${ic[f]}${d>0?"+":""}${d}`)}return o.join(" ")||"完成"}
 let pendingThen=null;
-function walkTo(dest,d){if(jailed(R[me])){pendingThen=null;toast(`你被關在監獄裡，還有 ${fmtLeft(jlLeft(R[me]))}`);return}leaveRoomLocal();const w=walkers[me],p=route([Math.round(w.x),Math.round(w.y)],d,vehOf(R[me])),th=pendingThen;pendingThen=null;if(!p){toast("走不到那裡，路被擋住了");return}if(R[me].place=="casino"&&dest!="casino"&&CAS&&CAS.chips>0){const c=CAS.chips,f=Math.ceil(c*.05);toast(`離開賭場：籌碼 €${c} 換回現金 €${c-f}（手續費 €${f}）`);CAS.chips=0}
+function walkTo(dest,d){if(jailed(R[me])){pendingThen=null;toast(`你被關在監獄裡，還有 ${fmtLeft(jlLeft(R[me]))}`);return}leaveRoomLocal();const w=walkers[me],p=route([Math.round(w.x),Math.round(w.y)],d,vehOf(R[me])),th=pendingThen;pendingThen=null;if(!p){toast("走不到那裡，路被擋住了");return}if(R[me].place=="casino"&&dest!="casino"&&CAS&&CAS.chips>0){const c=CAS.chips,f=Math.ceil(c*.015);toast(`離開賭場：籌碼 €${c} 換回現金 €${c-f}（手續費 €${f}）`);CAS.chips=0}
  w.path=p.slice(1);w.dest=dest;w.then=th;w.goal=d;camFree=false;if(!w.path.length)arrived(w);renderPanel()}
 function arrived(w){const d=w.dest,th=w.then;w.dest=null;w.then=null;act("move",{px:w.goal[0],py:w.goal[1],dest:d}).then(async()=>{if(ROOMS[d]&&R[me]&&!jailed(R[me]))await enterRoom(d,true);if(th)th()})}
 // ── 點擊即互動 ──
@@ -859,7 +860,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  else if(p=="cafe"){title="咖啡廳";list.push(btn("喝咖啡 ☕","€90 · 精力 +50 · 膀胱 −10",()=>act("coffee")),pjBtn("cafe",r));note=pjNote("cafe",r)}
  else if(p=="rafi"){title="拉菲's office";list.push(pjBtn("rafi",r));note=pjNote("rafi",r)+" · 薪水比公司高但很傷心情"}
  else if(p=="stock"){title="證券交易所";list.push(btn("看盤與買賣 📈","8 檔股票、全天開、沒手續費",()=>stockModal()));note=`低買高賣賺差價，留意今日消息 · 持股 ${stockN(r)} 檔`}
- else if(p=="casino"){title="賭場";if(isOn("casino")){list.push(btn("小豬賭場 🪙","籌碼櫃台與全部押錢遊戲 · 離場自動換回現金（5%）",()=>casinoOpen()));if(fin(r))[["玩輪盤 🎡","美式輪盤","wheel"],["玩老虎機 🎰","三個一樣最高 ×100","slots"],["玩百家樂 🃏","押閒、莊、和","bacc"],["玩21點 🃏","6:5，莊家軟 17 要牌","bj"],["玩骰寶 🎲","大小、三顆一樣、單點","dice"]].forEach(([l,d,k])=>list.push(btn(l,d,()=>casinoOpen(k))))}else note="賭場被鎮長關閉了"}
+ else if(p=="casino"){title="賭場";if(isOn("casino")){list.push(btn("小豬賭場 🪙","籌碼櫃台與全部押錢遊戲 · 離場自動換回現金（1.5%）",()=>casinoOpen()));if(fin(r))[["玩輪盤 🎡","美式輪盤","wheel"],["玩老虎機 🎰","三個一樣最高 ×100","slots"],["玩百家樂 🃏","押閒、莊、和","bacc"],["玩21點 🃏","6:5，莊家軟 17 要牌","bj"],["玩骰寶 🎲","大小、三顆一樣、單點","dice"]].forEach(([l,d,k])=>list.push(btn(l,d,()=>casinoOpen(k))))}else note="賭場被鎮長關閉了"}
  else if(p=="carshop"){title="車行";const own=vehOwn(r);for(const k of ["moto","car"])list.push(hasLic(r,k)?btn(`🎫 ${VEH[k][0]}駕照`,"已考到",()=>toast("你已經有這張駕照了")):btn(`🎫 考${VEH[k][0]}駕照`,`報名費 €${LICFEE[k]} · 三題答對兩題`,()=>licModal(k)));
   list.push(btn("🛡️ 保險、維修、賣車",own.some(k=>k!="bike")||own.length?"強制險、任意險、修車、二手車折價":"買了車才用得到",()=>garageModal()));
   for(const k in VEH){const v=VEH[k];list.push(own.includes(k)?btn(`${v[4]} ${v[0]}`,"已擁有 · 到路上就能上車",()=>toast("你已經有了")):btn(`${v[4]} 買${v[0]}`,`€${v[1]} · 速度 ×${v[2]} · ${v[3]?`油錢 €${v[3]}／格`:"不用油錢"}`,()=>act("vbuy",{item:k})))}note="路上騎車開車比走路快；機車和汽車每走一格扣油錢，沒錢加油會被迫下車。開車有機率出事故，買保險比較安心，車況差要記得修"}
@@ -1206,8 +1207,8 @@ function updBud(){const e=document.getElementById("gBud");if(e)e.textContent=""}
 function casStatus(){if(!CAS)return"";const cash=R[me].money,ins=[1000,5000,20000,100000].filter(v=>v<cash),outs=[1000,5000,20000,100000].filter(v=>v<CAS.chips);
  return `<div class="cbal"><span>現金 <b>€${cash}</b></span><span>籌碼 <b>€${CAS.chips}</b></span><span>今天 ${CAS.rounds} 局 <b class="${CAS.net>=0?"good":"bad"}">${CAS.net>=0?"+":""}${CAS.net}</b></span></div>
  <div class="chips"><span class="clab">換入（1:1）</span>${ins.map(v=>`<button data-cin="${v}">€${v}</button>`).join("")}${cash>0?`<button data-cin="${cash}">全部現金</button>`:""}</div>
- <div class="chips"><span class="clab">換出（抽 5%）</span>${outs.map(v=>`<button data-cout="${v}">€${v}<small>−${Math.ceil(v*0.05)}</small></button>`).join("")}${CAS.chips>0?`<button data-cout="${CAS.chips}">全部<small>−${Math.ceil(CAS.chips*0.05)}</small></button>`:""}</div>
- <p class="mut cnote">走出賭場時，剩下的籌碼會自動換回現金（手續費 5%，無條件進位）。</p>`}
+ <div class="chips"><span class="clab">換出（抽 1.5%）</span>${outs.map(v=>`<button data-cout="${v}">€${v}<small>−${Math.ceil(v*0.015)}</small></button>`).join("")}${CAS.chips>0?`<button data-cout="${CAS.chips}">全部<small>−${Math.ceil(CAS.chips*0.015)}</small></button>`:""}</div>
+ <p class="mut cnote">走出賭場時，剩下的籌碼會自動換回現金（手續費 1.5%，無條件進位）。</p>`}
 async function casinoOpen(tab){await ensureIn();try{CAS=await rpc("town_casino_state",{rid:me,pin,op:"view"})}catch(e){toast(e.message);return}gameHall="casino";gameTab=typeof tab=="string"?tab:"";betHist=[];if(gameBet>CAS.chips)gameBet=50;gamesModal()}
 async function casDo(op,val){try{CAS=await rpc("town_casino_state",{rid:me,pin,op,val});R[me].money=CAS.money;renderNeeds();gamesModal()}catch(e){toast(e.message)}}
 // 發牌臨場感：新出現的牌從牌堆滑進來、蓋牌翻面、一張一張發，結果文字等牌發完才出現；每個畫面只動「新」的牌；系統設定「減少動態效果」時不做
@@ -1226,7 +1227,7 @@ function gamesModal(){$("modal").classList.remove("hide");if(!window._dealObs){w
  const gic=ic=>/^g_/.test(ic)&&window.PIXICON_NAME?`<img class="px" alt="" src="${PIXICON_NAME(ic)}">`:ic;
  const gm=l=>l.map(([k,ic,n,d])=>`<button class="gm" data-g="${k}"><span class="gi">${gic(ic)}</span><b>${n}</b><small>${d}${SOLO.some(g=>g[0]==k)?` · 最佳 ${spOf(R[me],k)}`:""}</small></button>`).join("");
  const hall=gameHall=="casino",bets=hall?[...[50,100,200,500,1000,2000,5000,10000,20000,50000,100000,500000,1000000].filter(b=>b<((CAS&&CAS.chips)||0)),...(CAS&&CAS.chips>=50?[CAS.chips]:[])]:[50,100,200,500,1000],hn=hall?"賭場":"街機";
- $("mbody").innerHTML=menu?(hall?`<h2>🎰 小豬賭場</h2><p class="mut">籌碼 €<b id="gMoney">${CAS?CAS.chips:0}</b> · 押注 €50 起，沒有上限 · 離場自動換回現金（5%）</p>${casStatus()}
+ $("mbody").innerHTML=menu?(hall?`<h2>🎰 小豬賭場</h2><p class="mut">籌碼 €<b id="gMoney">${CAS?CAS.chips:0}</b> · 押注 €50 起，沒有上限 · 離場自動換回現金（1.5%）</p>${casStatus()}
   <h3 class="gh">押錢遊戲（莊家有優勢，玩越久越可能輸）</h3><div class="gmenu">${gm(CASINO)}</div><div class="row"><button id="mc">離開賭場</button></div>`
   :`<h2>🕹️ 小豬街機</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b> · 押注 €50～€1000 · 押錢遊戲搬到小豬賭場了</p>
   <h3 class="gh">對電腦</h3><div class="gmenu">${gm(ARCADE)}</div><h3 class="gh">單機（不押錢，心情 +2）</h3><div class="gmenu">${gm(SOLO)}</div><div class="row"><button id="mc">離開街機</button></div>`)
