@@ -183,6 +183,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(/grant execute on function public\.town_usage_hit\(text\[\], int\[\]\) to anon/.test(sql)&&(sql.match(/grant execute/g)||[]).length==1&&/revoke all on function public\.town_usage_report\(int\) from public, anon, authenticated/.test(sql)&&/revoke all on function public\.town_usage_hit_int\(text, int\) from public, anon, authenticated/.test(sql),"town_usage 只能開放 hit 給 anon，report 與 hit_int 要收回");
  check(/const UT=\(\(\)=>/.test(js)&&/doNotTrack/.test(js)&&/closest\("textarea,input,select"\)/.test(js)&&/replace\(\/\[\^A-Za-z\\u4e00-\\u9fff\]\/g,""\)/.test(js),"前端 UT 要有 Do Not Track、跳過輸入框、標籤只留英文與中文（去掉數字與金額）");
  const ut=js.slice(js.indexOf("const UT=("),js.indexOf("let rpcHook=null"));check(!/\.value\b/.test(ut)&&!/localStorage|sessionStorage/.test(ut)&&!/rid|pin\b/.test(ut.replace(/pinned/g,"")),"UT 不能讀輸入框 value、存瀏覽器資料或帶角色／金鑰");
+ check(/querySelector\("\.at>b"\)/.test(ut)&&/clean\(tb\.textContent,24\)/.test(ut),"按鈕統計 key 面板按鈕只取標題（.at>b、限長 24，不含副標／價格）");
  check(/匿名使用統計/.test(pv)&&/Do Not Track/.test(pv),"privacy.html 要說明匿名使用統計")}
 // 賭場人氣排行：SQL 單檔就地改 town_casino／state、前端有 pop 排序與退回固定清單
 {const fs=require("fs"),sql=fs.readFileSync(__dirname+"/../supabase/town_casino_pop.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8");
@@ -496,3 +497,8 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  mf.files.forEach(e=>check(fs.existsSync(sd+e.file),"manifest 的 "+e.file+" 不存在（tools/sql/manifest.json）"));
  fs.readdirSync(sd).filter(f=>f.endsWith(".sql")).forEach(f=>check(inM.has(f)||(mf.ignore||[]).includes(f),"supabase/"+f+" 要加進 tools/sql/manifest.json（files 或 ignore）"))}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
+
+{const fs=require("fs"),sql=fs.readFileSync(__dirname+"/../supabase/town_casino_rank.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8");
+ check(sql.split("\n").slice(0,4).every(l=>/^--/.test(l)||l.trim()==""),"town_casino_rank.sql 檔頭每行都要是註解");
+ check(/town_casino_log/.test(sql)&&/'casino'\]/.test(sql)&&!/create or replace function public\.town_casino(_state)?\(/.test(sql)&&/from public, anon, authenticated/.test(sql),"town_casino_rank.sql 讀 town_casino_log、不重建 town_casino、revoke 含 anon");
+ check(/\["casino","賭神"/.test(js),"排行榜前端要有賭神分頁");}

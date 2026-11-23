@@ -776,7 +776,20 @@
    "needs": [
     "town.sql"
    ],
-   "note": "廣場排行榜看板 RPC town_rank：首富／連續上線／打工／街機各前 10 名，唯讀"
+   "note": "廣場排行榜看板 RPC town_rank：首富／連續上線／打工／街機各前 10 名，唯讀",
+   "superseded_funcs": [
+    "town_rank"
+   ],
+   "superseded_by": "town_casino_rank.sql"
+  },
+  {
+   "file": "town_casino_rank.sql",
+   "kind": "patch",
+   "needs": [
+    "town_rank.sql",
+    "town_casino.sql"
+   ],
+   "note": "排行榜加賭場榜：town_casino_log 近 7 天淨贏（只列 >0）；重建 town_rank，不動 town_casino"
   }
  ]
 }
