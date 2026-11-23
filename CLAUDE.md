@@ -156,6 +156,12 @@
 - **減少一律暫時、不存資料**：`town_at` 即時扣——鼻青臉腫 力量 −1 敏捷 −1、心情低落 魅力 −2、發臭 魅力 −1、精力 < 10 智力 −2、事故欠款 運氣 −1；狀態解除就恢復，永久點不動。
 - 前端 `TRN`／`trainBtns`（面板「玩樂」組）／`doTrain`，`statsModal` 顯示進度與「暫時 −N」；`node town/test.js` 比對 need 公式與價格。
 
+## 朋友分身人設（2026-11-23；SQL `supabase/town_persona.sql` **尚未套用正式站**，實測 `town_persona_test.sql`（回滾，REPORT），在 `town.sql`、`town_social.sql` 之後）
+- 資料 `items.pf={nick 外號≤6字, mt 口頭禪≤3句各≤16字, pp 待回應提議[{f,n,at}]≤3, by {提議人id:外號}, bo 接受順序（最多 5）, pd {d,n}今天收到數, lp {提議人id:時間}}`，缺值＝沒有。`town_state` 本來就回完整 `items`，所以**沒改 town_state**，前端直接讀 `items.pf`（取捨：改動最小；代價是 pp／lp 同鎮人看得到，不含機密）。
+- RPC `town_persona(rid,pin,op,target,note)`：`get／set（note=JSON {nick,mt}）／propose（target 朋友、note 外號）／accept／decline（target 提議人）／clear`（無 target＝清自己的外號口頭禪；note='by' 清全部朋友取的；note=提議人id 移除一個；**鎮長帶 target 可清任何人的人設**，寫公開 kind `mayor`）。驗證 `town_pf_clean`：去空白、禁網址／@／控制字元、長度限制。每人每天收 ≤3 個提議、同一提議人 1 小時一次、待回應 ≤3；接受寫公開動態 kind `persona`。
+- 前端：`pfOf／pfNick／dn`（顯示名＝自己外號 > 最近接受的朋友外號 > 本名）；名牌 `本名（外號）`；排行榜、朋友列、頁籤標題用 `dn`；口頭禪泡泡每 40～90 秒一次、4 秒、全畫面同時最多 2 個；選單「我的人設」（`personaModal`）、面對面「幫他取外號」（`nickModal`）、上線彈窗 `checkPersona`。`UT.hit("persona:*")`；`modal-persona` 視覺情境基準圖尚未 `--update`。
+- 還沒做：檢舉機制；通知中心／伺服器產生的動態文字仍用本名。
+
 ## 加一個新設施的清單（全都要改）
 0. **使用者規則（2026-11-23）：之後所有新設施（有建築門的）一律要有「內部畫面」與「室內互動」**：`ROOMS[地點]` 場景（12×5 格、裝潢要有該設施的特色物件與氣氛、白天夜晚配色）、`town_fi.sql` 白名單、`town_need_in` 進館檢查涵蓋、互動物件對應面板按鈕（點物件＝按按鈕）與動畫、店員或常客 NPC、進出門流程、`tools/visual` 室內情境與基準圖。公園、廣場等戶外開放區例外。賭場（`casino`）補室內是目前唯一缺的（見「小豬賭場」）。
 1. `town.js`：`PLACES`（座標 r、door、block:1）、`HOURS`、`FEATS`（讓鎮長能開關）、面板按鈕、`buildMap` 的 `bld(...)` 與 `sign(...)`、`ACT_FX`。

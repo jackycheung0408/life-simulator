@@ -826,6 +826,36 @@
    "needs": [
     "town_econ_sink.sql"
    ]
+  },
+  {
+   "file": "town_persona.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_social.sql"
+   ],
+   "note": "朋友分身人設：外號、口頭禪、朋友互取外號（town_persona）"
+  },
+  {
+   "file": "town_persona_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_persona.sql"
+   ]
+  },
+  {
+   "file": "town_meet.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_meet_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_meet.sql"
+   ]
   }
  ]
 }

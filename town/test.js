@@ -500,4 +500,5 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(sql.split("\n").slice(0,4).every(l=>/^--/.test(l)||l.trim()==""),"town_casino_rank.sql 檔頭每行都要是註解");
  check(/town_casino_log/.test(sql)&&/'casino'\]/.test(sql)&&!/create or replace function public\.town_casino(_state)?\(/.test(sql)&&/from public, anon, authenticated/.test(sql),"town_casino_rank.sql 讀 town_casino_log、不重建 town_casino、revoke 含 anon");
  check(/\["casino","賭神"/.test(js),"排行榜前端要有賭神分頁");}
+{const fs=require("fs"),sq=fs.readFileSync(__dirname+"/../supabase/town_persona.sql","utf8"),tj=fs.readFileSync(__dirname+"/town.js","utf8");check(/town_pf_clean\(j->>'nick', 6\)/.test(sq)&&/town_pf_clean\(s, 16\)/.test(sq)&&/> 3 then return json_build_object\('error','口頭禪最多 3 句/.test(sq),"人設 SQL 長度限制 6／16／3 句");check(/maxlength="6"/.test(tj)&&/maxlength="16"/.test(tj)&&/pd'->>'n'\)::int, 0\) >= 3/.test(sq),"人設前端 maxlength 與每天 3 個提議上限")}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
