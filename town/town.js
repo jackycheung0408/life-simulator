@@ -332,6 +332,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"shops3-1123",date:"11/23",title:"市政廳櫃台",items:["拍賣出價、捐款在市政廳","小鎮經濟選單改導引"]},
   {id:"shops2-1123",date:"11/23",title:"家具行與服飾店",items:["家具、擺飾到家具行買","衣服到服飾店買、試穿","拍賣、捐款在市政廳"]},
   {id:"goods2-1123",date:"11/23",title:"店裡新菜單",items:["咖啡廳、餐廳、電影院有新品","健身房、公園、廣場也有","包場、煙火、套圈圈"]},
   {id:"goods1-1123",date:"11/23",title:"超市新貨架",items:["20 種新商品，每天特價","飲料、日用、掌機、扭蛋","背包多了「物品」頁"]},
@@ -533,7 +534,7 @@ const ITEM={fcounter:["till","家具櫃台",/逛家具/,1],fdeco:["picture","擺
  bars:["bars","鐵窗",null,0],vent:["vent","通風口",/越獄/,0],glass:["glass","探監窗口",/探望/,0],gate:["door","大門（假釋）",/假釋/,0],bailDesk:["ticket","保釋櫃檯",/保釋/,1],bunk:["bed","上下鋪",null,1],work:["hammer","勞動工作台",/牢裡的勞動/,1],yard:["tree","放風場",/放風/,0],
  hbed:["bed","病床",null,1],reg:["ticket","掛號櫃檯",/掛號看診|^出院/,1],meds:["box","藥櫃",null,1],cross:["cross","十字標誌",null,0],
  pdesk:["case","櫃檯",/繳罰單/,1],pboard:["picture","通緝公告板",/自首/,1],prep:["mail","報案窗口",/報案/,1],pstat:["chart","治安看板",/今日治安/,1],badge:["badge","警徽",null,0],
- hall:["case","服務櫃檯",/大廳/,1],annb:["scroll","公告欄",/大廳/,1],ballot:["ticket","投票箱",/大廳/,1],cfund:["money","基金箱",/大廳/,1],
+ hall:["case","服務櫃檯",/大廳/,1],annb:["scroll","公告欄",/大廳/,1],ballot:["ticket","投票箱",/大廳/,1],cfund:["money","基金箱",/^捐款/,1],auction:["hammer","拍賣台",/拍賣出價/,1],
  giftshelf:["gift","禮品架",/買禮物/,1],snackshelf:["cookie","零食架",/逛貨架|買零食|特價零食/,1],clothes:["shirt","服飾架",/造型與擺飾/,1],till:["till","收銀台",/逛逛|賣生豬肉|會員點數/,1],mshelf:["shelf","貨架",/試吃/,1],frame:["picture","掛畫",null,1],
  screen:["screen","銀幕",/看電影|看今日片|聊劇情/,1],popcorn:["box","爆米花機",/福利社|爆米花/,1],seat:["seat","座椅",/情侶座/,0],
  pc:["pc","辦公桌電腦",/^打工|^應徵|加班/,1],pcs:["pc","交易終端",/看盤與買賣/,1],board:["chart","行情看板",/看盤與買賣/,1],tick:["chart","走勢圖",null,1],
@@ -548,7 +549,7 @@ const ROOMS={
  jail:{floor:["#8d8d96","#84848d"],wall:"#4a4a55",items:[["bars",1,0],["bars",3,0],["vent",5,0],["lamp",6,0],["glass",8,0],["gate",10,0],["bailDesk",10,1],["bunk",0,2],["bunk",0,4],["bunk",2,2],["bunk",2,4],["work",8,3],["yard",5,4],["yard",6,4]]},
  hospital:{floor:["#e8eef2","#dde6ec"],wall:"#9ec9e8",items:[["meds",1,0],["meds",3,0],["cross",5,0],["lamp",7,0],["reg",9,0],["hbed",1,2],["hbed",3,2],["hbed",5,2],["hbed",1,4],["lamp",11,0],["plant",11,4]]},
  police:{floor:["#b9c3d6","#aeb9ce"],wall:"#2c3e8c",items:[["pboard",1,0],["pstat",3,0],["badge",5,0],["pdesk",7,0],["prep",9,0],["lamp",11,0],["bar",2,2],["table",8,3],["plant",0,4],["plant",11,4]]},
- townhall:{floor:["#e6d8b8","#d9c9a8"],wall:"#7a4a24",items:[["annb",1,0],["annb",3,0],["lamp",5,0],["hall",7,0],["ballot",9,0],["cfund",11,0],["plant",0,2],["plant",11,2],["table",3,3],["table",8,3],["plant",0,4],["plant",11,4]]}};
+ townhall:{floor:["#e6d8b8","#d9c9a8"],wall:"#7a4a24",items:[["annb",1,0],["annb",3,0],["lamp",5,0],["hall",7,0],["ballot",9,0],["cfund",11,0],["plant",0,2],["plant",11,2],["table",3,3],["table",8,3],["auction",5,3],["plant",0,4],["plant",11,4]]}};
 Object.assign(ROOMS,{
  market:{floor:["#e9e3d3","#ded6c2"],wall:"#3a7d44",items:[["snackshelf",1,0],["giftshelf",3,0],["clothes",5,0],["lamp",7,0],["till",9,0],["job",11,0],["mshelf",2,2],["mshelf",5,2],["mshelf",8,2],["plant",0,4],["plant",11,4]]},
  cinema:{floor:["#6b2e3a","#5f2833"],wall:"#3b2f6b",items:[["popcorn",1,0],["lamp",2,0],["screen",4,0],["screen",5,0],["screen",6,0],["screen",7,0],["lamp",9,0],["seat",3,2],["seat",4,2],["seat",5,2],["seat",6,2],["seat",7,2],["seat",8,2],["seat",3,3],["seat",4,3],["seat",5,3],["seat",6,3],["seat",7,3],["seat",8,3],["plant",0,4],["plant",11,4]]},
@@ -922,7 +923,7 @@ const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀
 // ── 下方面板：依所在地點顯示可以做的事 ──
 // ── 按鈕效果與門檻：全部出自 RULES（頂層）；b.key 或標籤比對 RULES，沒有規則的不顯示晶片（nofx 或待確認）──
 const FXI={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"💰",bond:"💗",fit:"💪"},FXN={hunger:"飽足",energy:"精力",bladder:"膀胱",hygiene:"清潔",fun:"心情",money:"錢",bond:"好感",fit:"體能"};
-const NOFXRE=/^(逛家具|逛門口擺飾|逛新衣|試穿換造型|家具、服飾、擺飾|應戰|逛貨架|看菜單|福利社|櫃台商品|小攤販|攤位|拍賣與捐款|莊園|遊艇|升級|房子已是豪宅|買莊園|莊園 |買遊艇|遊艇 |去碼頭出海|出海|辦派對|幫他取外號|我的人設|報案|叫他出來|申請假釋|出院|自首|會員點數換|看排行榜|起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|玩(輪盤|老虎機|百家樂|21點|骰寶|比大小|基諾|射龍門|妞妞|三公|十八啦|賽豬|牌九|地雷|彈珠台|飛行器|猜杯子|刮刮樂|開寶箱)|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
+const NOFXRE=/^(拍賣出價|捐款|小鎮經濟報表|逛家具|逛門口擺飾|逛新衣|試穿換造型|家具、服飾、擺飾|應戰|逛貨架|看菜單|福利社|櫃台商品|小攤販|攤位|拍賣與捐款|莊園|遊艇|升級|房子已是豪宅|買莊園|莊園 |買遊艇|遊艇 |去碼頭出海|出海|辦派對|幫他取外號|我的人設|報案|叫他出來|申請假釋|出院|自首|會員點數換|看排行榜|起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|玩(輪盤|老虎機|百家樂|21點|骰寶|比大小|基諾|射龍門|妞妞|三公|十八啦|賽豬|牌九|地雷|彈珠台|飛行器|猜杯子|刮刮樂|開寶箱)|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
 const wageOf=r=>{const n=+((r.items||{}).works)||0;let w=JOBS[0][2];for(const j of JOBS)if(n>=j[1])w=j[2];return w};
 function ruleOf(b,r){if(b.key)return RULES.find(x=>x.m===b.key)||null;const l=String(b.label).replace(/\p{Extended_Pictographic}️?\s*/gu,"").trim();return RULES.find(x=>x.m instanceof RegExp&&x.m.test(l)&&(!x.at||x.at.includes(r.place)))||null}
 function fxOf(b,r){const ru=b.nofx?null:ruleOf(b,r);if(!ru)return{fx:[],need:[],chips:[],rule:null};const fx=typeof ru.fx=="function"?ru.fx(r,{hasF,wage:wageOf}):ru.fx.slice(),need=[];
@@ -996,7 +997,7 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
   list.push(btn("逛家具 🛋️","床、冰箱、沙發、馬桶、淋浴間、小道具",()=>{UT.hit("shop:furn");shopModal("furn")},"place"),btn("逛門口擺飾 🌷","花圃、信箱、路燈、長椅（最多放 4 樣）",()=>{UT.hit("shop:deco");shopModal("deco")},"place"))}
  else if(p=="wearshop"){title="服飾店";note="新衣服買了自動穿上；已經有的可以試穿換造型";
   list.push(btn("逛新衣 👗","髮型、衣服、帽子",()=>{UT.hit("shop:wear");shopModal("wear")},"place"),btn("試穿換造型 🪞","換上已經買的衣服",()=>{UT.hit("shop:try");$("relook").click()},"place"))}
- else if(p=="townhall"){title="市政廳";note="鎮基金、公告欄、居民投票。鎮基金只能花在居民投票通過的建設案，不能轉給任何人";list.push(btn("市政廳大廳 🏛️","看鎮基金、公告、投票與建設案",()=>civicModal()),btn("拍賣與捐款","每週拍賣稱號、捐款給鎮基金",()=>econModal(),"place"))}
+ else if(p=="townhall"){title="市政廳";note="鎮基金、公告、投票；也能拍賣、捐款";list.push(btn("市政廳大廳 🏛️","看鎮基金、公告、投票與建設案",()=>civicModal()),btn("拍賣出價 🔨","每週限量稱號，出價先托管，被超過退回",()=>econBid(),"place"),btn("捐款 1 萬","全進鎮基金 · 累計有稱號",()=>econGo("donate",10000),"place"),btn("捐款 10 萬","全進鎮基金 · 累計有稱號",()=>econGo("donate",100000),"place"),btn("小鎮經濟報表","調節係數、回流紀錄",()=>econModal(),"place"))}
  else{title="路上";note="路邊久了會遇到壞事，點地點走過去"}
  if(!sel&&!r.sleeping&&!jailed(r)&&!(walkers[me]&&walkers[me].path.length))list.push(...trainBtns(r));
  if(r.place=="plaza"&&!r.sleeping&&!jailed(r))list.push(btn("看排行榜 🏆","首富、連續上線、打工、街機、賭神前 10 名",()=>rankBoard(),"place"));
@@ -1820,6 +1821,8 @@ async function meetModal(form){UT.hit("meet:open");$("modal").classList.remove("
     if(navigator.share){try{await navigator.share({text:tx})}catch(e){}}else{try{await navigator.clipboard.writeText(tx);toast("已複製，貼到群組吧")}catch(e){toast(tx)}}return}
    await rpc("town_meet",{rid:me,pin,op:a=="jn"?"join":a=="lv"?"leave":"cancel",id});await refresh();meetModal()}catch(e){toast(e.message)}})}
 async function meetPoll(){if(!me||!pin||!R[me]||document.hidden)return;try{const j=await rpc("town_meet",{rid:me,pin,op:"list"}),t0=Date.parse(j.now);for(const m of j.meets){if(!m.members.includes(me))continue;const left=Date.parse(m.at)-t0;if(left>0&&left<=3e5&&!meetRemind[m.id]){meetRemind[m.id]=1;toast(`${m.hn} 揪的${(MEET_K.find(x=>x[0]==m.k)||[0,"聚會"])[1]}快開始了，去${PLACES[m.place].name}集合`)}}}catch(e){}}
+async function econGo(op,num){try{UT.hit("econ:"+op);const x=await rpc("town_econ_use",{rid:me,pin,op,item:null,num});playRoomFx(op);toast(x.msg||"完成");refresh()}catch(e){toast(e.message)}}
+async function econBid(){try{UT.hit("econ:bidview");const us=await rpc("town_econ_use",{rid:me,pin,op:"view"}),A=us.auction||{},f=n=>CUR+(+n||0).toLocaleString();choiceModal("拍賣會："+esc(A.lot||""),`${A.bidder?esc(A.bname)+" 最高價 "+f(A.bid):"還沒人出價"} · 出價先托管，被超過退回，每週一結算`,[[`出價 ${f(A.min)}`,"得標拿稱號，得標金進鎮基金",()=>econGo("bid",A.min)]])}catch(e){toast(e.message)}}
 async function econBuy(k){try{UT.hit("econ:buy:"+k);const x=await rpc("town_econ_use",{rid:me,pin,op:"buy",item:k,num:0});playRoomFx(k);toast(x.msg||"買好了");refresh()}catch(e){toast(e.message)}}
 async function econModal(){$("modal").classList.remove("hide");$("mbody").innerHTML='<p class="mut">載入中…</p>';
  let st,us;try{st=await rpc("town_econ_view",{rid:me,pin,op:"view"});us=await rpc("town_econ_use",{rid:me,pin,op:"view"})}catch(e){$("mbody").innerHTML=`<p class="err">${esc(e.message)}</p><div class="row"><button id="mc">關閉</button></div>`;$("mc").onclick=()=>$("modal").classList.add("hide");return}
@@ -2340,7 +2343,7 @@ function wkPlay(a,x){const k=wkKey(a,x),W=k&&WORK_FX[k];if(!W||wkBusy||!R[me])re
  if(it){roomAnim={code:W[1],it,tv:null,home:false,w:rw(rm),h:rh(rm),born:performance.now(),dur:D,age:0};loopRoom()}
  else{spawnFx(W[2],me);if(a=="cowork"&&x.target&&walkers[x.target])spawnFx(W[2],x.target)}
  return new Promise(r=>setTimeout(()=>{wkBusy=false;r()},D))}
-const ROOM_ACT={buyf:"fcounter",buyw:"wcounter",upgrade:"rcounter",estate:"rcounter",yacht:"ycounter",art:"latteart",share:"pot",combo:"kitchen",bring:"pack",seat:"seat",chat:"screen",sale:"snackshelf",sample:"mshelf",mredeem:"till",latte:"coffee",coffee:"coffee",special:"kitchen",dine:"bar",takeout:"pack",song:"jukebox",treat:"bar",redeem:"cake",spar:"bag",checkin:"locker",workout:"treadmill",spa:"spa",feast:"menu",labor:"work",yard:"yard",visit:"glass",escape:"vent",parole:"gate",bail:"bailDesk",consult:"reg",discharge:"reg",hvisit:"hbed",pay:"pdesk",surrender:"pboard",report:"prep",stats:"pstat",civic:"annb",movie:"screen",popcorn:"popcorn",browse:"till",buy:"till",sneak:"cleaver",vbuy:"vcar",license:"lic",insure:"gar",vfix:"gar",vsell:"gar",trade:"pcs"};
+const ROOM_ACT={donate:"cfund",bid:"auction",buyf:"fcounter",buyw:"wcounter",upgrade:"rcounter",estate:"rcounter",yacht:"ycounter",art:"latteart",share:"pot",combo:"kitchen",bring:"pack",seat:"seat",chat:"screen",sale:"snackshelf",sample:"mshelf",mredeem:"till",latte:"coffee",coffee:"coffee",special:"kitchen",dine:"bar",takeout:"pack",song:"jukebox",treat:"bar",redeem:"cake",spar:"bag",checkin:"locker",workout:"treadmill",spa:"spa",feast:"menu",labor:"work",yard:"yard",visit:"glass",escape:"vent",parole:"gate",bail:"bailDesk",consult:"reg",discharge:"reg",hvisit:"hbed",pay:"pdesk",surrender:"pboard",report:"prep",stats:"pstat",civic:"annb",movie:"screen",popcorn:"popcorn",browse:"till",buy:"till",sneak:"cleaver",vbuy:"vcar",license:"lic",insure:"gar",vfix:"gar",vsell:"gar",trade:"pcs"};
 const ROOM_ALT={spar:"ring"};
 let lastSpots={},spotsBefore=null;let roomAnim=null;
 const HOME_ACT={toilet:"toilet",shower:"shower",eat:"fridge",tv:"tvcab",nap:"massage",qsleep:"bed",sleep:"bed",feed:"fridge",wakeup:"bed",visit:"sofa"};// 家裡：互動 → 家具（沒有那件家具就在房間中央演）
@@ -2376,7 +2379,7 @@ function roomFxDraw(c){const A=roomAnim,C=RC,k=Math.max(0,Math.min(1,(A.age-.25)
   case "wk_scan":{const f=Math.floor(k*10)%2;P(ox-9,oy-4,18,2,"#e43b44");if(f)P(ox-9,oy-10,18,2,"#fff");for(let j=0;j<3;j++)P(ox-6+j*6,oy-12-((k*40+j*9)%14),3,3,"#fee761");break}
   case "wk_docs":for(let j=0;j<4;j++){const y=oy-8-((k*50+j*10)%24),x=ox-9+j*6+Math.sin(k*8+j)*3;P(x,y,6,8,"#fff");P(x+1,y+2,4,1,"#1b1b2f");P(x+1,y+5,3,1,"#1b1b2f")}break;
   case "screen":case "popcorn":{const fl=Math.floor(k*12)%3;P(ox-10,oy-6,20,10,["#6fc6ff","#fee761","#ff8fb3"][fl]);for(let j=0;j<3;j++)P(ox-8+j*7,oy+8+((k*30+j*5)%8),3,3,"#fff");break}
-  case "till":case "rcounter":case "ycounter":case "fcounter":case "wcounter":for(let j=0;j<3;j++)P(ox-6+j*6,oy-2-((k*44+j*9)%18),4,4,"#fee761");P(ox-7,oy-7,14,3,"#6fc6ff");break;
+  case "till":case "cfund":case "auction":case "rcounter":case "ycounter":case "fcounter":case "wcounter":for(let j=0;j<3;j++)P(ox-6+j*6,oy-2-((k*44+j*9)%18),4,4,"#fee761");P(ox-7,oy-7,14,3,"#6fc6ff");break;
   case "pcs":case "board":{const u=Math.floor(k*10)%2;for(let j=0;j<5;j++){const h=3+((j*7+Math.floor(k*14))%9);P(ox-10+j*4,oy+4-h,3,h,(j+u)%2?"#e43b44":"#63c74d")}break}
   case "ring":for(let j=0;j<6;j++){const a2=j*1.05+k*6;P(ox+Math.cos(a2)*10,oy+Math.sin(a2)*8,3,3,j%2?"#fee761":"#fff")}if(Math.floor(k*10)%2)P(ox-8,oy-12,16,3,"#e74c3c");break;
   case "vcar":case "vmoto":case "vbike":for(let j=0;j<5;j++){const a2=j*1.25+k*5;P(ox+Math.cos(a2)*11,oy+Math.sin(a2)*8,2,2,"#fff")}break;

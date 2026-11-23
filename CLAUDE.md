@@ -168,9 +168,11 @@
 - 前端：「小鎮經濟」「房屋升級」保留舊入口並加「去 XX」導引按鈕；市政廳面板多「拍賣與捐款」。**第二批**：家具行、服飾店（`shopModal`／`relook`）；第三批：移除舊入口、開旗標。
 - `node town/test.js` 檢查新建築間距 ≥2、不貼碼頭、SQL 矩形一致。`tools/visual` 新增 `in-realty／in-harbor／door-realty`（基準圖未 `--update`）。
 
-## 購買一律在設施（第二批，2026-11-23；前端 v337；SQL `supabase/town_shops2.sql` **已套用正式站 2026-11-23（Town session 用瀏覽器套用；唯讀確認 town_act／town_fi／town_need_in_pl／town_place_name 含 furnshop；旗標 shops_in 仍關；回滾實測 `town_shops2_test.sql` 待跑）**，實測 `town_shops2_test.sql`（回滾，REPORT），在 `town_shops1.sql` 之後）
+## 購買一律在設施（第二批，2026-11-23；前端 v337；SQL `supabase/town_shops2.sql` **已套用正式站 2026-11-23（Town session 用瀏覽器套用；唯讀確認 town_act／town_fi／town_need_in_pl／town_place_name 含 furnshop；旗標 shops_in 仍關；回滾實測 `town_shops2_test.sql` 通過：地點名、走路、進館、買好床／皇冠價格、買錯店擋、旗標關開兩種行為、錢不為負）**，實測 `town_shops2_test.sql`（回滾，REPORT），在 `town_shops1.sql` 之後）
 - 分兩棟（新區 x 72～84 放得下）：家具行 `furnshop` `[73,9,6,5]` 門 `(75,14)`（家具、小道具、門口擺飾）、服飾店 `wearshop` `[81,9,4,5]` 門 `(82,14)`（造型服飾＋「試穿換造型」＝原 `relook`）。店員木工阿福、裁縫小美，ROOMS／FEATS／buildMap／ROOM_ACT（買了播櫃台動畫 `buyf`／`buyw`）齊全。購買走 `shopModal(mode)`（furn／deco／wear；不帶參數＝舊入口＋「去家具行／服飾店」導引），背包多「去買更多」，超市「家具、服飾、擺飾」鈕改導引。**超市目錄 `town_catalog` 沒動。**
 - 伺服器：`town_shops2.sql` 就地改地點白名單（同第一批）與 `town_act` 的 `buy`（w:／d:／f:）：人在服飾店（w:）／家具行（f:、d:）裡才能買；旗標 `shops_in` 關著時超市仍可買、開著時超市擋。含 `layout5` 遷移。拍賣與捐款併進市政廳（第一批 SQL 已擋、第二批前端加「拍賣與捐款」鈕）。第三批：移除舊入口、開旗標。
+
+- **拍賣／捐款併進市政廳（第三批前半，前端 v339，無新 SQL）**：伺服器端（旗標開時拍賣出價與捐款要在市政廳裡）已含在 `town_shops1.sql`。市政廳室內新增拍賣台（`auction`，「拍賣出價」→ `econBid`）、基金箱（`cfund`，「捐款 1 萬／10 萬」→ `econGo`）；「小鎮經濟」選單與 `econModal` 保留舊入口加導引。剩：移除舊入口、開旗標 `shops_in`。
 
 ## 加一個新設施的清單（全都要改）
 0. **使用者規則（2026-11-23）：之後所有新設施（有建築門的）一律要有「內部畫面」與「室內互動」**：`ROOMS[地點]` 場景（12×5 格、裝潢要有該設施的特色物件與氣氛、白天夜晚配色）、`town_fi.sql` 白名單、`town_need_in` 進館檢查涵蓋、互動物件對應面板按鈕（點物件＝按按鈕）與動畫、店員或常客 NPC、進出門流程、`tools/visual` 室內情境與基準圖。公園、廣場等戶外開放區例外。賭場（`casino`）補室內是目前唯一缺的（見「小豬賭場」）。
