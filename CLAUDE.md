@@ -156,6 +156,7 @@
 - 前端 `TRN`／`trainBtns`（面板「玩樂」組）／`doTrain`，`statsModal` 顯示進度與「暫時 −N」；`node town/test.js` 比對 need 公式與價格。
 
 ## 加一個新設施的清單（全都要改）
+0. **使用者規則（2026-11-23）：之後所有新設施（有建築門的）一律要有「內部畫面」與「室內互動」**：`ROOMS[地點]` 場景（12×5 格、裝潢要有該設施的特色物件與氣氛、白天夜晚配色）、`town_fi.sql` 白名單、`town_need_in` 進館檢查涵蓋、互動物件對應面板按鈕（點物件＝按按鈕）與動畫、店員或常客 NPC、進出門流程、`tools/visual` 室內情境與基準圖。公園、廣場等戶外開放區例外。賭場（`casino`）補室內是目前唯一缺的（見「小豬賭場」）。
 1. `town.js`：`PLACES`（座標 r、door、block:1）、`HOURS`、`FEATS`（讓鎮長能開關）、面板按鈕、`buildMap` 的 `bld(...)` 與 `sign(...)`、`ACT_FX`。
 2. `town.sql`：`town_place_name`、`town_closed`（已取消營業時間，保留函式）、`town_feature`（對應開關）、`town_act` 的 move 白名單與位置上限（`px >`）、動作本身（冷卻存在 `items.cd`）、`town_features` 的白名單。
 3. `COLS` 不夠就加大（目前 71），server 的 `px >` 要同步（目前 71）；`layout3` 遷移是把站在新建築上的人移到廣場，再加大地圖要照樣加一個遷移。
