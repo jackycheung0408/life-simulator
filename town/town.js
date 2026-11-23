@@ -327,6 +327,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"notif-fav-1123",date:"11/23",title:"通知與常用",items:["通知分「要回應」「系統」，可全部已讀","常用列可長按釘選","面板不再亂跳、牌桌不能拖"]},
   {id:"u99-loading",date:"11/23",title:"載入畫面更新",items:["顯示四個載入步驟","等待時會輪播小提示","網路慢時可按「再試一次」"]},
   {id:"nag-1123",date:"11/23",title:"少跳確認帳號",items:["設密碼提醒一天最多一次","可以按「稍後再說」"]},
   {id:"drawer-1123",date:"11/23",title:"單手好按",items:["下方三顆主按鈕，拇指直達","面板預設收起，上拉展開","按鈕名稱變短"]},
@@ -1133,10 +1134,11 @@ function renderFeed(){renderRank();renderPeople();const all=((S&&S.events)||[]).
  const hm=a=>{const d=new Date(Date.parse(a)+8*36e5);return `${String(d.getUTCHours()).padStart(2,"0")}:${String(d.getUTCMinutes()).padStart(2,"0")}`};
  const names=Object.values(R).map(r=>r.name).sort((a,b)=>b.length-a.length);
  const bold=t=>{let h=esc(t);for(const n of names){const e=esc(n);h=h.split(e).join(`<b>${e}</b>`)}return h};
- const ev=all.filter(e=>feedFilter=="all"||(feedFilter=="me"&&(e.target==me||e.actor==me))||(feedFilter=="good"&&GOOD.includes(e.kind))||(feedFilter=="bad"&&BADK.includes(e.kind)));
- const ok=new Set(me?thankable().map(e=>e.id):[]),bad=new Set(me?grudges().map(e=>e.id):[]),shown=new Set();let lastDay="";
+ const ok=new Set(me?thankable().map(e=>e.id):[]),bad=new Set(me?grudges().map(e=>e.id):[]),shown=new Set();
+ const todo=e=>ok.has(e.id)||bad.has(e.id);const ev=all.filter(e=>feedFilter=="all"||(feedFilter=="todo"&&todo(e))||(feedFilter=="sys"&&["world","level","civic","mayor","rent"].includes(e.kind))||(feedFilter=="me"&&(e.target==me||e.actor==me))||(feedFilter=="good"&&GOOD.includes(e.kind))||(feedFilter=="bad"&&BADK.includes(e.kind)));
+ let lastDay="";
  // 未讀：別人對我做的、我還沒看過的
- const unread=all.filter(e=>e.target==me&&e.actor!=me&&e.id>feedSeen).length;$("feedBadge").textContent=unread?unread:"";$("feedBadge2").textContent=unread||"";$("feedBadge2").classList.toggle("hide",!unread);$("feedBadge").classList.toggle("hide",!unread||!$("tab-feed").classList.contains("hide"));
+ const unread=all.filter(e=>e.target==me&&e.actor!=me&&e.id>feedSeen).length;{const nt=all.filter(todo).length;const tb=document.querySelector("[data-ff=todo]");if(tb)tb.textContent="要回應"+(nt?" "+nt:"");const ra=document.querySelector("#readAll");if(ra)ra.classList.toggle("hide",!unread)}$("feedBadge").textContent=unread?unread:"";$("feedBadge2").textContent=unread||"";$("feedBadge2").classList.toggle("hide",!unread);$("feedBadge").classList.toggle("hide",!unread||!$("tab-feed").classList.contains("hide"));
  $("feed").innerHTML=ev.length?ev.slice(0,40).map(e=>{const d=day(e.at);let head="";if(d!=lastDay){lastDay=d;head=`<div class="day">${d==today?"今天":d==yest?"昨天":d.slice(5).replace("-","/")}</div>`}
   const t=ok.has(e.id)&&!shown.has(e.actor);if(t)shown.add(e.actor);const g=bad.has(e.id)&&!shown.has("g"+e.actor);if(g)shown.add("g"+e.actor);
   const cls=e.target==me&&e.actor!=me?(BADK.includes(e.kind)?" bad":" mine"):"";
@@ -1996,7 +1998,7 @@ $("mayor").onclick=mayorPanel;// 抽屜：點一下在「一般 → 拉高 → �
 const gripLabel=()=>{const p=$("panel");$("grip").textContent=p.classList.contains("min")?"▲ 展開":"▼ 收起"};
 
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("on",x==b));["feed","rank","ppl"].forEach(k=>$("tab-"+k).classList.toggle("hide",k!=b.dataset.tab));if(b.dataset.tab=="feed")markSeen()});
-document.querySelectorAll("[data-ff]").forEach(b=>b.onclick=()=>{feedFilter=b.dataset.ff;document.querySelectorAll("[data-ff]").forEach(x=>x.classList.toggle("on",x==b));renderFeed()});
+{const c=document.querySelector("#tab-feed .chips"),f=c.firstChild;for(const [k,l] of [["todo","要回應"],["sys","系統"]]){const x=document.createElement("button");x.dataset.ff=k;x.textContent=l;c.insertBefore(x,k=="todo"?f:c.querySelector("[data-ff=good]"))}}{const b=document.createElement("button");b.id="readAll";b.className="hide";b.textContent="全部已讀";document.querySelector("#tab-feed .chips").appendChild(b)}$("readAll").onclick=()=>{markSeen();UT.hit("notif:readall");renderFeed()};document.querySelectorAll("[data-ff]").forEach(b=>b.onclick=()=>{feedFilter=b.dataset.ff;UT.hit("notif:"+b.dataset.ff);document.querySelectorAll("[data-ff]").forEach(x=>x.classList.toggle("on",x==b));renderFeed()});
 // 看過動態就清掉未讀（記在這台手機）
 function markSeen(){const ev=(S&&S.events)||[];if(!ev.length)return;feedSeen=Math.max(feedSeen,...ev.map(e=>e.id));try{localStorage.setItem("town-seen-"+TID,feedSeen)}catch(e){}$("feedBadge").classList.add("hide")}
 try{feedSeen=+localStorage.getItem("town-seen-"+TID)||0}catch(e){}
