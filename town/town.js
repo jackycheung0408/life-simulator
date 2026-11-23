@@ -355,6 +355,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"faint-1123",date:"11/23",title:"餓昏倒減輕",items:["餓昏倒醫藥費改階梯","我的人生可開自動吃零食"]},
   {id:"shops3-1123",date:"11/23",title:"市政廳櫃台",items:["拍賣出價、捐款在市政廳","小鎮經濟選單改導引"]},
   {id:"shops2-1123",date:"11/23",title:"家具行與服飾店",items:["家具、擺飾到家具行買","衣服到服飾店買、試穿","拍賣、捐款在市政廳"]},
   {id:"goods2-1123",date:"11/23",title:"店裡新菜單",items:["咖啡廳、餐廳、電影院有新品","健身房、公園、廣場也有","包場、煙火、套圈圈"]},
@@ -1000,7 +1001,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
     btn("付保釋金出去 💰",`€${bailCost(jlLeft(r))} · 錢不夠就保不了`,()=>doJail("bail")))}
   else{note=(inm.length?`${inm.map(o=>o.name).join("、")} 被關在這裡，可以探望或幫他保釋`:"現在沒有人被關著。在路上砍人被巡警抓到，就會關進這裡")+(stat?"。"+stat:"");for(const o of inm)list.push(btn(`探望 ${o.name} 🤝`,"他心情 +10 · 你心情 +3 · 好感 +2 · 1 小時一次",()=>doJail("visit",o.id)),btn(`替 ${o.name} 保釋 💰`,`€${bailCost(jlLeft(o))} · 好感 +4`,()=>doJail("bail",o.id)))}}
 else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!=me&&hospIn(o)),mine=hospIn(r),dz=(b,m)=>m?{...b,dis:m}:b;
-  note=mine?"你在住院，好好躺著，醒來就能出院。醫藥費照原規則：車禍當下結清、被砍由砍人的人付、餓昏倒醒來 "+CUR+"1500，付到 0 為止、不欠款。角色不會死":(pat.length?`${pat.map(o=>o.name).join("、")} 在住院，可以探病`:"現在沒有人住院。昏倒、車禍、被砍倒地的人會被送到這裡");
+  note=mine?"你在住院，好好躺著，醒來就能出院。醫藥費照原規則：車禍當下結清、被砍由砍人的人付、餓昏倒醒來每天第 1 次 "+CUR+"500、第 2 次 "+CUR+"1000、之後 "+CUR+"1500，付到 0 為止、不欠款。角色不會死":(pat.length?`${pat.map(o=>o.name).join("、")} 在住院，可以探病`:"現在沒有人住院。昏倒、車禍、被砍倒地的人會被送到這裡");
   list.push(dz(btn("掛號看診 🩺",`${CUR}${HOSP.fee} · 精力 +${HOSP.consult[0]}、清潔 +${HOSP.consult[1]}、傷好了 · 一天一次`,()=>hospAct("consult")),mine?"你還在住院":(r.items.hp||{}).d==todayTW()?"今天已經看過診了":r.money<HOSP.fee?`要 ${CUR}${HOSP.fee}`:""),
    dz(btn("出院 🚪","回到醫院門口外的路上",()=>hospAct("discharge")),mine&&r.sleeping?"還在住院，醒來才能出院":""));
   for(const o of pat)list.push(btn(`探病 ${o.name} 🤝`,`他心情 +${HOSP.visit[0]} · 你心情 +${HOSP.visit[1]} · 好感 +${HOSP.visit[3]} · ${HOSP.visitCd} 分鐘一次`,()=>hospAct("visit",o.id)))}
@@ -1220,9 +1221,9 @@ function lifeModal(){const r=R[me],c=career(r),w=(r.items&&r.items.wish)||{},k=W
  $("mbody").innerHTML=`<h2>我的人生</h2><div class="mrow"><span><b>${c.name}</b> <small class="mut">每次打工 €${payOf(c.wage,tickLocal(r,now()))} · 已打工 ${c.n} 次</small></span></div><p class="mut">今天已打工 ${workToday(r)} 次，薪水全額、每 ${alOf(r)[2]} 分鐘可打一次 · 每天房租水電 €${rentOf(r)}${taxOf(r.money)?`、財產稅 €${taxOf(r.money)}（存款超過 50000 的部分，階梯 0.3%～3%）`:""}${alOf(r)[4]?`（已含 ${alOf(r)[4]}% 折扣）`:""}（每天第一次上線扣）</p>${Object.keys(PJ).some(k=>pjN(r,k))?`<p class="mut">其他工作：${Object.keys(PJ).filter(k=>pjN(r,k)).map(k=>pjName(k,pjN(r,k))+" "+pjN(r,k)+" 次").join("、")}</p>`:""}<p class="mut">${c.next?`再打工 ${c.left} 次升「${c.next}」`:"已經是最高職位了"}</p>
  ${statLine(r)?`<div class="mrow"><span><b>案底</b> <small class="mut">${statLine(r)}</small></span></div>`:""}
  ${alHtml(r)}
- <h3>個性與心情</h3><p><span class="sw on">${MOOD[moodOf(tickLocal(r,now()))][0]} ${MOOD[moodOf(tickLocal(r,now()))][1]}</span> <small class="mut">${MOOD[moodOf(tickLocal(r,now()))][2]}</small></p>${(r.items&&r.items.tr&&r.items.tr.length)?r.items.tr.map(k=>`<div class="mrow"><span><b>${TRAITS[k][0]}</b> <small class="mut">${TRAITS[k][1]}</small></span></div>`).join(""):`<p class="mut">還沒有個性特質。</p><div class="row" style="justify-content:flex-start"><button id="ltNew" class="pri">選個性</button></div>`}
+ <h3>自動吃零食</h3><p class="mut">快餓昏前約 15 分鐘，有零食就自動吃一包（飽足 +20）。預設關閉。</p><div class="row" style="justify-content:flex-start"><button id="lAe" class="${(r.items&&r.items.ae)?"pri":""}">${(r.items&&r.items.ae)?"已開啟，點一下關閉":"已關閉，點一下開啟"}</button></div><h3>個性與心情</h3><p><span class="sw on">${MOOD[moodOf(tickLocal(r,now()))][0]} ${MOOD[moodOf(tickLocal(r,now()))][1]}</span> <small class="mut">${MOOD[moodOf(tickLocal(r,now()))][2]}</small></p>${(r.items&&r.items.tr&&r.items.tr.length)?r.items.tr.map(k=>`<div class="mrow"><span><b>${TRAITS[k][0]}</b> <small class="mut">${TRAITS[k][1]}</small></span></div>`).join(""):`<p class="mut">還沒有個性特質。</p><div class="row" style="justify-content:flex-start"><button id="ltNew" class="pri">選個性</button></div>`}
  <h3>人生願望</h3>${wh}<h3>稱號</h3><p>${t.length?t.map(x=>`<span class="sw on">${esc(x)}</span>`).join(" "):'<span class="mut">還沒有稱號</span>'}</p><div class="row"><button id="lclose">關閉</button></div>`;
- $("lclose").onclick=()=>$("modal").classList.add("hide");if($("lwNew"))$("lwNew").onclick=()=>wishModal();if($("ltNew"))$("ltNew").onclick=()=>traitModal()}
+ $("lclose").onclick=()=>$("modal").classList.add("hide");if($("lAe"))$("lAe").onclick=async()=>{try{await rpc("town_autoeat",{rid:me,pin,op:!(R[me].items&&R[me].items.ae)});await refresh();toast("設定好了");lifeModal()}catch(e){toast(e.message)}};if($("lwNew"))$("lwNew").onclick=()=>wishModal();if($("ltNew"))$("ltNew").onclick=()=>traitModal()}
 function wishModal(){$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>選一個人生願望</h2><p class="mut">每達成一個里程碑，有獎金、稱號和動態公告。可以先跳過。</p><div class="list">${Object.entries(WISHES).map(([k,v])=>`<button data-wk="${k}" style="width:100%;text-align:left;margin-bottom:6px"><b>${v[0]}</b><br><small>${v[1]}：${v[2].join("、")}</small></button>`).join("")}</div><div class="row"><button id="wskip">先跳過</button></div>`;
  const pick=async k=>{try{apply(await rpc("town_wish",{rid:me,pin,k}));$("modal").classList.add("hide");if(k!="skip"){toast("願望訂好了");lifeModal()}}catch(e){toast(e.message)}};
  $("mbody").querySelectorAll("[data-wk]").forEach(b=>b.onclick=()=>pick(b.dataset.wk));$("wskip").onclick=()=>pick("skip")}
