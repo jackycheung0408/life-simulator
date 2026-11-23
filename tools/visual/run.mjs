@@ -16,6 +16,8 @@ const HERE=path.dirname(fileURLToPath(import.meta.url)),ROOT=path.resolve(HERE,"
 const SIZES=[[390,844],[375,667],[430,932],[768,1024],[1366,768],[1920,1080]].filter(s=>!ONLYSZ||ONLYSZ==s.join("x"));
 // 情境：mut 改假資料庫（住在 sessionStorage mockdb）；run 進遊戲後再做的操作
 const ME=1;
+const tbl=async(p,sels)=>{const r=await p.evaluate(sels=>{const H=innerHeight,out=[],gs=document.querySelector(".garea .gshow")||document.querySelector(".garea");if(!gs)return["沒有牌桌區"];const gr=gs.getBoundingClientRect();if(gr.height<H*.38)out.push("牌桌區只有 "+Math.round(gr.height/H*100)+"%");for(const c of gs.querySelectorAll(".pcard")){const q=c.getBoundingClientRect();if(q.top<gr.top-1||q.bottom>gr.bottom+1)out.push("牌被切 "+Math.round(q.top-gr.top)+"/"+Math.round(q.bottom-gr.bottom))}const bs=sels.length?sels.flatMap(x=>[...document.querySelectorAll(x)]):[...document.querySelectorAll(".garea .gbtns button")];if(!bs.length)out.push("找不到動作鈕 "+sels);for(const b of bs){const q=b.getBoundingClientRect();if(q.height<44)out.push("鈕太矮 "+Math.round(q.height));if(q.top<0||q.bottom>H)out.push("鈕不在視窗 "+Math.round(q.top)+"~"+Math.round(q.bottom));const e=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);if(!(e&&(e===b||b.contains(e))))out.push("鈕被覆蓋："+(e&&(e.id||e.className||e.tagName)))}return out.concat(["占比 "+Math.round(gr.height/H*100)+"%"].filter(()=>0))},sels);if(r.length)throw new Error("牌桌 "+r.join("；"))};
+const CAS0=r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino";r.items.cas={ch:20000,bh:""};r.money=5000};
 const SC=[
  {n:"street",mut:r=>{r.place="street";r.x=15;r.y=12}},
  {n:"fac-door",mut:r=>{r.place="cafe";r.x=38;r.y=5}},
@@ -51,8 +53,12 @@ const SC=[
  {n:"modal-goods",mut:r=>{r.place="market";r.x=28;r.y=14;r.items.fi="market"},run:async p=>{await p.evaluate(()=>{const b=[...document.querySelectorAll('#acts button,#mainrow button')].find(x=>x.textContent.includes('逛貨架'));if(b)b.click()});await p.waitForTimeout(700)},soft:1},
  {n:"modal-meet",mut:r=>{r.place="plaza"},run:async p=>{await p.evaluate(()=>document.getElementById("meetBtn").click());await p.waitForTimeout(600)},soft:1},
  {n:"modal-casino",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino";r.items.cas={ch:20000,bh:"PBPBBTPPBB"};r.money=5000},run:async p=>{await clickText(p,"百家樂");await p.waitForTimeout(600)},soft:1},
- {n:"casino-bj-end",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino";r.items.cas={ch:20000,bh:""};r.money=5000},run:async p=>{await clickText(p,"21點");await p.waitForTimeout(500);await p.click("#bjGo");await p.waitForTimeout(900);if(await p.$("#bjStand")){await p.click("#bjStand");await p.waitForTimeout(1500)}await reach(p,"#bjGo")},soft:1},
- {n:"casino-bacc-end",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino";r.items.cas={ch:20000,bh:""};r.money=5000},run:async p=>{await clickText(p,"百家樂");await p.waitForTimeout(500);await p.click("[data-b=p]");await p.waitForTimeout(4000);await reach(p,"[data-b=b]");await reach(p,"[data-b=p]")},soft:1},
+ {n:"table-bj-live",mut:CAS0,run:async p=>{await clickText(p,"21點");await p.waitForTimeout(500);await p.click("#bjGo");await p.waitForTimeout(1200);await tbl(p,["#bjHit","#bjStand"])},soft:1},
+ {n:"table-bj-end",mut:CAS0,run:async p=>{await clickText(p,"21點");await p.waitForTimeout(500);await p.click("#bjGo");await p.waitForTimeout(1000);await p.click("#bjStand");await p.waitForTimeout(2500);await tbl(p,["#bjGo"])},soft:1},
+ {n:"table-bacc",mut:CAS0,run:async p=>{await clickText(p,"百家樂");await p.waitForTimeout(600);await tbl(p,[]);await p.click("[data-b=p]");await p.waitForTimeout(4500);await tbl(p,[])},soft:1},
+ {n:"table-dice",mut:CAS0,run:async p=>{await clickText(p,"骰寶");await p.waitForTimeout(600);await tbl(p,[])},soft:1},
+ {n:"table-wheel",mut:CAS0,run:async p=>{await clickText(p,"輪盤");await p.waitForTimeout(600);await tbl(p,["#whGo"])},soft:1},
+ {n:"table-pigrace",mut:CAS0,run:async p=>{await clickText(p,"賽豬");await p.waitForTimeout(600);await tbl(p,["#pgGo"])},soft:1},
  {n:"modal-casino-mines",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino";r.items.cas={ch:20000,bh:""};r.money=5000},run:async p=>{await clickText(p,"玩地雷");await clickText(p,"開局");await p.waitForTimeout(400);await p.click(".mc:not([disabled])");await p.waitForTimeout(300);await p.click(".mc:not([disabled])");await p.waitForTimeout(400)},soft:1},
  {n:"modal-casino-plinko",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino";r.items.cas={ch:20000,bh:""};r.money=5000},run:async p=>{await clickText(p,"玩彈珠台");await clickText(p,"投球");await p.waitForTimeout(2200)},soft:1},
  {n:"modal-casino-crash",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino";r.items.cas={ch:20000,bh:""};r.money=5000},run:async p=>{await clickText(p,"玩飛行器");await clickText(p,"起飛");await p.waitForTimeout(2500);await clickText(p,"收手");await p.waitForTimeout(500)},soft:1},
@@ -63,7 +69,6 @@ const SC=[
  {n:"sleeping",mut:r=>{r.place="home:1";r.sleeping=true;r.energy=20}},
  {n:"jail",mut:r=>{r.place="jail";r.x=61;r.y=5;r.items.jl=new Date(Date.now()+36e5).toISOString()}},
 ];
-const reach=async(p,sel)=>{const r=await p.evaluate(sel=>{const b=document.querySelector(sel);if(!b)return"找不到 "+sel;b.scrollIntoView({block:"nearest"});const q=b.getBoundingClientRect(),h=innerHeight;if(q.top<0||q.bottom>h)return"不在視窗內 "+Math.round(q.top)+"~"+Math.round(q.bottom);const e=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);if(!(e&&(e===b||b.contains(e))))return"被覆蓋："+(e&&(e.id||e.className||e.tagName));const g=document.querySelector(".garea"),a=g&&g.getBoundingClientRect(),bb=document.querySelector(".betbar"),c=bb&&bb.getBoundingClientRect();if(c&&q.bottom>c.top+1)return"壓到下注列";return""},sel);if(r)throw new Error("下一局鈕 "+r)};
 async function clickText(p,t){const h=await p.evaluateHandle(t=>[...document.querySelectorAll("#acts button,#ptabs button,#mbody button,#menu button")].find(b=>b.offsetParent&&b.textContent.includes(t)),t);const el=h.asElement();if(!el)return false;await el.click();return true}
 
 // ---- 靜態伺服器（暫存複本，注入 mock）----

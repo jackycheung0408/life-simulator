@@ -47,6 +47,9 @@ if(!String(url).includes("/rpc/"))return _fetch(url,o);const fn=url.split("/rpc/
   else if(g=="ch_start"){c.cx={b:b.bet,s:1,v:[0,50,90,120,220].sort(()=>Math.random()-.5)};c.ch-=b.bet;return ok({game:{bet:b.bet,s:1},money:r.money,casino:{chips:c.ch,bh:""}})}
   else if(g=="ch_pick"){const st=c.cx,p=+b.choice,rv=[0,1,2,3,4].filter(i=>i!=p)[Math.floor(Math.random()*4)];st.s=2;st.p=p;st.r=rv;return ok({game:{bet:st.b,s:2,pick:p,rev:rv,revv:st.v[rv]},money:r.money,casino:{chips:c.ch,bh:""}})}
   else if(g=="ch_final"){const st=c.cx,f=+b.choice;win=Math.floor(st.b*st.v[f]/100);res={v:st.v,pick:st.p,rev:st.r,fin:f,switched:f!=st.p,mult:st.v[f],win,bet:st.b};delete c.cx;c.ch+=win;return ok({game:res,money:r.money,casino:{chips:c.ch,bh:""}})}
+  else if(g=="bj_start"){c.bj={b:b.bet};c.ch-=b.bet;res={p:[103,411],d:[301],done:false,bet:b.bet}}
+  else if(g=="bj_hit"){res={p:[103,411,204],d:[301],done:false,bet:(c.bj||{}).b||50}}
+  else if(g=="bj_stand"){const bt=(c.bj||{}).b||50;res={p:[103,411],d:[301,108],done:true,win:bt,bet:bt};c.ch+=bt}
   else return bad("測試用 mock 只支援 bacc／wheel／dice／slots 與階段 E");
   c.ch+=win-b.bet;return ok({game:res,money:r.money,casino:{chips:c.ch,bh:c.bh||"",cd:null}})}
  if(fn=="town_game2"){const r=R(b.rid);const g=b.game,c=n=>(1+Math.floor(Math.random()*4))*100+1+Math.floor(Math.random()*13);let res;
