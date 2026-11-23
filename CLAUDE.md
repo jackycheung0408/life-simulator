@@ -294,7 +294,7 @@
 
 ### 按鈕效果表
 <!-- RULES:START -->
-（由 `node tools/town-rules-doc.mjs` 從 `town/town.js` 的 `RULES` 產生，請勿手改；共 32 筆）
+（由 `node tools/town-rules-doc.mjs` 從 `town/town.js` 的 `RULES` 產生，請勿手改；共 53 筆）
 
 | 互動 | 效果 | 門檻 | 機率／備註 | SQL 出處 |
 |---|---|---|---|---|
@@ -330,6 +330,27 @@
 | 合照 | 心情 +6、好感 +1 | 要有人在場 | — | `town_fac.sql#act = 'photo'` |
 | 掛號看診 | 錢 −150、精力 +20、清潔 +40、心情 +5 | 每天 1 次 | — | `town_civic.sql#if op = 'consult' then` |
 | 放風 | 心情 +6、精力 −3 | 30 分鐘 1 次 | — | `town_jail.sql#if act = 'yard' then` |
+| 拉花小遊戲 | 錢 −150、精力 +15～40、心情 +2～10 | — | 點對時機的品質 0～100 決定；品質 ≥80 集點 +1 | `town_venues1.sql#act = 'art' then` |
+| 共點一壺 | 錢 −240、精力 +25、心情 +6、好感 +3 | 要有人在場 | 對方精力 +25、心情 +6 | `town_venues1.sql#act = 'share' then` |
+| 主餐＋飲料套餐 | 錢 −320、飽足 +50、心情 +16 | — | — | `town_venues1.sql#act = 'combo' then` |
+| 外帶給朋友 | 錢 −200、心情 +3、好感 +3 | 要選一位朋友 | 對方飽足 +20、心情 +6 | `town_venues1.sql#act = 'bring' then` |
+| 情侶座看片 | 錢 −360、心情 +20、好感 +4 | 要有人在場 | 對方心情 +20 | `town_venues1.sql#act = 'seat' then` |
+| 看完聊劇情 | 心情 +6、好感 +2 | 要有人在場 | 對方心情 +6 | `town_venues1.sql#act = 'chat' then` |
+| 今日特價零食 | 錢 −42、心情 +2 | 背包未滿 | 零食 +1、會員點數 +1 | `town_venues1.sql#act = 'sale' then` |
+| 試吃 | 飽足 +6、心情 +1 | — | — | `town_venues1.sql#act = 'sample' then` |
+| 牢裡勞動 | 錢 +120、精力 −20、心情 −3 | 精力≥20 | 刑期縮短 10 分鐘 | `town_jail.sql#if act = 'labor' then` |
+| 付保釋金 | 錢 −保釋金 | — | 保釋金 = max(300, 剩餘分鐘×10)，錢不夠就保不了；替朋友付好感 +4、他心情 +10 | `town_jail.sql#act = 'bail' then` |
+| 越獄 | 精力 −20（成功）／−15（失敗） | 精力≥30 | 成功 12%（23～5 點 18%）：逃出但通緝 3 小時、精力 −20；失敗加刑 60 分、罰款最多 $500、精力 −15 心情 −10；1 小時一次 | `town_jail.sql#act = 'escape' then` |
+| 探病 | 心情 +3、精力 −2、好感 +2 | — | 對方心情 +10；同一人 60 分鐘一次 | `town_civic.sql#elsif op = 'visit' then` |
+| 繳罰單（9 折） | 錢 −罰單 ×0.9 | — | — | `town_civic.sql#if op = 'pay' then` |
+| 潑水 | 心情 +4 | 面對面、他醒著 | 他清潔 −15、心情 −3、好感 −1；30 分鐘一次 | `town_mischief.sql#if act = 'splash' then` |
+| 貼「踢我」紙條 | 心情 +5 | 面對面、他醒著 | 他名牌掛「踢我」1 小時、心情 −4、好感 −1；60 分鐘一次 | `town_mischief.sql#elsif act = 'sticker' then` |
+| 假裝告白 | 心情 +3 | 面對面、他醒著 | 一半他害羞（他心情 +5、好感 +1）；一半氣炸（他心情 −10、好感 −2、你心情 −2） | `town_mischief.sql#elsif act = 'fakelove' then` |
+| 偷零食 | 心情 +6（成功）／−5（被抓） | 面對面、他有零食、你背包未滿 | 55% 被抓：賠他 $60（付到 0）、你心情 −5、他 −2、好感 −3；45% 成功拿到 1 包、你心情 +6、他 −3、好感 −1 | `town_mischief.sql#elsif act = 'snack' then` |
+| 拍醜照貼到動態 | 心情 +4 | 面對面、他醒著 | 全鎮看得到；他心情 −5、好感 −2 | `town_mischief.sql#elsif act = 'photo' then` |
+| 換掉他的座位 | 心情 +5 | 同在咖啡廳或餐廳裡面 | 他精力 −3、心情 −4、好感 −1 | `town_mischief.sql#elsif act = 'swapseat' then` |
+| 按門鈴逃跑 | 心情 +4 | 站在他家門口 | 他心情 −5、好感 −1；睡著的 40% 被吵醒（精力 −5） | `town_mischief.sql#elsif act = 'doorbell' then` |
+| 門口擺假便便 | 心情 +4 | 站在他家門口 | 他清潔 −5、心情 −6、好感 −1 | `town_mischief.sql#elsif act = 'fakepoop' then` |
 <!-- RULES:END -->
 
 ## 按鈕分類（2026-11-17 整理；`GORD`／`TABOF`／`btn(...,g)`）
