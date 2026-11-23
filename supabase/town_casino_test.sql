@@ -2,7 +2,7 @@
 -- 檢查：直接呼叫 town_game／town_game2 玩押錢遊戲被擋、不在賭場被擋、猜拳仍在廣場、現金換籌碼 1:1、籌碼換回現金抽 5% 進位、
 --       遊戲只動籌碼不動現金、沒有單注上限（只看籌碼）、籌碼不夠被擋、自我排除、回合間隔、輸贏記錄、百家樂莊家免佣的期望值、財產稅含籌碼。
 do $$
-declare t text := 'ZZCAS'; gname text; gn int := 0; gb int := 0; bh text; bhn int; d bigint; mg record; a bigint; b bigint; c bigint; rep text := ''; x jsonb; i int; fund0 bigint; fund1 bigint; lg record; g json;
+declare t text := 'ZZCAS'; e1 bigint; e2 bigint; e3 bigint; lm bigint; lc text; cdv text; gname text; gn int := 0; gb int := 0; bh text; bhn int; d bigint; mg record; a bigint; b bigint; c bigint; rep text := ''; x jsonb; i int; fund0 bigint; fund1 bigint; lg record; g json;
   w6 bigint := 0; wb bigint := 0; ret numeric := 0; n int := 700; cash_before bigint; ch_before bigint;
 begin
   insert into public.town_towns(id,name,invite) values (t,'測試鎮','ZZCAS1') on conflict do nothing;
@@ -34,6 +34,29 @@ begin
     exception when others then if sqlerrm like '籌碼不夠%' then gb := gb + 1; end if; end;
   end loop;
   rep := rep || ' 有現金沒籌碼：押錢遊戲 ' || gn || ' 種，被籌碼不夠擋下 ' || gb || '（應相同） 乙現金=' || (select money from public.town_residents where id = b) || '（應 3000）';
+  -- 離場強制換回現金：各路徑（走出去、回家、入獄、送醫、離線回家都是 place 變更，由觸發器統一處理）；沒籌碼不寫事件；重複觸發不重複結算
+  insert into public.town_residents(town_id,name,money,slot,x,y,place,pin_hash,items) values (t,'戊',1000,4,10,10,'casino','x','{"cas":{"ch":10001}}'::jsonb) returning id into e1;
+  insert into public.town_residents(town_id,name,money,slot,x,y,place,pin_hash,items) values (t,'己',500,7,10,10,'casino','x','{}'::jsonb) returning id into e2;
+  insert into public.town_residents(town_id,name,money,slot,x,y,place,pin_hash,items) values (t,'庚',0,8,10,10,'casino','x','{"cas":{"ch":100}}'::jsonb) returning id into e3;
+  select fund into fund0 from public.town_towns where id = t;
+  update public.town_residents set place = '' where id = e1;
+  select money, items->'cas'->>'ch' into lm, lc from public.town_residents where id = e1;
+  rep := rep || ' 離場(走出去) 戊現金=' || lm || '（應 10500=1000+10001-501） 籌碼=' || lc || '（應 0）';
+  update public.town_residents set place = 'casino' where id = e1;
+  update public.town_residents set place = 'home:5' where id = e1;
+  select money into lm from public.town_residents where id = e1;
+  rep := rep || ' 再離場一次 現金=' || lm || '（應 10500，不重複結算） 事件數=' || (select count(*) from public.town_events where actor = e1 and msg like '%離開賭場%') || '（應 1）';
+  update public.town_residents set place = 'jail' where id = e2;
+  rep := rep || ' 沒籌碼離場 事件數=' || (select count(*) from public.town_events where actor = e2) || '（應 0） 現金=' || (select money from public.town_residents where id = e2) || '（應 500）';
+  update public.town_residents set place = 'hospital', sleeping = false where id = e3;
+  rep := rep || ' 庚(100 籌碼，送醫) 現金=' || (select money from public.town_residents where id = e3) || '（應 95=100-5）';
+  select fund into fund1 from public.town_towns where id = t;
+  rep := rep || ' 鎮基金+=' || (fund1 - fund0) || '（應 250+2=252）';
+  -- 取消連輸強制休息：假裝 30 分鐘前有 10 萬籌碼、現在剩 5000，玩一局後不能有 cd
+  update public.town_residents set place = 'casino', items = jsonb_build_object('cs', 2, 'cas', jsonb_build_object('ch', 5000, 'w0', now()::text, 'mw', 100000, 'cd', (now() + interval '30 minutes')::text)) where id = d;
+  perform public.town_casino(d,'x','slots',100,null);
+  select items->'cas'->>'cd' into cdv from public.town_residents where id = d;
+  rep := rep || ' 玩後 cd=' || coalesce(cdv, '無') || '（應 無）';
   select * into mg from public.town_residents where town_id = t and name = '壞';
   if mg.id is not null then rep := rep || ' 遷移後 cs=' || coalesce(mg.items->>'cs','無') || '（應 2） 籌碼=' || coalesce(mg.items->'cas'->>'ch','無') || '（應 32011）'; end if;
   select fund into fund0 from public.town_towns where id = t;

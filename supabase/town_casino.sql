@@ -7,10 +7,10 @@
 --     抽成處理：換回現金的 5% 手續費一半進鎮基金（fund_log.casino）、一半銷毀。籌碼放在 items.cas.ch，財產稅的基礎 = 現金 + 籌碼。
 --     實作：town_casino 在呼叫 town_game／town_game2 前把居民的 money 暫時換成籌碼、呼叫完換回現金（同一個交易內，出錯整個回滾）。
 --   不設預算、不設單注上限、不設每日淨輸上限（只受籌碼數量限制；妞妞與射龍門仍要有押注 3 倍的籌碼）。
---   保留的保護：自我排除（24 小時／7 天，不能取消，排除期間也不能換籌碼）、冷靜（30 分鐘內籌碼淨輸 ≥ 視窗起始籌碼的 10%，至少 1000，強制休息 30 分鐘）、
---     開局間隔至少 3 秒。
+--   保留的保護：自我排除（玩家自願按的，24 小時／7 天，不能取消，排除期間也不能換籌碼）、開局間隔至少 3 秒（防腳本連點）。
+--     已取消：30 分鐘連輸強制休息（冷靜）；無限玩。離場強制換回現金見檔尾的觸發器 town_casino_leave。
 --   輸贏記錄：town_casino_log（每人每天每遊戲：局數、總押注、淨輸贏，單位是籌碼），之後才量得出賭場吸走多少。
---   狀態存在 items.cas：ch 籌碼、t 上次開局、x 自我排除到、cd 冷靜到、w0／mw 30 分鐘視窗、bh 百家樂最近 72 局路單（P／B／T）、fd／fp 盈餘已進基金（舊欄位 d／s0／b 是預算時期留下的，不再使用）。
+--   狀態存在 items.cas：ch 籌碼、t 上次開局、x 自我排除到、bh 百家樂最近 72 局路單（P／B／T）、fd／fp 盈餘已進基金（舊欄位 d／s0／b 是預算時期留下的，不再使用）。
 -- 這個檔會用下面的 do 區塊「就地修改」正式站目前的 town_game／town_game2／town_rent（不複製整個函式，所以不管它們被改成什麼版本都能套用，可重複執行）：
 --   錢類遊戲要 town.casino=1 才通過、位置改 casino、功能開關改 casino、押注上限改 town_casino_maxbet（= 籌碼數量）；猜拳留在廣場（上限 10000、×2）；
 --   百家樂莊家免佣；財產稅基礎加上籌碼；另外把 casino 加進地點名稱、功能清單、可前往地點（town_place_name、town_features、town_act 的 move）。
@@ -94,7 +94,7 @@ language plpgsql security definer set search_path = public as $$
 #variable_conflict use_variable
 declare r public.town_residents; v_day text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); cs jsonb; its jsonb; res json;
   v_bet boolean; v_round boolean; v_gate boolean; v_cash bigint; v_chips bigint; m1 bigint; v_delta bigint;
-  w0 timestamptz; mw bigint; v_house bigint; v_tgt bigint; v_fp bigint; v_pend boolean;
+  v_house bigint; v_tgt bigint; v_fp bigint; v_pend boolean;
 begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
@@ -110,9 +110,6 @@ begin
   if v_gate then
     if (cs->>'x') is not null and (cs->>'x')::timestamptz > now() then
       raise exception '你設了自我排除，賭場到 % 才開放', to_char((cs->>'x')::timestamptz at time zone 'Asia/Taipei','MM/DD HH24:MI');
-    end if;
-    if (cs->>'cd') is not null and (cs->>'cd')::timestamptz > now() then
-      raise exception '賭場請你休息一下，還要約 % 分鐘', ceil(extract(epoch from ((cs->>'cd')::timestamptz - now())) / 60)::int;
     end if;
     if (cs->>'t') is not null and now() - (cs->>'t')::timestamptz < interval '3 seconds' then raise exception '慢一點，每局至少間隔 3 秒'; end if;
     if v_bet and coalesce(bet, 0) > v_chips then raise exception '籌碼不夠（你有 €% 籌碼），到櫃台用現金換籌碼', v_chips; end if;
@@ -139,13 +136,7 @@ begin
         when (res::jsonb->'game'->>'pt')::int < (res::jsonb->'game'->>'bt')::int then 'B' else 'T' end), 72));
     end if;
     -- 30 分鐘視窗：籌碼淨輸 ≥ 視窗起始籌碼的 10%（至少 1000）就強制休息 30 分鐘
-    w0 := (cs->>'w0')::timestamptz; mw := (cs->>'mw')::bigint;
-    if w0 is null or now() - w0 > interval '30 minutes' then w0 := now(); mw := v_chips; end if;
-    if mw - m1 >= greatest(1000, floor(mw * 0.10)) then
-      cs := cs || jsonb_build_object('cd', now() + interval '30 minutes'); w0 := null; mw := null;
-    end if;
-    cs := cs - 'w0' - 'mw';
-    if w0 is not null then cs := cs || jsonb_build_object('w0', w0, 'mw', mw); end if;
+    cs := cs - 'cd' - 'w0' - 'mw';  -- 已取消連輸強制休息（舊資料清掉）
     -- 莊家盈餘：沒有進行中的牌局時，非射龍門遊戲今天淨輸的 50% 進鎮基金（另 50% 銷毀）
     v_pend := (its ? 'hlg') or (its ? 'bj');
     if not v_pend then
@@ -157,8 +148,7 @@ begin
     end if;
   end if;
   update public.town_residents p set money = v_cash, items = jsonb_set(p.items, '{cas}', cs) where p.id = rid;
-  return (res::jsonb || jsonb_build_object('money', v_cash, 'casino', jsonb_build_object('chips', m1, 'bh', coalesce(cs->>'bh', ''),
-    'cd', case when (cs->>'cd')::timestamptz > now() then cs->>'cd' else null end)))::json;
+  return (res::jsonb || jsonb_build_object('money', v_cash, 'casino', jsonb_build_object('chips', m1, 'bh', coalesce(cs->>'bh', ''))))::json;
 end $$;
 
 -- 櫃台與狀態：view 看狀態、buy 現金換籌碼（1:1）、sell 籌碼換回現金（抽 5%，無條件進位）、rest 自我排除
@@ -196,11 +186,30 @@ begin
   elsif op <> 'view' then raise exception '未知動作'; end if;
   select coalesce(sum(l.rounds), 0), coalesce(sum(l.net), 0) into v_rounds, v_net from public.town_casino_log l where l.rid = rid and l.day = v_day;
   return json_build_object('ok', true, 'money', r.money, 'chips', v_chips, 'rounds', v_rounds, 'net', v_net, 'bh', coalesce(cs->>'bh', ''),
-    'cd', case when (cs->>'cd')::timestamptz > now() then cs->>'cd' else null end, 'x', case when (cs->>'x')::timestamptz > now() then cs->>'x' else null end);
+    'x', case when (cs->>'x')::timestamptz > now() then cs->>'x' else null end);
 end $$;
 
 revoke all on function public.town_casino_maxbet(bigint), public.town_casino_norm(text) from public, anon, authenticated;
 revoke all on function public.town_casino(bigint,text,text,int,text), public.town_casino_state(bigint,text,text,int) from public;
 grant execute on function public.town_casino(bigint,text,text,int,text), public.town_casino_state(bigint,text,text,int) to anon, authenticated;
+-- 離場強制換回現金（使用者 2026-11-23）：居民的 place 從 casino 變成別處（走出去、回家、睡覺、入獄、送醫、離線自動回家、傳送……任何路徑）時，
+-- 剩下的籌碼自動換回現金（手續費 5% 無條件進位，一半進鎮基金、一半銷毀），寫一行動態；沒有籌碼就什麼都不做；換完籌碼歸零，不會重複結算。
+-- 用資料表觸發器做，所以不用一個個去改 town_act／town_tick／入獄等函式。
+create or replace function public.town_casino_leave() returns trigger language plpgsql security definer set search_path = public as $$
+declare v_chips bigint; v_fee bigint; v_back bigint;
+begin
+  v_chips := coalesce((NEW.items->'cas'->>'ch')::bigint, 0);
+  if v_chips <= 0 then return NEW; end if;
+  v_fee := (v_chips * 5 + 99) / 100; v_back := v_chips - v_fee;
+  NEW.money := NEW.money + v_back;
+  NEW.items := jsonb_set(NEW.items, '{cas,ch}', '0'::jsonb);
+  perform public.town_fund_add(NEW.town_id, 'casino', (v_fee / 2)::int);
+  insert into public.town_events(town_id, actor, target, kind, msg) values (NEW.town_id, NEW.id, NEW.id, 'luck', NEW.name || ' 離開賭場，籌碼換回現金 €' || v_back || '（手續費 €' || v_fee || '）');
+  return NEW;
+end $$;
+revoke all on function public.town_casino_leave() from public, anon, authenticated;
+drop trigger if exists town_casino_leave on public.town_residents;
+create trigger town_casino_leave before update of place on public.town_residents for each row
+  when (OLD.place = 'casino' and NEW.place is distinct from 'casino') execute function public.town_casino_leave();
 -- 舊版（預算制）的輔助函式不再使用
 drop function if exists public.town_casino_calc(public.town_residents);

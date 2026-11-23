@@ -35,5 +35,9 @@ module.exports=(M,check)=>{const fs=require("fs"),sq=fs.readFileSync(__dirname+"
   check(M.baccBead("BPTBPTB")[0].join("")=="BPTBPT"&&M.baccBead("BPTBPTB")[1][0]=="B","百家樂珠盤路排列不對");
   const q=code2=>code2.includes("right(coalesce(cs->>'bh', '')")&&code2.includes("), 72)");
   check(q(fs.readFileSync(__dirname+"/../supabase/town_casino.sql","utf8"))&&js.includes("data-chip")&&js.includes("roadsHtml"),"路單 SQL（72 局）或前端籌碼／路單不見了")}
+ // 賭場規則：離場觸發器在、連輸強制休息（冷靜）已取消、自我排除與開局間隔 3 秒保留
+ {const c1=fs.readFileSync(__dirname+"/../supabase/town_casino.sql","utf8").replace(/--.*$/gm,"");
+  check(c1.includes("town_casino_leave")&&c1.includes("before update of place")&&!c1.includes("賭場請你休息一下")&&c1.includes("每局至少間隔 3 秒")&&c1.includes("你設了自我排除"),"賭場 SQL：要有離場觸發器、不能有冷靜休息、要保留自我排除與 3 秒間隔");
+  check(js.includes("squeezeDeal")&&js.includes("foldRules")&&js.includes("自動換回現金"),"前端要有咪牌、規則折疊與離場自動換回現金的說明")}
  // 莊家盈餘與籌碼制的前端文字
  check(js.includes('"town_casino_state"')&&js.includes("換回現金")&&js.includes("5%"),"前端要有換籌碼與換回現金（抽 5%）的說明")}

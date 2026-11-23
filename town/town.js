@@ -16,7 +16,7 @@ typeof document!=="undefined"&&(()=>{const st=document.createElement("style");st
 @keyframes pcover{0%,78%{opacity:1}79%,100%{opacity:0;visibility:hidden}}
 @keyframes gresin{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:none}}
 @keyframes pblink{50%{opacity:.4}}
-@media (prefers-reduced-motion:reduce){.pcard.dealt,.pcard.dealt::after,.gres.late,.dealer{animation:none}}`;document.head.appendChild(st)})();
+@media (prefers-reduced-motion:reduce){.pcard.sq,.pcard.dealt,.pcard.dealt::after,.gres.late,.dealer{animation:none}}`;document.head.appendChild(st)})();
 typeof document!=="undefined"&&(()=>{const st=document.createElement("style");st.id="chipcss";st.textContent=`/* 籌碼面額與百家樂路單 */
 .ctray{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0}
 .chip{--c:#888;width:40px;height:40px;border-radius:50%;border:3px dashed #fff9;background:var(--c);color:#fff;font:700 11px/1 'Cubic 11',monospace;padding:0;box-shadow:0 3px 0 #0006,inset 0 0 0 3px var(--c);text-shadow:0 1px 0 #000a;cursor:pointer}
@@ -27,11 +27,11 @@ typeof document!=="undefined"&&(()=>{const st=document.createElement("style");st
 .cstk{position:relative;display:inline-block;width:34px;height:42px}
 .chip.s{position:absolute;left:0;bottom:calc(var(--k)*3px);width:32px;height:32px;font-size:9px;border-width:2px;pointer-events:none;animation:chipdrop .18s steps(3) both}
 @keyframes chipdrop{from{transform:translateY(-14px);opacity:0}to{transform:none;opacity:1}}
-.bamt{color:#ffe9a8;font-size:15px}
+.bamt{color:#ffe9a8;font-size:16.5px}
 .roads{margin-top:8px}.rlab{font-size:12px;color:#aaa;margin:6px 0 2px}
 .rgrid{display:flex;gap:2px;overflow:hidden;justify-content:flex-start;padding:3px;background:#f4efe0;border-radius:6px;width:max-content;max-width:100%}
 .rgrid>div{display:flex;flex-direction:column;gap:2px}
-.bd,.bg{display:block;width:18px;height:18px;border-radius:50%;box-sizing:border-box;font-style:normal;font-size:10px;line-height:18px;text-align:center;color:#fff;background:#0001;position:relative}
+.bd,.bg{display:block;width:18px;height:18px;border-radius:50%;box-sizing:border-box;font-style:normal;font-size:11px;line-height:18px;text-align:center;color:#fff;background:#0001;position:relative}
 .bd.B{background:#d64541}.bd.P{background:#3b7dd8}.bd.T{background:#2e9e5b}
 .bg.B,.bg.P{background:none;border:3px solid #d64541}.bg.P{border-color:#3b7dd8}.bg.T{background:none}
 .bg s{position:absolute;left:-1px;top:7px;width:18px;height:3px;background:#2e9e5b;transform:rotate(-45deg)}
@@ -42,6 +42,17 @@ typeof document!=="undefined"&&(()=>{const st=document.createElement("style");st
 .gshow{position:relative;box-sizing:border-box;border:3px solid transparent;padding:8px;min-height:150px}
 .gshow .dealer{position:absolute;top:2px;right:8px;margin:0;z-index:2;font-size:11px;pointer-events:none}
 .nochip{margin:6px 0}
+/* 精簡牌桌：標題列一行（遊戲名、籌碼、規則鈕），規則點開才浮出（不推版面）；咪牌：牌面蓋一層，按住往上拖慢慢掀開 */
+#modal .card{position:relative}
+.tbar{display:flex;align-items:center;gap:8px}.tbar h2{margin:0;flex:1}.tchip{color:#ffe9a8;white-space:nowrap}.rbtn{padding:4px 10px;min-height:32px}
+.rpop{position:absolute;left:8px;right:8px;top:52px;z-index:6;background:#101526;border:3px solid #fff;padding:10px;line-height:1.5;box-shadow:0 0 0 3px var(--ink)}
+.cdnote:empty{display:none}
+.roadsd>summary{cursor:pointer;color:#aaa;margin-top:6px}
+.pcard.sq{position:relative;overflow:hidden;animation:sqin .4s steps(5) backwards;animation-delay:var(--d,0ms)}
+@keyframes sqin{from{transform:translate(60px,-40px);opacity:0}to{transform:none;opacity:1}}
+.sqc{position:absolute;left:0;top:0;right:0;bottom:0;background:repeating-linear-gradient(45deg,#e0779b 0 6px,#c45a80 6px 12px);cursor:grab;touch-action:none;display:flex;align-items:flex-end;justify-content:center;color:#fff;font-size:11px;font-style:normal}
+.sqskip{position:absolute;right:6px;top:6px;z-index:3;padding:4px 10px;min-height:32px}
+.sqhint{position:absolute;left:8px;top:8px;max-width:38%;line-height:1.3;z-index:3;font-size:11px;color:#cfe8d6;pointer-events:none}
 `;document.head.appendChild(st)})();
 // 小豬鎮：任何人都能建立自己的小鎮，拿邀請碼的朋友搬進來；需求隨現實時間下降，所有改動都經過 Supabase 的資料庫函式
 const SB="https://gerqdagicybtyilihvvm.supabase.co/rest/v1/rpc/",SBK="sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y";
@@ -1133,14 +1144,34 @@ function roadsHtml(bh){bh=bh||"";if(!bh)return`<p class="mut">還沒有路單，
  const bead=baccBead(bh),big=baccBig(bh),vis=big.slice(-18),nB=[...bh].filter(x=>x=="B").length,nP=[...bh].filter(x=>x=="P").length,nT=bh.length-nB-nP,nm={B:"莊",P:"閒",T:"和"};
  return`<div class="roads"><p class="mut">最近 ${bh.length} 局：<span class="rb">莊 ${nB}</span> <span class="rp">閒 ${nP}</span> <span class="rt">和 ${nT}</span></p><div class="rlab">珠盤路</div><div class="rgrid">${bead.slice(-12).map(col=>`<div>${col.map(x=>`<i class="bd ${x}">${x?nm[x]:""}</i>`).join("")}</div>`).join("")}</div><div class="rlab">大路</div><div class="rgrid">${vis.map(col=>`<div>${col.map(x=>`<i class="bg ${x.w}">${x.t?`<s></s>`:""}</i>`).join("")}</div>`).join("")}</div></div>`}
 function roadsSync(){const e=document.getElementById("roads");if(e)e.innerHTML=roadsHtml(CAS&&CAS.bh)}
+// 規則折疊：把遊戲區第一段說明搬進「規則」浮層（點開才顯示，不推動牌桌）
+function foldRules(){const b=document.getElementById("rulesBtn"),pop=document.getElementById("rulesPop"),a=document.getElementById("gArea");if(!b||!pop||!a||b.dataset.f)return;const p=a.firstElementChild;if(!p||p.tagName!="P"||!p.classList.contains("mut")||p.textContent.length<30)return;b.dataset.f="1";pop.innerHTML=p.innerHTML;p.remove();b.onclick=()=>pop.classList.toggle("hide");pop.onclick=()=>pop.classList.add("hide")}
+// 咪牌：結果在伺服器早已決定，這裡只是前端演出。牌一張張發進來蓋著，玩家按住牌面往上拖（拖遠就翻開、放手就彈回）；不碰的話自動一張張慢慢翻，「直接開牌」全翻，最多等 25 秒；翻完才 resolve（呼叫端這時才顯示點數、結果、籌碼數字）
+const SQ_IN=520;
+function squeezeDeal(show){return new Promise(res=>{const cards=[...show.querySelectorAll(".cards .pcard")];
+ if(!cards.length||(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches))return res();
+ let left=cards.length,fin=false,auto=0,hard=0;const sfx=n=>{try{window.SFX&&SFX.play(n)}catch(e){}};
+ show.classList.add("felt");const skip=document.createElement("button"),hint=document.createElement("span");skip.className="sqskip";skip.textContent="直接開牌";hint.className="sqhint";hint.textContent="按住牌面往上拖，慢慢咪牌";show.append(skip,hint);
+ const pending=()=>cards.filter(c=>c._cv&&!c._cv.dataset.o);
+ const end=()=>{if(fin)return;fin=true;clearTimeout(auto);clearTimeout(hard);skip.remove();hint.remove();setTimeout(res,350)};
+ const flip=(c,fast)=>{const cv=c._cv;if(!cv||cv.dataset.o)return;cv.dataset.o="1";cv.style.transition="transform .28s steps(5),opacity .28s";cv.style.transform="translateY(-130%)";cv.style.opacity="0";sfx("click");setTimeout(()=>{cv.remove();if(--left<=0)end()},fast?120:300)};
+ const arm=ms=>{clearTimeout(auto);auto=setTimeout(function step(){if(fin)return;const p=pending();if(!p.length)return;flip(p[0]);auto=setTimeout(step,p.length>2?900:1500)},ms)};
+ cards.forEach((c,i)=>{c.dataset.fx="1";c.classList.add("sq");c.style.setProperty("--d",i*SQ_IN+"ms");const cv=document.createElement("i");cv.className="sqc";cv.textContent="↑";c.append(cv);c._cv=cv;
+  let sx=0,sy=0,dr=false;const H=c.offsetHeight||64;
+  cv.addEventListener("pointerdown",e=>{dr=true;sx=e.clientX;sy=e.clientY;try{cv.setPointerCapture(e.pointerId)}catch(x){}cv.style.transition="none";clearTimeout(auto);e.preventDefault()});
+  cv.addEventListener("pointermove",e=>{if(!dr)return;const dx=e.clientX-sx,dy=Math.min(0,e.clientY-sy),m=Math.hypot(dx,dy),mx=H*1.2,k=m>mx?mx/m:1;cv.style.transform=`translate(${dx*k}px,${dy*k}px)`;if(m>H*.75){dr=false;flip(c);arm(3500)}});
+  const up=()=>{if(!dr){return}dr=false;if(!cv.dataset.o){cv.style.transition="transform .2s steps(4)";cv.style.transform=""}arm(3500)};cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up)});
+ skip.onclick=()=>pending().forEach((c,i)=>setTimeout(()=>flip(c,1),i*180));
+ arm(cards.length*SQ_IN+2500);hard=setTimeout(()=>pending().forEach(c=>flip(c,1)),25000)})}
+const playRes=g=>{try{if(window.SFX)SFX.play(g.win>g.bet?"coin":g.win<g.bet?"pay":"click")}catch(e){}};
 let gameTab="",gameBet=50,gameHall="arcade",CAS=null;
 const NIUC=c=>c==10?"妞妞":c==0?"沒妞":"妞"+c;
 async function playGame(game,extra={},fn){if(["hl_start","bj_start","bacc","niu","dg_start"].includes(game))DEALT.clear();const res=await rpc(fn||(game=="rps"?"town_game":"town_casino"),{rid:me,pin,game,bet:gameBet,...extra});R[me].money=res.money;if(res.casino){CAS={...(CAS||{}),...res.casino};updBud()}renderNeeds();return res.game}
 const casMin=iso=>iso?Math.max(1,Math.ceil((Date.parse(iso)-now())/60000)):0;
-const chipLine=()=>CAS?`籌碼 €${CAS.chips}${CAS.cd?` · 休息中，約 ${casMin(CAS.cd)} 分鐘後可再玩`:""}`:"";
-function updBud(){const e=document.getElementById("gBud");if(e)e.textContent=chipLine()}
+const chipLine=()=>CAS?`籌碼 €${CAS.chips}`:"";
+function updBud(){const e=document.getElementById("gBud");if(e)e.textContent=""}
 function casStatus(){if(!CAS)return"";const cash=R[me].money,ins=[1000,5000,20000,100000].filter(v=>v<cash),outs=[1000,5000,20000,100000].filter(v=>v<CAS.chips);
- return `<div class="mrow"><span><b>現金 €${cash} · 籌碼 €${CAS.chips}</b> <small class="mut">現金 1:1 換籌碼，籌碼換回現金時抽 5%（無條件進位）。今天 ${CAS.rounds} 局，淨輸贏 ${CAS.net>=0?"+":""}${CAS.net}${CAS.cd?` · 休息中約 ${casMin(CAS.cd)} 分鐘`:""}${CAS.x?` · 自我排除到 ${new Date(CAS.x).toLocaleString()}`:""}</small></span></div>
+ return `<div class="mrow"><span><b>現金 €${cash} · 籌碼 €${CAS.chips}</b> <small class="mut">現金 1:1 換籌碼；離開賭場時剩下的籌碼會自動換回現金（手續費 5%，無條件進位）。沒有休息時間，可以一直玩。今天 ${CAS.rounds} 局，淨輸贏 ${CAS.net>=0?"+":""}${CAS.net}${CAS.x?` · 自我排除到 ${new Date(CAS.x).toLocaleString()}`:""}</small></span></div>
  <div class="chips">換籌碼 ${ins.map(v=>`<button data-cin="${v}">€${v}</button>`).join("")}${cash>0?`<button data-cin="${cash}">全部現金</button>`:""}</div>
  <div class="chips">換回現金（抽 5%） ${outs.map(v=>`<button data-cout="${v}">€${v}</button>`).join("")}${CAS.chips>0?`<button data-cout="${CAS.chips}">全部籌碼</button>`:""}</div>
  <div class="row"><button data-cr="24">休息 24 小時</button><button data-cr="168">休息 7 天</button></div>`}
@@ -1158,15 +1189,15 @@ function dealFx(root){
  root.querySelectorAll(".gres").forEach(e=>{if(e.dataset.fx)return;e.dataset.fx="1";if(!any)return;e.classList.add("late");e.style.setProperty("--d",(d+80)+"ms");
   const good=e.classList.contains("good"),bad=e.classList.contains("bad");setTimeout(()=>{if(window.SFX&&(good||bad))SFX.play(good?"coin":"pay")},d+200)});
  if(any){root.classList.add("felt");const p=document.createElement("p");p.className="dealer";p.textContent="莊家發牌中…";root.prepend(p);setTimeout(()=>p.remove(),d+250)}}
-function gamesModal(){$("modal").classList.remove("hide");if(!window._dealObs){window._dealObs=new MutationObserver(()=>dealFx($("gShow")));window._dealObs.observe($("mbody"),{childList:true,subtree:true})}const solo=SOLO.some(g=>g[0]==gameTab),menu=!gameTab;
+function gamesModal(){$("modal").classList.remove("hide");if(!window._dealObs){window._dealObs=new MutationObserver(()=>{dealFx($("gShow"));foldRules()});window._dealObs.observe($("mbody"),{childList:true,subtree:true})}const solo=SOLO.some(g=>g[0]==gameTab),menu=!gameTab;
  const gic=ic=>/^g_/.test(ic)&&window.PIXICON_NAME?`<img class="px" alt="" src="${PIXICON_NAME(ic)}">`:ic;
  const gm=l=>l.map(([k,ic,n,d])=>`<button class="gm" data-g="${k}"><span class="gi">${gic(ic)}</span><b>${n}</b><small>${d}${SOLO.some(g=>g[0]==k)?` · 最佳 ${spOf(R[me],k)}`:""}</small></button>`).join("");
  const hall=gameHall=="casino",bets=hall?[...[50,100,200,500,1000,2000,5000,10000,20000,50000,100000,500000,1000000].filter(b=>b<((CAS&&CAS.chips)||0)),...(CAS&&CAS.chips>=50?[CAS.chips]:[])]:[50,100,200,500,1000],hn=hall?"賭場":"街機";
- $("mbody").innerHTML=menu?(hall?`<h2>🎰 小豬賭場</h2><p class="mut">籌碼 €<b id="gMoney">${CAS?CAS.chips:0}</b> · 押注 €50 起，沒有上限（只看你的籌碼）</p>${casStatus()}
+ $("mbody").innerHTML=menu?(hall?`<h2>🎰 小豬賭場</h2><p class="mut">籌碼 €<b id="gMoney">${CAS?CAS.chips:0}</b> · 押注 €50 起，沒有上限 · 離場自動換回現金（5%）</p>${casStatus()}
   <h3 class="gh">押錢遊戲（莊家有優勢，玩越久越可能輸）</h3><div class="gmenu">${gm(CASINO)}</div><div class="row"><button id="mc">離開賭場</button></div>`
   :`<h2>🕹️ 小豬街機</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b> · 押注 €50～€1000 · 押錢遊戲搬到小豬賭場了</p>
   <h3 class="gh">對電腦</h3><div class="gmenu">${gm(ARCADE)}</div><h3 class="gh">單機（不押錢，心情 +2）</h3><div class="gmenu">${gm(SOLO)}</div><div class="row"><button id="mc">離開街機</button></div>`)
-  :`<h2>${(g=>gic(g[1])+" "+g[2])([...ARCADE,...CASINO,...SOLO].find(g=>g[0]==gameTab))}</h2><p class="mut">${hall?"籌碼":"你有"} €<b id="gMoney">${hall&&CAS?CAS.chips:R[me].money}</b></p>${hall?`<p class="mut" id="gBud">${chipLine()}</p>`:""}
+  :`${(ttl=>hall?`<div class="tbar"><h2>${ttl}</h2><span class="tchip">籌碼 €<b id="gMoney">${CAS?CAS.chips:0}</b></span><button id="rulesBtn" class="rbtn">規則</button></div><div id="rulesPop" class="rpop hide"></div><p class="mut cdnote" id="gBud"></p>`:`<h2>${ttl}</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b></p>`)((g=>gic(g[1])+" "+g[2])([...ARCADE,...CASINO,...SOLO].find(g=>g[0]==gameTab)))}
   ${solo?"":hall?((!CAS||CAS.chips<50)?`<p class="gres bad nochip">請先到櫃台換籌碼，現金不能直接賭</p>`:"")+chipTray((CAS&&CAS.chips)||0):`<div class="chips">押注 ${bets.map(b=>`<button data-bet="${b}" class="${gameBet==b?"on":""}">€${b}</button>`).join("")}</div>`}
   <div id="gArea" class="garea"></div><div class="row"><button id="gback">回${hn}選單</button><button id="mc">離開${hn}</button></div>`;
  $("mc").onclick=()=>{gameTab="";$("modal").classList.add("hide");refresh().catch(()=>{})};
@@ -1227,9 +1258,9 @@ function gamesModal(){$("modal").classList.remove("hide");if(!window._dealObs){w
    $("gShow").innerHTML=`<p class="mut">開出 ${g.draw.slice().sort((a,b)=>a-b).join("、")} · 中 ${g.hit} 個</p>`+result(g);money();area.querySelector(".gbtns").innerHTML=`<button class="pri" id="bgAgain">再來一局</button>`;$("bgAgain").onclick=()=>gamesModal()}catch(e){toast(e.message);$("bgGo").disabled=false}}}
 
  const pg2=(g,x)=>playGame(g,x,"town_casino"),cardsH=cs=>`<div class="cards">${cs.map(c=>cardHTML(c)).join("")}</div>`;
- if(gameTab=="bacc"){area.innerHTML=`<p class="mut">閒莊各發 2～3 張，點數接近 9 贏（A=1、10JQK=0、取個位）。閒 ×2，莊 ×2（莊以 6 點贏只賠 ×1.5，免佣），和 ×9；和局時押閒莊退回押注。</p><div class="gbtns"><button class="gbig" data-b="p">閒<span>×2</span></button><button class="gbig" data-b="b">莊<span>×2（6 點 ×1.5）</span></button><button class="gbig" data-b="t">和<span>×9</span></button></div><div id="gShow" class="gshow"></div><p class="mut">按一下就開局，可連續再玩（押 €${gameBet}）</p><div id="roads">${roadsHtml(CAS&&CAS.bh)}</div>`;
+ if(gameTab=="bacc"){area.innerHTML=`<p class="mut">閒莊各發 2～3 張，點數接近 9 贏（A=1、10JQK=0、取個位）。閒 ×2，莊 ×2（莊以 6 點贏只賠 ×1.5，免佣），和 ×9；和局時押閒莊退回押注。</p><div class="gbtns"><button class="gbig" data-b="p">閒<span>×2</span></button><button class="gbig" data-b="b">莊<span>×2（6 點 ×1.5）</span></button><button class="gbig" data-b="t">和<span>×9</span></button></div><div id="gShow" class="gshow"></div><details class="roadsd"><summary>路單</summary><div id="roads">${roadsHtml(CAS&&CAS.bh)}</div></details>`;
   area.querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{area.querySelectorAll("[data-b]").forEach(x=>x.disabled=true);try{const g=await pg2("bacc",{choice:b.dataset.b});const side=g.pt>g.bt?"閒贏":g.bt>g.pt?"莊贏":"和局";
-   $("gShow").innerHTML=`<p>閒 <b>${g.pt}</b></p>${cardsH(g.p)}<p>莊 <b>${g.bt}</b></p>${cardsH(g.b)}<p class="mut">${side}</p>`+result(g);money()}catch(e){$("gShow").innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
+   $("gShow").innerHTML=`<p>閒 <b class="tt">?</b></p>${cardsH(g.p)}<p>莊 <b class="tt">?</b></p>${cardsH(g.b)}`;await squeezeDeal($("gShow"));const tt=$("gShow").querySelectorAll(".tt");tt[0].textContent=g.pt;tt[1].textContent=g.bt;$("gShow").insertAdjacentHTML("beforeend",`<p class="mut">${side}</p>`+result(g));playRes(g);money()}catch(e){$("gShow").innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
    area.querySelectorAll("[data-b]").forEach(x=>x.disabled=false)})}
 if(gameTab=="dg"){area.innerHTML=`<p class="mut">射龍門（莊家制，沒有入場費和彩池）：先看兩張龍門牌，不想賭可以免費放棄。第三張嚴格在兩張之間才贏，賠率看中間有幾個點數（越窄賠越多，畫面上會寫）；撞柱（同點）輸 2 倍，兩張龍門同點又撞中輸 3 倍；其他輸 1 倍。兩張龍門同點時改押「更大」或「更小」。兩張相鄰自動重發。押注要有 3 倍籌碼。</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="dgGo">發龍門牌</button></div>`;
   const deal=async()=>{try{const g=await playGame("dg_start",{bet:0});const gt=g.gates,show=$("gShow");money();
@@ -1240,7 +1271,7 @@ if(gameTab=="dg"){area.innerHTML=`<p class="mut">射龍門（莊家制，沒有�
     money();area.querySelector(".gbtns").innerHTML=`<button class="pri" id="dgGo">再發一局</button>`;$("dgGo").onclick=deal}catch(e){toast(e.message);area.querySelectorAll("[data-dg]").forEach(x=>x.disabled=false)}})}catch(e){toast(e.message)}};
   $("dgGo").onclick=deal}
  if(gameTab=="niu"){area.innerHTML=`<p class="mut">各 5 張牌，找 3 張湊成 10 的倍數，剩 2 張的個位數是妞點（0 = 妞妞最大，找不到 = 沒妞）。比大小，最大一張也同點算平手退押注（不比花色）。贏家牌型決定倍數，輸家付同樣倍數：沒妞、妞 1～6 = 1 倍；妞 7、8、9 = 2 倍；妞妞 = 3 倍（現金要有押注 3 倍）。你沒妞且沒有 Q 以上的牌：莊家直接贏（照莊家牌型付）。</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="nGo">開牌（押 €${gameBet}）</button></div>`;
-  $("nGo").onclick=async()=>{$("nGo").disabled=true;try{const g=await pg2("niu");$("gShow").innerHTML=`<p>莊家 <b>${NIUC(g.bcl)}</b></p>${cardsH(g.b)}<p>你 <b>${NIUC(g.pcl)}</b></p>${cardsH(g.p)}`+(g.win>g.bet?`<p class="gres good">贏了 €${g.win-g.bet}！</p>`:g.win==g.bet?`<p class="gres">平手，退回押注</p>`:`<p class="gres bad">${g.forced?"沒妞又沒有 Q 以上，莊家直接贏 · ":""}輸了 €${g.bet+g.pen}</p>`);money()}catch(e){toast(e.message)}$("nGo").disabled=false;$("nGo").textContent=`再來一局（押 €${gameBet}）`}}
+  $("nGo").onclick=async()=>{$("nGo").disabled=true;try{const g=await pg2("niu");$("gShow").innerHTML=`<p>莊家 <b class="tt">?</b></p>${cardsH(g.b)}<p>你 <b class="tt">?</b></p>${cardsH(g.p)}`;await squeezeDeal($("gShow"));{const tt=$("gShow").querySelectorAll(".tt");tt[0].textContent=NIUC(g.bcl);tt[1].textContent=NIUC(g.pcl)}$("gShow").insertAdjacentHTML("beforeend",(g.win>g.bet?`<p class="gres good">贏了 €${g.win-g.bet}！</p>`:g.win==g.bet?`<p class="gres">平手，退回押注</p>`:`<p class="gres bad">${g.forced?"沒妞又沒有 Q 以上，莊家直接贏 · ":""}輸了 €${g.bet+g.pen}</p>`));playRes(g);money()}catch(e){toast(e.message)}$("nGo").disabled=false;$("nGo").textContent=`再來一局（押 €${gameBet}）`}}
  // 單機：前端自己玩，結束後只把個人最佳分數送給伺服器（不給錢）
  const sendScore=async(game,score)=>{try{const r=await rpc("town_score",{rid:me,pin,game,score});const it=R[me].items=R[me].items||{};it.sp=it.sp||{};if(score>(it.sp[game]||0))it.sp[game]=score;return r}catch(e){toast(e.message);return null}};
  const soloEnd=async(game,score,note)=>{const r=await sendScore(game,score);$("gShow").innerHTML=`<p class="gres good">得分 <b>${score}</b>${note||""}</p><p class="mut">個人最佳 ${r?r.best:spOf(R[me],game)}${r&&r.gain?" · 心情 +"+r.gain:""}</p><div class="gbtns"><button class="pri" id="sgAgain">再玩一次</button></div>`;$("sgAgain").onclick=()=>gamesModal()};
