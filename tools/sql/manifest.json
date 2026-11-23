@@ -379,6 +379,13 @@
    ]
   },
   {
+   "file": "town_faint_refund_1123.sql",
+   "kind": "once",
+   "needs": [
+    "town_faint_fix.sql"
+   ]
+  },
+  {
    "file": "town_fi_test.sql",
    "kind": "test",
    "needs": [
