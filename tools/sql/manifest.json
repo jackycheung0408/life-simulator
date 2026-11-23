@@ -757,6 +757,14 @@
    "needs": [
     "town.sql"
    ]
+  },
+  {
+   "file": "town_rank.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ],
+   "note": "廣場排行榜看板 RPC town_rank：首富／連續上線／打工／街機各前 10 名，唯讀"
   }
  ]
 }

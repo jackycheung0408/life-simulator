@@ -6,6 +6,7 @@ for(let rows=2;rows<=4;rows++){M.setRows(rows);
  for(const [n,d] of doors)check(!M.blocked(...d)&&d[1]<M.mapRows(),`${rows} 排：${n} 的門在牆裡或地圖外`);
  for(let s=0;s<rows*3;s++){const v=M.visitSpot(s);check(!M.blocked(...v),`${rows} 排：房子 ${s} 門口旁邊站不了人`);const [hx,hy]=M.homeXY(s),p=M.placeAt(hx+1,hy+1);check(p&&p.slot==s,`${rows} 排：點房子 ${s} 沒對到`)}
  for(const [a,da] of doors)for(const [b,db] of doors)if(a!=b){routes++;check(M.bfs(da,db),`${rows} 排：${a} 走不到 ${b}`);check(M.route(da,db,null),`${rows} 排：行人自由走 ${a} 走不到 ${b}`)}}
+for(let rows=2;rows<=4;rows++){M.setRows(rows);for(const [k,o] of [["看板",M.BOARDP],["雕像",M.STATUEP]]){check(!M.blocked(o[0],o[1]),`${rows} 排：${k}在牆裡`);check(!M.blocked(o[0],o[1]+1),`${rows} 排：${k}前面站不了`);const p=M.placeAt(o[0],o[1]);check(p&&p.board,`${k}點不到`);for(let s=0;s<rows*3;s++)check(M.bfs(M.door(s),[o[0],o[1]+1]),`${rows} 排：房子 ${s} 走不到${k}`)}}
 // 和 supabase/town.sql 的 town_door 一樣：x = [2,9,20][s%3]+2；y = 第 0 排 5、第 1 排 21、之後每排 +7（28、35）
 for(let s=0;s<12;s++){const k=Math.floor(s/3),d=M.door(s),y=(k==0?1:k==1?17:24+7*(k-2))+4;check(d[0]==[2,9,20][s%3]+2&&d[1]==y,`房子 ${s} 門口和資料庫不一致`)}
 check(M.door(7)[0]==11&&M.door(7)[1]==28,"房子 7 的門應該在 (11,28)，和資料庫測試結果一致");
