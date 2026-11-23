@@ -1,7 +1,7 @@
 -- 小豬鎮金錢宏觀調控回滾實測：結果在錯誤訊息 REPORT（整段最後 rollback）。接在 town_econ.sql 之後貼上。
 do $$
 declare t text := 'ZZECO'; a bigint; b bigint; c bigint; d bigint; ra public.town_residents; rb public.town_residents; rc public.town_residents; e public.town_econ;
-  rep text := ''; i int; today text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); f0 bigint; f1 bigint; m0 bigint; m1 bigint; msg text; tx0 int; tx1 int; v json; mn int;
+  rep text := ''; i int; today text := to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'); f0 bigint; f1 bigint; m0 bigint; m1 bigint; tx0 int; tx1 int; v json; mn int;
 begin
   insert into public.town_towns(id,name,invite,fund) values (t,'測試鎮','ZZECO1',0) on conflict do nothing;
   insert into public.town_residents(town_id,name,money,slot,x,y,place,mayor,pin_hash,items) values (t,'甲',1000000,0,10,10,'street',true,extensions.crypt('x', extensions.gen_salt('bf')),'{"al":{"n":9}}'::jsonb) returning id into a;
