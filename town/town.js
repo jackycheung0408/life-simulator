@@ -331,6 +331,7 @@ const UPDATES=[
   {id:"meet-1123",date:"11/23",title:"揪團上線",items:["選單「揪團」約吃約玩","到點在場才算出席","可分享給群組"]},
   {id:"persona-1123",date:"11/23",title:"我的人設",items:["選單設外號與口頭禪","朋友可幫你取外號","名牌顯示外號、冒口頭禪"]},
   {id:"yacht-1123",date:"11/23",title:"碼頭與莊園",items:["地圖東南角有碼頭","買遊艇會停在碼頭","買莊園房子變莊園"]},
+  {id:"yacht-1123b",date:"11/23",title:"出海與派對",items:["遊艇可在碼頭出海","莊園可在家辦派對"]},
   {id:"econ-1123",date:"11/23",title:"小鎮經濟",items:["選單「小鎮經濟」看報表","鎮基金每週發補差金、辦慶典","新增遊艇、莊園、拍賣、捐款"]},
   {id:"notif-fav-1123",date:"11/23",title:"通知與常用",items:["通知分「要回應」「系統」，可全部已讀","常用列可長按釘選","面板不再亂跳、牌桌不能拖"]},
   {id:"u99-loading",date:"11/23",title:"載入畫面更新",items:["顯示四個載入步驟","等待時會輪播小提示","網路慢時可按「再試一次」"]},
@@ -907,7 +908,7 @@ const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀
 // ── 下方面板：依所在地點顯示可以做的事 ──
 // ── 按鈕效果與門檻：全部出自 RULES（頂層）；b.key 或標籤比對 RULES，沒有規則的不顯示晶片（nofx 或待確認）──
 const FXI={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"💰",bond:"💗",fit:"💪"},FXN={hunger:"飽足",energy:"精力",bladder:"膀胱",hygiene:"清潔",fun:"心情",money:"錢",bond:"好感",fit:"體能"};
-const NOFXRE=/^(幫他取外號|我的人設|報案|叫他出來|申請假釋|出院|自首|會員點數換|看排行榜|起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|玩(輪盤|老虎機|百家樂|21點|骰寶|比大小|基諾|射龍門|妞妞|三公|十八啦|賽豬|牌九|地雷|彈珠台|飛行器|猜杯子|刮刮樂|開寶箱)|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
+const NOFXRE=/^(出海|辦派對|幫他取外號|我的人設|報案|叫他出來|申請假釋|出院|自首|會員點數換|看排行榜|起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|玩(輪盤|老虎機|百家樂|21點|骰寶|比大小|基諾|射龍門|妞妞|三公|十八啦|賽豬|牌九|地雷|彈珠台|飛行器|猜杯子|刮刮樂|開寶箱)|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
 const wageOf=r=>{const n=+((r.items||{}).works)||0;let w=JOBS[0][2];for(const j of JOBS)if(n>=j[1])w=j[2];return w};
 function ruleOf(b,r){if(b.key)return RULES.find(x=>x.m===b.key)||null;const l=String(b.label).replace(/\p{Extended_Pictographic}️?\s*/gu,"").trim();return RULES.find(x=>x.m instanceof RegExp&&x.m.test(l)&&(!x.at||x.at.includes(r.place)))||null}
 function fxOf(b,r){const ru=b.nofx?null:ruleOf(b,r);if(!ru)return{fx:[],need:[],chips:[],rule:null};const fx=typeof ru.fx=="function"?ru.fx(r,{hasF,wage:wageOf}):ru.fx.slice(),need=[];
@@ -976,6 +977,10 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  if(!sel&&!r.sleeping&&!jailed(r)&&!(walkers[me]&&walkers[me].path.length))list.push(...trainBtns(r));
  if(r.place=="plaza"&&!r.sleeping&&!jailed(r))list.push(btn("看排行榜 🏆","首富、連續上線、打工、街機、賭神前 10 名",()=>rankBoard(),"place"));
  if(TRV&&TRV.here&&r.place==TRV.place&&!r.sleeping&&!jailed(r))list.push(btn("和旅人聊聊 💬","今天來鎮上的旅人，選擇題",trvTalk,"place"));
+ {const lx=(r.items||{}).lx||{},fun=async op=>{try{UT.hit("econ:"+op);const x=await rpc("town_econ_fun",{rid:me,pin,op});toast(x.msg||"完成");refresh()}catch(e){toast(e.message)}};
+  if(!r.sleeping&&!jailed(r)){
+   if(lx.yacht&&p=="street"&&Math.abs(r.x-68.5)<=6&&Math.abs(r.y-18.5)<=5)list.push(btn("出海","$2000 · 自動帶碼頭邊最多 3 位朋友 · 大家心情 +25 · 1 小時 1 次",()=>fun("yacht"),"place"));
+   if(lx.estate&&p=="home:"+me)list.push(btn("辦派對","$5000 · 在線醒著的居民心情 +15、好感 +2 · 每天 1 次",()=>fun("party"),"place"))}}
  if(NPCV&&NPCV.here&&Date.parse(NPCV.until)>Date.now()&&r.place==NPCV.place&&!r.sleeping&&!jailed(r))list.push(btn("找流動商人 💰","限量奇貨，價格偏貴",npcShop,"place"));
  if(!sel&&!r.sleeping&&FACP.includes(p)&&!(walkers[me]&&walkers[me].path.length)){list.push(...facBtns(r));const fn=fqOf(r,p);if(fn)note=(note?note+" · ":"")+`來過 ${fn} 次${tierOf(fn)?"：這裡的"+tierOf(fn):"，5 次變常客有折扣"}`}
  if(!sel&&!r.sleeping&&!(walkers[me]&&walkers[me].path.length))list.push(...inviteBtns(r));
