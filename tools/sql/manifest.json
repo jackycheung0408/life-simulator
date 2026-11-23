@@ -736,6 +736,15 @@
    ]
   },
   {
+   "file": "town_casino_pop.sql",
+   "kind": "patch",
+   "needs": [
+    "town_casino4.sql",
+    "town_casino_fi.sql"
+   ],
+   "note": "賭場玩家人氣排行：表 town_casino_pop、town_casino_pop_add／top；就地在 town_casino 加累加一行、town_casino_state 回傳 pop（前 8 名遊戲代號）"
+  },
+  {
    "file": "town_ticket_sus.sql",
    "kind": "patch",
    "needs": [

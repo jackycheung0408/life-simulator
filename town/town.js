@@ -310,6 +310,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 const UPDATES=[
   {id:"casino-6new-1123",date:"11/23",title:"賭場新增六款",items:["地雷、彈珠台、飛行器","猜杯子、刮刮樂、開寶箱","點賭場裡的桌子開玩"]},
   {id:"casino-fee-1123",date:"11/23",title:"賭場手續費降價",items:["換回現金手續費降到 1.5%"]},
+  {id:"casino-pop-1123",date:"11/23",title:"賭場人氣榜",items:["熱門改看全鎮玩家真的在玩什麼"]},
   {id:"casino-hot-1123",date:"11/23",title:"賭場遊戲排序",items:["遊戲都有圖示","最近玩的、熱門的在最上面"]},
   {id:"casino-room-1123",date:"11/23",title:"賭場有室內了",items:["進賭場，點賭桌開玩","下注更順、開牌更快","桌上可直接換遊戲"]},
   {id:"casino4-1123",date:"11/23",title:"賭場四款新遊戲",items:["新增三公、十八啦","新增賽豬、牌九"]},
@@ -1219,8 +1220,9 @@ function casStatus(){if(!CAS)return"";const cash=R[me].money,ins=[1000,5000,2000
 const HOTK=["bacc","bj","wheel","slots","dice","niu","crash","mines"];
 function gmRecent(){try{const a=JSON.parse(localStorage.getItem("town-gm-recent")||"[]");return Array.isArray(a)?a.slice(0,3):[]}catch(e){return[]}}
 function gmPush(k){try{const a=[k,...gmRecent().filter(x=>x!=k)].slice(0,3);localStorage.setItem("town-gm-recent",JSON.stringify(a))}catch(e){}}
-function gmSort(list,key){const rc=gmRecent(),rk=x=>{const k=key(x),i=rc.indexOf(k),h=HOTK.indexOf(k);return i>=0?i:h>=0?10+h:100};return list.map((x,n)=>[x,n]).sort((a,b)=>rk(a[0])-rk(b[0])||a[1]-b[1]).map(a=>a[0])}
-const gmTag=k=>gmRecent().includes(k)?"最近":HOTK.includes(k)?"熱門":"";
+const gmPop=()=>{const a=CAS&&CAS.pop;return Array.isArray(a)&&a.length?a.slice(0,8):null};// 全鎮人氣前 8（town_casino_state 回傳 pop）；沒資料退回固定熱門清單
+function gmSort(list,key){const rc=gmRecent(),pp=gmPop(),rk=x=>{const k=key(x),i=rc.indexOf(k),h=pp?pp.indexOf(k):-1,f=HOTK.indexOf(k);return i>=0?i:h>=0?10+h:f>=0?30+f:100};return list.map((x,n)=>[x,n]).sort((a,b)=>rk(a[0])-rk(b[0])||a[1]-b[1]).map(a=>a[0])}
+const gmTag=k=>gmRecent().includes(k)?"最近":(gmPop()||HOTK).includes(k)?"熱門":"";
 async function casinoOpen(tab){await ensureIn();try{CAS=await rpc("town_casino_state",{rid:me,pin,op:"view"})}catch(e){toast(e.message);return}gameHall="casino";gameTab=typeof tab=="string"?tab:"";betHist=[];if(gameBet>CAS.chips)gameBet=50;gamesModal()}
 async function casDo(op,val){try{CAS=await rpc("town_casino_state",{rid:me,pin,op,val});R[me].money=CAS.money;renderNeeds();gamesModal()}catch(e){toast(e.message)}}
 // 發牌臨場感：新出現的牌從牌堆滑進來、蓋牌翻面、一張一張發，結果文字等牌發完才出現；每個畫面只動「新」的牌；系統設定「減少動態效果」時不做

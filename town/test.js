@@ -173,6 +173,14 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  const town=require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8");
  check(town.includes("town_jailed")&&town.includes("when p = 'jail' then '監獄'")&&town.includes("'carshop','jail','hospital','police','townhall')"),"town.sql 要有 town_jailed 與 jail 地點");
  const near=Object.entries(M.PLACES).filter(([k,p])=>k!="jail"&&p.block).filter(([k,p])=>{const [x,y,w,h]=P.r,[a,b,c,d]=p.r;return !(a>=x+w+2||a+c<=x-2||b>=y+h+2||b+d<=y-2)});check(near.length==0,"監獄離其他建築至少要 2 格："+near.map(x=>x[0]))}
+// 賭場人氣排行：SQL 單檔就地改 town_casino／state、前端有 pop 排序與退回固定清單
+{const fs=require("fs"),sql=fs.readFileSync(__dirname+"/../supabase/town_casino_pop.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8");
+ check(sql.split("\n").slice(0,6).every(l=>/^--/.test(l)||l.trim()==""),"town_casino_pop.sql 檔頭每行都要是註解");
+ check(/town_casino_pop_add\(r\.town_id, game, choice\)/.test(sql)&&/town_casino_pop_top\(r\.town_id\)/.test(sql)&&!/create or replace function public\.town_casino\(/.test(sql)&&!/create or replace function public\.town_casino_state\(/.test(sql),"town_casino_pop.sql 要就地改 town_casino／state，不能重建");
+ check(/enable row level security/.test(sql)&&/revoke all on public\.town_casino_pop from public, anon, authenticated/.test(sql),"town_casino_pop 表要開 RLS 並收回權限");
+ const keys=[...sql.matchAll(/then '(\w+)'/g)].map(m=>m[1]).concat(["dg","wheel","dice","slots","keno","bacc","niu","sangong","shiba","pigrace","plinko","cups","scratch"]);
+ check([...js.match(/CASINO=\[(\[.*?\]),?\n/s)[0].matchAll(/\["(\w+)","g_/g)].every(m=>keys.includes(m[1])),"town_casino_pop_key 要涵蓋 CASINO 所有遊戲代號");
+ check(/const gmPop=/.test(js)&&/HOTK\.indexOf\(k\)/.test(js)&&/CAS&&CAS\.pop/.test(js),"前端要有人氣 pop 排序並退回固定熱門")}
 // 走進設施裡面：ROOMS 的地點要存在、物件在 12×4 格內、點物件要對得到面板按鈕；SQL 的 town_fi 白名單要和 ROOMS 一致；fin 只有 items.fi 等於現在的 place 才算
 {const sql=require("fs").readFileSync(__dirname+"/../supabase/town_fi.sql","utf8"),labels=[...Object.values(M.FAC).map(d=>d[0]),"坐下逗留 🪑","起身 🪑","打工：咖啡師 💼","打工：服務生 💼","打工：健身教練 💼","喝咖啡 ☕","吃一頓","健身 🏋️","做牢裡的勞動 💼","放風 ☀️","申請假釋 🪪","越獄 🕳️","付保釋金出去 💰","探望 乙 🤝","替 乙 保釋 💰","掛號看診 🩺","出院 🚪","探病 乙 🤝","繳罰單（9 折）🧾","自首 👮","報案 📜","今日治安 📊","市政廳大廳 🏛️","打工 💼","打工：店員 💼","打工：行政專員 💼","和 乙 一起加班 💼","看電影 🎬","買禮物 🎁","買零食 🍪","🛍️ 造型與擺飾","逛逛","賣生豬肉 1 塊","看盤與買賣 📈","打擂台 🥊","邀請 乙 打一場 🥊","🎫 考機車駕照","🛡️ 保險、維修、賣車","🚲 買腳踏車","🏍️ 買機車","🚗 買汽車","溜進去偷飼料 🔪","小豬賭場 🎰","玩輪盤","玩老虎機","玩百家樂","玩21點","玩骰寶","玩地雷","玩彈珠台","玩飛行器","玩猜杯子","玩刮刮樂","玩開寶箱"];
  check(sql.includes("pl not in ("+Object.keys(M.ROOMS).filter(k=>k!="casino").map(k=>"'"+k+"'").join(",")+")"),"town_fi.sql 的地點白名單要和 ROOMS（扣掉 casino，由 town_casino_fi.sql 補）一致");
