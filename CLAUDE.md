@@ -294,7 +294,7 @@
 
 ### 按鈕效果表
 <!-- RULES:START -->
-（由 `node tools/town-rules-doc.mjs` 從 `town/town.js` 的 `RULES` 產生，請勿手改；共 53 筆）
+（由 `node tools/town-rules-doc.mjs` 從 `town/town.js` 的 `RULES` 產生，請勿手改；共 62 筆）
 
 | 互動 | 效果 | 門檻 | 機率／備註 | SQL 出處 |
 |---|---|---|---|---|
@@ -351,6 +351,15 @@
 | 換掉他的座位 | 心情 +5 | 同在咖啡廳或餐廳裡面 | 他精力 −3、心情 −4、好感 −1 | `town_mischief.sql#elsif act = 'swapseat' then` |
 | 按門鈴逃跑 | 心情 +4 | 站在他家門口 | 他心情 −5、好感 −1；睡著的 40% 被吵醒（精力 −5） | `town_mischief.sql#elsif act = 'doorbell' then` |
 | 門口擺假便便 | 心情 +4 | 站在他家門口 | 他清潔 −5、心情 −6、好感 −1 | `town_mischief.sql#elsif act = 'fakepoop' then` |
+| 丟雞蛋 | 心情 +8、好感 −1 | 站在他家門口 | 他在屋裡才被砸中：清潔 −10、心情 −5 | `town.sql#elsif act = 'egg' then` |
+| 煮飯給他 | 錢 −60、心情 +5、好感 +3 | 進了他家、他在屋裡 | 他飽足 +35（好感 ≥30 ×1.3） | `town.sql#if act = 'feed' then if r.money < 60` |
+| 幫他洗澡 | 好感 +3 | 進了他家、他在屋裡 | 他清潔 +45（好感 ≥30 ×1.3） | `town.sql#elsif act = 'wash' then t.hygiene` |
+| 叫醒他 | 好感 −1 | 進了他家、他睡著 | 叫不醒機率 = min(70%, 25% + (100−他精力)/2 %)，叫不醒擋 3 分鐘；成功他心情 −5；成功後 1 小時內不能再叫 | `town.sql#t.sleeping := false; t.fun := t.fun - 5` |
+| 串門子 | 心情 +15、好感 +2 | 進了他家、他醒著 | 他心情也 +15（好感 ≥30 ×1.3） | `town.sql#elsif act = 'visit' then if t.sleeping` |
+| 惡作劇 | 心情 +12、好感 −2 | 站在他家門口 | 他心情 −8 | `town.sql#在 ' || tn || ' 家門口放了一個臭屁` |
+| 送禮物 | 心情 +5、好感 +4 | 背包有禮物 | 他心情 +20、拿到一份未拆禮物；浪漫個性效果加倍；用手機寄送要運費 $60、你沒有心情加成 | `town.sql#elsif act = 'egg' then` |
+| 打擂台 | 精力 −12、飽足 −8、錢 +100＋連勝×50、心情 +15（贏）／−10（輸） | 精力≥15 | 勝負看精力、心情、體能、力量；輸了鼻青臉腫 1 小時、清潔 −10；每小時獎金超過 $600 後只給 25% | `town.sql#elsif act = 'spar' then` |
+| 叫醒到門外 | 好感 −1 | 站在他家門口、他睡著 | 叫不醒機率 = min(70%, 25% + (100−他精力)/2 %)，叫不醒擋 3 分鐘；成功他心情 −3、走到門口（精力不補）；成功後 1 小時內不能再叫 | `town_wake_out.sql#t.sleeping := false; t.fun := t.fun - 3` |
 <!-- RULES:END -->
 
 ## 按鈕分類（2026-11-17 整理；`GORD`／`TABOF`／`btn(...,g)`）
