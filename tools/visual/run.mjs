@@ -28,6 +28,7 @@ const SC=[
  {n:"in-arena",mut:r=>{r.place="arena";r.x=53;r.y=6;r.items.fi="arena"}},
  {n:"in-carshop",mut:r=>{r.place="carshop";r.x=46;r.y=14;r.items.fi="carshop"}},
  {n:"in-slaughter",mut:r=>{r.place="slaughter";r.x=53;r.y=14;r.items.fi="slaughter"}},
+ {n:"in-casino",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino"}},
  {n:"home-inside",mut:r=>{r.place="home:1"}},
  {n:"friend-door",mut:r=>{r.place="home:3";r.items.dr=0}},
  {n:"friend-panel",mut:r=>{r.place="plaza";r.x=14;r.y=11},run:async p=>{await p.click("#friendBtn");await p.waitForTimeout(300)}},
@@ -35,6 +36,7 @@ const SC=[
  {n:"modal-feed",mut:r=>{r.place="street";r.x=15;r.y=12},run:async p=>{await p.click("#feedBtn");await p.waitForTimeout(300)}},
  {n:"modal-menu",mut:r=>{r.place="street";r.x=15;r.y=12},run:async p=>{await p.click("#menuBtn");await p.waitForTimeout(300)}},
  {n:"modal-updates",mut:r=>{r.place="street";r.x=15;r.y=12},run:async p=>{await p.click("#menuBtn");await p.click("#updBtn");await p.waitForTimeout(300)}},
+ {n:"modal-casino",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino";r.items.cas={ch:20000,bh:"PBPBBTPPBB"};r.money=5000},run:async p=>{await clickText(p,"玩百家樂");await p.waitForTimeout(600)},soft:1},
  {n:"modal-21",mut:r=>{r.place="plaza";r.x=14;r.y=11},run:async p=>{await clickText(p,"街機")||await clickText(p,"賭場");await p.waitForTimeout(300);await clickText(p,"21");await p.waitForTimeout(300)},soft:1},
  {n:"sleeping",mut:r=>{r.place="home:1";r.sleeping=true;r.energy=20}},
  {n:"jail",mut:r=>{r.place="jail";r.x=61;r.y=5;r.items.jl=new Date(Date.now()+36e5).toISOString()}},
@@ -104,7 +106,7 @@ for(const [w,h] of SIZES){
  for(const sc of SC){if(ONLY&&ONLY!=sc.n)continue;
   const name=`${w}x${h}-${sc.n}`,fails=[],errs=[];
   const p=await ctx.newPage();
-  p.on("console",m=>{if(m.type()=="error"&&!/Failed to load resource|favicon/.test(m.text()))errs.push(m.text().slice(0,120))});p.on("pageerror",e=>errs.push("pageerror: "+String(e.message).slice(0,120)));
+  p.on("console",m=>{if(m.type()=="error"&&!/Failed to load resource|favicon/.test(m.text()))errs.push(m.text().slice(0,120))});p.on("pageerror",e=>errs.push("pageerror: "+String(e.message).slice(0,120)+" @"+String(e.stack||"").split("\n")[1]));
   try{
    await p.addInitScript(()=>{try{localStorage.setItem("town-tips","1");localStorage.setItem("town-mine",JSON.stringify([{tid:"MOCK01",name:"測試小鎮",rid:1,pin:"1111",me:"阿明",at:Date.now()}]))}catch(e){}});
    await p.goto(BASE);await p.waitForSelector("#acts button,#panel",{timeout:8000}).catch(()=>{});await p.waitForTimeout(800);
