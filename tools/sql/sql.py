@@ -437,7 +437,9 @@ def cmd_apply(a):
     elif not confirm("APPLY", "輸入 APPLY 繼續（其他任何字取消）："):
         print("已取消")
         return 1
-    if dest_all and not confirm("DESTRUCTIVE", "含破壞性語句，再輸入 DESTRUCTIVE："):
+    if dest_all and getattr(a, "destructive_ok", False):
+        print(c(YEL, "--destructive-ok：略過 DESTRUCTIVE 輸入（使用者已在對話明確授權；只在授權後由 Claude 加上）"))
+    elif dest_all and not confirm("DESTRUCTIVE", "含破壞性語句，再輸入 DESTRUCTIVE："):
         print("已取消")
         return 1
     os.makedirs(os.path.join(HERE, "logs"), exist_ok=True)
@@ -583,7 +585,7 @@ def main(argv=None):
     sp = p.add_subparsers(dest="cmd", required=True)
     s = sp.add_parser("plan"); s.add_argument("--all", action="store_true"); s.set_defaults(f=cmd_plan)
     s = sp.add_parser("check"); s.add_argument("files", nargs="+"); s.set_defaults(f=cmd_check)
-    s = sp.add_parser("apply"); s.add_argument("files", nargs="+"); s.add_argument("--test"); s.add_argument("--prod", action="store_true"); s.add_argument("--yes", action="store_true"); s.set_defaults(f=cmd_apply)
+    s = sp.add_parser("apply"); s.add_argument("files", nargs="+"); s.add_argument("--test"); s.add_argument("--prod", action="store_true"); s.add_argument("--yes", action="store_true"); s.add_argument("--destructive-ok", action="store_true"); s.set_defaults(f=cmd_apply)
     s = sp.add_parser("query"); s.add_argument("sql"); s.set_defaults(f=cmd_query)
     s = sp.add_parser("drift"); s.set_defaults(f=cmd_drift)
     s = sp.add_parser("setup"); s.set_defaults(f=lambda a: print(SETUP) or 0)

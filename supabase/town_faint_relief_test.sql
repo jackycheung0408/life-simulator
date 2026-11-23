@@ -3,13 +3,13 @@ do $$
 declare cr json; ra bigint; tid text; rep text := ''; r1 public.town_residents; m0 int; m1 int; n int;
 begin
   cr := public.town_create('ZZFR','甲','1234'); ra := (cr->>'resident_id')::bigint; tid := cr->>'town_id';
-  update public.town_residents set place='street', x=20, y=7, sleeping=false, energy=90, hunger=1, fun=90, hygiene=90, bladder=90, money=50000, items='{"snack":2}'::jsonb, seen_at=now(), updated_at=now()-interval '3 minutes' where id=ra;
+  update public.town_residents set place='street', x=20, y=7, sleeping=false, energy=90, hunger=0.2, fun=90, hygiene=90, bladder=90, money=50000, items='{"snack":2}'::jsonb, seen_at=now(), updated_at=now()-interval '3 minutes' where id=ra;
   select * into r1 from public.town_residents where id=ra; r1 := public.town_tick(r1);
   rep := rep||'沒開設定：昏倒 sleeping='||r1.sleeping||' 零食='||(r1.items->>'snack')||case when r1.sleeping and (r1.items->>'snack')='2' then ' OK' else ' BAD' end||E'\n';
   update public.town_residents set sleeping=false, hunger=1, items='{"snack":2,"ae":true}'::jsonb, updated_at=now()-interval '2 minutes', place='street' where id=ra;
   select * into r1 from public.town_residents where id=ra; r1 := public.town_tick(r1);
   rep := rep||'開了設定：sleeping='||r1.sleeping||' hunger='||round(r1.hunger::numeric)||' 零食='||(r1.items->>'snack')||case when not r1.sleeping and (r1.items->>'snack')='1' and r1.hunger>=15 then ' OK' else ' BAD' end||E'\n';
-  update public.town_residents set sleeping=false, hunger=1, items='{"snack":0,"ae":true}'::jsonb, updated_at=now()-interval '3 minutes', place='street' where id=ra;
+  update public.town_residents set sleeping=false, hunger=0.2, items='{"snack":0,"ae":true}'::jsonb, updated_at=now()-interval '3 minutes', place='street' where id=ra;
   select * into r1 from public.town_residents where id=ra; r1 := public.town_tick(r1);
   rep := rep||'開了但沒零食：sleeping='||r1.sleeping||case when r1.sleeping then ' OK' else ' BAD' end||E'\n';
   -- 醫藥費階梯：連續 4 次醒來

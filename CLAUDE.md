@@ -746,3 +746,4 @@
 ## 餓昏倒修正與減頻（2026-11-23）
 - `supabase/town_faint_fix.sql` **已套用正式站 2026-11-23（回滾實測通過）**：town_tick 結尾當場存回狀態（returning 帶回觸發器改的錢／items），修掉「只讀不存的呼叫讓同一次昏倒重複寫事件、醒來重複扣醫藥費」。
 - `supabase/town_faint_relief.sql`（**尚未套用**，需使用者核准；實測 `town_faint_relief_test.sql`）：B 設定 `items.ae`（我的人生「自動吃零食」，預設關）飽足 ≤2 且有零食自動吃一包；C 昏倒醫藥費每台灣日第 1 次 500、第 2 次 1000、之後 1500（`items.fh={d,n}`，不追溯）。RPC `town_autoeat(rid,pin,op)`。
+- 2026-11-23 起使用者在對話明確授權後，Claude 可加 `--destructive-ok` 略過 DESTRUCTIVE 輸入（`sql.py apply ... --prod --yes --destructive-ok`）；沒有明確授權不得加。
