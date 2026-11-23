@@ -242,6 +242,12 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  while((mm=lre.exec(src))){const l=mm[2].replace(/\p{Extended_Pictographic}️?\s*/gu,"").trim();if(!l||l.includes("${"))continue;tot++;if(RULES.some(x=>x.m instanceof RegExp&&x.m.test(l)))hit++;else if(!NOFX.test(l)&&!RULES_TODO.test(l))pend.add(l)}
  check(pend.size==0,"這些 btn() 沒有 RULES、nofx 也不在待確認清單："+[...pend].join("、"));console.log(`RULES ${RULES.length} 筆；靜態標籤 ${tot} 顆，其中 ${hit} 顆有規則`);
  check(src.includes("fxcard"),"要有長按詳情卡 #fxcard")}
+// 吊銷調整單檔 town_ticket_sus.sql 要與 town.sql 內 town_ticket 一致，且門檻 10 點、暫停 6 小時、前端文字同步
+{const fs=require("fs"),sq=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8"),one=fs.readFileSync(__dirname+"/../supabase/town_ticket_sus.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8");
+ const body=x=>{const i=x.indexOf("create or replace function public.town_ticket(");const j=x.indexOf("end $$;",i);return i<0?null:x.slice(i,j).replace(/\s+/g," ")};
+ check(body(sq)&&body(sq)===body(one),"town_ticket_sus.sql 要和 town.sql 的 town_ticket 一致");
+ check(/pn >= 10/.test(sq)&&/now\(\) \+ interval '6 hours'/.test(body(sq)),"town_ticket：門檻 10 點、暫停 6 小時");
+ check(js.includes("／10 點，滿 10 點車輛暫停 6 小時"),"ticketModal 文字要寫 10 點、6 小時")}
 require("./test_arcade2.js")(M,check);
 require("./test_casino2.js")(M,check);
 {const src=require("fs").readFileSync(__dirname+"/town.js","utf8").split("\n"),ii=src.findIndex(l=>l.startsWith("function init(){")),top=src.slice(0,ii);

@@ -21,7 +21,9 @@ begin
   r := public.town_ticket(r,'red',900,2,'闖紅燈'); r := public.town_ticket(r,'red',900,2,'闖紅燈');
   rep := rep||'2 tickets pts='||(r.items->'pts'->>'n')||' sus='||coalesce(r.items->>'sus','-')||' veh.k='||coalesce(r.items#>>'{veh,k}','-')||' debt='||public.town_tk_debt(r)||E'\n';
   r := public.town_ticket(r,'red',900,2,'闖紅燈');
-  rep := rep||'3 tickets pts='||(r.items->'pts'->>'n')||' sus='||(r.items->>'sus')||' veh.k='||coalesce(r.items#>>'{veh,k}','-')||' tv='||(r.items->'tv')::text||' (預期 6 點、暫停、車被收、debt 2700)'||E'\n';
+  rep := rep||'3 tickets pts='||(r.items->'pts'->>'n')||' sus='||coalesce(r.items->>'sus','-')||' veh.k='||coalesce(r.items#>>'{veh,k}','-')||' (2026-11-23 起門檻 10 點：預期 6 點、還沒暫停、車還在)'||E'\n';
+  r := public.town_ticket(r,'red',900,2,'闖紅燈'); r := public.town_ticket(r,'red',900,2,'闖紅燈');
+  rep := rep||'5 tickets pts='||(r.items->'pts'->>'n')||' sus='||(r.items->>'sus')||' veh.k='||coalesce(r.items#>>'{veh,k}','-')||' tv='||(r.items->'tv')::text||' (預期 10 點、暫停 6 小時、車被收、debt 4500)'||E'\n';
   update public.town_residents set items = r.items where id = rid;
   begin perform public.town_act(rid,'1234','mount',null,null,null,null,'moto'); rep := rep||'mount while sus ALLOWED'||E'\n'; exception when others then rep := rep||'mount while sus: '||sqlerrm||E'\n'; end;
   update public.town_residents set items = (items - 'sus') || jsonb_build_object('tk', (select jsonb_agg(e || jsonb_build_object('due', now() - interval '1 hour')) from jsonb_array_elements(items->'tk') e)) where id = rid;

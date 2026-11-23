@@ -285,6 +285,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"sus-1123",date:"11/23",title:"車子比較不會被吊銷",items:["違規記滿 10 點才暫停","暫停改成 6 小時"]},
   {id:"u60-rafi",date:"11/18",title:"拉菲新職稱",items:["多了資深業務經理到董事長","招牌改成拉菲's office"]},
   {id:"fix-1118-now",date:"11/18",title:"修好進不去小鎮",items:["有人被吊銷駕照或買保險時，大家會卡在登入","已修好，重新整理就能進"]},
   {id:"login-1118",date:"11/18",title:"登入更穩",items:["舊裝置不再害你被鎖","登入失效會告訴你怎麼辦"]},
@@ -1330,7 +1331,7 @@ function garageModal(){const r=R[me],own=vehOwn(r);$("modal").classList.remove("
  $("mbody").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>go("insure",b.dataset.i));$("mbody").querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>go("vfix",b.dataset.f));
  $("mbody").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{if(confirm("確定要賣掉這台車嗎？保險也會一起作廢"))go("vsell",b.dataset.s)});$("mc").onclick=()=>$("modal").classList.add("hide")}
 function ticketModal(){const r=R[me],tk=tkList(r),pts=(r.items.pts&&r.items.pts.d==new Date(now()+8*36e5).toISOString().slice(0,10))?r.items.pts.n:0,sl=susLeft(r);$("modal").classList.remove("hide");
- $("mbody").innerHTML=`<h3>🎫 罰單</h3><p class="mut">今天違規記 ${pts}／6 點，滿 6 點車輛暫停 1 天。欠 €3000 以上不能上車。開單 24 小時內沒繳，加罰 50%</p>`+(sl>0?`<p class="err">車輛暫停中，明天才能再上路</p>`:"")+
+ $("mbody").innerHTML=`<h3>🎫 罰單</h3><p class="mut">今天違規記 ${pts}／10 點，滿 10 點車輛暫停 6 小時。欠 €3000 以上不能上車。開單 24 小時內沒繳，加罰 50%</p>`+(sl>0?`<p class="err">車輛暫停中，明天才能再上路</p>`:"")+
   (tk.length?`<div class="list">${tk.map(t=>`<div class="mrow"><span><b>${(FINE[t.k]||["違規"])[0]}</b> <small class="mut">€${t.a}${t.o?" · 已逾期加罰":" · 還沒逾期"}</small></span><button data-p="${t.id}">繳</button></div>`).join("")}</div>`:`<p class="mut">沒有罰單，繼續保持</p>`)+
   `<div class="row">${tk.length>1?`<button class="pri" id="pall">全部繳清 €${tkDebt(r)}</button>`:""}<button id="mc">關閉</button></div>`;pxify($("mbody"));
  const pay=async it=>{await act("paytk",{item:String(it)});if($("modal").classList.contains("hide"))return;ticketModal()};

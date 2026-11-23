@@ -939,10 +939,10 @@ begin
   if pts > 0 then
     pn := case when coalesce(r.items->'pts'->>'d','') = day then coalesce((r.items->'pts'->>'n')::int,0) else 0 end + pts;
     r.items := jsonb_set(r.items, '{pts}', jsonb_build_object('d', day, 'n', pn));
-    if pn >= 6 and (coalesce(r.items->>'sus','') = '' or (r.items->>'sus')::timestamptz < now()) then
-      r.items := jsonb_set(r.items, '{sus}', to_jsonb(now() + interval '24 hours'));
+    if pn >= 10 and (coalesce(r.items->>'sus','') = '' or (r.items->>'sus')::timestamptz < now()) then
+      r.items := jsonb_set(r.items, '{sus}', to_jsonb(now() + interval '6 hours'));
       if r.items#>>'{veh,k}' is not null then r.items := jsonb_set(r.items, '{veh}', (r.items->'veh') - 'k'); end if;
-      insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, r.id, r.id, 'ticket', r.name || ' 今天違規記滿 6 點，車輛暫停使用 1 天');
+      insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, r.id, r.id, 'ticket', r.name || ' 今天違規記滿 10 點，車輛暫停使用 6 小時');
     end if;
   end if;
   return r;

@@ -683,6 +683,13 @@
    "needs": [
     "town_casino2.sql"
    ]
+  },
+  {
+   "file": "town_ticket_sus.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ]
   }
  ]
 }
