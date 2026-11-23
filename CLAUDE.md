@@ -269,10 +269,12 @@
 
 - **2026-11-17 晚改成「實心分列」**（覆蓋上面 HUD／圓鈕敘述）：由上到下全是不透明獨立列、互不重疊——狀態列 `#needs`（0～安全區＋46px）→ 人物頁籤 `#strip`（52px）→ 訊息槽（28px，`#wev` 事件橫幅與 `#toast` 共用同一個位置，toast 蓋過橫幅）→ 地圖 `#stage`（`top:var(--top)`，`bottom:phpx+56px`，**canvas 只有這塊可視範圍，鏡頭置中、`pt/pb` 只留 8px**；`resize()` 由 ResizeObserver 觸發）→ 工具列（選單／我／看全鎮／動態，4 等寬鈕，56px，`.bar`＋`.tools`）→ 面板（固定高度 `--ph`，整體可捲、`#panel>*{flex-shrink:0}`、置頂的 `pin`／`tip` 按鈕 sticky）。不用 backdrop-filter／filter／漸層。面板內的小室內畫布 `#room` 遊戲中一律隱藏（改看主畫面）；進去／出門（朋友家、設施）是 `g:"pin"` 置頂。灰色「❯」是 iOS 系統的邊緣返回提示，不是遊戲元素。
 - **2026-11-17 深夜「手機遊戲標準版型」（覆蓋上面的列結構）**：頂 `#needs` 44px 實心 HUD（＋安全區）→ 舞台 `#stage`（地圖／室內，`top:hud`，`bottom:phpx+nav`，canvas 只用這塊）→ 面板 `#panel`（`bottom:var(--nav)`，高 `--ph=clamp(250px,32vh,340px)`；`--phpx` 由 `fit()`／ResizeObserver 寫入實際高度，**注意舊規則 `max-height:30vh` 已用 `max-height:none` 蓋掉**）→ 底部導覽列 56px（選單、我、看全鎮、朋友、動態；`.bar`＋`.tools`，背景是 `body::after`）。人物頁籤 `#strip` 平常隱藏，按「朋友」才顯示在面板上緣（`body.fr`）。面板結構：標題單行（`#here`，進去／出門 `#pinbox` 在右側）→ 一行小字 `#note` → 建議 `#tipbox`（≤2）→ 分類頁籤 `#ptabs`（不隨內容捲）→ 按鈕區 `#acts`（3 欄、`grid-auto-rows:60px`、`fit()` 把高度裁成整排、scroll-snap、底部淡出 `.more`）。訊息 `#toast`／`#wev` 是舞台上緣的實心膠囊（toast 蓋過橫幅）。`#room` 小畫布遊戲中隱藏。尺寸實測（mock）：390x844 地圖 56%、375x667 48%、430x932 57%，各尺寸按鈕區都是整排。
-## 底部抽屜與主動作列（2026-11-23，B 案「拇指區優先」第一階段）
-- 面板新增 `#mainrow`（`mainRow()`）：固定 3 顆貼在面板底、導覽列正上方——建議下一步（≤2）→ 最近用（`localStorage town-recent`，`recentAdd`）→ 其他可按的；第 3 格是「進去／出門」（pin），沒有就補一顆。`#tipbox`／`#pinbox` 保留 DOM 但 CSS 隱藏（內容改進主動作列）。手機（≤700px）第一次預設收合（`#panel.min`：只剩 grip＋主動作列），拉過 grip 後記 `town-drw`；抽屜操作 `UT.hit("drawer:main|list")`。樣式在 `drawcss`（town.js 第 3～4 行）。
-- 賭場按鈕標籤去掉「玩」前綴（`輪盤`、`百家樂`…）；ITEM 比對與 visual 情境同步；`集點卡換一杯` → `換咖啡`。
-- 尚未做：導覽列縮成四顆（仍 5 顆）、抽屜搜尋、分組小標（牌桌／骰盤／單人）、其餘標籤縮短與合併、PC 橫向版、室內舞台按內容放大、視覺基準圖更新。
+## 底部主動作列與導覽（2026-11-23，B 案「拇指區優先」；以此節為準，覆蓋上面 ui2／拇指版型的尺寸敘述）
+- 面板固定高度（手機 ≤ 面板上限 50% 視窗高，PC 80%；`fit()` 的 `maxP`），**沒有收合、沒有搜尋、沒有 grip**（使用者 2026-11-23 要求；`#grip` 隱藏、`#srch` 已刪、不再預設 `.min`）。
+- `#mainrow`（`mainRow()`）：面板最底 3 顆——建議下一步（≤2）→ 最近用（`localStorage town-recent`，`recentAdd`）→ 其他可按的；第 3 格固定進去／出門（pin，粉紅）。`#tipbox`／`#pinbox` 保留 DOM、CSS 隱藏。抽屜操作 `UT.hit("drawer:main|list")`。樣式在 `drawcss`（town.js 第 3～4 行）。
+- **兩層導覽要長得不同**：底部「全站導覽」＝選單／我／朋友／動態四顆等寬（深色 `#05060f` 底、頂 4px 亮邊、圖示在上字在下，目前頁＝`body.fr`／`body.social` 亮底＋頂部粉紅條）；「看全鎮」改浮在舞台右上角（≤899px）。面板內「這個地點的分頁」（`#ptabs`）＝扁平文字頁籤（無底色、選中黃字＋黃底線），標題 `#here` 寫地點名。兩者顏色形狀不可相近。
+- 面板按鈕：晶片最多 2 顆（`tile()`），賭場 19 款去掉「玩」前綴並分 牌桌／骰盤／單人 小標（`casinoGroups`，超過 8 顆才分），`集點卡換一杯`→`換咖啡`；`#acts` 的 `grid-auto-rows` 一律 auto（fxcss 也是），否則小標會佔 76px。
+- 尚未做：其餘標籤縮短與合併（小睡／睡覺）、室內舞台按內容放大、PC 橫向版細修。
 
 ## 像素風規則（2026-11-17）
 - 全遊戲維持像素風：字型只 Cubic 11（11／16.5／22px、不用粗體、字距 0），`-webkit-font-smoothing:none`；canvas 文字也用 Cubic 11，`fillText` 座標取整，`strokeText` 被改成 1px 四向硬描邊（`town.js` 開頭 `pxcss` 與 prototype 補丁）。
