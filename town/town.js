@@ -1023,7 +1023,7 @@ $("acts").addEventListener("click",actClick);$("tipbox").addEventListener("click
  const prev=p.offsetHeight,tr=p.style.transition;p.style.transition="none";p.style.height="auto";a.style.height="";a.style.flex="none";a.style.overflow="visible";
  const maxP=p.classList.contains("max")?innerHeight-parseFloat(getComputedStyle(B).getPropertyValue("--hud")||44)-56-24:Math.round(innerHeight*(matchMedia("(min-width:900px)").matches?.8:innerHeight<700?.44:.5)),other=p.offsetHeight-a.offsetHeight,avail=maxP-other-2,ar=a.getBoundingClientRect(),nat=a.scrollHeight;let ah=nat;
  if(nat>avail){let best=0;a.querySelectorAll(".act:not(.info),.jobcard").forEach(c=>{const rb=c.getBoundingClientRect().bottom-ar.top;if(rb<=avail+1&&rb>best)best=rb});if(!best){const c=a.querySelector(".act:not(.info),.jobcard");best=c?c.getBoundingClientRect().bottom-ar.top:avail}ah=best}
- a.style.overflow="";a.style.flex="0 0 auto";a.style.height=Math.round(ah)+"px";
+ if(!$("ptabs").classList.contains("hide"))ah=Math.max(ah,maxP-other-2);a.style.overflow="";a.style.flex="0 0 auto";a.style.height=Math.round(ah)+"px";
  const target=Math.max(190,Math.round(other+ah)),old=fit.last;p.style.height=prev+"px";void p.offsetHeight;p.style.transition=tr;p.style.height=target+"px";fit.last=target;
  mk()};
  a.addEventListener("scroll",mk,{passive:true});new MutationObserver(()=>setTimeout(fit,30)).observe(a,{childList:true});{let raf=0;const ro=new ResizeObserver(()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(fit)});["here","note","tipbox","ptabs","pinbox"].forEach(id=>ro.observe($(id)))}addEventListener("resize",()=>setTimeout(fit,50));setTimeout(fit,300)}$("ptabs").addEventListener("click",actClick);

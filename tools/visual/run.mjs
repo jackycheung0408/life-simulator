@@ -28,6 +28,7 @@ const SC=[
  {n:"in-arena",mut:r=>{r.place="arena";r.x=53;r.y=6;r.items.fi="arena"}},
  {n:"in-carshop",mut:r=>{r.place="carshop";r.x=46;r.y=14;r.items.fi="carshop"}},
  {n:"in-slaughter",mut:r=>{r.place="slaughter";r.x=53;r.y=14;r.items.fi="slaughter"}},
+ {n:"shift-cafe",mut:r=>{r.place="cafe";r.x=38;r.y=5;r.items.fi="cafe"},run:async p=>{const M=()=>p.evaluate(()=>{const g=s=>{const e=document.querySelector(s);if(!e)return null;const r=e.getBoundingClientRect();return[r.top,r.height,r.left,r.width].map(Math.round)};return{panel:g("#panel"),stage:g("#stage"),nav:g(".tools"),main:g("#mainrow")}});const base=await M();let worst=0,why="";const chk=async tag=>{const m=await M();for(const k in base){if(!base[k]||!m[k])continue;const d=Math.max(...base[k].map((v,i)=>Math.abs(v-m[k][i])));if(d>worst){worst=d;why=tag+":"+k}}};const tabs=await p.$$(".ptab");for(const t of tabs){await t.click().catch(()=>{});await p.waitForTimeout(250);await chk("tab")}await p.waitForTimeout(3500);await chk("wait");console.log("shift "+worst+"px "+why);if(worst>0)throw new Error("shift "+worst+"px "+why)}},
  {n:"drawer-casino",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino"},run:async p=>{await p.waitForTimeout(300)},soft:1},
  {n:"drawer-cafe",mut:r=>{r.place="cafe";r.x=38;r.y=5;r.items.fi="cafe"},run:async p=>{await p.waitForTimeout(300)},soft:1},
  {n:"in-casino",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino"}},
