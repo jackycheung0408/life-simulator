@@ -328,6 +328,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"econ-1123",date:"11/23",title:"小鎮經濟",items:["選單「小鎮經濟」看報表","鎮基金每週發補差金、辦慶典","新增遊艇、莊園、拍賣、捐款"]},
   {id:"notif-fav-1123",date:"11/23",title:"通知與常用",items:["通知分「要回應」「系統」，可全部已讀","常用列可長按釘選","面板不再亂跳、牌桌不能拖"]},
   {id:"u99-loading",date:"11/23",title:"載入畫面更新",items:["顯示四個載入步驟","等待時會輪播小提示","網路慢時可按「再試一次」"]},
   {id:"nag-1123",date:"11/23",title:"少跳確認帳號",items:["設密碼提醒一天最多一次","可以按「稍後再說」"]},
@@ -492,10 +493,15 @@ const RULES=[
 {k:"buy:snack",m:/^買零食/,t:"買零食",fx:[["money",-60],["fun",3]],need:[["item","背包未滿"]],p:"零食 +1",sql:"town.sql#n := case item when 'gift' then 300 else 60 end;",chk:[[/n := case item when 'gift' then (\d+) else (\d+) end;/,"300,60"]]},
 {k:"sweep",m:/^清掉便便/,t:"清掉便便",fx:[["money",30]],need:[["near","便便 2 格內、2 小時內"]],sql:"town.sql#elsif act = 'sweep' then",chk:[[/elsif act = 'sweep' then[^]*?abs\(p\.y - r\.y\) <= (\d+)[^]*?r\.money := r\.money \+ (\d+);/,"2,30"]]},
 {k:"zb:hit",m:/^打喪屍豬/,t:"打喪屍豬",fx:[["energy",-5],["money","+60～140（打倒時）"]],need:[["energy",5]],p:"牠 3 點血，要在 3 格內；25% 反咬心情 −3；每人每天獎勵最多 $600；打倒 35% 掉生豬肉",sql:"town_tweaks.sql#if op = 'hit' then",chk:[[/if r\.energy < (\d+) then raise exception '精力不夠，打不動了'[^]*?> (\d+) then raise exception '離牠太遠[^]*?r\.energy := r\.energy - (\d+);\s+msg := '揍了喪屍豬一拳';\s+if random\(\) < \.(\d+) then r\.fun := r\.fun - (\d+)/,"5,3,5,25,3"],[/rew := greatest\(0, \((\d+) \+ floor\(random\(\) \* (\d+)\)::int\)\)/,"60,81"]]},
-{k:"zb:sell",m:/^賣生豬肉/,t:"賣生豬肉",fx:[["money","+30／塊"]],need:[["item","生豬肉"]],sql:"town_tweaks.sql#elsif op = 'sell' then",chk:[[/r\.money := r\.money \+ (\d+) \* pork/,"30"]]}
+{k:"zb:sell",m:/^賣生豬肉/,t:"賣生豬肉",fx:[["money","+30／塊"]],need:[["item","生豬肉"]],sql:"town_tweaks.sql#elsif op = 'sell' then",chk:[[/r\.money := r\.money \+ (\d+) \* pork/,"30"]]},
+{k:"browse",m:/^逛逛/,t:"逛超市",fx:[["fun",6]],sql:"town.sql#else r.fun := r.fun + 6; end if;",chk:[[/\n    else r\.fun := r\.fun \+ (\d+); end if;/,"6"]]},
+{k:"soc:thank",m:/^謝謝/,t:"道謝",fx:[["bond",2]],p:"他三天內照顧過你才能謝；他心情 +8",sql:"town.sql#if act = 'thank' then",chk:[[/if act = 'thank' then[^]*?t\.fun := t\.fun \+ (\d+); perform public\.town_bond\(r\.town_id, rid, t\.id, (\d+)\)/,"8,2"]]},
+{k:"home:paint",m:/^裝潢/,t:"裝潢",fx:[["money",-300],["fun",8]],need:[["item","在自家屋裡"]],p:"換屋頂或牆壁顏色",sql:"town.sql#elsif act = 'paint' then",chk:[[/elsif act = 'paint' then[^]*?r\.money < (\d+) then[^]*?r\.money := r\.money - (\d+); r\.fun := r\.fun \+ (\d+)/,"300,300,8"]]},
+{k:"sneak",m:/^溜進去偷飼料/,t:"溜進去偷飼料",fx:[["money",-400],["energy",-10]],need:[["energy",10]],p:"3% 翻到 $3000；45% 賣 $500～900；30% 被追（精力 −15、清潔 −25、心情 −10）；22% 被抓賠 min($1200, 現金)；每天最多 3 次",sql:"town.sql#elsif act = 'sneak' then",chk:[[/elsif act = 'sneak' then[^]*?r\.energy < (\d+) then[^]*?r\.money < (\d+) then[^]*?r\.energy := r\.energy - (\d+);\n    if pa < \.(\d+) then r\.money := r\.money \+ (\d+)/,"10,400,10,03,3000"],[/elsif pa < \.(\d+) then n := (\d+) \+ floor\(random\(\)\*(\d+)\)::int; r\.money := r\.money \+ n; r\.fun := r\.fun \+ (\d+)/,"48,500,401,20"],[/elsif pa < \.(\d+) then r\.energy := r\.energy - (\d+); r\.hygiene := r\.hygiene - (\d+); r\.fun := r\.fun - (\d+); tn :=[^\n]*\n    else n := least\((\d+), r\.money\)/,"78,15,25,10,1200"]]},
+{k:"jail:visit",m:/^探望/,t:"探監",fx:[["fun",3],["energy",-2],["bond",2]],need:[["near","對方在牢裡"]],p:"受刑人心情 +10；同一人 60 分鐘一次",sql:"town_jail.sql#if act = 'visit' then",chk:[[/r\.fun := r\.fun \+ (\d+); r\.energy := r\.energy - (\d+); t\.fun := t\.fun \+ (\d+); f := (\d+); e := -(\d+); b := (\d+);/,"3,2,10,3,2,2"],[/interval '(\d+) minutes' then\n      raise exception '剛探過監/,"60"]]}
 ];
 /*RULES:END*/
-const RULES_TODO=/^(旅人|找流動|和旅人|溜進去偷飼料|快速睡覺|替 |報案|逛逛|買|探|應戰|向 |邀請|謝謝|換|看室內|裝潢|常客|打工|每日任務|坐下|起身|丟飛盤|釣魚|健身房對練)/;
+const RULES_TODO=/^(旅人|找流動|和旅人|快速睡覺|替 |報案|買|探|應戰|向 |邀請|換|看室內|常客|打工|每日任務|坐下|起身|丟飛盤|釣魚|健身房對練)/;
 const FAC={special:["今日特餐",200,"飽足 +40 · 心情 +12",["restaurant"],0],takeout:["打包帶走",120,"一份零食放進背包",["restaurant"],0],
  latte:["特調咖啡",300,"精力 +45 · 心情 +4 · 集點卡 +1",["cafe"],0],redeem:["換咖啡",0,"集滿 8 點免費換一杯 · 精力 +45 · 心情 +6",["cafe"],0],
  treat:["請客",200,"請在場的人喝咖啡：對方心情 +10、你 +4、好感 +3",["cafe"],1],song:["點歌",50,"你心情 +6，在場的人心情 +3",["cafe"],0],
@@ -898,7 +904,7 @@ const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀
 // ── 下方面板：依所在地點顯示可以做的事 ──
 // ── 按鈕效果與門檻：全部出自 RULES（頂層）；b.key 或標籤比對 RULES，沒有規則的不顯示晶片（nofx 或待確認）──
 const FXI={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"💰",bond:"💗",fit:"💪"},FXN={hunger:"飽足",energy:"精力",bladder:"膀胱",hygiene:"清潔",fun:"心情",money:"錢",bond:"好感",fit:"體能"};
-const NOFXRE=/^(叫他出來|申請假釋|出院|自首|會員點數換|看排行榜|起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|玩(輪盤|老虎機|百家樂|21點|骰寶|比大小|基諾|射龍門|妞妞|三公|十八啦|賽豬|牌九|地雷|彈珠台|飛行器|猜杯子|刮刮樂|開寶箱)|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
+const NOFXRE=/^(報案|叫他出來|申請假釋|出院|自首|會員點數換|看排行榜|起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|玩(輪盤|老虎機|百家樂|21點|骰寶|比大小|基諾|射龍門|妞妞|三公|十八啦|賽豬|牌九|地雷|彈珠台|飛行器|猜杯子|刮刮樂|開寶箱)|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
 const wageOf=r=>{const n=+((r.items||{}).works)||0;let w=JOBS[0][2];for(const j of JOBS)if(n>=j[1])w=j[2];return w};
 function ruleOf(b,r){if(b.key)return RULES.find(x=>x.m===b.key)||null;const l=String(b.label).replace(/\p{Extended_Pictographic}️?\s*/gu,"").trim();return RULES.find(x=>x.m instanceof RegExp&&x.m.test(l)&&(!x.at||x.at.includes(r.place)))||null}
 function fxOf(b,r){const ru=b.nofx?null:ruleOf(b,r);if(!ru)return{fx:[],need:[],chips:[],rule:null};const fx=typeof ru.fx=="function"?ru.fx(r,{hasF,wage:wageOf}):ru.fx.slice(),need=[];
@@ -1721,6 +1727,22 @@ function pwNum(k,t,st){const P=POWERS[k],d=P.def;
 function pwMode(k,t,n){pwRows([`${POWERS[k].n}：${esc(t.name)} ${CUR}${n}`,"可以直接發，或交給居民投票（24 小時）",[["鎮長直接發","馬上生效",()=>pwCall(k,t.id,n)],["交居民投票","贊成多於反對、至少 3 票、多於全鎮一半才發",()=>pwCall(k,t.id,n,"vote")],["先不要","",()=>powersModal()]]])}
 async function pwVote(v){await civAct("town_power",{op:"vote",note:v});powersModal()}
 async function pwAppeal(id){if(!confirm("確定要申訴嗎？居民會投票決定要不要推翻這個決定（12 小時）。"))return;await civAct("town_power",{op:"appeal",note:id});powersModal()}
+async function econModal(){$("modal").classList.remove("hide");$("mbody").innerHTML='<p class="mut">載入中…</p>';
+ let st,us;try{st=await rpc("town_econ_view",{rid:me,pin,op:"view"});us=await rpc("town_econ_use",{rid:me,pin,op:"view"})}catch(e){$("mbody").innerHTML=`<p class="err">${esc(e.message)}</p><div class="row"><button id="mc">關閉</button></div>`;$("mc").onclick=()=>$("modal").classList.add("hide");return}
+ const mayor=!!R[me].mayor,h=(st.hist||[]).slice(-1)[0]||{},f=n=>CUR+(+n||0).toLocaleString(),A=us.auction||{},pc=n=>Math.round((+n||0)*100)+"%";
+ const pays=(st.pays||[]).slice(0,4).map(x=>`<p class="mut">· ${esc(x.d)}：補差金 ${f(x.pay)}（${x.n} 人）、慶典 ${f(x.fest)}、建設 ${f(x.bld)}${x.built?"，蓋了"+esc(x.built):""}</p>`).join("")||'<p class="mut">還沒有回流紀錄</p>';
+ const items=(us.items||[]).map(i=>`<button class="act" data-eb="${i.k}" ${i.owned?'data-dis="你已經有了" style="opacity:.45"':""}><b>${i.name} ${f(i.price)}</b><small>${i.owned?"已擁有":"稱號「"+esc(i.title)+"」· 3 成進鎮基金、7 成銷毀"}</small></button>`).join("");
+ $("mbody").innerHTML=`<h2>小鎮經濟</h2><p class="mut">${st.on?"自動調節開啟中":"自動調節已關閉"}，每天依活躍居民的人均現金、首富占比、窮人比例微調（每天最多 2%，不扣已有的錢）。</p>
+ <p>財產稅係數 ${st.kt} · 奢侈品價格 ${st.kp} · 生活補助 ${st.ks}</p>
+ <p class="mut">活躍 ${h.n||0} 人 · 人均 ${f(h.m)} · 首富占 ${pc(h.top)} · 窮人 ${pc(h.poor)}</p>
+ <p>鎮基金 ${f(st.fund)}${+st.mine?` · 你有 ${f(st.mine)} 補差金，下次登入領`:""}</p><p class="mut">每 7 天結算（上次 ${esc(st.wk||"—")}）：基金 7 成可動用，4 成補差金、3 成慶典、3 成蓋建設</p>${pays}
+ <h3>大額花費</h3><div class="col">${items}<button class="act" data-eb="d1"><b>捐款 ${f(10000)}</b><small>全進鎮基金；累計 1 萬／10 萬／100 萬有稱號，不減稅</small></button><button class="act" data-eb="d2"><b>捐款 ${f(100000)}</b><small>已捐 ${f(us.donated)}</small></button>
+ <button class="act" data-eb="bid"><b>拍賣會：${esc(A.lot||"")}</b><small>${A.bidder?esc(A.bname)+" 最高價 "+f(A.bid):"還沒人出價"} · 我要出 ${f(A.min)}（出價先托管，被超過退回，每週一結算）</small></button></div>
+ ${mayor?`<div class="row"><button id="ebT">${st.on?"關閉":"開啟"}自動調節</button></div>`:""}<div class="row"><button id="mc" class="pri">關閉</button></div>`;
+ pxify($("mbody"));$("mc").onclick=()=>$("modal").classList.add("hide");
+ const go=async(op,item,num)=>{try{const x=await rpc("town_econ_use",{rid:me,pin,op,item,num});toast(x.msg||"完成");typeof refresh=="function"&&refresh()}catch(e){toast(e.message)}econModal()};
+ $("mbody").querySelectorAll("[data-eb]").forEach(b=>b.onclick=()=>{const k=b.dataset.eb;if(b.dataset.dis)return toast(b.dataset.dis);k=="d1"?go("donate",null,10000):k=="d2"?go("donate",null,100000):k=="bid"?go("bid",null,A.min):go("buy",k,0)});
+ if($("ebT"))$("ebT").onclick=async()=>{try{await rpc("town_econ_view",{rid:me,pin,op:st.on?"off":"on"})}catch(e){toast(e.message)}econModal()}}
 async function powersModal(){$("modal").classList.remove("hide");$("mbody").innerHTML='<p class="mut">載入中…</p>';
  let st;try{st=PWS=await rpc("town_power",{rid:me,pin,op:"view"})}catch(e){$("mbody").innerHTML=`<p class="err">${esc(e.message)}</p><div class="row"><button id="mc">關閉</button></div>`;$("mc").onclick=()=>$("modal").classList.add("hide");return}
  const r=R[me],mayor=!!st.mayor,v=st.vote,age=at=>now()-Date.parse(at);
@@ -2046,7 +2068,7 @@ $("menuBtn").onclick=()=>{const r=R[me];if(r){$("bagN").textContent=bagCount(r)?
 $("menuBack").onclick=closeMenu;$("menuClose").onclick=closeMenu;
 document.querySelectorAll("[data-go-tab]").forEach(b=>b.onclick=()=>{const t=b.dataset.goTab;document.querySelector(`[data-tab=${t}]`).click();if(isMob())document.body.classList.add("social");else $("social").scrollIntoView({behavior:"smooth"})});
 $("friendBtn").onclick=()=>document.body.classList.toggle("fr");$("strip").addEventListener("click",()=>setTimeout(()=>document.body.classList.remove("fr"),50));$("feedBtn").onclick=()=>{document.body.classList.add("social");markSeen()};$("socialClose").onclick=()=>document.body.classList.remove("social");$("menu").addEventListener("click",e=>{if(e.target.closest("button"))closeMenu()});
-$("life").onclick=lifeModal;$("powBtn").onclick=()=>{closeMenu();powersModal()};$("taskBtn").onclick=()=>{closeMenu();taskModal()};$("statBtn").onclick=()=>{closeMenu();statsModal()};$("sndBtn").onclick=()=>{closeMenu();sndModal()};$("updBtn").onclick=()=>{closeMenu();updModal(true)};$("legalBtn").onclick=()=>{closeMenu();$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>條款與隱私</h2><p class="mut">白話版，一分鐘讀完。</p><div class="row"><button id="lgT">服務條款</button><button id="lgP">隱私權政策</button></div><div class="row"><button id="lgX" class="pri">關閉</button></div>`;$("lgT").onclick=()=>window.open("terms.html","_blank");$("lgP").onclick=()=>window.open("privacy.html","_blank");$("lgX").onclick=()=>$("modal").classList.add("hide")};$("bagBtn").onclick=()=>{closeMenu();bagModal()};
+$("life").onclick=lifeModal;$("powBtn").onclick=()=>{closeMenu();powersModal()};{const eb=document.createElement("button");eb.id="econBtn";eb.textContent="📈 小鎮經濟";$("powBtn").after(eb);eb.onclick=()=>{closeMenu();econModal()}}$("taskBtn").onclick=()=>{closeMenu();taskModal()};$("statBtn").onclick=()=>{closeMenu();statsModal()};$("sndBtn").onclick=()=>{closeMenu();sndModal()};$("updBtn").onclick=()=>{closeMenu();updModal(true)};$("legalBtn").onclick=()=>{closeMenu();$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>條款與隱私</h2><p class="mut">白話版，一分鐘讀完。</p><div class="row"><button id="lgT">服務條款</button><button id="lgP">隱私權政策</button></div><div class="row"><button id="lgX" class="pri">關閉</button></div>`;$("lgT").onclick=()=>window.open("terms.html","_blank");$("lgP").onclick=()=>window.open("privacy.html","_blank");$("lgX").onclick=()=>$("modal").classList.add("hide")};$("bagBtn").onclick=()=>{closeMenu();bagModal()};
 $("relook").onclick=()=>{let look=normLook(R[me].look);$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>換造型</h2><div id="lk2"></div><div class="row"><button id="mc">取消</button><button class="pri" id="ms">儲存</button></div>`;
  lookPicker($("lk2"),look,l=>look=l,R[me].items||{});$("mc").onclick=()=>$("modal").classList.add("hide");$("ms").onclick=async()=>{try{await rpc("town_login",{rid:me,pin,new_look:look});mapKey="";await refresh();$("modal").classList.add("hide");toast("換好了")}catch(e){toast(e.message)}}};
 $("report").onclick=report;

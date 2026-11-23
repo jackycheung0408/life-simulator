@@ -294,7 +294,7 @@
 
 ### 按鈕效果表
 <!-- RULES:START -->
-（由 `node tools/town-rules-doc.mjs` 從 `town/town.js` 的 `RULES` 產生，請勿手改；共 67 筆）
+（由 `node tools/town-rules-doc.mjs` 從 `town/town.js` 的 `RULES` 產生，請勿手改；共 72 筆）
 
 | 互動 | 效果 | 門檻 | 機率／備註 | SQL 出處 |
 |---|---|---|---|---|
@@ -365,6 +365,11 @@
 | 清掉便便 | 錢 +30 | 便便 2 格內、2 小時內 | — | `town.sql#elsif act = 'sweep' then` |
 | 打喪屍豬 | 精力 −5、錢 +60～140（打倒時） | 精力≥5 | 牠 3 點血，要在 3 格內；25% 反咬心情 −3；每人每天獎勵最多 $600；打倒 35% 掉生豬肉 | `town_tweaks.sql#if op = 'hit' then` |
 | 賣生豬肉 | 錢 +30／塊 | 生豬肉 | — | `town_tweaks.sql#elsif op = 'sell' then` |
+| 逛超市 | 心情 +6 | — | — | `town.sql#else r.fun := r.fun + 6; end if;` |
+| 道謝 | 好感 +2 | — | 他三天內照顧過你才能謝；他心情 +8 | `town.sql#if act = 'thank' then` |
+| 裝潢 | 錢 −300、心情 +8 | 在自家屋裡 | 換屋頂或牆壁顏色 | `town.sql#elsif act = 'paint' then` |
+| 溜進去偷飼料 | 錢 −400、精力 −10 | 精力≥10 | 3% 翻到 $3000；45% 賣 $500～900；30% 被追（精力 −15、清潔 −25、心情 −10）；22% 被抓賠 min($1200, 現金)；每天最多 3 次 | `town.sql#elsif act = 'sneak' then` |
+| 探監 | 心情 +3、精力 −2、好感 +2 | 對方在牢裡 | 受刑人心情 +10；同一人 60 分鐘一次 | `town_jail.sql#if act = 'visit' then` |
 <!-- RULES:END -->
 
 ## 按鈕分類（2026-11-17 整理；`GORD`／`TABOF`／`btn(...,g)`）
