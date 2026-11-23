@@ -32,6 +32,7 @@ const SC=[
  {n:"drawer-casino",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino"},run:async p=>{await p.waitForTimeout(300)},soft:1},
  {n:"drawer-cafe",mut:r=>{r.place="cafe";r.x=38;r.y=5;r.items.fi="cafe"},run:async p=>{await p.waitForTimeout(300)},soft:1},
  {n:"in-casino",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino"}},
+ {n:"zoom-all",mut:r=>{r.place="street";r.x=20;r.y=7},run:async p=>{await p.click("#zoom");await p.waitForTimeout(900)},soft:1},
  {n:"in-realty",mut:r=>{r.place="realty";r.x=75;r.y=5;r.items.fi="realty";r.money=50000}},
  {n:"in-harbor",mut:r=>{r.place="harbor";r.x=74;r.y=21;r.items.fi="harbor";r.money=300000}},
  {n:"door-realty",mut:r=>{r.place="realty";r.x=75;r.y=5},soft:1},
