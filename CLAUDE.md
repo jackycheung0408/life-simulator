@@ -162,7 +162,7 @@
 - 前端：`pfOf／pfNick／dn`（顯示名＝自己外號 > 最近接受的朋友外號 > 本名）；名牌 `本名（外號）`；排行榜、朋友列、頁籤標題用 `dn`；口頭禪泡泡每 40～90 秒一次、4 秒、全畫面同時最多 2 個；選單「我的人設」（`personaModal`）、面對面「幫他取外號」（`nickModal`）、上線彈窗 `checkPersona`。`UT.hit("persona:*")`；`modal-persona` 視覺情境基準圖尚未 `--update`。
 - 還沒做：檢舉機制；通知中心／伺服器產生的動態文字仍用本名。
 
-## 購買一律在設施：不動產公司、碼頭船行（2026-11-23 第一批；前端 v328；SQL `supabase/town_shops1.sql` **尚未套用正式站**，實測 `town_shops1_test.sql`（回滾，REPORT））
+## 購買一律在設施：不動產公司、碼頭船行（2026-11-23 第一批；前端 v328；SQL `supabase/town_shops1.sql` **已套用正式站 2026-11-23（旗標 shops_in 仍關；回滾實測 `town_shops1_test.sql` 通過：旗標預設關、關著街上買遊艇可、開著街上買莊園／不動產買遊艇／船行捐款被擋、不動產買莊園 $600000 與升級 hl=2、船行買遊艇、市政廳捐款可、走去新地點可、x=86 擋 x=84 可；居民位置與錢套用前後完全一致）**，實測 `town_shops1_test.sql`（回滾，REPORT））
 - 使用者規則：任何商品、不動產都在鎮上設施裡買，不從選單買。**COLS 71→85**（`town.sql` 仍寫 `px > 71`，由 `town_shops1.sql` 就地改成 85）。新建築：不動產公司 `realty` `[73,0,6,5]` 門 `(75,5)`（房子升級、莊園）、碼頭船行 `harbor` `[73,17,6,4]` 門 `(74,21)`（遊艇；出海仍在碼頭邊，船行有「去碼頭出海」走到 (68,16)）。與市政廳／碼頭相隔 2 格。ROOMS、店員（房仲小陳、船長老王）、FEATS、buildMap 都有。
 - 伺服器：`town_shops1.sql` 用 pg_get_functiondef 就地改 `town_place_name／town_feature／town_features／town_fi／town_need_in_pl／town_act（move 白名單、px、升級）／town_econ_use`（找不到錨點就整檔失敗），加 `layout4` 遷移與旗標 `shops_in`（`town_flags`，預設關）：開了之後房子升級要在不動產公司裡、遊艇／莊園要在船行／不動產公司裡、拍賣與捐款要在市政廳裡；關著時舊入口照舊（舊客戶端相容）。人在不動產公司時升級不必在屋裡（旗標關也行）。開：`insert into public.town_flags(k,v) values ('shops_in',true) on conflict (k) do update set v=true;`。**套用順序在 `town_econ_use2.sql` 之後；重套 `town.sql`／`town_fi.sql`／`town_casino_fi.sql`／`town_econ_sink.sql` 後要再套一次。**
 - 前端：「小鎮經濟」「房屋升級」保留舊入口並加「去 XX」導引按鈕；市政廳面板多「拍賣與捐款」。**第二批**：家具行、服飾店（`shopModal`／`relook`）；第三批：移除舊入口、開旗標。

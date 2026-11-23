@@ -28,6 +28,7 @@ begin
   -- 船行
   update public.town_residents set place = 'harbor', x = 74, y = 21, items = items - 'fi' where id = a;
   v := public.town_fi(a,'x','enter','harbor');
+  update public.town_residents set items = items - 'lx' where id = a;
   perform public.town_econ_use(a,'x','buy','yacht'); select * into ra from public.town_residents where id = a;
   rep := rep || ' 開:船行買遊艇 lx=' || coalesce(ra.items->'lx'->>'yacht','無');
   -- 捐款在市政廳
