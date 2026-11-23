@@ -330,6 +330,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"goods1-1123",date:"11/23",title:"超市新貨架",items:["20 種新商品，每天特價","飲料、日用、掌機、扭蛋","背包多了「物品」頁"]},
   {id:"shops1-1123",date:"11/23",title:"新店開張",items:["不動產公司：升級房子、買莊園","碼頭船行：買遊艇","地圖往東變寬了"]},
   {id:"meet-1123",date:"11/23",title:"揪團上線",items:["選單「揪團」約吃約玩","到點在場才算出席","可分享給群組"]},
   {id:"persona-1123",date:"11/23",title:"我的人設",items:["選單設外號與口頭禪","朋友可幫你取外號","名牌顯示外號、冒口頭禪"]},
@@ -527,7 +528,7 @@ const ITEM={rcounter:["till","房仲櫃檯",/^升級|房子已是豪宅/,1],rmod
  hbed:["bed","病床",null,1],reg:["ticket","掛號櫃檯",/掛號看診|^出院/,1],meds:["box","藥櫃",null,1],cross:["cross","十字標誌",null,0],
  pdesk:["case","櫃檯",/繳罰單/,1],pboard:["picture","通緝公告板",/自首/,1],prep:["mail","報案窗口",/報案/,1],pstat:["chart","治安看板",/今日治安/,1],badge:["badge","警徽",null,0],
  hall:["case","服務櫃檯",/大廳/,1],annb:["scroll","公告欄",/大廳/,1],ballot:["ticket","投票箱",/大廳/,1],cfund:["money","基金箱",/大廳/,1],
- giftshelf:["gift","禮品架",/買禮物/,1],snackshelf:["cookie","零食架",/買零食|特價零食/,1],clothes:["shirt","服飾架",/造型與擺飾/,1],till:["till","收銀台",/逛逛|賣生豬肉|會員點數/,1],mshelf:["shelf","貨架",/試吃/,1],frame:["picture","掛畫",null,1],
+ giftshelf:["gift","禮品架",/買禮物/,1],snackshelf:["cookie","零食架",/逛貨架|買零食|特價零食/,1],clothes:["shirt","服飾架",/造型與擺飾/,1],till:["till","收銀台",/逛逛|賣生豬肉|會員點數/,1],mshelf:["shelf","貨架",/試吃/,1],frame:["picture","掛畫",null,1],
  screen:["screen","銀幕",/看電影|看今日片|聊劇情/,1],popcorn:["box","爆米花機",/爆米花/,1],seat:["seat","座椅",/情侶座/,0],
  pc:["pc","辦公桌電腦",/^打工|^應徵|加班/,1],pcs:["pc","交易終端",/看盤與買賣/,1],board:["chart","行情看板",/看盤與買賣/,1],tick:["chart","走勢圖",null,1],
  ring:["ring","擂台",/打擂台|打一場/,1],sandbag:["fist","沙包",null,1],trophy:["trophy","獎盃櫃",null,1],blades:["swords","兵器架",null,1],
@@ -913,7 +914,7 @@ const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀
 // ── 下方面板：依所在地點顯示可以做的事 ──
 // ── 按鈕效果與門檻：全部出自 RULES（頂層）；b.key 或標籤比對 RULES，沒有規則的不顯示晶片（nofx 或待確認）──
 const FXI={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"💰",bond:"💗",fit:"💪"},FXN={hunger:"飽足",energy:"精力",bladder:"膀胱",hygiene:"清潔",fun:"心情",money:"錢",bond:"好感",fit:"體能"};
-const NOFXRE=/^(拍賣與捐款|莊園|遊艇|升級|房子已是豪宅|買莊園|莊園 |買遊艇|遊艇 |去碼頭出海|出海|辦派對|幫他取外號|我的人設|報案|叫他出來|申請假釋|出院|自首|會員點數換|看排行榜|起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|玩(輪盤|老虎機|百家樂|21點|骰寶|比大小|基諾|射龍門|妞妞|三公|十八啦|賽豬|牌九|地雷|彈珠台|飛行器|猜杯子|刮刮樂|開寶箱)|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
+const NOFXRE=/^(逛貨架|拍賣與捐款|莊園|遊艇|升級|房子已是豪宅|買莊園|莊園 |買遊艇|遊艇 |去碼頭出海|出海|辦派對|幫他取外號|我的人設|報案|叫他出來|申請假釋|出院|自首|會員點數換|看排行榜|起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|玩(輪盤|老虎機|百家樂|21點|骰寶|比大小|基諾|射龍門|妞妞|三公|十八啦|賽豬|牌九|地雷|彈珠台|飛行器|猜杯子|刮刮樂|開寶箱)|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
 const wageOf=r=>{const n=+((r.items||{}).works)||0;let w=JOBS[0][2];for(const j of JOBS)if(n>=j[1])w=j[2];return w};
 function ruleOf(b,r){if(b.key)return RULES.find(x=>x.m===b.key)||null;const l=String(b.label).replace(/\p{Extended_Pictographic}️?\s*/gu,"").trim();return RULES.find(x=>x.m instanceof RegExp&&x.m.test(l)&&(!x.at||x.at.includes(r.place)))||null}
 function fxOf(b,r){const ru=b.nofx?null:ruleOf(b,r);if(!ru)return{fx:[],need:[],chips:[],rule:null};const fx=typeof ru.fx=="function"?ru.fx(r,{hasF,wage:wageOf}):ru.fx.slice(),need=[];
@@ -956,7 +957,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  else if(p=="gym"){title="健身房";list.push(btn("健身 🏋️",`精力 −15 · 心情 +10 · 打架更強（${Math.min(10,(r.items||{}).fit||0)}/10）`,()=>act("workout")),pjBtn("gym",r));note=pjNote("gym",r)}
  else if(p=="arena"){title="格鬥場";const it=r.items||{};list.push(btn("打擂台 🥊",`精力 −12 · 贏了拿獎金、連勝越多越貴 · 目前 ${it.streak||0} 連勝（最高 ${it.best||0}）`,()=>act("spar")));note="點別人可約打，贏的拿 €100"}
  else if(p=="slaughter"){title="屠宰場";list.push(btn("溜進去偷飼料 🔪","買通守衛 €400 · 精力 −10 · 約四成賺 €500～900 · 可能被屠夫追、被抓去賠 €1200 · 一天最多 3 次",()=>act("sneak")));note="健身越多，越跑得掉"}
- else if(p=="market"){title="超市";list.push(btn("買禮物 🎁","€300 · 送朋友心情 +20",()=>act("buy",{item:"gift"})),btn("買零食 🍪","€60 · 隨時吃，飽足 +20",()=>act("buy",{item:"snack"})),btn("🛍️ 造型與擺飾","新衣服、家門口擺飾",()=>shopModal()),btn("逛逛","心情 +6",()=>act("browse")),pjBtn("shop",r));note=pjNote("shop",r)}
+ else if(p=="market"){title="超市";list.push(btn("逛貨架 🛒","飲料、日用、掌機、扭蛋，每天特價",()=>goodsModal()),btn("買禮物 🎁","€300 · 送朋友心情 +20",()=>act("buy",{item:"gift"})),btn("買零食 🍪","€60 · 隨時吃，飽足 +20",()=>act("buy",{item:"snack"})),btn("🛍️ 造型與擺飾","新衣服、家門口擺飾",()=>shopModal()),btn("逛逛","心情 +6",()=>act("browse")),pjBtn("shop",r));note=pjNote("shop",r)}
  else if(p=="jail"){title="監獄";const inm=Object.values(R).filter(o=>o.id!=me&&o.place=="jail"&&jailed(o)),stat=statLine(r),dz=(b,m)=>m?{...b,dis:m}:b;
   if(jailed(r)){const jp=jpOf(r)||{},ps=paroleWhy(r),eL=cdLeft(r,"esc",JAILX.esc[4]);
    note=`你被關著，還有 ${fmtLeft(jlLeft(r))}${jp.bad?"，不能假釋":""}`;
@@ -1556,7 +1557,7 @@ function shopModal(){const it=R[me].items||{},w=new Set(it.w||[]),d=new Set(it.d
  $("mbody").querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{b.disabled=true;const [k,id]=b.dataset.b.split(":"),had=((R[me].items||{})[k]||[]).includes(id);await act("buy",{item:b.dataset.b});if(k=="w"&&!had&&((R[me].items||{}).w||[]).includes(id))await wearOn(id);shopModal()})}
 // 背包：把 snack、gift、rg、w、f、d 整理成分類（讀取層，不搬資料）
 const FIC={bed:"🛏️",sofa:"🛋️",fridge:"🧊",plant:"🪴",shelf:"📚",massage:"💺",rug:"🟥",tvcab:"📺",frame:"🖼️",painting:"🎨",desklamp:"💡",toy:"🎲",books:"📚",toilet:"🚽",shower:"🚿"},DIC={flowers:"🌷",mailbox:"✉️",lamp:"💡",bench:"🪑",tree:"🌳",pigstatue:"🏛️"};
-const BAG_TABS=[["food","食物"],["gift","禮物"],["wear","服飾"],["furn","家具"],["deco","擺飾"]];
+const BAG_TABS=[["food","食物"],["goods","物品"],["gift","禮物"],["wear","服飾"],["furn","家具"],["deco","擺飾"]];
 const bagCount=r=>{const it=r.items||{};return (it.snack||0)+(it.gift||0)+(it.rg||[]).length+(it.w||[]).length+(it.f||[]).length+(it.d||[]).length};
 // 考駕照：三題選擇題（答案順序要和 town.sql 的 license 一致：機車 1、2、0；汽車 2、0、1）
 const LICQ={moto:[["紅燈亮的時候應該？",["慢慢騎過去","停在停止線後面","按喇叭催前面的人"]],["斑馬線上有人要過馬路時？",["加速通過","按喇叭趕他","停下來讓他先過"]],["機車可以騎上人行道嗎？",["不行，要在車道上","沒人的時候可以","下雨天可以"]]],
@@ -1579,11 +1580,37 @@ function ticketModal(){const r=R[me],tk=tkList(r),pts=(r.items.pts&&r.items.pts.
   `<div class="row">${tk.length>1?`<button class="pri" id="pall">全部繳清 €${tkDebt(r)}</button>`:""}<button id="mc">關閉</button></div>`;pxify($("mbody"));
  const pay=async it=>{await act("paytk",{item:String(it)});if($("modal").classList.contains("hide"))return;ticketModal()};
  $("mbody").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>pay(b.dataset.p));if($("pall"))$("pall").onclick=()=>pay("all");$("mc").onclick=()=>$("modal").classList.add("hide")}
+// ── 商品目錄（超市新商品）：價格、效果、季節、特價全部由伺服器 town_goods list 回傳，前端不放價格表；舊伺服器沒有這個函式就退回舊的零食／禮物 ──
+const GCAT=[["food","食物"],["drink","飲料"],["daily","日用"],["gear","用品"],["col","收藏"],["gift","禮物"]],GFXN={hu:"飽足",en:"精力",fun:"心情",hy:"清潔"},GSER=["小豬","小雞","小鴨","小貓"];
+function gfxTxt(c){const f=c.fx||{},a=[];for(const k in GFXN)if(f[k])a.push(GFXN[k]+" "+(f[k]>0?"+":"−")+Math.abs(f[k]));if(f.bl)a.push("尿意 "+(f.bl<0?"+":"−")+Math.abs(f.bl));if(f.cure)a.push("鼻青臉腫痊癒");if(f.tf)a.push("對方心情 +"+f.tf);if(f.bond)a.push("好感 +"+f.bond);if(c.sp=="umb")a.push("擋大雨，用 8 次");if(c.sp=="game")a.push("耗電池 1 顆");if(c.sp=="cap"||c.sp=="card")a.push("隨機收藏");return a.join("、")||"配件"}
+async function goodsCall(op,id,target){try{const j=await rpc("town_goods",{rid:me,pin,op,item:id,num:1,target:target||null});if(j&&j.error){toast(j.error);return false}toast((j&&j.msg)||"完成");await refresh();return true}catch(e){toast(e.message||"失敗");return false}}
+async function goodsModal(tab){UT.hit("goods:open");$("modal").classList.remove("hide");$("mbody").innerHTML='<p class="mut">載入中…</p>';
+ let j=null;try{j=await rpc("town_goods",{rid:me,pin,op:"list",item:"market"})}catch(e){}
+ if(!j||j.error||!j.items){$("mbody").innerHTML=`<h2>🛒 超市貨架</h2><p class="mut">新商品還沒上架，先買基本款</p><button class="act" id="gOld1"><b>買零食 🍪</b><small>€60 · 飽足 +20</small></button><button class="act" id="gOld2"><b>買禮物 🎁</b><small>€300 · 送朋友心情 +20</small></button><div class="row"><button id="mc">關閉</button></div>`;pxify($("mbody"));$("mc").onclick=()=>$("modal").classList.add("hide");$("gOld1").onclick=()=>{$("modal").classList.add("hide");act("buy",{item:"snack"})};$("gOld2").onclick=()=>{$("modal").classList.add("hide");act("buy",{item:"gift"})};return}
+ tab=tab||"food";const sc=j.items.find(c=>c.sale);const sp=c=>Math.floor((c.p*80+50)/100);
+ const rows=j.items.filter(c=>c.cat==tab).map(c=>{const sale=c.sale&&j.saleLeft>0,pr=sale?sp(c):c.p,use=!c.gift&&!["umb","game","bat"].includes(c.sp);
+  return `<div class="mrow"><span>${c.ic} <b>${esc(c.nm)}</b>${sale?' <b style="color:#fee761">特價</b>':""} <small class="mut">${esc(gfxTxt(c))}${c.own?" · 背包 "+c.own:""}</small></span><span><button data-bu="${c.id}">買 €${pr}</button>${use?`<button data-bn="${c.id}">現場用</button>`:""}</span></div>`}).join("")||'<p class="mut">這類現在沒有貨</p>';
+ $("mbody").innerHTML=`<h2>🛒 超市貨架</h2><p class="mut">${sc?`今日特價：${esc(sc.nm)} 8 折（還剩 ${j.saleLeft} 份）`:"每天有一項特價"} · 錢 €${R[me].money}</p><div class="chips">${GCAT.map(([k,n])=>`<button data-gt="${k}" class="${tab==k?"on":""}">${n}</button>`).join("")}</div>${rows}<div class="row"><button id="mc">關閉</button></div>`;pxify($("mbody"));
+ $("mc").onclick=()=>$("modal").classList.add("hide");
+ $("mbody").querySelectorAll("[data-gt]").forEach(b=>b.onclick=()=>goodsModal(b.dataset.gt));
+ $("mbody").querySelectorAll("[data-bu]").forEach(b=>b.onclick=async()=>{b.disabled=true;UT.hit("goods:buy");await goodsCall("buy",b.dataset.bu);goodsModal(tab)});
+ $("mbody").querySelectorAll("[data-bn]").forEach(b=>b.onclick=async()=>{b.disabled=true;UT.hit("goods:buyuse");await goodsCall("buyuse",b.dataset.bn);goodsModal(tab)})}
+async function goodsBag(box){let j=null;try{j=await rpc("town_goods",{rid:me,pin,op:"list",item:"market"})}catch(e){}
+ if(!j||j.error||!j.cat){box.innerHTML='<p class="mut">物品暫時讀不到，稍後再開</p>';return}
+ const by={};j.cat.forEach(c=>by[c.id]=c);const inv=Object.entries(j.inv||{}).filter(([k,n])=>n>0&&by[k]),cl=j.cl||{};
+ let h=inv.map(([k,n])=>{const c=by[k];return `<div class="mrow"><span>${c.ic} <b>${esc(c.nm)}</b> <small class="mut">× ${n} · ${esc(gfxTxt(c))}</small></span><span>${c.gift?`<button data-gv="${k}">送人</button>`:c.sp=="umb"?'<small class="mut">自動撐開</small>':`<button data-gu="${k}">${c.sp=="cap"||c.sp=="card"?"拆開":"使用"}</button>`}</span></div>`}).join("");
+ const kc=p=>Object.keys(cl).filter(k=>k[0]==p).length;
+ if(Object.keys(cl).length)h+=`<h3>收藏</h3><p class="mut">扭蛋 ${kc("c")}／24 · 卡牌 ${kc("k")}／20（集滿有稱號，收藏不能換錢）</p>`+Object.entries(cl).sort().map(([k,n])=>`<small class="mut">${k[0]=="c"?"扭蛋 "+GSER[Math.floor((+k.slice(1)-1)/6)]+((+k.slice(1)-1)%6+1):"卡牌 "+k.slice(1)} ×${n}</small>`).join(" · ");
+ box.innerHTML=h||'<p class="mut">沒有物品。超市貨架可以買飲料、日用品、掌機、扭蛋</p>';pxify(box);
+ box.querySelectorAll("[data-gu]").forEach(b=>b.onclick=async()=>{b.disabled=true;UT.hit("goods:use");await goodsCall("use",b.dataset.gu);bagModal("goods")});
+ box.querySelectorAll("[data-gv]").forEach(b=>b.onclick=()=>{const id=b.dataset.gv,f=Object.values(R).filter(o=>o.id!=me&&o.place==R[me].place&&!o.sleeping);if(!f.length){toast("同一個地方沒有醒著的朋友");return}
+  choiceModal("送給誰？",esc(by[id].nm),f.map(o=>[esc(o.name),"同在這裡",async()=>{UT.hit("goods:gift");await goodsCall("gift",id,o.id);bagModal("goods")}]))})}
 function bagModal(tab){tab=tab||"food";const r=R[me],it=r.items||{},look=normLook(r.look),rg=it.rg||[],fu=it.fu||[];$("modal").classList.remove("hide");
  const row=(ic,name,sub,btn)=>`<div class="mrow"><span>${ic} <b>${esc(name)}</b> <small class="mut">${sub}</small></span>${btn}</div>`;
  const cnt={food:it.snack||0,gift:(it.gift||0)+rg.length,wear:(it.w||[]).length,furn:(it.f||[]).length,deco:(it.d||[]).length};
  let body="";
  if(tab=="food")body=it.snack?row("🍪","零食",`× ${it.snack} · 飽足 +20`,`<button data-eat="1">吃</button>`):'<p class="mut">沒有食物。超市可以買零食</p>';
+ if(tab=="goods")body='<div id="gbag"><p class="mut">載入中…</p></div>';
  if(tab=="gift")body=(it.gift?row("🎁","禮物",`× ${it.gift} · 到朋友面板「送禮物」送出`,""):"")+rg.map(g=>row("📦",`${g.name} 的禮物`,"未拆",`<button data-u="${g.id}">拆開</button><button data-g="${g.id}">轉送</button>`)).join("")||(body||"")
  if(tab=="gift"&&!body)body='<p class="mut">沒有禮物。超市可以買，朋友送的也會在這裡</p>';
  if(tab=="wear")body=(it.w||[]).map(id=>{const k=["style","top","acc"].find(k=>WEAR[k].some(a=>a[0]==id)),a=k&&wInfo(k,id),on=k&&look[k]==id;return row("👗",a?a[1]:id,on?"穿著中":"",on?"":`<button data-w="${id}">穿上</button>`)}).join("")||'<p class="mut">沒有特別款服飾。超市可以買</p>';
@@ -1591,6 +1618,7 @@ function bagModal(tab){tab=tab||"food";const r=R[me],it=r.items||{},look=normLoo
  if(tab=="deco")body=(it.d||[]).map(k=>{const a=DECO.find(x=>x[0]==k)||[k,k];return row(DIC[k]||"🛍️",a[1],"放在門口","")}).join("")||'<p class="mut">沒有擺飾。超市可以買</p>';
  $("mbody").innerHTML=`<h2>🛍️ 背包</h2><div class="chips">${BAG_TABS.map(([k,n])=>`<button data-t="${k}" class="${tab==k?"on":""}">${n}${cnt[k]?" "+cnt[k]:""}</button>`).join("")}</div>${body}<div class="row"><button id="mc">關閉</button></div>`;
  $("mc").onclick=()=>$("modal").classList.add("hide");
+ if(tab=="goods")goodsBag($("gbag"));
  $("mbody").querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>bagModal(b.dataset.t));
  const bind=(sel,fn)=>$("mbody").querySelectorAll(sel).forEach(b=>b.onclick=async()=>{b.disabled=true;await fn(b);bagModal(tab)});
  bind("[data-eat]",()=>act("snack"));bind("[data-u]",async b=>{await act("unwrap",{item:b.dataset.u})});bind("[data-g]",async b=>{await act("regift",{item:b.dataset.g});toast("轉成你的禮物了，可以送人")});

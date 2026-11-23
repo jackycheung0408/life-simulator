@@ -3,6 +3,84 @@
 (function(){
 const PAL={k:"#1b1b2f",w:"#ffffff",l:"#f5e6c8",r:"#e43b44",R:"#a22633",o:"#f77622",Y:"#fee761",y:"#e8b02c",b:"#8fd3ff",B:"#2e86de",n:"#1e3a8a",g:"#63c74d",G:"#2f7d32",p:"#ff8fb3",P:"#d1426e",t:"#f1c9a5",T:"#8f563b",s:"#e0e0e0",S:"#9aa5b8",d:"#5a6988",v:"#9b5de5",c:"#c0c0c0"};
 const A={
+umbrella:`
+...kkkkkk...
+.kkrrrrrrkk.
+kkrrwwrrrrkk
+krrrwwrrrrrk
+kkkkkkkkkkkk
+.....kk.....
+.....kd.....
+.....kd.....
+.....kd.....
+..kk.kd.....
+..kkkk......
+............`,
+battery:`
+............
+....kkkk....
+...kccccck..
+..kkkkkkkkk.
+..kGggggggk.
+..kGgggwggk.
+..kGggwwggk.
+..kGgggwggk.
+..kGggggggk.
+..kGGGGGGGk.
+..kkkkkkkkk.
+............`,
+capsule:`
+............
+....kkkk....
+..kkrrrrkk..
+.krrwrrrrrk.
+.krrrrrrrrk.
+.kkkkkkkkkk.
+.kbbbbbbbbk.
+.kbwbbbbbbk.
+.kbbbbbbbbk.
+..kkbbbbkk..
+....kkkk....
+............`,
+flower:`
+............
+....kppk....
+...kppppk...
+.kkpppwpkk..
+kppppwwwppk.
+.kkpppwpkk..
+...kppppk...
+....kkGkk...
+.....kGk....
+...kGGGGk...
+....kGGk....
+............`,
+bottle:`
+.....kk.....
+....kccck...
+.....kck....
+....kbbbk...
+...kbbbbbk..
+...kbwbbbk..
+...kbbbbbk..
+...kRRRRRk..
+...kRrrrRk..
+...kRRRRRk..
+...kbbbbbk..
+....kkkkk...`,
+apple:`
+.......kk...
+......kGk...
+...kkkkGkk..
+..krrrrrrrk.
+.krrwrrrrrrk
+.krwrrrrrrrk
+.krrrrrrrrrk
+.krrrrrrrrrk
+..krrrrrrrk.
+..kkrrrrrkk.
+....kkkkk...
+............`,
 boat:`
 .....kk.....
 ....kwwk....
@@ -1531,11 +1609,11 @@ function draw(name){if(cache[name])return cache[name];const c=document.createEle
  else paint(parse(A[name]||A.star));
  return cache[name]=c.toDataURL()}
 // emoji → 圖示名稱
-const MAP={"💣":"g_mn","🔵":"g_plk","✈️":"g_cr","🍵":"g_cp","🧧":"g_sc","🗝️":"g_ch","🔼":"g_hl","🧮":"g_bingo","🎯":"g_dg","🐮":"g_niu","🀄":"g_sg","🔟":"g_sb","🐖":"g_pig","🎴":"g_pj","🩺":"cross","🏥":"cross","👮":"badge","📜":"scroll","🏛️":"scroll","🗳️":"ticket","🔧":"wrench","🛡️":"shield","🧾":"ticket","🎫":"ticket","🪪":"ticket","🚦":"light","📈":"chart","🛏️":"bed","🛋️":"sofa","🧊":"fridge","🪴":"plant","📚":"shelf","💺":"massage","🟥":"rug","💡":"lamp","🌳":"tree","🌷":"flowers","🪑":"bench","🍚":"bowl","⚡":"bolt","🚽":"toilet","🛁":"bath","🎉":"face:happy","💰":"money","💗":"heart","💞":"heart","🎁":"gift","📦":"box","📱":"mobile","📲":"mobile","📞":"call","💌":"mail","✉️":"mail","💼":"case","✨":"star","⭐":"star",
+const MAP={"💣":"g_mn","🔵":"g_plk","✈️":"g_cr","🍵":"g_cp","☂️":"umbrella","🔋":"battery","🥚":"egg","🪀":"capsule","💐":"flower","🧃":"bottle","🍎":"apple","🍙":"cookie","🍞":"cookie","🍜":"plate","🍱":"plate","🥫":"can","🧴":"sponge","🧻":"sponge","🩹":"cross","🎮":"joy","🎁":"gift","🧧":"g_sc","🗝️":"g_ch","🔼":"g_hl","🧮":"g_bingo","🎯":"g_dg","🐮":"g_niu","🀄":"g_sg","🔟":"g_sb","🐖":"g_pig","🎴":"g_pj","🩺":"cross","🏥":"cross","👮":"badge","📜":"scroll","🏛️":"scroll","🗳️":"ticket","🔧":"wrench","🛡️":"shield","🧾":"ticket","🎫":"ticket","🪪":"ticket","🚦":"light","📈":"chart","🛏️":"bed","🛋️":"sofa","🧊":"fridge","🪴":"plant","📚":"shelf","💺":"massage","🟥":"rug","💡":"lamp","🌳":"tree","🌷":"flowers","🪑":"bench","🍚":"bowl","⚡":"bolt","🚽":"toilet","🛁":"bath","🎉":"face:happy","💰":"money","💗":"heart","💞":"heart","🎁":"gift","📦":"box","📱":"mobile","📲":"mobile","📞":"call","💌":"mail","✉️":"mail","💼":"case","✨":"star","⭐":"star",
  "🤝":"hands","🙌":"hands","👋":"hands","👆":"hands","🤲":"hands","💪":"fist","🏛️":"hall","🥚":"egg","🥤":"can","💨":"fart","🍖":"meat","🍽️":"plate","🍳":"plate","🍪":"cookie","🍠":"potato","🛵":"scooter","🚲":"bike","🏍️":"moto","🚗":"car","💥":"burst","💢":"burst","👊":"fist","🪙":"coin",
  "🐱":"cat","🐕":"dog","🐦":"bird","🐟":"fish","🐷":"face:happy","🔒":"lock","😴":"face:sleepy","💤":"zzz","🌙":"moon","🎈":"balloon","⏰":"alarm","🎨":"palette","🗺️":"map","🔔":"bell","🔕":"belloff","🏡":"house","🏠":"house","🏘️":"house","📺":"tv","☀️":"sun",
  "👥":"people","👗":"shirt","📰":"news","🏆":"trophy","🥇":"medal:1","🥈":"medal:2","🥉":"medal:3","🚪":"door","📍":"pin","🖼️":"picture","🔍":"search","🗑️":"trash","🎠":"swing","🚶":"walk","🎵":"note","🎸":"guitar","🌧️":"rain","💦":"drops","💩":"poop","🍀":"clover","🕹️":"joy","☕":"cup","🎬":"film","🏋️":"dumbbell","🃏":"card","🎲":"dice","🎰":"slot","🔢":"bingo","🔨":"mole","🧠":"card","♠":"card","♠️":"card","🎡":"wheel","✂️":"scissors","🪨":"rock","📄":"paper","✊":"rock","✋":"paper","✌️":"scissors","🏆":"trophy",
- "🦶":"memo","💘":"loveletter","📸":"camera","👀":"eyes","🧽":"sponge","⚔️":"swords","🛣️":"road","🛍️":"bag","😤":"face:angry","😒":"face:meh","😊":"face:happy","🙂":"face:smile","😵":"face:dizzy","😣":"face:sad","😪":"face:sleepy","🥺":"face:sad","😂":"face:laugh","🤕":"face:hurt"};
+ "🦶":"memo","💘":"loveletter","📸":"camera","👀":"eyes","🧽":"sponge","⚔️":"swords","🛣️":"road","🛍️":"bag","🛒":"bag","😤":"face:angry","😒":"face:meh","😊":"face:happy","🙂":"face:smile","😵":"face:dizzy","😣":"face:sad","😪":"face:sleepy","🥺":"face:sad","😂":"face:laugh","🤕":"face:hurt"};
 window.PIXICON=e=>draw(MAP[e]||MAP[e.replace(/️/g,"")]||MAP[e+"️"]||"star");
 window.PIXICON_NAME=n=>draw(n);
 window.PIXICON_MAP=MAP;

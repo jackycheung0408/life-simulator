@@ -44,6 +44,7 @@ const SC=[
  {n:"modal-menu",mut:r=>{r.place="street";r.x=15;r.y=12},run:async p=>{await p.click("#menuBtn");await p.waitForTimeout(300)}},
  {n:"modal-updates",mut:r=>{r.place="street";r.x=15;r.y=12},run:async p=>{await p.click("#menuBtn");await p.click("#updBtn");await p.waitForTimeout(300)}},
  {n:"modal-persona",mut:r=>{r.place="street";r.x=15;r.y=12;r.items.pf={nick:"豬豬",mt:["好耶","再一杯"],by:{"2":"小可愛"},bo:["2"]}},run:async p=>{await p.click("#menuBtn");await p.click("#pfBtn");await p.waitForTimeout(300)},soft:1},
+ {n:"modal-goods",mut:r=>{r.place="market";r.x=28;r.y=14;r.items.fi="market"},run:async p=>{await p.evaluate(()=>{const b=[...document.querySelectorAll('#acts button,#mainrow button')].find(x=>x.textContent.includes('逛貨架'));if(b)b.click()});await p.waitForTimeout(700)},soft:1},
  {n:"modal-meet",mut:r=>{r.place="plaza"},run:async p=>{await p.evaluate(()=>document.getElementById("meetBtn").click());await p.waitForTimeout(600)},soft:1},
  {n:"modal-casino",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino";r.items.cas={ch:20000,bh:"PBPBBTPPBB"};r.money=5000},run:async p=>{await clickText(p,"百家樂");await p.waitForTimeout(600)},soft:1},
  {n:"modal-casino-mines",mut:r=>{r.place="casino";r.x=68;r.y=14;r.items.fi="casino";r.items.cas={ch:20000,bh:""};r.money=5000},run:async p=>{await clickText(p,"玩地雷");await clickText(p,"開局");await p.waitForTimeout(400);await p.click(".mc:not([disabled])");await p.waitForTimeout(300);await p.click(".mc:not([disabled])");await p.waitForTimeout(400)},soft:1},

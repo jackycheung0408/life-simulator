@@ -283,6 +283,7 @@ require("./test_arcade2.js")(M,check);
 require("./test_casino2.js")(M,check);
 require("./test_casino3.js")(M,check);
 require("./test_casino4.js")(M,check);
+require("./test_goods.js")(M,check);
 {const src=require("fs").readFileSync(__dirname+"/town.js","utf8").split("\n"),ii=src.findIndex(l=>l.startsWith("function init(){")),top=src.slice(0,ii);
  const strip=l=>l.replace(/\/\/.*$/,"").replace(/`(?:[^`\\]|\\.)*`/g,"``").replace(/"(?:[^"\\]|\\.)*"/g,'""').replace(/'(?:[^'\\]|\\.)*'/g,"''");
  const bad=[];top.forEach((l,i)=>{const s=strip(l);for(const n of ["me","$","esc","pxify","toast","pin","R","S"]){const re=new RegExp("(^|[^\\w$.])"+n.replace("$","\\$")+"(?![\\w$:])");if(re.test(s))bad.push(n+"@"+(i+1))}});
