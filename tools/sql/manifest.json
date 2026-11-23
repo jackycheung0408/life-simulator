@@ -379,6 +379,20 @@
    ]
   },
   {
+   "file": "town_faint_meal.sql",
+   "kind": "patch",
+   "needs": [
+    "town_faint_relief.sql"
+   ]
+  },
+  {
+   "file": "town_faint_meal_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_faint_meal.sql"
+   ]
+  },
+  {
    "file": "town_faint_refund_1123.sql",
    "kind": "once",
    "needs": [
