@@ -324,6 +324,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"nag-1123",date:"11/23",title:"少跳確認帳號",items:["設密碼提醒一天最多一次","可以按「稍後再說」"]},
   {id:"drawer-1123",date:"11/23",title:"單手好按",items:["下方三顆主按鈕，拇指直達","面板預設收起，上拉展開","按鈕名稱變短"]},
   {id:"rank-board-1123",date:"11/23",title:"廣場排行榜",items:["廣場新看板，看全鎮前 10 名","旁邊有首富雕像"]},
   {id:"casino-6new-1123",date:"11/23",title:"賭場新增六款",items:["地雷、彈珠台、飛行器","猜杯子、刮刮樂、開寶箱","點賭場裡的桌子開玩"]},
@@ -606,7 +607,7 @@ $("lg").innerHTML=`${LP.top(list)}
   catch(e){$("cerr").textContent=e.message;$("create").disabled=false}}}
 
 // ── 鎮內登入：我住在這裡，或用邀請碼搬進來 ──
-let refAt=0;async function refresh(){const st=await rpc("town_state",{tid:TID});refAt=Date.now();apply(st);if(me&&!acctChk&&!modalOpen()){acctChk=1;setTimeout(()=>acctModal(1),500)}else if(me&&acctForce&&!modalOpen())setTimeout(()=>acctModal(1),300);if(me)try{checkInvite();checkPk();checkWoken();checkPwn()}catch(e){}if(Date.now()-civT>6e4)civSync()}
+let refAt=0;async function refresh(){const st=await rpc("town_state",{tid:TID});refAt=Date.now();apply(st);if(me&&!acctChk&&!modalOpen()&&acctNag()){acctChk=1;setTimeout(()=>acctModal(1),500)}if(me)try{checkInvite();checkPk();checkWoken();checkPwn()}catch(e){}if(Date.now()-civT>6e4)civSync()}
 const seenLuck=new Set();
 function apply(st){S=st;try{UT.names(Object.values(R).map(r=>r.name))}catch(e){}setTimeout(popCheck,0);POOPS=st.poops||[];CUR="$";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>(e.kind=="luck"||e.kind=="rent"||e.kind=="ticket"||e.kind=="crash")&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
  st.residents.forEach(r=>{R[r.id]=r;const w=walkers[r.id];
@@ -651,7 +652,7 @@ const recRpc2=(fn,b)=>rpc(fn,b);
 // ── 帳號＋密碼登入（supabase/town_account.sql）：和裝置金鑰並存；SQL 沒套用時偵測到錯誤就隱藏入口
 const acctGone=e=>/Could not find|schema cache|does not exist|PGRST/i.test((e&&e.message)||"")&&(window.ACCT_ON=false,1);
 // 選單「帳號與密碼」與強制設密碼：還沒設密碼或是鎮長發的臨時密碼時不能關（acctForce，refresh 會重開）
-let acctForce=false,lastPw="",acctChk=0;
+let acctForce=false,lastPw="",acctChk=0;function acctNag(){try{const d=new Date().toDateString();if(localStorage.getItem("town-acct-nag")===d)return false;localStorage.setItem("town-acct-nag",d)}catch(e){}return true}
 async function acctModal(force){$("modal").classList.remove("hide");$("mbody").innerHTML='<h2>帳號與密碼</h2><p class="mut">查詢中…</p>';const shut=()=>{acctForce=false;$("modal").classList.add("hide")};
  let st;try{st=await rpc("town_acct",{rid:me,pin,op:"status"})}catch(e){if(acctGone(e)){acctForce=false;$("mbody").innerHTML='<h2>帳號與密碼</h2><p class="mut">這個功能還沒開放。</p><div class="row"><button id="ax">關閉</button></div>';$("ax").onclick=shut;const b=$("acctBtn");if(b)b.hidden=true;return}$("mbody").innerHTML=`<h2>帳號與密碼</h2><p class="err">${esc(e.message)}</p><div class="row"><button id="ax">關閉</button></div>`;$("ax").onclick=shut;return}
  acctForce=!!force&&(!st.has||st.temp);if(!acctForce&&force){shut();return}
@@ -661,7 +662,7 @@ async function acctModal(force){$("modal").classList.remove("hide");$("mbody").i
   ${st.has?`<label>舊密碼<input id="ap1" type="password" maxlength="40" autocomplete="current-password" value="${esc(st.temp?lastPw:"")}"></label>`:""}
   <label>${st.has?"新密碼":"密碼"}<input id="ap2" type="password" maxlength="40" autocomplete="new-password"></label>
   ${st.has?"":`<label>再輸入一次<input id="ap3" type="password" maxlength="40" autocomplete="new-password"></label>`}
-  <p class="err" id="aerr"></p><div class="row">${f?"":'<button id="ax">關閉</button>'}<button class="pri" id="asp">${st.has?"改密碼":"設定密碼"}</button></div>
+  <p class="err" id="aerr"></p><div class="row"><button id="ax">${f?"稍後再說":"關閉"}</button><button class="pri" id="asp">${st.has?"改密碼":"設定密碼"}</button></div>
   ${window.RECOVERY_ON&&st.has&&!need?'<div class="row" style="justify-content:flex-start"><button id="aem">綁定 Email（忘記密碼時用）</button></div>':""}`;
   if($("ax"))$("ax").onclick=shut;if($("aem"))$("aem").onclick=()=>recBindModal();
   $("asp").onclick=async()=>{const n=$("ap2").value;if($("ap3")&&$("ap3").value!==n){$("aerr").textContent="兩次密碼不一樣，再輸入一次";return}$("asp").disabled=true;
