@@ -496,9 +496,8 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 {const fs=require("fs");const sd=__dirname+"/../supabase/",mf=JSON.parse(fs.readFileSync(__dirname+"/../tools/sql/manifest.json","utf8")),inM=new Set(mf.files.map(e=>e.file));
  mf.files.forEach(e=>check(fs.existsSync(sd+e.file),"manifest 的 "+e.file+" 不存在（tools/sql/manifest.json）"));
  fs.readdirSync(sd).filter(f=>f.endsWith(".sql")).forEach(f=>check(inM.has(f)||(mf.ignore||[]).includes(f),"supabase/"+f+" 要加進 tools/sql/manifest.json（files 或 ignore）"))}
-if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
-
 {const fs=require("fs"),sql=fs.readFileSync(__dirname+"/../supabase/town_casino_rank.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8");
  check(sql.split("\n").slice(0,4).every(l=>/^--/.test(l)||l.trim()==""),"town_casino_rank.sql 檔頭每行都要是註解");
  check(/town_casino_log/.test(sql)&&/'casino'\]/.test(sql)&&!/create or replace function public\.town_casino(_state)?\(/.test(sql)&&/from public, anon, authenticated/.test(sql),"town_casino_rank.sql 讀 town_casino_log、不重建 town_casino、revoke 含 anon");
  check(/\["casino","賭神"/.test(js),"排行榜前端要有賭神分頁");}
+if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
