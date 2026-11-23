@@ -907,13 +907,33 @@
     "town_infac.sql",
     "town_shops1.sql"
    ],
-   "note": "商品目錄第一批：超市 20 項新商品＋每日特價；town_goods RPC；就地補 town_tick 雨傘"
+   "note": "商品目錄第一批：超市 20 項新商品＋每日特價；town_goods RPC；就地補 town_tick 雨傘",
+   "superseded_funcs": [
+    "town_catalog",
+    "town_goods"
+   ],
+   "superseded_by": "town_catalog2.sql"
   },
   {
    "file": "town_catalog1_test.sql",
    "kind": "test",
    "needs": [
     "town_catalog1.sql"
+   ]
+  },
+  {
+   "file": "town_catalog2.sql",
+   "kind": "patch",
+   "needs": [
+    "town_catalog1.sql"
+   ],
+   "note": "商品目錄第二批：咖啡廳、餐廳、電影院、健身房、公園、廣場 30 項；重建 town_catalog／town_goods"
+  },
+  {
+   "file": "town_catalog2_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_catalog2.sql"
    ]
   }
  ]
