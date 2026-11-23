@@ -21,6 +21,11 @@
 --       押注要有 3 倍籌碼（最多賠 3 倍）。
 -- 賠率改這裡的任何一個，前端 town.js 的對應表（PAY／KPAY／DGM 等）與 town/test_casino2.js 的護欄要一起改。
 
+-- 老虎機累積大獎的獎池（每鎮一筆）
+create table if not exists public.town_jackpot (town_id text primary key references public.town_towns(id) on delete cascade, amount bigint not null default 0);
+alter table public.town_jackpot enable row level security;
+revoke all on public.town_jackpot from anon, authenticated;
+
 -- 21 點莊家是否要牌：點數 < 17，或剛好軟 17（Ａ算 11 的 17）要牌
 create or replace function public.town_bj_dealer_hits(cs jsonb) returns boolean language plpgsql immutable as $$
 declare t int := public.town_bj_total(cs); hard int := 0; c int; ace boolean := false;
@@ -40,7 +45,7 @@ language plpgsql security definer set search_path = public as $$
 declare r public.town_residents; res jsonb; win int := 0; net int := 0;
   c int; c1 int; c2 int; c3 int; a int; b int; n int; k int; m numeric; mlt int; netw boolean; re int := 0;
   st jsonb; dc jsonb; p int; d int; d1 int; d2 int; d3 int; s int; trip boolean;
-  red int[] := array[1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]; lbl text; col text; pk int[]; dr int[]; w int[] := array[1,2,3,4,5,5]; cum int; sy int[]; x int;
+  red int[] := array[1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]; lbl text; col text; pk int[]; dr int[]; w int[] := array[1,2,3,4,5,5]; cum int; sy int[]; x int; jp int := 0; jpool bigint;
 begin
   r := public.town_auth(rid, pin);
   if r.id is null then return json_build_object('error','密碼不對'); end if;
@@ -125,7 +130,18 @@ begin
     end loop;
     if sy[1] = sy[2] and sy[2] = sy[3] then win := bet * (array[100,30,15,10,7,5])[sy[1] + 1];
     elsif sy[1] = sy[2] or sy[2] = sy[3] or sy[1] = sy[3] then win := floor(bet * 1.2)::int; end if;
-    res := jsonb_build_object('reels', to_jsonb(sy), 'win', win);
+    -- 累積大獎：每注 1% 進本鎮獎池（只是帳面，來自玩家輸掉的錢）；三個 7 另外拿獎池 × min(1, 押注/1000)（押 €1000 以上整池，押越少拿越少，防止小注撿大獎）
+    insert into public.town_jackpot(town_id, amount) values (r.town_id, floor(bet * 0.01)::bigint)
+      on conflict (town_id) do update set amount = public.town_jackpot.amount + excluded.amount returning amount into jpool;
+    if sy[1] = 0 and sy[2] = 0 and sy[3] = 0 then
+      jp := floor(jpool * least(1, bet / 1000.0))::int;
+      if jp > 0 then
+        update public.town_jackpot set amount = amount - jp where town_id = r.town_id returning amount into jpool;
+        win := win + jp;
+        insert into public.town_events(town_id,actor,target,kind,msg) values (r.town_id, rid, rid, 'luck', r.name || ' 在賭場老虎機中了累積大獎 €' || jp || ' 💎');
+      end if;
+    end if;
+    res := jsonb_build_object('reels', to_jsonb(sy), 'win', win, 'jp', jp, 'pool', jpool);
 
   elsif game = 'keno' then
     -- 基諾：1～80 選 5 個、開 20 個；中 2 ×1、中 3 ×3、中 4 ×16、中 5 ×200

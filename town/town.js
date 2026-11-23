@@ -42,6 +42,7 @@ typeof document!=="undefined"&&(()=>{const st=document.createElement("style");st
 .gshow{position:relative;box-sizing:border-box;border:3px solid transparent;padding:8px;min-height:150px}
 .gshow .dealer{position:absolute;top:2px;right:8px;margin:0;z-index:2;font-size:11px;pointer-events:none}
 .nochip{margin:6px 0}
+.jpbar{text-align:center;color:#ffe9a8;margin:4px 0;padding:4px;background:#2a1a4a;border:3px solid #d4a72c;box-shadow:0 0 0 3px var(--ink)}
 .gshow.hold::after{content:"…";position:absolute;left:0;right:0;bottom:6px;text-align:center;font-size:22px;color:#ffe9a8;animation:pblink .4s steps(2) infinite}
 /* 精簡牌桌：標題列一行（遊戲名、籌碼、規則鈕），規則點開才浮出（不推版面）；咪牌：牌面蓋一層，按住往上拖慢慢掀開 */
 #modal .card{position:relative}
@@ -1246,10 +1247,10 @@ function gamesModal(){$("modal").classList.remove("hide");if(!window._dealObs){w
    try{const g=await playGame("dice",{choice:b.dataset.d});await new Promise(r=>setTimeout(r,700));clearInterval(spin);const sum=g.dice.reduce((a,x)=>a+x,0);show.innerHTML=`<div class="cards">${g.dice.map(die).join("")}</div><p class="mut">合計 ${sum}${g.dice[0]==g.dice[1]&&g.dice[1]==g.dice[2]?" · 三顆一樣（大小通殺）":""}</p>`+result(g);money()}catch(e){clearInterval(spin);show.innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
    area.querySelectorAll("[data-d]").forEach(x=>x.disabled=false)})}
  if(gameTab=="slots"){const SY=['<b class="s7">7</b>',"🔔","⭐","🍀","🥚","💰"],PAY=SLPAY;
-  area.innerHTML=`<p class="mut">三個一樣：${SY.map((y,i)=>`${y}×${PAY[i]}`).join(" ")}；剛好兩個一樣 ×1.2。越上面的圖案越少出現。</p><div class="reels" id="reels">${[0,1,2].map(()=>`<div class="reel">${SY[0]}</div>`).join("")}</div><div class="gbtns"><button class="pri" id="slGo">拉霸（押 €${gameBet}）</button></div><div id="gShow"></div>`;
+  area.innerHTML=`<p class="mut">三個一樣：${SY.map((y,i)=>`${y}×${PAY[i]}`).join(" ")}；剛好兩個一樣 ×1.2。越上面的圖案越少出現。累積大獎：每注 1% 進獎池，三個 7 另外拿獎池（押 €1000 以上拿整池，押越少拿越少）。</p><div class="jpbar">💎 累積大獎 €<b id="jpv">${(CAS&&CAS.jp)||0}</b></div><div class="reels" id="reels">${[0,1,2].map(()=>`<div class="reel">${SY[0]}</div>`).join("")}</div><div class="gbtns"><button class="pri" id="slGo">拉霸（押 €${gameBet}）</button></div><div id="gShow"></div>`;
   $("slGo").onclick=async()=>{$("slGo").disabled=true;const rs=[...area.querySelectorAll(".reel")];rs.forEach(r=>delete r.dataset.stop);const spin=setInterval(()=>rs.forEach(r=>{if(!r.dataset.stop)r.innerHTML=SY[Math.floor(Math.random()*6)]}),70);
    try{const g=await playGame("slots");for(let i=0;i<3;i++){await new Promise(r=>setTimeout(r,500));if(i==2)clearInterval(spin);rs[i].dataset.stop=1;rs[i].innerHTML=SY[g.reels[i]]}
-    $("gShow").innerHTML=result(g);money()}catch(e){clearInterval(spin);toast(e.message)}$("slGo").disabled=false}}
+    if(g.pool!=null){CAS.jp=g.pool;$("jpv").textContent=g.pool}$("gShow").innerHTML=result(g,g.jp>0?`<br>💎 中了累積大獎 +€${g.jp}！`:"");money()}catch(e){clearInterval(spin);toast(e.message)}$("slGo").disabled=false}}
  if(gameTab=="keno"){let pick=[];area.innerHTML=`<p class="mut">基諾：1～80 選 5 個號碼，開 20 個。中 2 個退回押注（×1），中 3 個 ×3，中 4 個 ×16，中 5 個 ×200；中 0～1 個輸掉（莊家優勢約 15%）。</p><div class="bnums knums">${Array.from({length:80},(_,i)=>`<button data-n="${i+1}">${i+1}</button>`).join("")}</div><div class="gbtns"><button class="pri" id="bgGo" disabled>選滿 5 個再開獎（押 €${gameBet}）</button></div><div id="gShow"></div>`;
   const nums=()=>[...area.querySelectorAll("[data-n]")];
   nums().forEach(b=>b.onclick=()=>{const n=+b.dataset.n;if(pick.includes(n))pick=pick.filter(x=>x!=n);else if(pick.length<5)pick.push(n);nums().forEach(x=>x.classList.toggle("on",pick.includes(+x.dataset.n)));$("bgGo").disabled=pick.length!=5;$("bgGo").textContent=pick.length==5?`開獎（押 €${gameBet}）`:`選滿 5 個再開獎（${pick.length}/5）`});

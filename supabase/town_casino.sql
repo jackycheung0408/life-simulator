@@ -176,7 +176,8 @@ begin
     perform public.town_fund_add(r.town_id, 'casino', (v_fee / 2)::int);
   elsif op <> 'view' then raise exception '未知動作'; end if;
   select coalesce(sum(l.rounds), 0), coalesce(sum(l.net), 0) into v_rounds, v_net from public.town_casino_log l where l.rid = rid and l.day = v_day;
-  return json_build_object('ok', true, 'money', r.money, 'chips', v_chips, 'rounds', v_rounds, 'net', v_net, 'bh', coalesce(cs->>'bh', ''));
+  return json_build_object('ok', true, 'money', r.money, 'chips', v_chips, 'rounds', v_rounds, 'net', v_net, 'bh', coalesce(cs->>'bh', ''),
+    'jp', coalesce((select j.amount from public.town_jackpot j where j.town_id = r.town_id), 0));
 end $$;
 
 revoke all on function public.town_casino_maxbet(bigint), public.town_casino_norm(text) from public, anon, authenticated;

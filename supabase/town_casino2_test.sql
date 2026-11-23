@@ -64,3 +64,21 @@ begin
   rep := rep || ' 射龍門 ' || n || ' 局淨期望每注=' || round(ret / (n*100), 3) || '（理論約 -0.038） 撞柱輸>=2倍次數=' || w;
   raise exception 'REPORT %', rep;
 end $$;
+
+-- 老虎機累積大獎回滾實測（接在 town_casino2.sql 之後貼上）：把權重改成 7 幾乎必出，驗證獎池算式；結果在 REPORT，全部回滾
+do $q$
+declare f oid; d text; t text := 'ZZJP'; a bigint; g jsonb; rep text := '';
+begin
+  select p.oid into f from pg_proc p where p.proname = 'town_cgame' and p.pronamespace = 'public'::regnamespace;
+  d := replace(pg_get_functiondef(f), 'array[1,2,3,4,5,5]', 'array[100000,1,1,1,1,1]'); execute d;
+  insert into public.town_towns(id,name,invite) values (t,'測試鎮','ZZJP') on conflict do nothing;
+  insert into public.town_residents(town_id,name,money,slot,x,y,place,pin_hash,items) values (t,'甲',1000000,0,10,10,'casino',extensions.crypt('x', extensions.gen_salt('bf',4)),'{}'::jsonb) returning id into a;
+  perform set_config('town.casino','1',true);
+  insert into public.town_jackpot(town_id, amount) values (t, 100000);
+  g := (public.town_cgame(a,'x','slots',1000,null))::jsonb->'game';
+  rep := rep || ' 押1000三個7：jp=' || (g->>'jp') || '（應 100010） 池剩=' || (g->>'pool') || '（應 0） win=' || (g->>'win') || '（應 200010）';
+  update public.town_jackpot set amount = 100000 where town_id = t;
+  g := (public.town_cgame(a,'x','slots',500,null))::jsonb->'game';
+  rep := rep || ' 押500：jp=' || (g->>'jp') || '（應 50002） 池剩=' || (g->>'pool') || '（應 50003）';
+  raise exception 'REPORT %', rep;
+end $q$;

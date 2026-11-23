@@ -11,6 +11,8 @@ module.exports=(M,check)=>{const fs=require("fs"),sq=fs.readFileSync(__dirname+"
  {const w=arr(/w int\[\] := array\[([\d,]+)\]/),pay=arr(/array\[([\d,]+)\]\)\[sy\[1\] \+ 1\]/);check(JSON.stringify(w)==JSON.stringify(M.SLW)&&JSON.stringify(pay)==JSON.stringify(M.SLPAY),"老虎機權重或賠率前端和 SQL 不一致");
   const W=w.reduce((a,x)=>a+x,0);let r=0;for(let a=0;a<6;a++)for(let b=0;b<6;b++)for(let c=0;c<6;c++){const p=w[a]*w[b]*w[c]/W**3;if(a==b&&b==c)r+=p*pay[a];else if(a==b||b==c||a==c)r+=p*1.2}
   check(r>0.9&&r<0.95&&code.includes("floor(bet * 1.2)")&&code.includes("floor(random() * 20)"),"老虎機期望要 0.90～0.95："+r)}
+ // 老虎機累積大獎：每注 1% 進獎池、三個 7 拿獎池 × min(1, 押注/1000)、獎池表存在、前端有顯示
+ check(code.includes("floor(bet * 0.01)")&&code.includes("least(1, bet / 1000.0)")&&code.includes("town_jackpot")&&js.includes("累積大獎"),"老虎機累積大獎：SQL 或前端不見了");
  // 基諾：80 選 5 開 20，賠率表一致，期望 0.82～0.87
  {const C=(n,k)=>{let r=1;for(let i=1;i<=k;i++)r=r*(n-k+i)/i;return r},tot=C(80,20);let r=0;for(const [k,v] of Object.entries(M.KPAY))r+=C(5,+k)*C(75,20-k)/tot*v;
   check(code.includes("case k when 5 then 200 when 4 then 16 when 3 then 3 when 2 then 1")&&JSON.stringify(M.KPAY)==JSON.stringify({2:1,3:3,4:16,5:200})&&code.includes("v > 80")&&code.includes("limit 20"),"基諾賠率前端和 SQL 不一致");
