@@ -897,6 +897,24 @@
    "needs": [
     "town_shops1.sql"
    ]
+  },
+  {
+   "file": "town_catalog1.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_social.sql",
+    "town_infac.sql",
+    "town_shops1.sql"
+   ],
+   "note": "商品目錄第一批：超市 20 項新商品＋每日特價；town_goods RPC；就地補 town_tick 雨傘"
+  },
+  {
+   "file": "town_catalog1_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_catalog1.sql"
+   ]
   }
  ]
 }
