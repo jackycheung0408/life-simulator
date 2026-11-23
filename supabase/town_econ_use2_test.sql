@@ -24,7 +24,7 @@ begin
   -- 莊園
   update public.town_residents set money = 500000 where id = a;
   begin perform public.town_econ_fun(a,'x','party'); rep := rep || ' 沒莊園=成功(錯)'; exception when others then rep := rep || ' 沒莊園=擋'; end;
-  perform public.town_econ_use(a,'x','buy','estate'); update public.town_residents set money = 500000, fun = 40 where id = a;
+  update public.town_residents set money = 1000000 where id = a; perform public.town_econ_use(a,'x','buy','estate'); update public.town_residents set money = 500000, fun = 40 where id = a;
   begin perform public.town_econ_fun(a,'x','party'); rep := rep || ' 不在家=成功(錯)'; exception when others then rep := rep || ' 不在家=擋'; end;
   update public.town_residents set place = 'home:' || a where id = a; update public.town_residents set fun = 40 where id <> a;
   v := public.town_econ_fun(a,'x','party');
