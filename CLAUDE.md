@@ -709,6 +709,6 @@
 - 出席：集合時間起 15 分鐘內，報名且 `place` 相符才記（`claim`，每次 `town_meet` 呼叫都順帶補記，前端每 60 秒 `meetPoll`）。結算惰性（`town_meet_settle`，任何呼叫都補算）：出席 ≥2 成團，每位心情 +10、精力 +3、對彼此好感 +1（`town_bond`）、`items.mt={n,last,d,dn}`、每人每天前 3 次有效果；稱號 出席 1／10／25 次＝揪團新手／人氣王／團長；不給錢。否則流團寫動態。事件 kind `meet`（新團含「揪了」，通知中心「要回應」1 小時內顯示）。
 - 前端：選單「揪團」`meetModal`（我的團、進行中、發起表單、報名／退出／取消／帶我過去 `walkTo`、分享＝`navigator.share` 或複製，不自動發送）、集合前 5 分鐘 toast 提醒、`UT.hit("meet:*")`。`tools/visual` 情境 `modal-meet`（基準圖未更新）。
 
-## 遊艇出海、莊園派對、碼頭（2026-11-23；SQL `supabase/town_econ_use2.sql` **尚未套用正式站**，實測 `town_econ_use2_test.sql`（回滾，REPORT），在 `town_econ_sink.sql` 之後；新 RPC `town_econ_fun(rid,pin,op)`，不動 `town_econ_use`）
+## 遊艇出海、莊園派對、碼頭（2026-11-23；SQL `supabase/town_econ_use2.sql` **已套用正式站 2026-11-23（回滾實測全過：各擋條件都擋住、乘客心情 +25、派對 +15、睡著不受影響、基金 +600、錢不為負）**，實測 `town_econ_use2_test.sql`（回滾，REPORT），在 `town_econ_sink.sql` 之後；新 RPC `town_econ_fun(rid,pin,op)`，不動 `town_econ_use`）
 - 前端：地圖東南角碼頭 `DOCK[66,17,5,4]`（水面，`blocked`，`drawDock` 每幀畫、最多 4 艘遊艇、名牌「X 的遊艇」）；有莊園（`items.lx.estate`）的房子在 `buildMap` 換金屋脊＋旗＋白柱＋花園（只換外觀）。面板按鈕「出海」（遊艇擁有者在碼頭附近）、「辦派對」（莊園擁有者在自己家）。
 - 出海 $2000：自動帶碼頭附近（x±6、y±5）上線 5 分鐘內、醒著、沒入獄的居民最多 3 位（隨機，至少 1 位，乘客不用同意也不花錢，只有好處），每人（含船主）心情 +25，船主對乘客好感 +3（`town_bond`），船主 1 小時 1 次（`items.lxc.y`）。派對 $5000：自己家，全鎮上線 10 分鐘內醒著居民心情 +15、好感 +2，每台灣日 1 次（`items.lxc.p`）。7 成銷毀 3 成進基金，錢不夠擋、不欠款。
