@@ -35,7 +35,19 @@ if(!String(url).includes("/rpc/"))return _fetch(url,o);const fn=url.split("/rpc/
   else if(g=="wheel"){win=Math.random()<.47?b.bet*2:0;res={slot:5,label:"5",color:"red",win,pick:b.choice,bet:b.bet}}
   else if(g=="dice"){win=Math.random()<.48?b.bet*2:0;res={dice:[3,4,5],win,pick:b.choice,bet:b.bet}}
   else if(g=="slots"){win=Math.random()<.3?b.bet*3:0;res={reels:[0,1,2],win,bet:b.bet}}
-  else return bad("測試用 mock 只支援 bacc／wheel／dice／slots");
+  else if(g=="cups"){const ball=Math.floor(Math.random()*3);win=ball==+b.choice?Math.floor(b.bet*2.88):0;res={ball,pick:+b.choice,win,bet:b.bet}}
+  else if(g=="scratch"){const t=Math.random()<.4?2:-1,pool=[0,1,2,3,4,5].flatMap(x=>[x,x]).filter(x=>x!=t).sort(()=>Math.random()-.5),cells=(t>=0?[t,t,t,...pool.slice(0,6)]:pool.slice(0,9)).sort(()=>Math.random()-.5);win=t>=0?b.bet*5:0;res={cells,tier:t,mult:t>=0?5:0,win,bet:b.bet}}
+  else if(g=="plinko"){const path=[...Array(12)].map(()=>Math.random()<.5?1:0),slot=path.reduce((a,x)=>a+x,0),m=[560,200,140,110,100,100,70,100,100,110,140,200,560][slot];win=Math.floor(b.bet*m/100);res={path,slot,mult:m,risk:b.choice,win,bet:b.bet}}
+  else if(g=="cr_start"){c.cr={b:b.bet,t:Date.now(),x:Math.floor(100+Math.random()*400)};res={bet:b.bet}}
+  else if(g=="cr_poll"||g=="cr_cash"){const e=(Date.now()-c.cr.t)/1000,cur=Math.floor(100*Math.exp(.1*e)),bet=c.cr.b;if(g=="cr_poll"){if(c.cr.x<cur){res={crashed:true,x:c.cr.x,win:0,bet};delete c.cr}else return ok({game:{alive:true,m:cur,bet},money:r.money,casino:{chips:c.ch,bh:""}})}else{const m=+b.choice;if(m>cur)return bad("還沒飛到這個倍率");win=m<=c.cr.x?Math.floor(bet*m/100):0;res={crashed:win==0,m,x:c.cr.x,win,bet};delete c.cr}c.ch+=win;return ok({game:res,money:r.money,casino:{chips:c.ch,bh:""}})}
+  else if(g=="mn_start"){c.mn={b:b.bet,m:+b.choice,o:[],x:[...Array(25).keys()].sort(()=>Math.random()-.5).slice(0,+b.choice)};c.ch-=b.bet;return ok({game:{bet:b.bet,m:c.mn.m,k:0,next:Math.floor(b.bet*1.1)},money:r.money,casino:{chips:c.ch,bh:""}})}
+  else if(g=="mn_state"||g=="ch_state"){const st=g=="mn_state"?c.mn:c.cx;if(!st)return bad("沒有進行中");return ok({game:g=="mn_state"?{bet:st.b,m:st.m,k:st.o.length,o:st.o,mult:1,cash:st.b,next:st.b}:{bet:st.b,s:st.s,pick:st.p,rev:st.r,revv:st.r!=null?st.v[st.r]:0},money:r.money,casino:{chips:c.ch,bh:""}})}
+  else if(g=="mn_pick"){const st=c.mn,i=+b.choice;if(st.x.includes(i)){win=0;res={hit:true,idx:i,mines:st.x,o:st.o,bet:st.b,win,k:st.o.length,m:st.m};delete c.mn}else{st.o.push(i);return ok({game:{hit:false,idx:i,k:st.o.length,m:st.m,bet:st.b,mult:1+st.o.length*.3,cash:Math.floor(st.b*(1+st.o.length*.3)),next:Math.floor(st.b*(1.3+st.o.length*.3))},money:r.money,casino:{chips:c.ch,bh:""}})}return ok({game:res,money:r.money,casino:{chips:c.ch,bh:""}})}
+  else if(g=="mn_cash"){const st=c.mn;win=Math.floor(st.b*(1+st.o.length*.3));res={hit:false,cashed:true,mines:st.x,o:st.o,bet:st.b,win,k:st.o.length,m:st.m,mult:1+st.o.length*.3};delete c.mn;c.ch+=win;return ok({game:res,money:r.money,casino:{chips:c.ch,bh:""}})}
+  else if(g=="ch_start"){c.cx={b:b.bet,s:1,v:[0,50,90,120,220].sort(()=>Math.random()-.5)};c.ch-=b.bet;return ok({game:{bet:b.bet,s:1},money:r.money,casino:{chips:c.ch,bh:""}})}
+  else if(g=="ch_pick"){const st=c.cx,p=+b.choice,rv=[0,1,2,3,4].filter(i=>i!=p)[Math.floor(Math.random()*4)];st.s=2;st.p=p;st.r=rv;return ok({game:{bet:st.b,s:2,pick:p,rev:rv,revv:st.v[rv]},money:r.money,casino:{chips:c.ch,bh:""}})}
+  else if(g=="ch_final"){const st=c.cx,f=+b.choice;win=Math.floor(st.b*st.v[f]/100);res={v:st.v,pick:st.p,rev:st.r,fin:f,switched:f!=st.p,mult:st.v[f],win,bet:st.b};delete c.cx;c.ch+=win;return ok({game:res,money:r.money,casino:{chips:c.ch,bh:""}})}
+  else return bad("測試用 mock 只支援 bacc／wheel／dice／slots 與階段 E");
   c.ch+=win-b.bet;return ok({game:res,money:r.money,casino:{chips:c.ch,bh:c.bh||"",cd:null}})}
  if(fn=="town_game2"){const r=R(b.rid);const g=b.game,c=n=>(1+Math.floor(Math.random()*4))*100+1+Math.floor(Math.random()*13);let res;
   if(g=="bacc")res={p:[c(),c()],b:[c(),c()],pt:6,bt:4,win:b.choice=="p"?b.bet*2:0,bet:b.bet,pick:b.choice};

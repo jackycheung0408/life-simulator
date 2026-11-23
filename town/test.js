@@ -174,7 +174,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(town.includes("town_jailed")&&town.includes("when p = 'jail' then '監獄'")&&town.includes("'carshop','jail','hospital','police','townhall')"),"town.sql 要有 town_jailed 與 jail 地點");
  const near=Object.entries(M.PLACES).filter(([k,p])=>k!="jail"&&p.block).filter(([k,p])=>{const [x,y,w,h]=P.r,[a,b,c,d]=p.r;return !(a>=x+w+2||a+c<=x-2||b>=y+h+2||b+d<=y-2)});check(near.length==0,"監獄離其他建築至少要 2 格："+near.map(x=>x[0]))}
 // 走進設施裡面：ROOMS 的地點要存在、物件在 12×4 格內、點物件要對得到面板按鈕；SQL 的 town_fi 白名單要和 ROOMS 一致；fin 只有 items.fi 等於現在的 place 才算
-{const sql=require("fs").readFileSync(__dirname+"/../supabase/town_fi.sql","utf8"),labels=[...Object.values(M.FAC).map(d=>d[0]),"坐下逗留 🪑","起身 🪑","打工：咖啡師 💼","打工：服務生 💼","打工：健身教練 💼","喝咖啡 ☕","吃一頓","健身 🏋️","做牢裡的勞動 💼","放風 ☀️","申請假釋 🪪","越獄 🕳️","付保釋金出去 💰","探望 乙 🤝","替 乙 保釋 💰","掛號看診 🩺","出院 🚪","探病 乙 🤝","繳罰單（9 折）🧾","自首 👮","報案 📜","今日治安 📊","市政廳大廳 🏛️","打工 💼","打工：店員 💼","打工：行政專員 💼","和 乙 一起加班 💼","看電影 🎬","買禮物 🎁","買零食 🍪","🛍️ 造型與擺飾","逛逛","賣生豬肉 1 塊","看盤與買賣 📈","打擂台 🥊","邀請 乙 打一場 🥊","🎫 考機車駕照","🛡️ 保險、維修、賣車","🚲 買腳踏車","🏍️ 買機車","🚗 買汽車","溜進去偷飼料 🔪","小豬賭場 🎰","玩輪盤","玩老虎機","玩百家樂","玩21點","玩骰寶"];
+{const sql=require("fs").readFileSync(__dirname+"/../supabase/town_fi.sql","utf8"),labels=[...Object.values(M.FAC).map(d=>d[0]),"坐下逗留 🪑","起身 🪑","打工：咖啡師 💼","打工：服務生 💼","打工：健身教練 💼","喝咖啡 ☕","吃一頓","健身 🏋️","做牢裡的勞動 💼","放風 ☀️","申請假釋 🪪","越獄 🕳️","付保釋金出去 💰","探望 乙 🤝","替 乙 保釋 💰","掛號看診 🩺","出院 🚪","探病 乙 🤝","繳罰單（9 折）🧾","自首 👮","報案 📜","今日治安 📊","市政廳大廳 🏛️","打工 💼","打工：店員 💼","打工：行政專員 💼","和 乙 一起加班 💼","看電影 🎬","買禮物 🎁","買零食 🍪","🛍️ 造型與擺飾","逛逛","賣生豬肉 1 塊","看盤與買賣 📈","打擂台 🥊","邀請 乙 打一場 🥊","🎫 考機車駕照","🛡️ 保險、維修、賣車","🚲 買腳踏車","🏍️ 買機車","🚗 買汽車","溜進去偷飼料 🔪","小豬賭場 🎰","玩輪盤","玩老虎機","玩百家樂","玩21點","玩骰寶","玩地雷","玩彈珠台","玩飛行器","玩猜杯子","玩刮刮樂","玩開寶箱"];
  check(sql.includes("pl not in ("+Object.keys(M.ROOMS).filter(k=>k!="casino").map(k=>"'"+k+"'").join(",")+")"),"town_fi.sql 的地點白名單要和 ROOMS（扣掉 casino，由 town_casino_fi.sql 補）一致");
  {const cf=require("fs").readFileSync(__dirname+"/../supabase/town_casino_fi.sql","utf8"),pl=Object.keys(M.ROOMS).map(k=>"'"+k+"'").join(","),pls2=Object.keys(M.ROOMS).filter(k=>!["jail","hospital","police","townhall"].includes(k)).map(k=>"'"+k+"'").join(",");
   check(cf.includes("pl not in ("+pl+")"),"town_casino_fi.sql 的 town_fi 白名單要和 ROOMS 完全一致");check(cf.includes("pl not in ("+pls2+")"),"town_casino_fi.sql 的進館地點要含 casino");
@@ -254,6 +254,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
 require("./test_arcade2.js")(M,check);
 require("./test_casino2.js")(M,check);
 require("./test_casino3.js")(M,check);
+require("./test_casino4.js")(M,check);
 {const src=require("fs").readFileSync(__dirname+"/town.js","utf8").split("\n"),ii=src.findIndex(l=>l.startsWith("function init(){")),top=src.slice(0,ii);
  const strip=l=>l.replace(/\/\/.*$/,"").replace(/`(?:[^`\\]|\\.)*`/g,"``").replace(/"(?:[^"\\]|\\.)*"/g,'""').replace(/'(?:[^'\\]|\\.)*'/g,"''");
  const bad=[];top.forEach((l,i)=>{const s=strip(l);for(const n of ["me","$","esc","pxify","toast","pin","R","S"]){const re=new RegExp("(^|[^\\w$.])"+n.replace("$","\\$")+"(?![\\w$:])");if(re.test(s))bad.push(n+"@"+(i+1))}});

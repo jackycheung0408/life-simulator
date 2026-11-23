@@ -719,6 +719,23 @@
    "note": "賭場換回現金手續費 5% → 1.5%（town_casino_state 的 sell 就地改、town_casino_leave 重建）"
   },
   {
+   "file": "town_casino4.sql",
+   "kind": "patch",
+   "needs": [
+    "town_casino3.sql",
+    "town_casino_fi.sql",
+    "town_casino_fee.sql"
+   ],
+   "note": "賭場階段 E：地雷、彈珠台、飛行器、猜杯子、刮刮樂、開寶箱（town_cgame4）；重建 town_casino（多路由與進行中牌局旗標，含進館檢查）與 town_casino_norm，要在 town_casino3／casino_fi 之後"
+  },
+  {
+   "file": "town_casino4_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_casino4.sql"
+   ]
+  },
+  {
    "file": "town_ticket_sus.sql",
    "kind": "patch",
    "needs": [
