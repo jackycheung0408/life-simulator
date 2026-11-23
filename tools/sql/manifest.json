@@ -716,7 +716,19 @@
     "town_casino.sql",
     "town_casino_fi.sql"
    ],
-   "note": "賭場換回現金手續費 5% → 1.5%（town_casino_state 的 sell 就地改、town_casino_leave 重建）"
+   "note": "賭場換回現金手續費 5% → 1.5%（town_casino_state 的 sell 就地改、town_casino_leave 重建）",
+   "superseded_funcs": [
+    "town_casino_leave"
+   ],
+   "superseded_by": "town_casino_fee2.sql"
+  },
+  {
+   "file": "town_casino_fee2.sql",
+   "kind": "patch",
+   "needs": [
+    "town_casino_fee.sql"
+   ],
+   "note": "賭場換回現金手續費 1.5% → 0.5%（town_casino_state 的 sell 就地改、town_casino_leave 重建）；要排在 town_casino_fee.sql 之後"
   },
   {
    "file": "town_casino4.sql",
