@@ -183,7 +183,7 @@
 - **改版面（town.js／index.html 的 CSS、面板、HUD）後必跑**：`cd tools/visual && npm run visual`（首次要 `npm install && npx playwright install chromium`，約 10MB＋150MB，只裝在該資料夾；`node_modules`／`out` 已 gitignore）。pre-push 仍只跑 `node town/test.js`（畫面測試較慢，不強制）。
 - 做法：把 `town/` 複本＋`tools/town-mock.js` 注入 `<head>` 最前面，6 種尺寸（390x844、375x667、430x932、768x1024、1366x768、1920x1080）× 13 種畫面（街上、設施門口、咖啡廳裡、家裡、朋友家門口、朋友面板、打工動畫、動態／選單／更新紀錄／21 點彈窗、睡覺、入獄；情境改 mock 的 sessionStorage 後重載）。
 - 檢查：橫向溢出、按鈕出視窗、手機按鈕 ≥44px、導覽列五顆等寬、訊息不壓 HUD、舞台占比、底部空白、字型 Cubic 11、字級 11／16.5／22、圓角、模糊陰影、漸層、`…` 截字、console／pageerror，並用 pixelmatch 對 `tools/visual/baseline/`（差異 >1.5% 才報）。截圖在 `out/<日期>/`。
-- 旗標：`--update` 更新基準（版面改好、確認截圖沒問題後才更新並 commit）、`--only 情境`、`--size 390x844`、`--head`（用 git HEAD 的 town/ 而非工作目錄）。已知限制：沒模擬 iOS safe-area（桌面 Chromium 的 `env()` 為 0）；21 點情境找不到按鈕時略過。
+- 旗標：`--update` 更新基準（版面改好、確認截圖沒問題後才更新並 commit）、`--only 情境`、`--size 390x844`、`--head`（用 git HEAD 的 town/ 而非工作目錄）。2026-11-23 清理後 192 情境失敗 83→0（含基準圖已更新）：被截字改短標籤（常用列 >5 字用 11px `b.sm`、說明列 ≤ 約 25 字，聊天／應徵（未達標）／看今日片只留名稱）、`#acts .ai` 16.5px；截字檢查現在列出元素與寬度。**之後每輪只用 `--only 情境 --size 尺寸` 重跑失敗項，收尾才跑一次完整。** 已知限制：沒模擬 iOS safe-area（桌面 Chromium 的 `env()` 為 0）；21 點情境找不到按鈕時略過。
 
 ## 建議下一步（CTA）統計
 `town_cta` 表記錄「建議下一步」的顯示與點擊（`town_track`），鎮長面板用 `town_mayor(act='stats')` 看近 7 天各建議的顯示／點擊／點擊率。前端在 `renderPanel` 顯示時記 show、在按鈕點擊時記 click。
