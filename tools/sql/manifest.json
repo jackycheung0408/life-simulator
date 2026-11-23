@@ -351,6 +351,20 @@
    ]
   },
   {
+   "file": "town_faint_fix.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
+   "file": "town_faint_fix_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_faint_fix.sql"
+   ]
+  },
+  {
    "file": "town_fi_test.sql",
    "kind": "test",
    "needs": [
