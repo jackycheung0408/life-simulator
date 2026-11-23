@@ -100,7 +100,7 @@ const CHECK=()=>{
   if(own&&e.scrollWidth>e.clientWidth+1&&cs.overflow!="visible"&&cs.textOverflow=="ellipsis"&&/…|\.\.\./.test(""))cp.add(id)}
  for(const [k,s,l] of [["font",bad,"非 Cubic 11"],["fontsize",fs2,"字級非 11/16.5/22"],["radius",rd,"圓角"],["shadow",sh,"模糊陰影"],["gradient",gr,"漸層"]])if(s.size)add(k,`${l}：${[...s].slice(0,4).join("；")}${s.size>4?` 等 ${s.size} 處`:""}`);
  // 被截成 … 的文字（ellipsis 實際生效）
- const cut=[];for(const e of document.querySelectorAll("#panel *,#acts *,#modal *,.bar *")){if(!vis(e)||e.children.length)continue;const cs=getComputedStyle(e);if(cs.textOverflow=="ellipsis"&&e.scrollWidth>e.clientWidth+1)cut.push((e.textContent||"").trim().slice(0,14))}
+ const cut=[];for(const e of document.querySelectorAll("#panel *,#acts *,#modal *,.bar *")){if(!vis(e)||e.children.length)continue;const cs=getComputedStyle(e);if(cs.textOverflow=="ellipsis"&&e.scrollWidth>e.clientWidth+1)cut.push((e.textContent||"").trim().slice(0,14)+"["+e.tagName+"."+(e.className||"")+"@"+(e.closest("#acts,#mainrow,#note,#modal,.bar")||{id:"?"}).id+" "+e.scrollWidth+">"+e.clientWidth+"]")}
  if(cut.length)add("truncated",`文字被截成…：${[...new Set(cut)].slice(0,5).join("、")}${cut.length>5?` 等 ${cut.length} 處`:""}`);
  return out;
 };
