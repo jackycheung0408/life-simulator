@@ -610,13 +610,6 @@
    ]
   },
   {
-   "file": "town_confiscate_car_1118.sql",
-   "kind": "once",
-   "needs": [
-    "town.sql"
-   ]
-  },
-  {
    "file": "town_grant_3150_1118.sql",
    "kind": "once",
    "needs": [
