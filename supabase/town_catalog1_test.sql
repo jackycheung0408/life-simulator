@@ -5,9 +5,9 @@ declare t text := 'ZZCAT1'; a bigint; b bigint; rep text := ''; j json; r public
 begin
   insert into public.town_towns(id, name, invite) values (t, '目錄測試鎮', 'ZZCAT1');
   insert into public.town_residents(town_id, name, slot, pin_hash, money, hunger, energy, bladder, hygiene, fun, place, x, y, items)
-    values (t, '甲', 0, extensions.crypt('x', extensions.gen_salt('bf')), 5000, 50, 50, 50, 50, 50, 'market', 28, 14, '{}'::jsonb) returning id into a;
+    values (t, '甲', 0, extensions.crypt('x', extensions.gen_salt('bf')), 5000, 50, 50, 50, 50, 50, 'market', 28, 14, '{"fi":"market"}'::jsonb) returning id into a;
   insert into public.town_residents(town_id, name, slot, pin_hash, money, hunger, energy, bladder, hygiene, fun, place, x, y, items)
-    values (t, '乙', 1, extensions.crypt('x', extensions.gen_salt('bf')), 100, 50, 50, 50, 50, 50, 'market', 28, 14, '{}'::jsonb) returning id into b;
+    values (t, '乙', 1, extensions.crypt('x', extensions.gen_salt('bf')), 100, 50, 50, 50, 50, 50, 'market', 28, 14, '{"fi":"market"}'::jsonb) returning id into b;
   rep := rep || '目錄項數 = ' || jsonb_array_length(public.town_catalog()) || '（期望 24 列：19 項常駐＋5 項季節限定）' || E'\n';
   sale := public.town_cat_sale('market', to_char(now() at time zone 'Asia/Taipei','YYYY-MM-DD'));
   rep := rep || '今日特價 = ' || sale || E'\n';

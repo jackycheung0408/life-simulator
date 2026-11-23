@@ -110,6 +110,7 @@ begin
 
   have := coalesce((inv->>item)::int, 0);
   if have < 1 then raise exception '背包裡沒有%', c->>'nm'; end if;
+  if sp = 'bat' then raise exception '電池要放進掌上遊戲機，不能單獨用'; end if;
   if sp = 'umb' then raise exception '雨傘不用手動用，下大雨會自動撐開'; end if;
 
   if op = 'gift' then
