@@ -432,7 +432,9 @@ def cmd_apply(a):
     print("\n將套用到正式站 %s（%s）" % (REF, be.name))
     if any(idx[f]["kind"] == "once" for f in files):
         print(c(YEL, "含「一次性」檔：已套用過就不要再套。"))
-    if not confirm("APPLY", "輸入 APPLY 繼續（其他任何字取消）："):
+    if getattr(a, "yes", False):
+        print(c(YEL, "--yes：略過 APPLY 輸入（只在使用者已於對話按核准按鈕時由 Claude 加上；含破壞性語句仍要手動輸入 DESTRUCTIVE）"))
+    elif not confirm("APPLY", "輸入 APPLY 繼續（其他任何字取消）："):
         print("已取消")
         return 1
     if dest_all and not confirm("DESTRUCTIVE", "含破壞性語句，再輸入 DESTRUCTIVE："):
@@ -581,7 +583,7 @@ def main(argv=None):
     sp = p.add_subparsers(dest="cmd", required=True)
     s = sp.add_parser("plan"); s.add_argument("--all", action="store_true"); s.set_defaults(f=cmd_plan)
     s = sp.add_parser("check"); s.add_argument("files", nargs="+"); s.set_defaults(f=cmd_check)
-    s = sp.add_parser("apply"); s.add_argument("files", nargs="+"); s.add_argument("--test"); s.add_argument("--prod", action="store_true"); s.set_defaults(f=cmd_apply)
+    s = sp.add_parser("apply"); s.add_argument("files", nargs="+"); s.add_argument("--test"); s.add_argument("--prod", action="store_true"); s.add_argument("--yes", action="store_true"); s.set_defaults(f=cmd_apply)
     s = sp.add_parser("query"); s.add_argument("sql"); s.set_defaults(f=cmd_query)
     s = sp.add_parser("drift"); s.set_defaults(f=cmd_drift)
     s = sp.add_parser("setup"); s.set_defaults(f=lambda a: print(SETUP) or 0)
