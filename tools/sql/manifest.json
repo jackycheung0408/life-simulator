@@ -878,6 +878,25 @@
    "needs": [
     "town_meet.sql"
    ]
+  },
+  {
+   "file": "town_shops1.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_fi.sql",
+    "town_infac.sql",
+    "town_casino_fi.sql",
+    "town_econ_sink.sql"
+   ],
+   "note": "購買一律在設施（第一批）：不動產公司、碼頭船行、旗標 shops_in"
+  },
+  {
+   "file": "town_shops1_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_shops1.sql"
+   ]
   }
  ]
 }
