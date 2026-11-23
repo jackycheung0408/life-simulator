@@ -685,6 +685,21 @@
    ]
   },
   {
+   "file": "town_casino3.sql",
+   "kind": "patch",
+   "needs": [
+    "town_casino2.sql"
+   ],
+   "note": "賭場階段 D：三公、十八啦、賽豬、牌九（town_cgame3）；重建 town_casino（多四款路由，其餘同 town_casino.sql）與 town_casino_norm，要在 town_casino.sql／town_casino2.sql／其他改動 town_casino 的檔之後"
+  },
+  {
+   "file": "town_casino3_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_casino3.sql"
+   ]
+  },
+  {
    "file": "town_ticket_sus.sql",
    "kind": "patch",
    "needs": [
