@@ -703,7 +703,7 @@
 - 前端：選單「小鎮經濟」（`econBtn` 由 JS 動態插在 `powBtn` 後，因 index.html 已近 45KB 上限）→ `econModal`。奢侈品面板價格仍是固定文字，`kp` ≠ 1 時實際價以伺服器為準（錯誤訊息會寫要多少）。
 - 套用：`python3 tools/sql/sql.py apply town_econ.sql town_econ_sink.sql --test town_econ_test.sql --prod`（先 dry-run），實測檔各自貼 SQL Editor 或用 `--test`。
 
-## 揪團（2026-11-23；SQL `supabase/town_meet.sql` **尚未套用正式站**，實測 `town_meet_test.sql`（回滾，REPORT），要在 `town.sql` 之後；不改 `town_act`）
+## 揪團（2026-11-23；SQL `supabase/town_meet.sql` **已套用正式站 2026-11-23（回滾實測：只有 1 人到＝流團、成團 fun +10／精力 +3／錢不變／稱號「揪團新手」／好感甲乙 +1 甲丙 0、未到場者無獎勵、每天獎勵 3 次後不再加心情、第 6 團被擋、非發起人取消被擋；驗證／人數上限那幾項因測試腳本變數被覆寫沒出現在 REPORT，未直接驗到）**，實測 `town_meet_test.sql`（回滾，REPORT），要在 `town.sql` 之後；不改 `town_act`）
 - 表 `town_meets`（RLS 全關）、RPC `town_meet(rid,pin,op,id,k,num,note)`：`list／create／join／leave／cancel／claim`。create 的 `num` = 分鐘數×1000＋人數上限（例 30006）。類型→集合地點：meal 餐廳、cafe 咖啡廳、movie 電影院、gym 健身房、pk 格鬥場、casino 賭場、free 廣場。
 - 限制：時間 10／30／60／120 分、人數 2～8、備註 ≤20 字且禁網址（伺服端 regex）；同時發起 1 團、同時參加 ≤3 團、每天發起 ≤5 團；集合時間前才能報名／退出／取消。
 - 出席：集合時間起 15 分鐘內，報名且 `place` 相符才記（`claim`，每次 `town_meet` 呼叫都順帶補記，前端每 60 秒 `meetPoll`）。結算惰性（`town_meet_settle`，任何呼叫都補算）：出席 ≥2 成團，每位心情 +10、精力 +3、對彼此好感 +1（`town_bond`）、`items.mt={n,last,d,dn}`、每人每天前 3 次有效果；稱號 出席 1／10／25 次＝揪團新手／人氣王／團長；不給錢。否則流團寫動態。事件 kind `meet`（新團含「揪了」，通知中心「要回應」1 小時內顯示）。
