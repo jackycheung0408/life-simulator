@@ -778,15 +778,20 @@
 - **壓測**：`supabase/town_stress_test.sql`（108 人回滾實測，貼 SQL Editor）、`node tools/stress/stress.mjs`（負載模型）；`town_state` 瘦身設計見 `docs/town-state-slimming.md`（尚未改）。每鎮上限 12 人。
 - **錯誤紀錄**：`supabase/town_errlog.sql`（表、限速每 ua 每分鐘 3 筆、截 300 字、遮 Email／網址參數、2% 機率清 7 天前；`town_errlog_view` 鎮長用）；前端 `ERR`（town.js，不走 `rpc()`）、鎮長面板「錯誤紀錄」。實測 `town_errlog_test.sql`。
 
-## 新手引導與 PWA（2026-11-24，前端 v362；SQL `supabase/town_onboard.sql` **尚未套用正式站**，實測 `town_onboard_test.sql`）
+## 新手引導與 PWA（2026-11-24，前端 v362；SQL `supabase/town_onboard.sql` **已套用正式站 2026-11-24**，實測 `town_onboard_test.sql`）
 - 全新角色（`enter()` 的 `fresh`）第一次進遊戲：`obIntro` 4 格開場 → 個性 → 願望 → 能力 → 提示 → 底部任務條 `#obbar`（`obTick` 每 2.5 秒；5 步：超市買零食／咖啡廳／打工／點一位鄰居／回家睡，按鈕加 `.obhl` 高亮）。進度 `localStorage town-ob_<id>`={d:[已完成步],sk,fin}；選單「新手引導」重看。獎勵 RPC `town_onboard(rid,pin,step)` 每步一次共 $1300（`items.ob.s`）；SQL 沒套用時只 toast 不給錢。舊角色不觸發。
 - PWA：`pwa.js`（town.js 結尾延後載入，改了要把那行 `pwa.js?v=` 加 1）：iOS Safari 非 standalone 顯示三步橫幅、Android `beforeinstallprompt` 安裝鈕、可永久關閉（`town-pwa-x`）、standalone 時 `storage.persist()`。`sw.js` 快取名 v7：`offline.html` 像素離線頁、CDN 字型快取優先。manifest 加 id／shortcuts。
 - 套用：`python3 tools/sql/sql.py apply town_onboard.sql --test town_onboard_test.sql --prod`
 
-## 長期目標批 1：成就系統（2026-11-24，前端 v365；SQL `supabase/town_goal.sql` **尚未套用正式站**，實測 `town_goal_test.sql`（回滾，REPORT），在 `town.sql`、`town_fac.sql`、`town_casino4.sql` 之後；設計稿見 side-session-notes `long-goals-design.md`）
+## 長期目標批 1：成就系統（2026-11-24，前端 v365；SQL `supabase/town_goal.sql` **已套用正式站 2026-11-24（成就已上線）**，實測 `town_goal_test.sql`（回滾，REPORT），在 `town.sql`、`town_fac.sql`、`town_casino4.sql` 之後；設計稿見 side-session-notes `long-goals-design.md`）
 - 使用者決策：主線不給錢；賽季造型只限當季；賽季賭神榜要（只算淨贏、每日上限）；四批獨立上線（成就→圖鑑→賽季→主線）。本批只做成就與共用掛鉤。
 - **計數器放獨立表**（不放 `items.ach`，避免和動作函式整列回寫互蓋）：`town_ach_c(rid,k,n)`、`town_ach_u(rid,u,k,nw)`（解鎖階數、已領階數、待 toast）。來源三條：① `town_events` AFTER INSERT 觸發器 `town_goal_ev`（kind／msg 對應，整段 exception 吞掉，不影響遊戲）；② `town_goal_hook(r,'act'|'fac',act)` 補丁在 `town_act`／`town_fac` 的 `town_ecap` 後（睡覺、洗澡、坐下、凌晨上線每日一次）；③ `town_goal_casino` 補丁在 `town_casino` 的 `v_delta := ...` 後（局數、款式、單次拿回 ≥5000／10 萬、累計下注）。**圖鑑、賽季、主線之後也從 `town_goal_hook` 進，不用再碰 town_act。** 就地補丁找不到錨點整檔失敗、已補過略過；重套 `town.sql`／`town_fac.sql`／`town_casino*.sql` 後要再套本檔。
 - 80 個成就全在 `town_ach_def()`（六類 16／14／12／14／12／12，共 190 階；src：`c:` 計數器、`i:` items 路徑、`@` 特殊讀取）。**與設計稿的差異**：需要新計數器但難掛的（旅人／商人／委託次數、地點、NPC、股票買賣次數、拍賣、賭場連勝類）改成讀取層或次數型（例：股票大戶＝持股數、出手闊綽＝累計下注、贏面＝拿回大於 0 的次數）；「圖鑑 50／80／100%」改成「成就新手／達人／大師」（成就階數 30／80／150）。**造型獎勵批 1 不發**（留待圖鑑批）。
 - RPC `town_ach(rid,pin,op,id)`：`view`（算新解鎖、回清單與 new）／`claim`（鎖列領下一階：多階 銅＝零食 1 包、銀＝稱號「名稱・銀」、金＝稱號「名稱・金」；單階＝稱號＋零食，背包滿只給稱號）／`seen`。不給錢、能力、精力；計數上限 9999（下注累計 100 億）。老玩家讀取層成就上線即解鎖，前端只彈一則合併 toast；賭場等計數器從 0 開始。
 - 前端：選單「🏆 成就」→ `achModal`（六分頁、徽章方塊、進度條、領取鈕）、`achPoll` 每 60 秒＋進遊戲 7 秒後（SQL 沒套用時偵測 404 就停）；`UT.hit("ach:*")`；mock 有 `town_ach`；視覺情境 `modal-ach`。`node town/test.js` 檢查 80 個／六類數量／門檻遞增／名稱不重複／計數器有來源／觸發器 exception／RPC 不碰錢與能力／錨點／前端／manifest。
 - 套用：`python3 tools/sql/sql.py apply town_goal.sql --test town_goal_test.sql --prod`（含 trigger 與就地補丁，先 dry-run）。
+
+## 成就數字修復（2026-11-24；SQL `supabase/town_fix_numbers.sql`＋實測 `town_fix_numbers_test.sql`，**尚未套用正式站**，在 `town_goal.sql`、`town_bj2.sql` 之後；前端 v369 已上線）
+- 打工達人＝`works`＋`items.jw` 加總、升官＝公司與各工作職階取最高；賭場「贏」改單局淨贏（多步驟遊戲用 ach_c `cacc` 記押注，結算判定），出手闊綽＝累計下注 `cwag`；`town_goal_casino` 改 5 參數；faint 只計「倒下了」、hospital 只計看診、luck 排除補助／登入禮等、jail 加「抓回監獄」（越獄失敗、刑期滿不計）；事件規則集中在 `town_goal_ev_k`（觸發器與回填共用）；能力者 20／28／36、單項專精 6／7／8、全能 3／5／8。
+- 一次性回填 `town_goal_backfill()`（`town_migrations` `ach_backfill1`）：事件型與賭場局數／款式／累計下注整批重算，睡覺／洗澡／坐下／夜貓與單局淨贏類無歷史、從 0 起算；不給獎。**重套 `town_goal.sql`／`town.sql`／`town_casino*.sql` 後要再套本檔。**
+- 前端：小鎮頁首富含籌碼、「最勤勞（7天）」、榜單視窗「打工（累計）」；錯誤紀錄濾 ResizeObserver；使用統計 `ui:act／ui:tab` 去掉職階名稱。
