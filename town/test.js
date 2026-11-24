@@ -422,13 +422,15 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
 }
 console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
 // 鎮長管理權（supabase/town_powers.sql）：登錄表前後端一致、每個權力都有 SQL 分支、安全閥數值、測試與 UI 掛得上
-{const fs=require("fs"),sql=fs.readFileSync(__dirname+"/../supabase/town_powers.sql","utf8"),tsql=fs.readFileSync(__dirname+"/../supabase/town_powers_test.sql","utf8"),tjs=fs.readFileSync(__dirname+"/town.js","utf8"),html=fs.readFileSync(__dirname+"/index.html","utf8");
+{const fs=require("fs"),sql1=fs.readFileSync(__dirname+"/../supabase/town_powers.sql","utf8"),sql2=fs.readFileSync(__dirname+"/../supabase/town_powers2.sql","utf8"),sql=sql1,sqlAll=sql1+"\n"+sql2,tsql=fs.readFileSync(__dirname+"/../supabase/town_powers_test.sql","utf8")+fs.readFileSync(__dirname+"/../supabase/town_powers2_test.sql","utf8"),tjs=fs.readFileSync(__dirname+"/town.js","utf8"),html=fs.readFileSync(__dirname+"/index.html","utf8");
  check(M.PWORD.length==Object.keys(M.POWERS).length&&M.PWORD.every(k=>M.POWERS[k]),"PWORD 與 POWERS 要一致");
- for(const k of M.PWORD){const P=M.POWERS[k],m=sql.match(new RegExp("when '"+k+"'\\s+then array\\[([^\\]]+)\\]"));
+ for(const k of M.PWORD){const P=M.POWERS[k],m=sqlAll.match(new RegExp("when '"+k+"'\\s+then array\\[([^\\]]+)\\]"));
   check(!!m,"權力 "+k+" 要在 town_pw_def 有一列");if(!m)continue;const a=m[1].split(",").map(Number);
   check(a.length==11&&a.join()==P.def.join(),"權力 "+k+" 的登錄表前後端不一致："+a.join()+" ／ "+P.def.join());
-  check(sql.includes("when '"+k+"' then '"+P.n+"'"),"權力 "+k+" 的名稱要和 town_pw_name 一致："+P.n);
+  check(sqlAll.includes("when '"+k+"' then '"+P.n+"'"),"權力 "+k+" 的名稱要和 town_pw_name 一致："+P.n);
   if(P.def[9]){check(!!P.go,"在別處行使的權力 "+k+" 要有 go（civic／mayor）")}
+  else if(["event","appoint","payout"].includes(k)){const d2=sql2.slice(sql2.indexOf("function public.town_pw2_do"),sql2.indexOf("function public.town_pw2_resign"));check(new RegExp("(if|elsif) pk = '"+k+"' then").test(d2)&&sql2.includes("elsif pk in ('event', 'appoint', 'payout') then"),"權力 "+k+" 要有 town_pw2_do 的執行分支與 town_pw_do 的轉接");
+   check(tsql.includes("'"+k+"'"),"權力 "+k+" 要有實測")}
   else{check(new RegExp("(if|elsif) pk = '"+k+"' then\\s*\\n\\s*(t := public.town_tick|t := public.town_tick|paid|update public|if )").test(sql.slice(sql.indexOf("function public.town_pw_do")))||sql.slice(sql.indexOf("function public.town_pw_do"),sql.indexOf("function public.town_pw_undo")).includes("pk = '"+k+"' then"),"權力 "+k+" 要有 town_pw_do 的執行分支");
    check(tsql.includes("'"+k+"'"),"權力 "+k+" 要有實測")}}
  // 安全閥數值
@@ -442,6 +444,13 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(html.includes('id="powBtn"')&&tjs.includes('$("powBtn").onclick')&&tjs.includes("function checkPwn()")&&tjs.includes("checkWoken();checkPwn()")&&tjs.includes('mayor:"🏛️"'),"選單按鈕、被行使通知 checkPwn、動態圖示要掛上");
  check(tjs.includes('rpc("town_power"')&&tjs.includes("function powersModal()")==false||tjs.includes("async function powersModal()"),"powersModal 要在");
  check(M.UPDATES.some(u=>u.id=="u44-powers"),"UPDATES 要有鎮長管理權一則");
+ // 第二批（town_powers2.sql）：全鎮活動、任命官員、全民紅包、搬設施
+ for(const s of ["interval '30 minutes'","least(5, greatest(1,","floor(v_fund * num / 100.0 / v_act)","least(2000,","警長一次最多關 60 分鐘","財務官一次最多發 €1500","interval '3 days'","v->>'k' = 'payout' then yn >= 2","'ap', (d[9] = 1 or via = 'treasurer')","動用基金超過 10%% 要交居民投票","town_pw2_officer(r.town_id, rid, pk, num)","'fireworks'","fund = fund - v_c where id = tid and fund >= v_c","fund = fund - v_tot where id = tid and fund >= v_tot"])check(sql2.includes(s),"town_powers2.sql 缺安全閥："+s);
+ check(!/town_econ/.test(sql2.replace(/--[^\n]*/g,"")),"全民紅包不能動 town_econ（補差金）");
+ check(!/fund_add/.test(sql2.replace(/--[^\n]*/g,"")),"第二批全花鎮基金，不新增進基金的路徑");
+ check(M.POWERS.event.def[1]==1&&M.POWERS.event.def[2]==3&&M.POWERS.event.def[3]==2&&M.POWERS.event.def[5]==120&&M.POWERS.payout.def[0]==2&&M.POWERS.payout.def[2]==20&&M.POWERS.payout.def[3]==1&&M.POWERS.payout.def[5]==4320&&M.POWERS.relocate.def[9]==1,"全鎮活動每天 2 次／冷卻 120 分；紅包 5～20% mode 2、3 天一次");
+ check(M.UPDATES.some(u=>u.id=="mayor2-1124"),"UPDATES 要有鎮長新權力一則");
+ check(tjs.includes('fireworks:["煙火夜"'),"前端 WEV 要有煙火夜");
  // 頂層函式不可用 init() 裡的變數（powersModal 在 init 裡？確認放在 init 之後可存取 me／pin／R）
  check(tjs.indexOf("async function powersModal")>tjs.indexOf("function init(){"),"powersModal 要在 init() 裡面（才拿得到 me／pin／R）")}
 // 事件池（supabase/town_pool.sql）：三池大小、格式、錢期望、前端改用伺服器回傳文字

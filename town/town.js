@@ -226,9 +226,13 @@ const POWERS={
  announce:{n:"公告",d:"在市政廳公告欄貼公告，最多 3 則",def:[0,0,0,0,0,0,0,0,0,1,0],go:"civic"},
  build:{n:"建設案",d:"提出建設案，花鎮基金，居民投票通過才蓋",def:[1,0,0,0,0,0,0,1,0,1,1],go:"civic"},
  feat:{n:"設施開關",d:"在鎮長管理裡開關設施",def:[0,0,0,0,0,0,0,0,0,1,0],go:"mayor"},
- impeach:{n:"彈劾鎮長",d:"任何居民都能提名一位鎮民接任，投票 24 小時，要多於全鎮一半、至少 3 票才換人；3 天內只能發起一次",def:[1,0,0,1,1,4320,1,0,0,0,1]}
+ impeach:{n:"彈劾鎮長",d:"任何居民都能提名一位鎮民接任，投票 24 小時，要多於全鎮一半、至少 3 票才換人；3 天內只能發起一次",def:[1,0,0,1,1,4320,1,0,0,0,1]},
+ event:{n:"全鎮活動",d:"花鎮基金發動市集日、慶典或煙火夜；同時只能一個，每天 2 次",def:[0,1,3,2,0,120,0,1,0,0,0],lbl:n=>["發動市集日","發動慶典","發動煙火夜"][n-1]},
+ appoint:{n:"任命官員",d:"任命警長（每天替你關 1 次人）或財務官（每天發 1 筆補助），任期 3 天，隨時可免職",def:[0,1,4,6,0,0,1,0,0,0,0],lbl:n=>["任命警長","任命財務官","免去警長","免去財務官"][n-1]},
+ payout:{n:"全民紅包",d:"鎮基金 5～20% 平分給近 3 天上線的居民，每人最多 $2000；超過 10% 要居民投票",def:[2,5,20,1,0,4320,0,1,0,0,0]},
+ relocate:{n:"搬設施",d:"到不動產公司申請搬設施，花鎮基金，預告 24 小時",def:[0,0,0,0,0,0,0,0,0,1,0],go:"move"}
 };
-const PWORD=["jail","free","fine","grant","announce","build","feat","impeach"];
+const PWORD=["jail","free","fine","grant","event","appoint","payout","announce","build","feat","relocate","impeach"];
 const HOURS={}; // 營業時間已取消，全天營業
 // 監獄與砍人（和 supabase/town_jail.sql 一致）：勞動 [收入, 精力, 心情, 縮短刑期分鐘]；保釋金 = max(300, 剩餘分鐘 ×10)；砍人 對方精力 −35 心情 −20、自己精力 −10 心情 −8、被抓 45%（倒地 80%）關 1～3 小時
 let nowFn=()=>Date.now();// 頂層函式用的時鐘；init() 裡的 now() 建好後會指到它（含和伺服器的時差）
@@ -381,6 +385,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"mayor2-1124",date:"11/24",title:"鎮長新權力",items:["發動市集日、煙火夜","任命警長與財務官","全民紅包平分基金"]},
   {id:"nogap-1124",date:"11/24",title:"下注不用等",items:["賭場每局不用再等 3 秒"]},
   {id:"move-1124",date:"11/24",title:"設施搬家",items:["鎮長到不動產公司申請搬遷","咖啡廳等 5 棟可搬到東區","預告 24 小時，花鎮基金"]},
   {id:"expand-1124",date:"11/24",title:"小鎮東邊變大",items:["東邊多一大片空地","路線和走路都照舊"]},
@@ -1963,15 +1968,20 @@ async function civicModal(){$("modal").classList.remove("hide");$("mbody").inner
 // ── 鎮長管理權：所有權力一個視窗（登錄表 POWERS，SQL town_power）。所有居民都看得到紀錄與投票；鎮長才能行使 ──
 let PWS=null;
 const pwTime=at=>{const m=Math.max(0,Math.round((now()-Date.parse(at))/6e4));return m<1?"剛剛":m<60?`${m} 分鐘前`:m<1440?`${Math.round(m/60)} 小時前`:`${Math.round(m/1440)} 天前`};
-const pwLine=e=>{const n=POWERS[e.k]?POWERS[e.k].n:e.k,u=POWERS[e.k]&&POWERS[e.k].unit,tn=e.tn?esc(e.tn):"";
- return `${esc(e.bn)} ${n}${tn?" "+tn:""}${e.n&&u?`（${u=="$"?CUR+e.n:e.n+" 分鐘"}）`:""}${e.via=="vote"?"（居民投票）":""}`};
+const pwLine=e=>{const P=POWERS[e.k],n=P?(P.lbl&&e.n?P.lbl(e.n):P.n):e.k,u=P&&P.unit,tn=e.tn?esc(e.tn):"";
+ return `${esc(e.bn)}${e.via=="sheriff"?"（警長）":e.via=="treasurer"?"（財務官）":""} ${n}${tn?" "+tn:""}${e.k=="payout"&&e.n?`（每人 ${CUR}${e.n}）`:e.n&&u?`（${u=="$"?CUR+e.n:e.n+" 分鐘"}）`:""}${e.via=="vote"?"（居民投票）":""}`};
 // 這個權力現在能不能用；回傳不能的原因（空字串 = 可以）
-function pwWhy(k,st){const P=POWERS[k],d=P.def,r=R[me],td=(st.today||[]).filter(x=>x.k==k).length,last=(st.last||{})[k];
+const pwOfc=(k,st)=>{const m=(st.p2||{}).me;return (k=="jail"&&m=="sheriff")||(k=="grant"&&m=="treasurer")?m:""};// 現任官員能代鎮長用的權力
+function pwWhy(k,st){const P=POWERS[k],d=P.def,r=R[me],p2=st.p2||{},td=(st.today||[]).filter(x=>x.k==k).length,last=(st.last||{})[k],ofc=pwOfc(k,st);
+ if(k=="relocate")return !r.mayor?"只有鎮長能用":!isOn("relocate")?"鎮長關閉了設施搬遷":"";
  if(P.go)return "";
  if((st.off||[]).includes(k)&&!d[10])return "鎮長把它關掉了";
- if(d[0]!=1&&!r.mayor)return "只有鎮長能用";
+ if(d[0]!=1&&!r.mayor&&!ofc)return "只有鎮長能用";
  if(k=="impeach"&&r.mayor)return "鎮長不能彈劾自己";
- if(["jail","fine","grant"].includes(k)&&st.nres<3)return "要 3 位以上居民";
+ if(["jail","fine","grant","appoint","payout"].includes(k)&&st.nres<3)return "要 3 位以上居民";
+ if(ofc&&(p2.used||{})[ofc])return "你今天已經用過了（官員每天 1 次）";
+ if(k=="event"){if(p2.newtown)return "小鎮剛成立 30 分鐘內不能用";if(p2.world)return "已有全鎮事件進行中，等結束";if(st.fund<Math.min(...Object.values(p2.cost||{0:0})))return "鎮基金不夠"}
+ if(k=="payout"&&(p2.active||0)<3)return `近 3 天上線的居民要 3 位以上（現在 ${p2.active||0}）`;
  if(k=="free"&&st.nres<2)return "小鎮只有一個人";
  if(jailed(r))return "你被關著";
  if(d[3]&&td>=d[3])return `今天用完了（${d[3]} 次）`;
@@ -1995,10 +2005,22 @@ function pwNum(k,t,st){const P=POWERS[k],d=P.def;
  if(!d[2]){const go=note=>pwCall(k,t.id,null,note);
   return pwRows([`${P.n}：${esc(t.name)}`,k=="impeach"?"提名他接任鎮長，居民投票 24 小時":"確定嗎？",[["確定","",()=>go()],["先不要","",()=>powersModal()]]])}
  const f=n=>P.unit=="$"?CUR+n.toLocaleString():n>=60&&n%60==0?`${n/60} 小時`:`${n} 分鐘`,
-  opts=P.pre.filter(n=>n>=d[1]&&n<=d[2]);
+  ofc=pwOfc(k,st),opts=P.pre.filter(n=>n>=d[1]&&n<=(ofc?(k=="jail"?60:1500):d[2]));
  pwRows([`${P.n}：${esc(t.name)}`,P.unit=="$"?(k=="fine"?"他的錢不夠就罰到 0 為止，進鎮基金；居民可以申訴":`花鎮基金（現在 ${CUR}${(+st.fund).toLocaleString()}）`):"他被關進監獄；居民可以申訴推翻，他也可以保釋、勞動、越獄",
-  opts.map(n=>[f(n),k=="grant"&&n>st.fund?"鎮基金不夠":"",()=>(k=="grant"&&n>st.fund)?toast("鎮基金不夠"):d[0]==2?pwMode(k,t,n):pwCall(k,t.id,n),k=="grant"&&n>st.fund]).concat([["先不要","",()=>powersModal()]])])}
+  opts.map(n=>[f(n),k=="grant"&&n>st.fund?"鎮基金不夠":"",()=>(k=="grant"&&n>st.fund)?toast("鎮基金不夠"):d[0]==2&&R[me].mayor?pwMode(k,t,n):pwCall(k,t.id,n),k=="grant"&&n>st.fund]).concat([["先不要","",()=>powersModal()]])])}
 function pwMode(k,t,n){pwRows([`${POWERS[k].n}：${esc(t.name)} ${CUR}${n}`,"可以直接發，或交給居民投票（24 小時）",[["鎮長直接發","馬上生效",()=>pwCall(k,t.id,n)],["交居民投票","贊成多於反對、至少 3 票、多於全鎮一半才發",()=>pwCall(k,t.id,n,"vote")],["先不要","",()=>powersModal()]]])}
+function pwEvent(st){const p2=st.p2||{},c=p2.cost||{},w0=p2.newtown?"小鎮剛成立，30 分鐘後才能用":p2.world?"已有全鎮事件進行中":"";
+ pwRows(["全鎮活動：花鎮基金發動",`鎮基金 ${CUR}${(+st.fund).toLocaleString()}。費用 = 底價 × 規模（居民 ÷ 5，最少 1 倍），不退；同時只能一個、每天 2 次`,
+  [["市集日","吃喝價 85%，90 分鐘",1],["小鎮慶典","吃喝價 90%、薪水 105%，90 分鐘",2],["煙火夜","在線居民心情 +12（一次），30 分鐘",3]].map(([n,t,i])=>{const w=w0||(st.fund<c[i]?"鎮基金不夠":"");return [`${n} ${CUR}${(c[i]||0).toLocaleString()}`,w||t,()=>w?toast(w):pwCall("event",null,i),w]}).concat([["先不要","",()=>powersModal()]])])}
+function pwAppoint(st){const o=(st.p2||{}).officers||{},nm={sheriff:"警長",treasurer:"財務官"},ex={sheriff:"每天替你關 1 次人（10～60 分鐘）",treasurer:"每天發 1 筆補助（$100～1500）"},rows=[];
+ [["sheriff",1,3],["treasurer",2,4]].forEach(([k,a,f])=>{const c=o[k];
+  rows.push(c?[`免去${nm[k]} ${esc(c.name)}`,`任期還有 ${fmtLeft(Date.parse(c.until)-now())}`,()=>pwCall("appoint",c.id,f)]:[`任命${nm[k]}`,ex[k]+"，任期 3 天",()=>pwOfficerPick(k,a,st)])});
+ pwRows(["任命官員","各 1 人、任期 3 天、可隨時免職；官員的行動公開，居民可以申訴",rows.concat([["先不要","",()=>powersModal()]])])}
+function pwOfficerPick(k,num,st){const o=(st.p2||{}).officers||{},cands=Object.values(R).filter(t=>t.id!=me&&!t.mayor).sort((a,b)=>a.slot-b.slot);
+ pwRows([`任命${k=="sheriff"?"警長":"財務官"}：選一位居民`,"任期 3 天，他可以隨時辭職",cands.map(t=>{const w=Object.entries(o).some(([kk,c])=>kk!=k&&c.id==t.id)?"已經擔任另一個官職":"";return [esc(t.name),w||houseName(t.slot),()=>w?toast(w):pwCall("appoint",t.id,num),w]}).concat([["先不要","",()=>pwAppoint(st)]])])}
+function pwPayout(st){const act=(st.p2||{}).active||0,f=+st.fund||0;
+ pwRows(["全民紅包","鎮基金平分給近 3 天上線的居民（每人最多 $2000），你也只拿一份。10% 以內直接發，超過要居民投票（贊成多於反對、至少 2 票）",
+  [5,10,15,20].map(n=>{const per=act?Math.min(2000,Math.floor(f*n/100/act)):0,vote=n>10,w=act<3?"活躍居民不到 3 位":per<1?"鎮基金太少":"",tot=CUR+(per*act).toLocaleString();return [`基金 ${n}%：每人約 ${CUR}${per.toLocaleString()}`,w||`${act} 人共 ${tot} · ${vote?"交居民投票":"馬上發"}`,()=>w?toast(w):pwCall("payout",null,n,vote?"vote":null),w]}).concat([["先不要","",()=>powersModal()]])])}
 async function pwVote(v){await civAct("town_power",{op:"vote",note:v});powersModal()}
 async function pwAppeal(id){if(!confirm("確定要申訴嗎？居民會投票決定要不要推翻這個決定（12 小時）。"))return;await civAct("town_power",{op:"appeal",note:id});powersModal()}
 async function personaModal(){UT.hit("persona:open");$("modal").classList.remove("hide");const f=pfOf(R[me]),by=f.by||{},bo=(f.bo||[]).slice().reverse(),mt=f.mt||[];
@@ -2120,22 +2142,26 @@ async function econModal(){$("modal").classList.remove("hide");$("mbody").innerH
 async function powersModal(){$("modal").classList.remove("hide");$("mbody").innerHTML='<p class="mut">載入中…</p>';
  let st;try{st=PWS=await rpc("town_power",{rid:me,pin,op:"view"})}catch(e){$("mbody").innerHTML=`<p class="err">${esc(e.message)}</p><div class="row"><button id="mc">關閉</button></div>`;$("mc").onclick=()=>$("modal").classList.add("hide");return}
  const r=R[me],mayor=!!st.mayor,v=st.vote,age=at=>now()-Date.parse(at);
- let vh="";if(v){const left=Math.max(0,Date.parse(v.end)-now()),ap=v.kind=="appeal",what=ap?`申訴：推翻鎮長「${POWERS[v.k]?POWERS[v.k].n:v.k}」${esc(v.tn||"")}`:`${POWERS[v.k]?POWERS[v.k].n:v.k}：${esc(v.tn||"")}${v.num&&POWERS[v.k]&&POWERS[v.k].unit=="$"?" "+CUR+v.num:""}`;
+ let vh="";if(v){const left=Math.max(0,Date.parse(v.end)-now()),ap=v.kind=="appeal",what=ap?`申訴：推翻鎮長「${POWERS[v.k]?POWERS[v.k].n:v.k}」${esc(v.tn||"")}`:`${POWERS[v.k]?POWERS[v.k].n:v.k}：${esc(v.tn||"")}${v.k=="payout"?"基金 "+v.num+"%":v.num&&POWERS[v.k]&&POWERS[v.k].unit=="$"?" "+CUR+v.num:""}`;
   vh=`<h3>投票中</h3><p><b>${what}</b></p><p class="mut">${esc(v.bn)} 發起 · 贊成 ${v.yn} ／ 反對 ${v.nn} · 還有 ${fmtLeft(left)} · ${ap?"贊成多於反對、至少 2 票、多於非鎮長居民的一半才推翻":"贊成多於反對、至少 3 票、多於全鎮一半才通過"}</p>`+
    (v.mine?`<p class="mut">你投了${v.mine=="yes"?"贊成":"反對"}</p>`:ap&&mayor?'<p class="mut">鎮長不能對申訴投票</p>':`<div class="row"><button class="pri" data-pv="yes">${ap?"推翻":"贊成"}</button><button data-pv="no">${ap?"不推翻":"反對"}</button></div>`)}
- const pows=PWORD.map(k=>{const P=POWERS[k],w=pwWhy(k,st),tag=P.def[0]==0?"鎮長下令":P.def[0]==1?"居民投票":"鎮長或投票";
+ const o2=(st.p2||{}).officers||{},ofh=Object.keys(o2).length?`<h3>官員</h3>`+["sheriff","treasurer"].filter(k=>o2[k]).map(k=>`<div class="mrow"><span><b>${k=="sheriff"?"警長":"財務官"}</b> ${esc(o2[k].name)} <small class="mut">任期還有 ${fmtLeft(Date.parse(o2[k].until)-now())}${st.p2.me==k?" · 你":""}</small></span>${st.p2.me==k?`<button data-res="${k}">辭職</button>`:""}</div>`).join(""):"";
+ const pows=PWORD.map(k=>{const P=POWERS[k],w=pwWhy(k,st),ofc=pwOfc(k,st),tag=ofc?(ofc=="sheriff"?"警長代行":"財務官代行"):P.def[0]==0?"鎮長下令":P.def[0]==1?"居民投票":"鎮長或投票";
   return `<button class="act" data-pw="${k}" ${w?`data-dis="${esc(w)}" style="opacity:.45"`:""}><b>${P.n}</b><small>${tag} · ${P.d}${w?`<br>現在不能用：${esc(w)}`:""}</small></button>`}).join("");
  const log=(st.log||[]).map(e=>{const can=!mayor&&e.ap&&!e.undone&&!e.appealed&&age(e.at)<864e5&&!v;
   return `<div class="mrow"><span>${pwLine(e)} <small class="mut">${pwTime(e.at)}${e.undone?" · 已推翻":e.appealed?" · 申訴過":""}</small></span>${can?`<button data-ap="${e.id}">申訴</button>`:""}</div>`}).join("")||'<p class="mut">還沒有人使用過管理權</p>';
  const hist=(st.hist||[]).map(h=>`<p class="mut">· ${esc(h.m)}</p>`).join("");
- $("mbody").innerHTML=`<h2>鎮長管理權</h2><p class="mut">鎮基金 ${CUR}${(+st.fund).toLocaleString()} · 鎮長${mayor?"（你）":""}行使的每件事都會公開寫進動態；覺得不公平的居民可以申訴，投票推翻。鎮長不能對自己行使</p>${vh}<h3>權力</h3>${pows}${mayor?`<h3>開關</h3><p class="mut">鎮長可以關掉關人、放人、罰款、補助（彈劾與建設案關不掉）</p><div class="list">${["jail","free","fine","grant"].map(k=>`<label class="mrow" style="cursor:pointer"><span><b>${POWERS[k].n}</b></span><input type="checkbox" data-po="${k}" ${(st.off||[]).includes(k)?"":"checked"} style="width:22px;height:22px"></label>`).join("")}</div><div class="row" style="justify-content:flex-start"><button class="pri" id="pos">儲存開關</button></div>`:""}<h3>使用紀錄</h3><div class="list">${log}</div>${hist?`<h3>投票結果</h3>${hist}`:""}<div class="row"><button id="mc">關閉</button></div>`;
+ $("mbody").innerHTML=`<h2>鎮長管理權</h2><p class="mut">鎮基金 ${CUR}${(+st.fund).toLocaleString()} · 鎮長${mayor?"（你）":""}行使的每件事都會公開寫進動態；覺得不公平的居民可以申訴，投票推翻。鎮長不能對自己行使</p>${vh}${ofh}<h3>權力</h3>${pows}${mayor?`<h3>開關</h3><p class="mut">鎮長可以關掉關人、放人、罰款、補助（彈劾與建設案關不掉）</p><div class="list">${["jail","free","fine","grant"].map(k=>`<label class="mrow" style="cursor:pointer"><span><b>${POWERS[k].n}</b></span><input type="checkbox" data-po="${k}" ${(st.off||[]).includes(k)?"":"checked"} style="width:22px;height:22px"></label>`).join("")}</div><div class="row" style="justify-content:flex-start"><button class="pri" id="pos">儲存開關</button></div>`:""}<h3>使用紀錄</h3><div class="list">${log}</div>${hist?`<h3>投票結果</h3>${hist}`:""}<div class="row"><button id="mc">關閉</button></div>`;
  pxify($("mbody"));
  $("mc").onclick=()=>$("modal").classList.add("hide");
  $("mbody").querySelectorAll("[data-pv]").forEach(b=>b.onclick=()=>pwVote(b.dataset.pv));
  $("mbody").querySelectorAll("[data-ap]").forEach(b=>b.onclick=()=>pwAppeal(b.dataset.ap));
  $("mbody").querySelectorAll("[data-pw]").forEach(b=>b.onclick=()=>{const k=b.dataset.pw,P=POWERS[k];if(b.dataset.dis)return toast(b.dataset.dis);
   if(P.go=="civic")return civicModal();if(P.go=="mayor")return mayorPanel();
+  if(P.go=="move"){$("modal").classList.add("hide");const rr=R[me];if(rr.place=="realty"&&fin(rr))return moveModal();toast("先到不動產公司，進去再按「設施搬遷」");return walkTo("realty",PLACES.realty.door)}
+  if(k=="event")return pwEvent(st);if(k=="appoint")return pwAppoint(st);if(k=="payout")return pwPayout(st);
   if(P.def[6])return pwPick(k,st);pwCall(k)});
+ $("mbody").querySelectorAll("[data-res]").forEach(b=>b.onclick=async()=>{try{await civAct("town_power",{op:"resign",note:b.dataset.res})}catch(e){}powersModal()});
  const so=$("pos");if(so)so.onclick=async()=>{const off=[...document.querySelectorAll("[data-po]")].filter(c=>!c.checked).map(c=>c.dataset.po);await civAct("town_power",{op:"toggle",note:off.join(",")});powersModal()}}
 // 被行使管理權的人上線時看到說明（items.pwn，SQL 的 town_pw_pwn）
 let pwShown={};
@@ -2796,7 +2822,7 @@ async function zbHit(id){const j=await zbCall("hit",id);if(!j)return;zbSet(j);sp
 async function zbSell(){const j=await zbCall("sell");if(!j)return;toast(j.msg);feedback(true,j.msg);await refresh().catch(()=>{});renderPanel()}
 setInterval(zbPoll,4000);
 // 鎮上隨機事件：全鎮事件橫幅（每 60 秒問一次）與個人突發事件（戶外每 ~3 分鐘）
-const WEV={market:["市集日","吃喝價格 85%"],boom:["景氣好","打工薪水 115%"],bust:["景氣差","打工薪水 90%（首富占比高時最多 −15%）、吃喝價格 110%"],blackout:["停電","打工薪水 95%"],festival:["小鎮慶典","吃喝價格 90%、打工薪水 105%"]};
+const WEV={market:["市集日","吃喝價格 85%"],boom:["景氣好","打工薪水 115%"],bust:["景氣差","打工薪水 90%（首富占比高時最多 −15%）、吃喝價格 110%"],blackout:["停電","打工薪水 95%"],festival:["小鎮慶典","吃喝價格 90%、打工薪水 105%"],fireworks:["煙火夜","鎮長放煙火，在線居民心情 +12"]};
 let wevK=null,wevUntil=0,wevBusy=false;
 let wevHide=null;
 let wevKey="";

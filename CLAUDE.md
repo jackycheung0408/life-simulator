@@ -139,6 +139,13 @@
 - 透明：每次寫 `town_events` kind `mayor`（公開）；前端選單「鎮長管理權」（`powBtn`，所有居民）與鎮長面板的按鈕都開 `powersModal`（權力清單、投票、使用紀錄、申訴）；被行使者上線時 `checkPwn` 彈窗（可直接申訴）；不能用的權力照樣顯示、灰掉並寫原因。`tools/town-mock.js` 有 `town_power` 假回應（簡化版）。
 - 教訓：`town_powers.sql` 裡 plpgsql 變數不要叫 `x`／`y`（和 `town_residents` 的位置欄撞名，已改 `en`）。
 
+## 鎮長管理權第二批（2026-11-24；SQL `supabase/town_powers2.sql` **尚未套用正式站、也沒在 Postgres 跑過**；實測檔 `town_powers2_test.sql`（回滾，REPORT，台灣 00:00～02:05 跑會跨日誤判）；順序在 `town_powers.sql`、`town_world.sql`、`town_move.sql` 之後，重套那幾份後要再套一次）
+- 全用 `pg_get_functiondef` 就地補丁 `town_pw_def／name／check／do／undo／close`、`town_power`、`town_world`（略過標記是只出現在新內容的字串，找不到錨點整檔失敗），新邏輯在 `town_pw2_*`；新增欄位 `town_powers.officers`。登錄 4 列：`event`、`appoint`、`payout`、`relocate`（ext 1，只登記，前端轉到不動產公司搬遷畫面，沿用 FEATS `relocate`）。
+- **全鎮活動 `event`**（num 1 市集日／2 慶典／3 煙火夜）：沿用 `town_worlds`；費用 = 底價（3000／8000／2000）× min(5, max(1, 居民/5))，花鎮基金不退；同時 1 個、進行中不能疊、不能選負面事件；全鎮每天 2 次、冷卻 120 分、新鎮 30 分鐘內不能用；煙火夜 30 分鐘，發動當下 10 分鐘內上線醒著的居民心情 +12（一次，無價格影響），市集日／慶典 90 分鐘。
+- **任命官員 `appoint`**（num 1 任命警長／2 財務官／3 免警長／4 免財務官，免職 tg = 現任）：各 1 人、任期 3 天、居民 ≥3、不能任命自己／鎮長、一人一職、可辭職（`town_power op=resign note=sheriff|treasurer`）；被任命／免職寫 `items.pwn` 通知。警長每天 1 次替鎮長 `jail`（10～60 分鐘），財務官每天 1 次 `grant`（100～1500，只能直接發）；都走原權力的所有安全閥、**計入鎮長的全鎮每日次數**，紀錄 `via` = sheriff／treasurer，動態「警長 X 把 Y 關進監獄」，皆可申訴（財務官補助原本不能申訴，補丁讓 `via=treasurer` 可申訴，`town_pw_undo` 新增 grant 分支：向對方收回到他現有的錢為止，還給基金）。官員資料 `officers={sheriff:{rid,name,until},treasurer:{…}}`，缺值＝沒有；任期過了自動失效。
+- **全民紅包 `payout`**（mode 2，num = 動用基金 5～20%）：活躍居民＝近 3 天上線（`seen_at`）、要 ≥3 人；每人 min(2000, floor(基金×num%÷活躍人數))，鎮長也只拿一份；全鎮每 3 天 1 次（冷卻 4320 分，靠 `town_powers.log` 最近 60 筆，若 3 天內紀錄超過 60 筆被擠掉冷卻會失效，要留意）；**num > 10 一定要居民投票，payout 的投票只要贊成多於反對、至少 2 票**（`town_pw_close` 補丁，其他權力仍 ≥3 票且過半）；每位領到的人一則 `luck` 動態＋一則 `mayor` 動態；不碰 `town_econ.pend`。
+- 前端：`POWERS`／`PWORD` 加 4 個、`pwEvent／pwAppoint／pwOfficerPick／pwPayout`、官員區塊與辭職鈕、官員代行標籤、`pwWhy` 寫原因、`WEV.fireworks`；資料來自 `town_power` 回傳的 `p2`（officers／me／used／world／newtown／cost／active）。視窗內顯示官員，名牌未改。`tools/town-mock.js` 的 `town_power` 補齊；實機畫面測試 `cd tools/visual && node mayor2-verify.mjs`（390x844、375x667，鎮長與警長視角）。
+
 ## 鎮上隨機事件（2026-11-16；SQL **已套用到正式站（2026-11-16，套的是 `d2af599` 版 `town.sql`＋`town_world.sql`，不含之後第二批取消限制／能力屬性）並實測通過**：5 種倍率、每日 10 次上限、錢不為負都對；順序 `town.sql` → `supabase/town_world.sql`，實測 `supabase/town_world_test.sql`（最後 rollback，結果在錯誤訊息 REPORT））
 - **全鎮事件**：每鎮同時 1 個，60～120 分，結束後隔 60～180 分；新鎮 30 分鐘後才有第一個；惰性結算（有人 `town_world` poll 才補算）。5 種：market 市集日（吃喝價 85%）、boom 景氣好（薪水 115%）、bust 景氣差（薪水 90%、價 110%）、blackout 停電（薪水 95%）、festival 慶典（價 90%、薪水 105%）。開始／結束寫公開動態 kind `world`（actor 為 null）。
 - `town.sql`：表 `town_worlds`（RLS 全關）、`town_wd_pct(tid)`（乘在公司／其他打工／加班／cowork 薪水）、`town_px(tid,base)`（餐廳 250、咖啡 90、電影 300 的檢查與扣款）。只套 `town.sql` 也不會壞（沒事件 = 100%）。
