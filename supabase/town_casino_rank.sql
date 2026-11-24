@@ -2,7 +2,7 @@
 -- 不動 town_casino／town_casino_state：賭場本來就把每人每天每遊戲的淨輸贏（籌碼）記在 town_casino_log，直接加總近 7 個台灣日即可，沒有新增累計欄位。
 -- 本檔重建 town_rank（取代 town_rank.sql 的版本）：casino 榜只列淨贏 > 0 的前 10 名、只排本鎮、只回名字造型數值。
 -- town_rank(rid,pin,kind)：kind = rich／streak／works／arcade／casino，或空白回傳全部 5 榜；每榜前 10 名，只排自己的小鎮。
---   rich = 現金 + 賭場籌碼（items.cas.ch）；streak = items.al.s；works = items.works；arcade = items.sp 各單機遊戲最高分加總。
+--   rich = 現金 + 賭場籌碼（items.cas.ch）；streak = items.al.s；works = items.works（公司）＋ items.jw 各種其他工作次數加總（咖啡廳、餐廳、健身房、超市、拉菲）；arcade = items.sp 各單機遊戲最高分加總。
 --   每列 {id,n(名字),look(造型),v(數值)}；casino = town_casino_log 近 7 個台灣日 net 加總（只列 > 0）。
 create or replace function public.town_rank(rid bigint, pin text, kind text default null) returns json
 language plpgsql security definer set search_path = public as $$
@@ -18,7 +18,7 @@ begin
         case k
           when 'rich' then p.money::bigint + coalesce((p.items->'cas'->>'ch')::bigint, 0)
           when 'streak' then coalesce((p.items->'al'->>'s')::bigint, 0)
-          when 'works' then coalesce((p.items->>'works')::bigint, 0)
+          when 'works' then coalesce((p.items->>'works')::bigint, 0) + coalesce((select sum(case when e.value ~ '^[0-9]+$' then e.value::bigint else 0 end) from jsonb_each_text(case when jsonb_typeof(p.items->'jw') = 'object' then p.items->'jw' else '{}'::jsonb end) e), 0)
           when 'casino' then coalesce((select sum(l.net) from public.town_casino_log l where l.rid = p.id and l.day >= to_char((now() at time zone 'Asia/Taipei')::date - 6, 'YYYY-MM-DD')), 0)
           else coalesce((select sum(case when e.value ~ '^[0-9]+$' then e.value::bigint else 0 end) from jsonb_each_text(case when jsonb_typeof(p.items->'sp') = 'object' then p.items->'sp' else '{}'::jsonb end) e), 0)
         end as v
