@@ -176,7 +176,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
   check(fs.existsSync(__dirname+"/../supabase/town_shops1_test.sql"),"要有 town_shops1_test.sql");
   check(sh.includes("("+R.r.join(",")+")")&&sh.includes("("+H.r.join(",")+")"),"layout4 遷移的矩形要和 PLACES 的 realty／harbor 一致");
   for(const k of ["realty","harbor"]){const P=M.PLACES[k];check(P.r[0]+P.r[2]<=M.COLS,k+" 要在地圖內");for(const o in M.PLACES){if(o==k)continue;const q=M.PLACES[o];check(gap(P.r,q.r)>=2||o=="plaza"&&false,k+" 和 "+o+" 要相隔 ≥2 格（"+gap(P.r,q.r)+"）")}check(gap(P.r,D)>=2,k+" 不能貼著碼頭");check(!M.blocked(P.door[0],P.door[1]),k+" 的門要走得到")}
-  {const s2=fs.readFileSync(__dirname+"/../supabase/town_shops2.sql","utf8");check(s2.split("\n").slice(0,9).every(l=>/^--/.test(l)||l.trim()==""),"town_shops2.sql 檔頭每行都要是註解");
+  {const s2=fs.readFileSync(__dirname+"/../supabase/town_shops2.sql","utf8");check(s2.split("\n").slice(0,8).every(l=>/^--/.test(l)||l.trim()==""),"town_shops2.sql 檔頭每行都要是註解");
    check(/furnshop/.test(s2)&&/wearshop/.test(s2)&&/layout5/.test(s2)&&/town_need_in_pl/.test(s2)&&/town_shops_on/.test(s2)&&fs.existsSync(__dirname+"/../supabase/town_shops2_test.sql"),"town_shops2.sql 要涵蓋白名單、進館、旗標、遷移、有實測檔");
    check(s2.includes("("+M.PLACES.furnshop.r.join(",")+")")&&s2.includes("("+M.PLACES.wearshop.r.join(",")+")"),"layout5 遷移矩形要和 PLACES 一致");
    check(/if r\.place = \(case when/.test(s2),"town_shops2.sql 的 if…case 條件要整段包括號");
@@ -508,6 +508,13 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(!ih.includes("cAcct")&&js.includes("RECOVERY_ON")&&/window\.RECOVERY_ON\?'<div class="row" style="justify-content:flex-start"><button id="fgt">/.test(js),"忘記密碼入口要受 RECOVERY_ON 控制，首頁不放帳密入口");
  check(js.includes("data-pw")&&js.includes('op:"reset"')&&js.includes("acctForce"),"鎮長面板重設密碼與強制設密碼要在");
  check(fs.existsSync(__dirname+"/../supabase/town_account_test.sql"),"要有 town_account_test.sql")}
+{const fs=require("fs"),sql=fs.readFileSync(__dirname+"/../supabase/town_errlog.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8");
+ check(sql.split("\n").slice(0,8).every(l=>/^--/.test(l)||l.trim()==""),"town_errlog.sql 檔頭每行都要是註解");
+ check(/enable row level security/.test(sql)&&/from public, anon, authenticated/.test(sql),"town_errlog 表要開 RLS 並收回權限");
+ check(/c > 3 then return/.test(sql)&&/left\(/.test(sql),"town_errlog 要限速每分鐘 3 筆並截長");
+ check(/const ERR=\(\(\)=>/.test(js)&&/unhandledrejection/.test(js)&&/town_errlog_view/.test(js),"town.js 要有 ERR 回報與鎮長錯誤紀錄");
+ check(!/rpc\("town_errlog"/.test(js),"錯誤回報不可走 rpc()（避免失敗時無限迴圈）");
+ const cp=require("child_process").spawnSync("node",[__dirname+"/../tools/backup/verify-tables.mjs"],{encoding:"utf8"});check(cp.status===0,"備份清單與 supabase/*.sql 不一致：\n"+cp.stdout)}
 {const fs=require("fs");const sd=__dirname+"/../supabase/",mf=JSON.parse(fs.readFileSync(__dirname+"/../tools/sql/manifest.json","utf8")),inM=new Set(mf.files.map(e=>e.file));
  mf.files.forEach(e=>check(fs.existsSync(sd+e.file),"manifest 的 "+e.file+" 不存在（tools/sql/manifest.json）"));
  fs.readdirSync(sd).filter(f=>f.endsWith(".sql")).forEach(f=>check(inM.has(f)||(mf.ignore||[]).includes(f),"supabase/"+f+" 要加進 tools/sql/manifest.json（files 或 ignore）"))}

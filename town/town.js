@@ -127,7 +127,13 @@ const UT=(()=>{const W=typeof window!=="undefined"?window:{},Q=new Map(),SEEN=ne
  const q=W.UTQ;W.UTQ={push:once};if(Array.isArray(q))q.forEach(once);
  return{hit,once,start,send,clean,btitle,names:a=>{NM.length=0;NM.push(...a)}}})();
 let rpcHook=null,LOGIN_DEAD=0;const LOSTMSG="這台裝置的登入失效了";const rpc=(fn,body={})=>{if(LOGIN_DEAD&&body&&body.pin&&fn!="town_device")return Promise.reject(new Error(LOSTMSG+"，請重新登入"));if(rpcHook)try{rpcHook(fn,body)}catch(e){}return rpcF(fn,body).catch(()=>{UT.hit("err:rpc:"+fn);throw new Error("連不上小鎮，檢查網路後再按一次")})
- .then(async r=>{const j=await r.json().catch(()=>null);if(!r.ok){const m=(j&&j.message)||"小鎮暫時沒回應，過一下再按一次";if(m.indexOf(LOSTMSG)>=0&&body&&body.pin&&window.__lost)window.__lost();throw new Error(m)}if(j&&j.error){if(j.error.indexOf(LOSTMSG)>=0&&body&&body.pin&&window.__lost)window.__lost();throw new Error(j.error)}return j})};
+ .then(async r=>{const j=await r.json().catch(()=>null);if(!r.ok){if(r.status>=500&&fn!="town_errlog")ERR.add("rpc "+fn+" "+r.status,"rpc",0);const m=(j&&j.message)||"小鎮暫時沒回應，過一下再按一次";if(m.indexOf(LOSTMSG)>=0&&body&&body.pin&&window.__lost)window.__lost();throw new Error(m)}if(j&&j.error){if(j.error.indexOf(LOSTMSG)>=0&&body&&body.pin&&window.__lost)window.__lost();throw new Error(j.error)}return j})};
+// 錯誤回報（town_errlog）：靜默、批次、去重、不影響遊戲；不送個資（只有訊息、檔名、行號、版本、UA）
+const ERR=(()=>{const q=[],seen=new Set();let tm=0;const ver=()=>{try{return String(MYV)}catch(e){return ""}};
+ function flush(){tm=0;const b=q.splice(0,3);b.forEach(e=>{try{fetch(SB+"town_errlog",{method:"POST",keepalive:true,headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify({msg:e[0],src:e[1],line:e[2],ua:(navigator.userAgent||"").slice(0,120),ver:ver()})}).catch(()=>{})}catch(x){}});if(q.length)tm=setTimeout(flush,5000)}
+ function add(msg,src,line){try{msg=String(msg||"").slice(0,300);if(!msg)return;src=String(src||"").split("?")[0].split("/").pop().slice(0,200);const k=msg+"|"+src+"|"+(line|0);if(seen.has(k)||seen.size>=30)return;seen.add(k);q.push([msg,src,line|0]);if(!tm)tm=setTimeout(flush,5000)}catch(x){}}
+ try{addEventListener("error",e=>{if(e&&e.message&&e.message.indexOf("Script error")!=0)add(e.message,e.filename,e.lineno)});addEventListener("unhandledrejection",e=>{const r=e&&e.reason;add("promise: "+((r&&r.message)||r),"promise",0)})}catch(x){}
+ return{add,flush}})();
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 // ── 地圖：寬 34 格。市中心固定；住宅一排 3 間（5×4 格，門在正下方），住滿就往下多開一條街，最多 4 排 ──
@@ -887,14 +893,14 @@ function shareModal(inv,fresh){const text=`來「${S.town.name}」當鄰居！�
  $("mc").onclick=()=>$("modal").classList.add("hide");$("mcp").onclick=async()=>{try{await navigator.clipboard.writeText(text);toast("已複製，貼到 WeChat 吧")}catch(e){$("shtxt").select();toast("請長按文字複製")}}}
 const featChecks=off=>`<div class="list feats">${FEATS.map(([k,n,d])=>`<label class="mrow" style="cursor:pointer"><span><b>${n}</b> <small class="mut">${d}</small></span><input type="checkbox" data-f="${k}" ${off.includes(k)?"":"checked"} style="width:22px;height:22px"></label>`).join("")}</div>`;
 const readFeats=()=>[...document.querySelectorAll("[data-f]")].filter(c=>!c.checked).map(c=>c.dataset.f);
-async function mayorPanel(){let inv="",cta=[],fund=null;try{fund=await rpc("town_mayor",{rid:me,pin,act:"fund"})}catch(e){}try{cta=(await rpc("town_mayor",{rid:me,pin,act:"stats"})).stats||[]}catch(e){}
+async function mayorPanel(){let inv="",cta=[],fund=null,errs=null;try{errs=await rpc("town_errlog_view",{rid:me,pin})}catch(e){}try{fund=await rpc("town_mayor",{rid:me,pin,act:"fund"})}catch(e){}try{cta=(await rpc("town_mayor",{rid:me,pin,act:"stats"})).stats||[]}catch(e){}
  const ctaHTML=()=>{const sh=cta.reduce((a,c)=>a+c.shows,0),cl=cta.reduce((a,c)=>a+c.clicks,0);return cta.length?`<p class="mut">近 7 天共顯示 ${sh} 次、點了 ${cl} 次（${sh?Math.round(cl/sh*100):0}%）</p><div class="list">${cta.map(c=>`<div class="mrow"><span><b>${esc(c.key)}</b></span><small class="mut">顯示 ${c.shows} · 點 ${c.clicks} · ${c.shows?Math.round(c.clicks/c.shows*100):0}%</small></div>`).join("")}</div>`:`<p class="mut">還沒有資料，大家玩一陣子就會出現。</p>`};try{inv=(await rpc("town_mayor",{rid:me,pin,act:"invite"})).invite}catch(e){toast(e.message);return}
  const draw=()=>{$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>🏛️ 鎮長</h2><p>邀請碼：<b class="code">${esc(inv)}</b></p>
   <div class="row" style="justify-content:flex-start"><button class="pri" id="msh">邀請朋友</button><button id="mni">換一組新邀請碼</button></div>
   ${fund?`<h2 style="margin-top:16px">鎮基金</h2><div class="mrow"><span><b>€${fund.fund}</b> <small class="mut">房租 5%、財產稅、奢侈品 5% 累積而來（還不能花）</small></span></div><p class="mut">累計流入：房租 €${(fund.log||{}).rent||0} · 財產稅 €${(fund.log||{}).tax||0} · 奢侈品 €${(fund.log||{}).lux||0}</p>`:""}
   <h2 style="margin-top:16px">管理權</h2><p class="mut">關人、放人、罰款、發補助、公告、建設案、彈劾——全部公開，居民可以申訴</p><div class="row" style="justify-content:flex-start"><button class="pri" id="mpw">鎮長管理權與使用紀錄</button></div>
   <h2 style="margin-top:16px">小鎮特色</h2>${featChecks([...OFF])}<div class="row" style="justify-content:flex-start"><button class="pri" id="mfs">儲存設施</button></div>
-  <h2 style="margin-top:16px">建議下一步統計</h2>${ctaHTML()}
+  <h2 style="margin-top:16px">建議下一步統計</h2>${ctaHTML()}${errs&&errs.rows?`<h2 style="margin-top:16px">錯誤紀錄（近 7 天）</h2>${errs.rows.length?`<p class="mut">共 ${errs.total} 次，前 ${errs.rows.length} 組</p><div class="list">${errs.rows.map(e=>`<div class="mrow"><span><b>${esc(e.msg)}</b><br><small class="mut">${esc(e.src||"")}${e.line?":"+e.line:""} · v${esc(e.ver||"?")}</small></span><small class="mut">${e.n} 次</small></div>`).join("")}</div>`:`<p class="mut">近 7 天沒有錯誤紀錄。</p>`}`:""}
   <h2 style="margin-top:16px">鎮民（${Object.keys(R).length}/12）</h2><div class="list">${Object.values(R).sort((a,b)=>a.slot-b.slot).map(r=>`<div class="mrow"><span><b>${esc(r.name)}</b> <small class="mut">${houseName(r.slot)}${r.mayor?" · 鎮長":""}</small></span>${r.id==me?"":`<button data-pw="${r.id}">重設密碼</button><button data-k="${r.id}">請他搬走</button>`}</div>`).join("")}</div>
   <div class="row"><button id="mc">關閉</button></div>`;
   $("mc").onclick=()=>$("modal").classList.add("hide");$("msh").onclick=()=>shareModal(inv);$("mpw").onclick=()=>powersModal();
