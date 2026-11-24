@@ -795,3 +795,7 @@
 - 打工達人＝`works`＋`items.jw` 加總、升官＝公司與各工作職階取最高；賭場「贏」改單局淨贏（多步驟遊戲用 ach_c `cacc` 記押注，結算判定），出手闊綽＝累計下注 `cwag`；`town_goal_casino` 改 5 參數；faint 只計「倒下了」、hospital 只計看診、luck 排除補助／登入禮等、jail 加「抓回監獄」（越獄失敗、刑期滿不計）；事件規則集中在 `town_goal_ev_k`（觸發器與回填共用）；能力者 20／28／36、單項專精 6／7／8、全能 3／5／8。
 - 一次性回填 `town_goal_backfill()`（`town_migrations` `ach_backfill1`）：事件型與賭場局數／款式／累計下注整批重算，睡覺／洗澡／坐下／夜貓與單局淨贏類無歷史、從 0 起算；不給獎。**重套 `town_goal.sql`／`town.sql`／`town_casino*.sql` 後要再套本檔。**
 - 前端：小鎮頁首富含籌碼、「最勤勞（7天）」、榜單視窗「打工（累計）」；錯誤紀錄濾 ResizeObserver；使用統計 `ui:act／ui:tab` 去掉職階名稱。
+
+## 體檢修復（其餘區塊，2026-11-24，前端 v372；SQL `supabase/town_fix_rest.sql` **尚未套用正式站**，實測 `town_fix_rest_test.sql`（回滾，REPORT））
+- 就地補丁 `town_act` obj 分支（垃圾桶、郵筒每天各 3 次，用 `dc.trash／dc.mail`，每次翻都算，第 4 次回「今天這個垃圾桶已經翻過了」；長椅與飲水機共用每天 100 精力 `dc.bench`）、`town_pk` 死碼；重建 `town_score`（新 RPC `town_score_start` 記 `items.sg={g,t}`：打地鼠要 ≥25 秒且分數 ≤ 秒數/0.7、記憶翻牌每步 ≥0.9 秒；沒開局紀錄用保守上限 25／70）與 `town_onboard`（步驟 1、2、4、5 驗事實，步驟 4 前端改成要有互動事件）。重套 `town.sql`／`town_mischief.sql` 後要再套本檔。
+- 幸運兒：垃圾桶 3 次期望約 $32、郵筒約 $72（一般 $24／$54），已寫進 `RULES`。前端我的人生：刪打工冷卻字樣、財產稅含籌碼與 kt（`moneyAll`＋`town_econ_view`）、新增「車險與事故」列（`vehLife`）。驗證腳本 `tools/visual/fix-rest-verify.mjs`。
