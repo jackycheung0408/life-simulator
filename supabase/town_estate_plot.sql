@@ -54,10 +54,15 @@ select public.town_estate_patch('town_econ_use', 5, '''econ_lux'', fundp);', '''
 -- 派對：改在自己的莊園室內，並開放 30 分鐘
 select public.town_estate_patch('town_econ_fun', 3, 'if r.place <> ''home:'' || rid then raise exception ''要在自己的莊園（家）才能辦派對''; end if;', 'if r.place <> ''estate:'' || rid or not public.town_fin(r) then raise exception ''要先走進自己的莊園才能辦派對''; end if;', 'estate:');
 select public.town_estate_patch('town_econ_fun', 3, 'jsonb_build_object(''p'', today)', 'jsonb_build_object(''p'', today, ''pt'', extract(epoch from now())::bigint + 1800)', '''pt''');
--- 進館：接受 estate:<id>，進入規則
-select public.town_estate_patch('town_fi', 4, 'if pl is null or pl not in (', 'if pl is null or (pl not like ''estate:%'' and pl not in (', 'estate:%');
-select public.town_estate_patch('town_fi', 4, '''wearshop'') then raise exception ''這裡還不能進去''', '''wearshop'')) then raise exception ''這裡還不能進去''', '''wearshop'')) then');
-select public.town_estate_patch('town_fi', 4, 'if r.place <> pl then raise exception ''要先走到門口''; end if;', 'if r.place <> pl then raise exception ''要先走到門口''; end if; perform public.town_estate_gate(r, pl);', 'town_estate_gate');
+-- 進館：estate:<id> 走獨立分支（每個 patch 本身都要括號平衡，因為每次 execute 就會編譯）
+select public.town_estate_patch('town_fi', 4, 'if op = ''enter'' then',
+  'if op = ''enter'' and pl like ''estate:%'' then
+    if r.place <> pl then raise exception ''要先走到門口''; end if;
+    if r.sleeping then raise exception ''你在睡覺，先起床''; end if;
+    if public.town_jailed(r) then raise exception ''你被關在監獄裡''; end if;
+    perform public.town_estate_gate(r, pl);
+    r.items := jsonb_set(r.items, ''{fi}'', to_jsonb(pl));
+  elsif op = ''enter'' then', 'town_estate_gate');
 -- 移動：白名單與 py 上限
 select public.town_estate_patch('town_act', 9, 'or (dest ~ ''^home:\d+$''', 'or (dest ~ ''^estate:\d+$'' and exists (select 1 from public.town_residents where id = substr(dest,8)::bigint and town_id = r.town_id and (items->''lx''->>''estate'') is not null)) or (dest ~ ''^home:\d+$''', '^estate:');
 select public.town_estate_patch('town_act', 9, 'py > 40', 'py > 120', 'py > 120');

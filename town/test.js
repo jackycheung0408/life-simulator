@@ -528,4 +528,8 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(sq.split("\n").slice(0,4).every(l=>/^--/.test(l)||l.trim()==""),"town_estate_plot.sql 檔頭每行都要是註解");
  check(/py > 120/.test(sq)&&/\^estate:\\d\+\$/.test(sq)&&/town_estate_gate/.test(sq)&&/'pt'/.test(sq)&&/estate_plot/.test(sq),"town_estate_plot.sql 要含 py 放寬、estate 白名單、進入規則、派對開放、遷移");
  check(!/it\.lx&&it\.lx\.estate/.test(tj),"房子不能再因 lx.estate 換外觀（莊園是獨立一棟）");}
+{const sq=require("fs").readFileSync(__dirname+"/../supabase/town_estate_plot.sql","utf8");
+ const calls=sq.split("select public.town_estate_patch(").slice(1);check(calls.length>=7,"town_estate_plot.sql 應有 7 個以上的 patch");
+ calls.forEach(c=>{const body=c.slice(0,c.indexOf(");\n")+1),lits=[...body.matchAll(/'((?:[^']|'')*)'/g)].map(m=>m[1].replace(/''/g,"'")),bal=x=>(x.match(/\(/g)||[]).length-(x.match(/\)/g)||[]).length;
+  if(lits.length>=4)check(bal(lits[2])==bal(lits[1]),"town_estate_plot.sql 的 patch 改寫前後括號數不同（每個 patch 單獨 execute 要能編譯）："+lits[1].slice(0,40))})}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");
