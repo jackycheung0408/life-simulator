@@ -293,6 +293,7 @@ require("./test_goods.js")(M,check);
 {const src=require("fs").readFileSync(__dirname+"/town.js","utf8").split("\n"),ii=src.findIndex(l=>l.startsWith("function init(){")),top=src.slice(0,ii);
  const strip=l=>l.replace(/\/\/.*$/,"").replace(/`(?:[^`\\]|\\.)*`/g,"``").replace(/"(?:[^"\\]|\\.)*"/g,'""').replace(/'(?:[^'\\]|\\.)*'/g,"''");
  const bad=[];top.forEach((l,i)=>{const s=strip(l);for(const n of ["me","$","esc","pxify","toast","pin","R","S"]){const re=new RegExp("(^|[^\\w$.])"+n.replace("$","\\$")+"(?![\\w$:])");if(re.test(s))bad.push(n+"@"+(i+1))}});
+ {const tj=fs.readFileSync(__dirname+"/town.js","utf8");check(!/[^\w$.]fun\("/.test(tj),"town.js 不能直接呼叫 fun(\"…\")（它是區塊內變數，莊園辦派對曾因此 not defined），用 econFun")}
  {const bad2=top.filter(l=>/(^|[^\w$.])now\(\)/.test(strip(l)));check(bad2.length==0,"頂層函式不能呼叫 init() 裡的 now()（會在有人被吊銷駕照／買保險時讓全鎮進不去），改用 nowFn()："+bad2.length+" 行")}
  check(ii>0&&bad.length==0,"頂層函式用了只在 init() 裡的變數："+bad.join(", ")+"（把函式搬進 init()，或把值當參數傳進去）")}
 check(!require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8").includes("睡飽了自然醒")&&!/r\.sleeping and qe is null and not fa and hr between 8 and 21/.test(require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8")),"town.sql：睡著的人白天不可自然醒（要讓朋友叫得醒）");
