@@ -27,8 +27,15 @@ module.exports=(M,check)=>{const fs=require("fs"),sq=fs.readFileSync(__dirname+"
  {check(M.RWHEEL.length==38&&new Set(M.RWHEEL).size==38&&M.RWHEEL.every(n=>n>=0&&n<=37)&&M.RRED.length==18,"輪盤順序要有 38 個不同的格子、18 個紅號");
   check(code.includes("floor(random() * 38)")&&code.includes("bet * 36")&&code.includes("then bet * 3 else 0 end")&&36/38<1&&Math.abs(36/38-0.9474)<1e-4,"輪盤 SQL 要是 38 格、單號 ×36、一打 ×3");
   const red=[...code.matchAll(/red int\[\] := array\[([\d,]+)\]/g)][0][1].split(",").map(Number);check(JSON.stringify(red)==JSON.stringify(M.RRED),"輪盤紅號前端和 SQL 不一致")}
- // 21 點：6:5、莊家軟 17 要牌、無加倍分牌；玩家最佳策略 0.9600（無限副牌 DP 算出，見 town_casino2.sql 檔頭）
- check(code.includes("floor(bet * 2.2)")&&code.includes("town_bj_dealer_hits")&&code.includes("hard + 10 = 17")&&js.includes("6:5")&&js.includes("軟 17"),"21 點要 6:5 與莊家軟 17 要牌（SQL 與前端說明）");
+ // 21 點擬真規則（town_bj2.sql）：加倍、分牌（最多 4 手）、天生 21 點 3:2、莊家軟 17 要牌與偷看；玩家最佳基本策略拿回率 0.9927（DP 與 1 億局蒙地卡羅，見檔頭）
+ {const bj=require("fs").readFileSync(require("path").join(__dirname,"../supabase/town_bj2.sql"),"utf8");
+  check(code.includes("town_bj_dealer_hits")&&code.includes("hard + 10 = 17"),"21 點莊家軟 17 要牌（town_casino2.sql）");
+  check(bj.includes("floor(bet * 5 / 2.0)")&&!bj.includes("2.2)")&&bj.includes("bj_double")&&bj.includes("bj_split")&&bj.includes("jsonb_array_length(hs) >= 4")&&bj.includes("0.9927")&&bj.includes("籌碼不夠加倍")&&bj.includes("籌碼不夠分牌"),"21 點 SQL 要有 3:2、加倍、分牌、最多 4 手、籌碼檢查、檔頭拿回率 0.9927");
+  check(bj.includes("a1 % 100 = 1 then h := h || '{\"f\":1,\"a\":1}'")&&bj.includes("(st ? 'hs')"),"分 A 每手只一張、舊牌局相容");
+  check(js.includes("3:2")&&js.includes("BJS")&&js.includes("bjHint")&&js.includes("bj_double")&&js.includes("bj_split")&&!js.includes("6:5"),"21 點前端：3:2、加倍分牌按鈕、基本策略表與提示");
+  const m=js.match(/const BJS=(\{[^;]*\});/);check(!!m,"找不到 BJS");if(m){const B=eval("("+m[1]+")");const cnt=o=>Object.keys(o).length;check(cnt(B.hard)==13&&cnt(B.soft)==8&&cnt(B.pair)==10,"基本策略表列數：硬 5～17、軟 13～20、對 A～10");
+   for(const k of ["hard","soft","pair"])for(const r of Object.values(B[k]))check(/^[HSDP]{10}$/.test(r),"策略表每列要 10 欄且只含 H S D P："+r);
+   check(Object.values(B.hard).every(r=>!r.includes("P"))&&B.pair[8]=="PPPPPPPPPP"&&B.pair[1]=="PPPPPPPPPP"&&B.pair[10]=="SSSSSSSSSS"&&B.hard[11]=="DDDDDDDDDD"&&B.hard[16]=="SSSSSHHHHH","基本策略關鍵列（8,8 與 A,A 一律分、10,10 不分、硬 11 加倍、硬 16 vs 2～6 停）")}}
  // 籌碼面額與百家樂路單：堆疊加總等於押注、面額由小到大；路單大路連贏往下疊、滿 6 往右拐、換邊換欄、和局畫在前一顆；SQL 保留最近 72 局
  {const D=M.CHIPD.map(x=>x[0]);check(D.every((v,i)=>i==0||v>D[i-1])&&D[0]==50,"籌碼面額要由小到大且最小 50");
   for(const v of [50,150,1750,99950,1000000])check(M.chipStack(v).reduce((a,i)=>a+D[i],0)==v,"籌碼堆疊加總要等於押注："+v);
