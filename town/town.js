@@ -355,6 +355,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"bal5-1124",date:"11/24",title:"好運與景氣",items:["戶外偶爾遇到稀有好事","景氣差時貧富差越大越重"]},
   {id:"bal4-1124",date:"11/24",title:"能力屬性強化",items:["能力上限提高到 8","力量、敏捷、魅力有新效果","能力可花 $5000 洗點"]},
   {id:"bal3-1124",date:"11/24",title:"好感更容易回升",items:["不合的朋友回復更快，和好 +10","好麻吉以上打工薪水 +3%"]},
   {id:"bal2-1124",date:"11/24",title:"財產稅調整",items:["100 萬以上稅率提高","500 萬以上再加重"]},
@@ -2520,7 +2521,7 @@ async function zbHit(id){const j=await zbCall("hit",id);if(!j)return;zbSet(j);sp
 async function zbSell(){const j=await zbCall("sell");if(!j)return;toast(j.msg);feedback(true,j.msg);await refresh().catch(()=>{});renderPanel()}
 setInterval(zbPoll,4000);
 // 鎮上隨機事件：全鎮事件橫幅（每 60 秒問一次）與個人突發事件（戶外每 ~3 分鐘）
-const WEV={market:["市集日","吃喝價格 85%"],boom:["景氣好","打工薪水 115%"],bust:["景氣差","打工薪水 90%、吃喝價格 110%"],blackout:["停電","打工薪水 95%"],festival:["小鎮慶典","吃喝價格 90%、打工薪水 105%"]};
+const WEV={market:["市集日","吃喝價格 85%"],boom:["景氣好","打工薪水 115%"],bust:["景氣差","打工薪水 90%（首富占比高時最多 −15%）、吃喝價格 110%"],blackout:["停電","打工薪水 95%"],festival:["小鎮慶典","吃喝價格 90%、打工薪水 105%"]};
 let wevK=null,wevUntil=0,wevBusy=false;
 let wevHide=null;
 let wevKey="";

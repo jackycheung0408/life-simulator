@@ -1063,6 +1063,23 @@
    "needs": [
     "town_bal4_stats.sql"
    ]
+  },
+  {
+   "file": "town_bal5_events.sql",
+   "kind": "patch",
+   "needs": [
+    "town_pool.sql",
+    "town_retention.sql",
+    "town_econ.sql"
+   ],
+   "note": "平衡批5：稀有好事件、景氣差隨首富占比（town_wd_pct 以此檔為準）"
+  },
+  {
+   "file": "town_bal5_events_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_bal5_events.sql"
+   ]
   }
  ]
 }
