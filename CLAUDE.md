@@ -777,3 +777,8 @@
 - **備份**（Free 方案無內建備份）：`tools/backup/`（`backup.sh` pg_dump→加密→保留 14 份、`verify-backup.sh`、`restore-drill.md`、launchd plist 範例、`tables.txt`）。連線字串／密語放使用者 `~/.config/town-backup.env`，**不進 repo**；`node tools/backup/verify-tables.mjs` 比對 `supabase/*.sql` 的新表（`node town/test.js` 會跑）。新增表要加進 `tables.txt`。
 - **壓測**：`supabase/town_stress_test.sql`（108 人回滾實測，貼 SQL Editor）、`node tools/stress/stress.mjs`（負載模型）；`town_state` 瘦身設計見 `docs/town-state-slimming.md`（尚未改）。每鎮上限 12 人。
 - **錯誤紀錄**：`supabase/town_errlog.sql`（表、限速每 ua 每分鐘 3 筆、截 300 字、遮 Email／網址參數、2% 機率清 7 天前；`town_errlog_view` 鎮長用）；前端 `ERR`（town.js，不走 `rpc()`）、鎮長面板「錯誤紀錄」。實測 `town_errlog_test.sql`。
+
+## 新手引導與 PWA（2026-11-24，前端 v362；SQL `supabase/town_onboard.sql` **尚未套用正式站**，實測 `town_onboard_test.sql`）
+- 全新角色（`enter()` 的 `fresh`）第一次進遊戲：`obIntro` 4 格開場 → 個性 → 願望 → 能力 → 提示 → 底部任務條 `#obbar`（`obTick` 每 2.5 秒；5 步：超市買零食／咖啡廳／打工／點一位鄰居／回家睡，按鈕加 `.obhl` 高亮）。進度 `localStorage town-ob_<id>`={d:[已完成步],sk,fin}；選單「新手引導」重看。獎勵 RPC `town_onboard(rid,pin,step)` 每步一次共 $1300（`items.ob.s`）；SQL 沒套用時只 toast 不給錢。舊角色不觸發。
+- PWA：`pwa.js`（town.js 結尾延後載入，改了要把那行 `pwa.js?v=` 加 1）：iOS Safari 非 standalone 顯示三步橫幅、Android `beforeinstallprompt` 安裝鈕、可永久關閉（`town-pwa-x`）、standalone 時 `storage.persist()`。`sw.js` 快取名 v7：`offline.html` 像素離線頁、CDN 字型快取優先。manifest 加 id／shortcuts。
+- 套用：`python3 tools/sql/sql.py apply town_onboard.sql --test town_onboard_test.sql --prod`

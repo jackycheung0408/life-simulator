@@ -175,6 +175,13 @@
    ]
   },
   {
+   "file": "town_onboard.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ]
+  },
+  {
    "file": "town_traveler.sql",
    "kind": "patch",
    "needs": [
@@ -516,6 +523,13 @@
    "kind": "test",
    "needs": [
     "town_quest.sql"
+   ]
+  },
+  {
+   "file": "town_onboard_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_onboard.sql"
    ]
   },
   {
