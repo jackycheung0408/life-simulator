@@ -733,7 +733,7 @@
 - 出席：集合時間起 15 分鐘內，報名且 `place` 相符才記（`claim`，每次 `town_meet` 呼叫都順帶補記，前端每 60 秒 `meetPoll`）。結算惰性（`town_meet_settle`，任何呼叫都補算）：出席 ≥2 成團，每位心情 +10、精力 +3、對彼此好感 +1（`town_bond`）、`items.mt={n,last,d,dn}`、每人每天前 3 次有效果；稱號 出席 1／10／25 次＝揪團新手／人氣王／團長；不給錢。否則流團寫動態。事件 kind `meet`（新團含「揪了」，通知中心「要回應」1 小時內顯示）。
 - 前端：選單「揪團」`meetModal`（我的團、進行中、發起表單、報名／退出／取消／帶我過去 `walkTo`、分享＝`navigator.share` 或複製，不自動發送）、集合前 5 分鐘 toast 提醒、`UT.hit("meet:*")`。`tools/visual` 情境 `modal-meet`（基準圖未更新）。
 
-## 莊園獨立一棟（2026-11-24，前端 v352；SQL `supabase/town_estate_plot.sql` **尚未套用正式站**，實測 `town_estate_plot_test.sql`（回滾，REPORT）；使用者決定：莊園帶、莊主在時朋友可參觀、派對沿用 $5000）
+## 莊園獨立一棟（2026-11-24，前端 v352；SQL `supabase/town_estate_plot.sql` **已套用正式站 2026-11-24（回滾實測通過；老子 lx.ep=0、莊園與遊艇保留、錢不動）**，實測 `town_estate_plot_test.sql`（回滾，REPORT）；使用者決定：莊園帶、莊主在時朋友可參觀、派對沿用 $5000）
 - 莊園是地圖上另一棟建築，**原本的家不動**（房子不再因 `lx.estate` 換外觀）。位置在**莊園帶**：地圖最下方，只有有人買莊園才出現（`mapRows()` = `baseRows()` + ceil(最大序號+1 / 9) × 10）；一人一塊建築 7×7、每排 9 塊（x = 2+9i、y = baseRows+10×列+1）、門在建築正下方 (x+3, y+7)，間距 ≥2。前端 `estPos`／`estSync`（`apply` 呼叫，動態把 `PLACES["estate:<id>"]`、`ROOMS`、`NPCS` 補上）／`drawEstate`（沿用 v349 圖：塔樓、藍圓頂、金門、噴泉＋底座牆屋頂）／`ROOM_EST`（室內：宴會桌＝按「辦派對」、展示櫃、噴水池、鋼琴、水晶吊燈、管家阿德）。
 - 資料：`items.lx.estate` 仍是購買日期字串（舊資料與 `town_econ_use view` 不受影響）；新增 `items.lx.ep` 地塊序號（從 0、同鎮不重複；買莊園時 `town_estate_assign` 鎖鎮列配；前端缺 ep 時依（日期、id）暫算，與 SQL 遷移同順序）。地點 `estate:<居民id>`：走路白名單（對象要有莊園）、`py` 上限 40 → 120、`town_place_name`、進館走 `town_fi`（白名單接受 `estate:%`）＋`town_estate_gate`：莊主隨時可進；別人要「莊主在裡面（fi 等於該地點、醒著）」或「派對中（`lxc.pt` 未到期）」，否則「X 不在莊園裡，只能在門口等」。
 - 派對 `town_econ_fun party` 改要 `place='estate:自己'` 且在室內；開始後 30 分鐘（`lxc.pt`）朋友都能進；效果與價格不變。不動產公司面板：有莊園顯示「走去我的莊園」。遷移（一次性 `estate_plot`）：已有莊園沒有 ep 的居民依（購買日期、id）配序號，不動錢（正式站 2026-11-24 查到居民 35「老子」已有莊園）。
@@ -791,11 +791,11 @@
 - 前端：選單「🏆 成就」→ `achModal`（六分頁、徽章方塊、進度條、領取鈕）、`achPoll` 每 60 秒＋進遊戲 7 秒後（SQL 沒套用時偵測 404 就停）；`UT.hit("ach:*")`；mock 有 `town_ach`；視覺情境 `modal-ach`。`node town/test.js` 檢查 80 個／六類數量／門檻遞增／名稱不重複／計數器有來源／觸發器 exception／RPC 不碰錢與能力／錨點／前端／manifest。
 - 套用：`python3 tools/sql/sql.py apply town_goal.sql --test town_goal_test.sql --prod`（含 trigger 與就地補丁，先 dry-run）。
 
-## 成就數字修復（2026-11-24；SQL `supabase/town_fix_numbers.sql`＋實測 `town_fix_numbers_test.sql`，**尚未套用正式站**，在 `town_goal.sql`、`town_bj2.sql` 之後；前端 v369 已上線）
+## 成就數字修復（2026-11-24；SQL `supabase/town_fix_numbers.sql`＋實測 `town_fix_numbers_test.sql`，**已套用正式站 2026-11-24（回滾實測通過；成就計數器回填 87 列）**，在 `town_goal.sql`、`town_bj2.sql` 之後；前端 v369 已上線）
 - 打工達人＝`works`＋`items.jw` 加總、升官＝公司與各工作職階取最高；賭場「贏」改單局淨贏（多步驟遊戲用 ach_c `cacc` 記押注，結算判定），出手闊綽＝累計下注 `cwag`；`town_goal_casino` 改 5 參數；faint 只計「倒下了」、hospital 只計看診、luck 排除補助／登入禮等、jail 加「抓回監獄」（越獄失敗、刑期滿不計）；事件規則集中在 `town_goal_ev_k`（觸發器與回填共用）；能力者 20／28／36、單項專精 6／7／8、全能 3／5／8。
 - 一次性回填 `town_goal_backfill()`（`town_migrations` `ach_backfill1`）：事件型與賭場局數／款式／累計下注整批重算，睡覺／洗澡／坐下／夜貓與單局淨贏類無歷史、從 0 起算；不給獎。**重套 `town_goal.sql`／`town.sql`／`town_casino*.sql` 後要再套本檔。**
 - 前端：小鎮頁首富含籌碼、「最勤勞（7天）」、榜單視窗「打工（累計）」；錯誤紀錄濾 ResizeObserver；使用統計 `ui:act／ui:tab` 去掉職階名稱。
 
-## 體檢修復（其餘區塊，2026-11-24，前端 v372；SQL `supabase/town_fix_rest.sql` **尚未套用正式站**，實測 `town_fix_rest_test.sql`（回滾，REPORT））
+## 體檢修復（其餘區塊，2026-11-24，前端 v372；SQL `supabase/town_fix_rest.sql` **已套用正式站 2026-11-24（回滾實測通過）**，實測 `town_fix_rest_test.sql`（回滾，REPORT））
 - 就地補丁 `town_act` obj 分支（垃圾桶、郵筒每天各 3 次，用 `dc.trash／dc.mail`，每次翻都算，第 4 次回「今天這個垃圾桶已經翻過了」；長椅與飲水機共用每天 100 精力 `dc.bench`）、`town_pk` 死碼；重建 `town_score`（新 RPC `town_score_start` 記 `items.sg={g,t}`：打地鼠要 ≥25 秒且分數 ≤ 秒數/0.7、記憶翻牌每步 ≥0.9 秒；沒開局紀錄用保守上限 25／70）與 `town_onboard`（步驟 1、2、4、5 驗事實，步驟 4 前端改成要有互動事件）。重套 `town.sql`／`town_mischief.sql` 後要再套本檔。
 - 幸運兒：垃圾桶 3 次期望約 $32、郵筒約 $72（一般 $24／$54），已寫進 `RULES`。前端我的人生：刪打工冷卻字樣、財產稅含籌碼與 kt（`moneyAll`＋`town_econ_view`）、新增「車險與事故」列（`vehLife`）。驗證腳本 `tools/visual/fix-rest-verify.mjs`。
