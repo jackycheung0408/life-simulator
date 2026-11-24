@@ -999,6 +999,21 @@
    "needs": [
     "town_shops2.sql"
    ]
+  },
+  {
+   "file": "town_bal1_faint.sql",
+   "kind": "patch",
+   "needs": [
+    "town_faint_meal.sql"
+   ],
+   "note": "平衡批1：自動吃預設開、醒來30分鐘不餓昏"
+  },
+  {
+   "file": "town_bal1_faint_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_bal1_faint.sql"
+   ]
   }
  ]
 }
