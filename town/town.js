@@ -150,11 +150,11 @@ const baseRows=()=>NR<=2?23:30+7*(NR-3);
 const EST_PER=9,EST_ROWH=10,EST_W=7,EST_H=7;let ESTS=[],ESTN=0;
 const mapRows=()=>baseRows()+(ESTN?Math.ceil(ESTN/EST_PER)*EST_ROWH:0);
 const estPos=p=>{const row=Math.floor(p/EST_PER),i=p%EST_PER;return [2+9*i,baseRows()+EST_ROWH*row+1,EST_W,EST_H]};
-function estSync(res){const L=[];(res||[]).forEach(r=>{const lx=(r.items||{}).lx;if(lx&&lx.estate)L.push({id:r.id,name:r.name,ep:lx.ep==null?null:+lx.ep,d:String(lx.estate)})});
+function estSync(res){const L=[];(res||[]).forEach(r=>{const lx=(r.items||{}).lx;if(lx&&lx.estate)L.push({id:r.id,name:r.name,ep:lx.ep==null?null:+lx.ep,d:String(lx.estate),it:r.items})});
  const used=new Set(L.filter(e=>e.ep!=null).map(e=>e.ep));let nx=0;L.filter(e=>e.ep==null).sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:a.id-b.id).forEach(e=>{while(used.has(nx))nx++;e.ep=nx;used.add(nx)});
  for(const k of Object.keys(PLACES))if(k.startsWith("estate:")){delete PLACES[k];delete ROOMS[k];delete NPCS[k];delete NPC_LINES[k]}
  ESTS=L;ESTN=L.reduce((a,e)=>Math.max(a,e.ep+1),0);
- L.forEach(e=>{const r=estPos(e.ep),k="estate:"+e.id;e.r=r;PLACES[k]={r,door:[r[0]+3,r[1]+EST_H],name:e.name+"的莊園",block:1};ROOMS[k]=ROOM_EST;NPCS[k]={n:"管家阿德",hair:"#222",job:"管家",base:0,item:""};NPC_LINES[k]=NPC_LINES.estate})}
+ L.forEach(e=>{const r=estPos(e.ep),k="estate:"+e.id;e.r=r;PLACES[k]={r,door:[r[0]+3,r[1]+EST_H],name:e.name+"的莊園",block:1};ROOMS[k]=estRoomOf(e.it);NPCS[k]={n:"管家阿德",hair:"#222",job:"管家",base:0,item:""};NPC_LINES[k]=NPC_LINES.estate})}
 const STREETS=["小豬大道","豬尾巴街","豬鼻子街","豬蹄巷"];
 const ROOFS=["#d9534f","#3b7dd8","#b45cc4","#8b5a2b","#2e9e5b","#d8901a","#e0779b","#2a9d8f","#6c5ce7","#c0392b","#16a085","#7f8c8d"];
 const homeXY=s=>{const k=Math.floor(s/3);return [[2,9,20][s%3],k==0?1:k==1?17:24+7*(k-2)]};
@@ -325,7 +325,7 @@ const HOME_DIM=[[6,3],[8,3],[9,4],[10,4]],WALLF=["frame","painting"],FLAT=["rug"
 const HACT={bed:[/^睡覺/,"好床"],fridge:[/^吃飯/,"冰箱"],sofa:[/^看電視/,"沙發"],tvcab:[/^看電視/,"電視櫃"],massage:[/^快速休息/,"按摩椅"],toilet:[/^上廁所/,"馬桶"],shower:[/^洗澡/,"淋浴間"]};
 // 擺放座標 items.fp = [[代號,x,y]]；沒有 fp 的舊角色用舊的 9 格 fu 換算（和 town_fp_legacy 一致）
 const fpOf=it=>Array.isArray(it.fp)?it.fp:(it.fu||[]).map((k,i)=>[k,1+(i%3)*2,1+Math.floor(i/3)]).filter(o=>o[0]);
-const hasF=(r,k)=>!!(r.items&&Array.isArray(r.items.fu)&&r.items.fu.includes(k));
+const hasF=(r,k)=>{const it=r&&r.items;if(!it)return false;const a=r.place=="estate:"+r.id?(it.lx&&it.lx.efc):it.fu;return Array.isArray(a)&&a.includes(k)};// 在莊園裡看莊園擺的家具（lx.efc），否則看家裡擺的（fu）
 // 在屋裡：人在自己家，且沒有「站在門口」旗標 items.dr（舊角色沒有旗標＝在屋裡），和 SQL town_inside 一致
 function inside(r){return !!r&&r.place=="home:"+r.id&&!(r.items&&String(r.items.dr)=="1")}
 // 在朋友家屋裡：人在 home:屋主，且 items.fv = 屋主 id（和 SQL town_vin 一致；缺值 = 在門外）
@@ -374,6 +374,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"estate-free-1124",date:"11/24",title:"莊園想幹嘛就幹嘛",items:["莊園裡能吃飯、睡覺、洗澡","莊主決定誰能進莊園","宴會桌、鋼琴自己搬"]},
   {id:"expand-1124",date:"11/24",title:"小鎮東邊變大",items:["東邊多一大片空地","路線和走路都照舊"]},
   {id:"season-1124",date:"11/24",title:"賽季開跑",items:["每月一季，比積分拿限定造型","打工、賭場、揪團、街機、成就算分","選單「賽季」、榜單「本季」"]},
   {id:"music2-1124",date:"11/24",title:"新音樂",items:["慶典、賭場大贏有舞曲","酒吧、舞池、賭場、監獄有專屬曲","市政廳、PK 也換新曲"]},  {id:"dex-1124",date:"11/24",title:"新增圖鑑",items:["選單「圖鑑」：收藏、造型、家具","美食、地點、鎮民也能收","集滿拿稱號和零食"]},
@@ -641,6 +642,11 @@ Object.assign(ROOMS,{
 // 店員 NPC：固定在櫃台旁、不佔玩家站位、純表現（不動數值、不寫資料庫）
 ROOMS.cafe.npc=[3,1];ROOMS.cinema.npc=[10,1];ROOMS.market.npc=[10,1];ROOMS.restaurant.npc=[3,1];ROOMS.gym.npc=[5,1];ROOMS.hospital.npc=[7,1];ROOMS.police.npc=[7,1];ROOMS.townhall.npc=[5,1];ROOMS.casino.npc=[8,1];ROOMS.casino.npc2=[["casinobar",10,1]];ROOMS.casino.guests=[[0,1,"#8a5a2b"],[3,3,"#c0392b"],[6,3,"#3b6b8a"],[10,3,"#555"]];ROOMS.townhall.npc2=[["tsec",9,1]];ROOMS.realty.npc=[5,1];ROOMS.harbor.npc=[5,1];ROOMS.furnshop.npc=[4,1];ROOMS.wearshop.npc=[5,1];
 const ROOM_EST={floor:["#7d1f2b","#721a26"],wall:"#2b2f5e",items:[["chand",2,0],["trophycase",4,0],["lamp",6,0],["trophycase",8,0],["chand",10,0],["efount",5,2],["ptable",8,2],["ptable",3,2],["piano",10,4],["ecarpet",6,3],["ecarpet",6,4],["plant",0,4],["plant",11,4]],npc:[1,2]};
+// 莊園預設物件（鍵、圖示代號、x、y、m：0 固定／1 可移動收回／2 平的地毯）；要和 supabase/town_estate_free.sql 的 town_estate_def 一致
+const EST_DEF=[["chand_a","chand",2,0,0],["trophy1","trophycase",4,0,1],["lamp_a","lamp",6,0,0],["trophy2","trophycase",8,0,1],["chand_b","chand",10,0,0],["fount","efount",5,2,1],["table1","ptable",8,2,1],["table2","ptable",3,2,1],["piano","piano",10,4,1],["carpet_a","ecarpet",6,3,2],["carpet_b","ecarpet",6,4,2],["plant_a","plant",0,4,0],["plant_b","plant",11,4,0]];
+// 莊園室內場景：預設物件（lx.ro 覆蓋位置或收回）＋莊園家具（lx.efp）；物件第 4 格是預設鍵（家具沒有）
+function estRoomOf(it){const lx=(it&&it.lx)||{},ro=lx.ro||{},items=[];for(const d of EST_DEF){let x=d[2],y=d[3];if(d[4]==1&&Object.prototype.hasOwnProperty.call(ro,d[0])){if(!Array.isArray(ro[d[0]]))continue;x=ro[d[0]][0];y=ro[d[0]][1]}items.push([d[1],x,y,d[0]])}
+ for(const f of (Array.isArray(lx.efp)?lx.efp:[]))items.push([f[0],+f[1],+f[2]]);return {est:true,floor:ROOM_EST.floor,wall:ROOM_EST.wall,items,npc:[1,2]}}
 const NPCS={cafe:{n:"小咪",hair:"#7a4a24",job:"咖啡師",base:90,item:"特調咖啡"},restaurant:{n:"阿福",hair:"#222",job:"店長",base:250,item:"餐廳套餐"},gym:{n:"阿力",hair:"#c0392b",job:"教練",base:0,item:""},hospital:{n:"白護理師",hair:"#e8c27a",job:"護理師",base:0,item:""},police:{n:"小林警員",hair:"#222",job:"警員",base:0,item:""},cinema:{n:"小映",hair:"#3b2f6b",job:"售票員",base:300,item:"電影票"},market:{n:"阿珍",hair:"#8a5a2b",job:"店員",base:0,item:""},casino:{n:"荷官小莉",hair:"#222",job:"荷官",base:0,item:""},casinobar:{n:"酒保阿杰",hair:"#2b1a3a",job:"酒保",base:0,item:""},tsec:{n:"祕書小雅",hair:"#4a2a6a",job:"鎮長祕書",base:0,item:""},townhall:{n:"陳櫃員",hair:"#555",job:"櫃員",base:0,item:""},realty:{n:"房仲小陳",hair:"#333",job:"房仲",base:0,item:""},harbor:{n:"船長老王",hair:"#b8b8b8",job:"船長",base:0,item:""},furnshop:{n:"木工阿福",hair:"#7a4a24",job:"木工",base:0,item:""},wearshop:{n:"裁縫小美",hair:"#d1426e",job:"裁縫",base:0,item:""}};
 const NPC_LINES={casinobar:["來杯無酒精特調？","贏了別忘了請客","輸了也要笑著離場","吧台今晚很熱鬧","手氣會輪流轉的"],tsec:["我是鎮長祕書小雅","鎮上的消息找我就對了","公告欄每天更新","想知道基金去哪了嗎？"],estate:["歡迎光臨莊園","派對要先通知我喔","今天的茶點剛好","小心地毯，別踩髒","主人今天心情很好"],furnshop:["好床睡得比較香","冰箱買了吃飯比較省","相框掛牆上最好看","每種家具只能買一件喔","門口擺個花圃吧"],wearshop:["皇冠今天最搶手","試穿看看吧","圍巾很適合你","情侶 T 要好麻吉才能穿","換個造型換個心情"],realty:["想換大一點的房子嗎？","豪宅的視野最好","莊園可以辦派對喔","頭期款不用，現金就好","今天有人來看房呢"],harbor:["遊艇停碼頭，風景不一樣","出海要帶朋友才熱鬧","今天風浪不大","船要定期保養喔","船長帽借你戴一下？"],casino:["願賭服輸，量力而為","籌碼放好，別弄丟了","輪盤剛轉完，下一局？","百家樂桌還有位子","離場會自動換回現金喔","今天手氣如何？"],cafe:["今天的豆子很香喔","要不要來杯特調？","歡迎光臨～","外面好像要下雨了","拉花台今天心情很好","集滿 8 點有免費的喔"],cinema:["今天的片很好哭","爆米花剛出爐","情侶座還有位子","散場記得聊聊劇情"],market:["今天的特價別錯過","試吃區有新口味","集滿 10 點換零食","小心地板剛拖過"],restaurant:["今天的菜很新鮮","歡迎光臨，幾位？","小心燙喔","廚房正在忙～","套餐附飲料喔","要外帶也可以"],gym:["多喝水、多伸展","今天練哪裡？","別硬撐，慢慢來","加油，再一組！"],hospital:["有哪裡不舒服嗎？","請多休息","保重身體喔","小聲一點，病人在睡"],police:["遵守交通規則喔","有事可以報案","最近鎮上很平靜","騎車要慢一點"],townhall:["有事可以看公告","投票別忘了","鎮長最近很忙","歡迎來市政廳"]};
 const NPC_NIGHT=["這麼晚了還沒睡？","夜深了，早點休息","夜班真安靜"],NPC_BUSY=["今天好熱鬧！","人好多，慢慢來","大家都來了呢"],NPC_EMPTY=["今天好安靜…","只有你一位呢","歡迎，隨便坐"];
@@ -649,10 +655,11 @@ let CIVF=null;
 const NPCX={tp:()=>null,news:()=>[],win:()=>null},casTop=()=>NPCX.tp(),secNews=()=>NPCX.news();
 const npcSay=(p,t,cnt)=>{const hr=new Date(Date.now()+8*36e5).getUTCHours(),L=NPC_LINES[p].slice();if(hr>=22||hr<6)L.push(...NPC_NIGHT);if(cnt>=3)L.push(...NPC_BUSY);else if(cnt==0)L.push(...NPC_EMPTY);{const sh=SHELF[p];if(sh){if(sh.news.length)L.push("今天新到："+sh.news.slice(0,2).join("、"),"新品「"+sh.news[0]+"」剛上架");if(sh.clear.length)L.push("「"+sh.clear[0]+"」最後一天，7 折");if(sh.special)L.push("今天的"+(p=="cafe"?"特調":"主廚推薦")+"是"+sh.special)}}if(p=="casinobar"){const w=NPCX.win();if(w)L.push("聽說"+w.slice(0,18));const tp=casTop();if(tp)L.push(tp.name+"今天籌碼最多");if(cnt==0)L.push("（擦杯子）今天好安靜…","自言自語：沒人也要開張")}if(p=="tsec"){const d=secNews();if(d.length)L.push(...d.map(x=>x.slice(0,20)))}const k=Math.floor(t/9000);return L[(k*7+p.length)%L.length]};
 // 站位：沒被擋住的地板格，離場景中央近的先排
-const rw=rm=>rm.w||RW,rh=rm=>rm.h||RH,blk=(rm,o)=>rm.home?!(WALLF.includes(o[0])||FLAT.includes(o[0])):ITEM[o[0]][3];
+const rw=rm=>rm.w||RW,rh=rm=>rm.h||RH,blk=(rm,o)=>rm.home?!(WALLF.includes(o[0])||FLAT.includes(o[0])):ITEM[o[0]]?ITEM[o[0]][3]:!(WALLF.includes(o[0])||FLAT.includes(o[0]));
 function homeRoom(r){const it=r.items||{},hl=hlc(it.hl),d=HOME_DIM[hl-1];return {home:true,hid:r.id,w:d[0],h:d[1]+1,items:fpOf(it),wall:it.wall||"#f4ead6",floor:["#e6d8b8","#d9c9a8"]}}
 function roomSpots(rm){const W=rw(rm),H=rh(rm),blocked=new Set(rm.items.filter(o=>blk(rm,o)).map(o=>o[1]+","+o[2]).concat(rm.npc?[rm.npc[0]+","+rm.npc[1]]:[]).concat((rm.npc2||[]).map(a=>a[1]+","+a[2]))),out=[],cx=(W-1)/2,cy=(H+1)/2,sc=a=>Math.abs(a[0]-cx)+Math.abs(a[1]-cy)*2+((a[0]+a[1])%2?3:0)+(a[1]==1?4:0);for(let y=1;y<H;y++)for(let x=0;x<W;x++)if(!blocked.has(x+","+y))out.push([x,y]);return out.sort((a,b)=>sc(a)-sc(b))}
 const fin=r=>!!r&&!!r.items&&!!ROOMS[r.place]&&(r.items.fi===r.place||(r.place=="jail"&&jailed(r)));
+const estIn=r=>!!r&&r.place=="estate:"+r.id&&fin(r);// 在自己的莊園室內：家裡的事（吃飯、睡覺、洗澡…）都能做
 // 現在在哪個室內：設施裡面（fin）或自己家屋裡（inside）；都不是就 null
 const visitHost=(r,RR)=>{const h=RR&&r&&r.place&&r.place.startsWith("home:")&&r.place!="home:"+r.id?RR[r.place.slice(5)]:null;return h&&inside(h)?h:null};// 在朋友家門口、他人在屋裡 → 看得到他家室內
 const roomOf=(r,RR)=>!r?null:fin(r)?ROOMS[r.place]:(r.place=="home:"+r.id&&inside(r))?homeRoom(r):visitHost(r,RR)?{...homeRoom(visitHost(r,RR)),visit:true,inn:vin(r)}:null;// RR = 居民表（頂層函式拿不到 init 裡的 R，由呼叫的人傳進來）
@@ -1015,11 +1022,12 @@ const cdLeft=(r,key,mins)=>!/^(esc|yard|jv|slash|lic)/.test(String(key))?0:Math.
 const dbtn=(label,sub,fn,left,g)=>({...btn(label,sub,fn,g),dis:left?`剛做過，${fmtLeft(left)}後再來`:""});
 const ICALIAS={"🥊":"👊","💬":"👥","🔪":"⚔️","🕳":"🚪","📊":"📈"},ACT_ICON={打喪屍豬:"👊",賣生豬肉:"💰",佈置:"🛋️",裝潢:"🎨",吃飯:"🍚",上廁所:"🚽",洗澡:"🛁",看電視:"📺",睡覺:"😴",起床:"☀️",吃一頓:"🍽️",打工:"💼",玩一下:"🎈",逛逛:"👀",煮飯給他:"🍳",幫他洗澡:"🧽",叫醒他:"⏰",串門子:"🏠",惡作劇:"💨",送禮物:"🎁",盪鞦韆:"🎠",快速休息:"😴",快速睡覺:"💤",進屋:"🏠",出門:"🚪",室內:"🛋️",餵貓吃零食:"🐟",取消:"✖️"};
 const GROUP={tip:"建議下一步",self:"照顧自己",friend:"在他家",place:"在這裡",face:"面對面",online:"線上 · 在哪都能做",mis:"惡趣味",move:"移動",eat:"吃喝",fun:"玩樂",soc:"社交",work:"工作與任務",home:"房子"};let lastPanel="",panelFns=[];
+const homeLife=r=>[btn("吃飯",hasF(r,"fridge")?"飽足 +48 · 精力 +15 · €30":"沒有冰箱：冷食，飽足 +32、心情 −3 · €60",()=>act("eat")),btn("上廁所",hasF(r,"toilet")?"膀胱回滿":"沒有馬桶：找個角落，清潔 −10、心情 −3",()=>act("toilet")),dbtn("洗澡",hasF(r,"shower")?"清潔回滿 · 精力 +10":"沒有淋浴間：水桶，清潔只回 70%",()=>act("shower"),cdLeft(r,"shower",10)),dbtn("看電視",hasF(r,"tvcab")?`心情 +${hasF(r,"sofa")?22:15}`:"沒有電視櫃：發呆看窗外，心情 +6",()=>act("tv"),cdLeft(r,"tv",hasF(r,"tvcab")?10:15)),dbtn("快速休息",`${hasF(r,"massage")?"精力 +100":hasF(r,"sofa")?"精力 +70":"沒有沙發：坐地上，精力 +50"}`,()=>act("nap"),cdLeft(r,"nap",15)),dbtn("快速睡覺",`${hasF(r,"bed")?"":"沒有好床：睡地上 · "}睡 15 分鐘自動醒 · 精力約 +${hasF(r,"bed")?56:40}`,()=>act("qsleep"),cdLeft(r,"qsleep",30)),btn("睡覺",hasF(r,"bed")?"精力每小時 +90 · 睡多久回多少":"沒有好床：睡地上，精力每小時 +64、醒來心情 −3",()=>act("sleep"))];// 家裡與自己莊園室內共用的生活按鈕
 function renderPanel(){if(!S||!me||!R[me])return;const econFun=op=>bigGo(op=="party"?"辦派對要花 $5000，確定？":"出海要花 $2000，確定？",op=="party"?5000:2000,async()=>{try{UT.hit("econ:"+op);const x=await rpc("town_econ_fun",{rid:me,pin,op});toast(x.msg||"完成");refresh()}catch(e){toast(e.message)}});const r=tickLocal(R[me],now()),p=r.place,list=[];let title="",note="";
  if(walkers[me]&&walkers[me].path.length){title="走路中…";note="到了就可以做事"}
  else if(r.sleeping){title=`在${placeName(p)}睡覺 💤`;list.push(btn("起床","",()=>act("wake")))}
  else if(p=="home:"+me&&!inside(r)){title="家門口";note="走進屋裡才能吃飯、洗澡、睡覺、擺家具";list.push(btn("🚪 進屋",`回到家裡 · ${HOUSES[hlc((r.items||{}).hl)-1][0]}`,()=>act("enter"),"pin"))}
- else if(p=="home:"+me){title="你家（屋裡）";list.push(btn("吃飯",hasF(r,"fridge")?"飽足 +48 · 精力 +15 · €30":"沒有冰箱：冷食，飽足 +32、心情 −3 · €60",()=>act("eat")),btn("上廁所",hasF(r,"toilet")?"膀胱回滿":"沒有馬桶：找個角落，清潔 −10、心情 −3",()=>act("toilet")),dbtn("洗澡",hasF(r,"shower")?"清潔回滿 · 精力 +10":"沒有淋浴間：水桶，清潔只回 70%",()=>act("shower"),cdLeft(r,"shower",10)),dbtn("看電視",hasF(r,"tvcab")?`心情 +${hasF(r,"sofa")?22:15}`:"沒有電視櫃：發呆看窗外，心情 +6",()=>act("tv"),cdLeft(r,"tv",hasF(r,"tvcab")?10:15)),dbtn("快速休息",`${hasF(r,"massage")?"精力 +100":hasF(r,"sofa")?"精力 +70":"沒有沙發：坐地上，精力 +50"}`,()=>act("nap"),cdLeft(r,"nap",15)),dbtn("快速睡覺",`${hasF(r,"bed")?"":"沒有好床：睡地上 · "}睡 15 分鐘自動醒 · 精力約 +${hasF(r,"bed")?56:40}`,()=>act("qsleep"),cdLeft(r,"qsleep",30)),btn("睡覺",hasF(r,"bed")?"精力每小時 +90 · 睡多久回多少":"沒有好床：睡地上，精力每小時 +64、醒來心情 −3",()=>act("sleep")),btn("佈置","搬家具、擺小道具、升級房子",()=>interiorModal(me),"home"),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal(),"home"),btn("🚪 出門","回到家門口",()=>act("exit"),"pin"))}
+ else if(p=="home:"+me){title="你家（屋裡）";list.push(...homeLife(r),btn("佈置","搬家具、擺小道具、升級房子",()=>interiorModal(me),"home"),btn("🎨 裝潢","換屋頂、牆壁顏色",()=>paintModal(),"home"),btn("🚪 出門","回到家門口",()=>act("exit"),"pin"))}
  else if(p&&p.startsWith("home:")&&R[p.slice(5)]){const id=+p.slice(5),t=tickLocal(R[id],now());title=`${t.name} 家`;const peek=btn("看室內",`${HOUSES[hlc((R[id].items||{}).hl)-1][0]} · 看他怎麼布置`,()=>interiorModal(id));
   const gifts=(r.items||{}).gift||0,giftB=gifts?btn("送禮物",`他心情 +20 · 背包 🎁${gifts}`,()=>act("gift",{target:id})):btn("送禮物","先去超市買",()=>toast("背包沒有禮物，去超市買一份"));
   if(!inside(t)){note=`${t.name} ${t.place==p?"在家門口，還沒進屋":"不在家，在"+placeName(t.place)}。可以在門口留言或放禮物，他回來會看到 · ${bondLabel(bondWith(id))}`;list.push(giftB,peek,...(t.place==p&&!t.sleeping&&!r.sleeping?faceActs(id):[]),btn("丟雞蛋 🥚","好感 −1 · 30 分鐘一次",()=>act("egg",{target:id})),btn(`📱 傳訊息給他`,"在哪都能傳",()=>noteModal(id)))}
@@ -1068,7 +1076,7 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  else if(p=="realty"){title="不動產公司";note="房子升級、買莊園；不用回家，在這裡辦（價格依小鎮經濟微調）";const lx=(r.items||{}).lx||{},nx=HOUSES[+((r.items||{}).hl)||1];
   list.push(nx?btn(`升級${nx[0]} $${nx[1].toLocaleString()}`,`房間更大、可擺 ${nx[2]} 件家具`,()=>bigGo(`升級成${nx[0]}要花 $${nx[1].toLocaleString()}，確定？`,nx[1],async()=>{await act("upgrade")}),"place"):btn("房子已是豪宅","最高級了",()=>toast("已經是最高級的豪宅"),"place"));
   list.push(lx.estate?btn("走去我的莊園","地圖最下方的莊園區 · 進去辦派對",()=>{const k="estate:"+me;if(PLACES[k])walkTo(k,PLACES[k].door);else toast("莊園還在整理，等一下再試")},"place"):btn("買莊園 $600,000","稱號「莊園主人」· 獨立一棟（在莊園區）· 家不變 · 可辦派對",()=>bigGo("買莊園要花 $600,000，確定？",6e5,()=>econBuy("estate")),"place"))}
- else if(p.startsWith("estate:")){title=(PLACES[p]||{}).name||"莊園";note=p=="estate:"+me?"你的莊園 · 在裡面辦派對；朋友在你在裡面時可以進來參觀":"莊園主人在裡面時才能進去參觀";if(p=="estate:"+me&&fin(r)&&!r.sleeping&&!jailed(r))list.push(btn("辦派對","$5000 · 在線醒著的居民心情 +15、好感 +2 · 30 分鐘內朋友都能進來 · 每天 1 次",()=>econFun("party"),"place"))}
+ else if(p.startsWith("estate:")){title=(PLACES[p]||{}).name||"莊園";const ow=R[p.slice(7)],gm=((ow&&ow.items&&ow.items.lx)||{}).gate;note=p=="estate:"+me?"你的莊園 · 想幹嘛就幹嘛"+(gm=="open"?" · 全開":gm=="lock"?" · 已上鎖":gm=="list"?" · 僅受邀":""):gm=="open"?"莊園開放參觀":gm=="lock"?"莊園已上鎖":gm=="list"?"僅開放受邀朋友":"莊主在裡面才能參觀";if(p=="estate:"+me&&fin(r)&&!r.sleeping&&!jailed(r)){list.push(...homeLife(r),btn("佈置莊園","搬家具、移動宴會桌展示櫃噴水池鋼琴",()=>estateEditModal(),"home"),btn("莊園管理","進出模式、受邀名單、佈局",()=>estateCtlModal(),"home"))}if(p=="estate:"+me&&fin(r)&&!r.sleeping&&!jailed(r))list.push(btn("辦派對","$5000 · 在線醒著的居民心情 +15、好感 +2 · 30 分鐘內朋友都能進來 · 每天 1 次",()=>econFun("party"),"place"))}
  else if(p=="harbor"){title="碼頭船行";note="買遊艇；出海要到碼頭邊（船行裡不能出海）";const lx=(r.items||{}).lx||{};
   list.push(lx.yacht?btn("遊艇 ✔","已擁有 · 到碼頭邊就能出海",()=>toast("你已經有遊艇了"),"place"):btn("買遊艇 $200,000","稱號「遊艇船長」· 可帶朋友出海 · 心情 +25",()=>bigGo("買遊艇要花 $200,000，確定？",2e5,()=>econBuy("yacht")),"place"));
   list.push(btn("去碼頭出海","走到碼頭邊 · 船主才能出海",()=>walkTo("street",[68,16]),"move"))}
@@ -1122,7 +1130,7 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  if(!sel){const t=nextStep(r,p);if(t){list.unshift({...t,g:"tip"});track("show",t.label)}}
  if(!sel){const jk={cafe:"cafe",restaurant:"rest",gym:"gym",market:"shop",rafi:"rafi"}[p],card=null;try{card=jk?jobCardPJ(jk,r):p=="office"?jobCardCo(r):null}catch(e){}if(card){list.unshift({label:"職階",sub:"",g:"work",info:true,card});note=p=="office"?`今天已打工 ${workToday(r)} 次`:""}}
  if(ROOMS[p]&&!NOENTER[p]&&!fin(r)&&!jailed(r)&&!r.sleeping&&!sel){const kg=/^(pin|tip|move|online|face|mis|friend|soc)$/,kl=/便便|喪屍|旁休息|旅人|商人|吃零食|下車|衝|守規矩|駕照|欠款|罰單|騎|開/;for(let i=list.length-1;i>=0;i--){const b=list[i];if(/一起/.test(b.label)||!(kg.test(b.g||"")||kl.test(b.label)))list.splice(i,1)}}
- const dg=inside(r)?"self":p&&p.startsWith("home:")&&p!=="home:"+me?"friend":"place";list.forEach(b=>{if(!b.g)b.g=/^(走|去 |取消)/.test(b.label)?"move":/^(打工|應徵)/.test(b.label)?"work":dg});
+ const dg=inside(r)||estIn(r)?"self":p&&p.startsWith("home:")&&p!=="home:"+me?"friend":"place";list.forEach(b=>{if(!b.g)b.g=/^(走|去 |取消)/.test(b.label)?"move":/^(打工|應徵)/.test(b.label)?"work":dg});
  const GORD=["pin","tip","self","place","eat","fun","train","soc","work","home","friend","face","mis","online","move"],TABS=[["care","生活"],["here","地點"],["grow","成長"],["social","朋友"],["fun","玩樂"],["work","賺錢"],["move","移動"]];
  const tile=(b,i)=>{if(b.info){const c=b.card,pc=c.nx!=null?Math.min(100,Math.round(100*(c.n-c.cur)/(c.nx-c.cur))):100;return `<div class="jobcard" data-g="work"><div class="jr1"><b>${esc(c.name)}</b><span>$${c.pay}／次</span></div><div class="jr2"><i><u style="width:${pc}%"></u></i><small>${c.nx!=null?`${c.n}／${c.nx} 次 → ${esc(c.nname)} $${c.npay}`:"已達最高階"}</small></div></div>`}
    const m=b.label.match(/^(\p{Extended_Pictographic}️?)\s*(.*)$/u)||b.label.match(/^(.*?)\s*(\p{Extended_Pictographic}️?)$/u),txt=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[1]:m[2]):b.label,ic=m?(m[2].match(/\p{Extended_Pictographic}/u)?m[2]:m[1]):(ACT_ICON[b.label]||(b.g=="move"?"🚶":"•"));
@@ -1848,6 +1856,46 @@ function interiorModal(id,sel){const o=R[id],mine=id==me,it=o.items||{},hl=hlc(i
  $("mbody").querySelectorAll("[data-x]").forEach(b=>b.onclick=async()=>{await act("furn",{item:`clr:${b.dataset.x}`});interiorModal(id,null)});
  $("mbody").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{$("modal").classList.add("hide");walkTo("realty",PLACES.realty.door)});
  $("mbody").querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>{const nx2=HOUSES[+((R[me].items||{}).hl)||1];bigGo(`升級要花 $${(nx2?nx2[1]:0).toLocaleString()}，確定？`,nx2?nx2[1]:0,async()=>{await act("upgrade");interiorModal(id,sel)})})}
+// ── 莊園佈置與管理（2026-11-24 莊園自由）：莊主可移動／收回預設物件（宴會桌、展示櫃、噴水池、鋼琴）、擺莊園家具；進出模式與受邀名單 ──
+// 家具買一件、家裡與莊園各自擺（lx.efp）；預設物件位置存 lx.ro；規則在 supabase/town_estate_free.sql
+function drawEstEdit(cv,rm,sel){const C=RC,W=rw(rm),H=rh(rm),c=cv.getContext("2d");c.imageSmoothingEnabled=false;c.clearRect(0,0,W*C,H*C);
+ c.fillStyle=rm.wall;c.fillRect(0,0,W*C,C);for(let y=1;y<H;y++)for(let x=0;x<W;x++){c.fillStyle=rm.floor[(x+y)%2];c.fillRect(x*C,y*C,C,C)}
+ c.fillStyle="rgba(0,0,0,.25)";c.fillRect(0,C-3,W*C,3);
+ for(const o of rm.items){if(!ITEM[o[0]]){furnDraw(c,o[0],o[1]*C,o[2]*C,C);continue}const im=roomImg(ITEM[o[0]][0]);if(im.complete&&im.naturalWidth)c.drawImage(im,o[1]*C,o[2]*C,C,C)}
+ c.fillStyle="rgba(255,255,255,.22)";c.fillRect(1*C,2*C,C,C);c.fillStyle="#fff";c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.fillText("管家",1.5*C,2*C+C/2+4);
+ if(sel){const d=EST_DEF.find(a=>a[0]==sel),y0=d?(d[1]=="trophycase"?0:1):WALLF.includes(sel)?0:1,y1=d?H:WALLF.includes(sel)?1:H,occ=new Set(rm.items.filter(o=>blk(rm,o)&&(o[3]||o[0])!=sel).map(o=>o[1]+","+o[2]));occ.add("1,2");
+  c.fillStyle="rgba(255,255,255,.75)";for(let y=y0;y<y1;y++)for(let x=0;x<W;x++)if(!occ.has(x+","+y))c.fillRect(x*C+C/2-2,y*C+C/2-2,4,4);
+  const so=rm.items.find(o=>(o[3]||o[0])==sel);if(so){c.strokeStyle="#fee761";c.lineWidth=2;c.strokeRect(so[1]*C+1,so[2]*C+1,C-2,C-2)}}}
+function estateEditModal(sel){UT.hit("estate:edit");const o=R[me];if(!o)return;const it=o.items||{},lx=it.lx||{},rm=estRoomOf(it),W=rw(rm),H=rh(rm),fp=Array.isArray(lx.efp)?lx.efp:[],placedF=new Set(fp.map(a=>a[0])),owned=(it.f||[]).filter(k=>!placedF.has(k)),ro=lx.ro||{},
+  gone=EST_DEF.filter(d=>d[4]==1&&Object.prototype.hasOwnProperty.call(ro,d[0])&&!Array.isArray(ro[d[0]])),
+  nm=k=>{const d=EST_DEF.find(a=>a[0]==k);return d?ITEM[d[1]][1]+(/1$/.test(k)?"①":/2$/.test(k)?"②":""):(FURN.find(a=>a[0]==k)||[0,k])[1]};sel=sel||null;
+ const dd=sel?EST_DEF.find(a=>a[0]==sel):null,fixed=!!dd&&dd[4]!=1,wallS=dd?false:!!sel&&WALLF.includes(sel),isPlaced=!sel?false:dd?!gone.includes(dd):placedF.has(sel);
+ $("modal").classList.remove("hide");
+ const ctl=sel?(fixed?`<div class="mrow"><span><b>${nm(sel)}</b> <small class="mut">固定的，不能移動</small></span></div>`:`<div class="mrow"><span><b>${nm(sel)}</b> <small class="mut">${isPlaced?"點空格移到那裡":(wallS?"點上面那排牆放上去":"點地板放下去")}</small></span>${isPlaced?`<button data-x="${sel}">收回</button>`:""}</div>`):'<p class="mut">點擺設選取，再點空格移動；背包的家具、收起來的擺設點下面的名字，再點空格放下。</p>';
+ const bag=(owned.length||gone.length)?`<h3>可以放進莊園</h3><div class="row" style="justify-content:flex-start">${gone.map(d=>`<button data-s="${d[0]}" class="${sel==d[0]?"pri":""}" style="min-height:44px">${nm(d[0])}（收起的）</button>`).join("")}${owned.map(k=>`<button data-s="${k}" class="${sel==k?"pri":""}" style="min-height:44px">${nm(k)}</button>`).join("")}</div>`:'<p class="mut">背包沒有要擺的家具，去家具行買</p>';
+ $("mbody").innerHTML=`<h2>佈置莊園</h2><p class="mut">莊園家具 ${fp.length}/30 件 · 沒人限制，想怎麼擺都行（管家與吊燈、立燈、地毯、盆栽是固定的）</p><canvas id="hm" class="hm" width="${W*RC}" height="${H*RC}"></canvas>${ctl}${bag}<div class="row"><button id="mg">莊園管理</button><button id="mc" class="pri">完成</button></div>`;
+ $("mc").onclick=()=>$("modal").classList.add("hide");$("mg").onclick=()=>estateCtlModal();
+ const cv=$("hm");drawEstEdit(cv,rm,sel);
+ cv.onclick=async ev=>{const b=cv.getBoundingClientRect(),cx=Math.floor((ev.clientX-b.left)/b.width*W),cy=Math.floor((ev.clientY-b.top)/b.height*H),at=rm.items.find(a=>a[1]==cx&&a[2]==cy&&a[0]!="ecarpet")||rm.items.find(a=>a[1]==cx&&a[2]==cy);
+  if(at&&(at[3]||at[0])!=sel&&(blk(rm,at)||!sel)){estateEditModal(at[3]||at[0]);return}
+  if(at&&(at[3]||at[0])==sel){estateEditModal(null);return}
+  if(!sel||fixed)return;
+  const lo=dd?(dd[1]=="trophycase"?0:1):wallS?0:1,hi=wallS?0:H-1;if(cy<lo||cy>hi){toast(wallS?"這個要掛在牆上":"這個要放在地上");return}
+  await act("furn",{item:`${dd?"mv":"put"}:${sel}:${cx}:${cy}`});
+  const o2=R[me],r2=estRoomOf((o2&&o2.items)||{}),ok=r2.items.some(a=>(a[3]||a[0])==sel&&a[1]==cx&&a[2]==cy);estateEditModal(ok?null:sel)};
+ $("mbody").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>estateEditModal(sel==b.dataset.s?null:b.dataset.s));
+ $("mbody").querySelectorAll("[data-x]").forEach(b=>b.onclick=async()=>{const k=b.dataset.x;await act("furn",{item:EST_DEF.some(d=>d[0]==k)?`rm:${k}`:`clr:${k}`});estateEditModal(null)})}
+async function estateCtlModal(){UT.hit("estate:ctl");$("modal").classList.remove("hide");$("mbody").innerHTML='<p class="mut">載入莊園管理…</p>';
+ const call=async(op,target,note)=>{const j=await rpc("town_estate_ctl",{rid:me,pin,op,target:target==null?null:target,note:note==null?null:note});if(j&&j.error)throw new Error(j.error);return j};
+ const draw=j=>{const g=j.gate||"default",wl=new Set((j.wl||[]).map(a=>+a.id)),others=Object.values(R).filter(x=>x.id!=me).sort((a,b)=>a.id-b.id),
+   MODES=[["default","預設","莊主在裡面才能參觀；派對時全員可進"],["open","全開","任何人隨時能進來"],["lock","上鎖","只有你自己能進；派對期間仍開放"],["list","受邀名單","只有名單上的朋友能進，你不在也行"]];
+  $("mbody").innerHTML=`<h2>莊園管理</h2><p class="mut">決定誰能進你的莊園。派對進行中（30 分鐘內）全員都能進。</p><h3>進出模式</h3><div class="col" id="gm">${MODES.map(m=>`<button data-g="${m[0]}" class="${g==m[0]?"pri":""}" style="min-height:44px;text-align:left"><b>${g==m[0]?"✔ ":""}${m[1]}</b> <small class="mut">${m[2]}</small></button>`).join("")}</div>
+   <h3>受邀名單（${wl.size}/20）</h3>${others.length?`<div class="row" id="wl" style="justify-content:flex-start">${others.map(x=>`<button data-w="${x.id}" class="${wl.has(x.id)?"pri":""}" style="min-height:44px">${wl.has(x.id)?"✔ ":"＋ "}${esc(x.name)}</button>`).join("")}</div><p class="mut">點名字加入或移除。${g=="list"?"":"目前不是「受邀名單」模式，名單先存著。"}</p>`:'<p class="mut">鎮上還沒有別的居民</p>'}
+   <div class="row"><button id="me2">佈置莊園</button><button id="mc" class="pri">完成</button></div>`;
+  $("mc").onclick=()=>$("modal").classList.add("hide");$("me2").onclick=()=>estateEditModal();
+  $("mbody").querySelectorAll("[data-g]").forEach(b=>b.onclick=async()=>{try{UT.hit("estate:gate:"+b.dataset.g);const j2=await call("gate",null,b.dataset.g);await refresh();draw(j2);toast("進出模式已更新")}catch(e){toast(e.message)}});
+  $("mbody").querySelectorAll("[data-w]").forEach(b=>b.onclick=async()=>{try{const id=+b.dataset.w,j2=await call(wl.has(id)?"wl_del":"wl_add",id,null);await refresh();draw(j2)}catch(e){toast(e.message)}})};
+ try{draw(await call("view",null,null))}catch(e){$("mbody").innerHTML=`<p class="err">${esc(e.message||"連不上小鎮，再試一次")}</p><div class="row"><button id="mc">關閉</button></div>`;$("mc").onclick=()=>$("modal").classList.add("hide")}}
 // ── 證券交易所（大富翁式：8 檔虛構股票、全天開、沒手續費；規則與 town_stock.sql 一致）──
 const stockItems=r=>{const s=(r.items||{}).st||{};return {h:s.h||{}}};
 let QUOTES=null;
@@ -2556,7 +2604,7 @@ async function exitFriend(){const r=R[me];if(vin(r)){r.items={...r.items};delete
 const NOENTER={};
 const FACTS=new Set(["work","cowork","job","buy","browse","movie","spar","sneak","vbuy","license","insure","vfix","vsell","dine","coffee","workout","paytk"]);
 async function ensureIn(){const r=R[me];if(!r||!ROOMS[r.place]||NOENTER[r.place]||fin(r)||r.sleeping||jailed(r)||r.place=="jail"||walkers[me]&&walkers[me].path.length)return;await enterRoom(r.place,true)}
-async function enterRoom(pl,quiet){try{await rpc("town_fi",{rid:me,pin,op:"enter",pl});UT.hit("fac:enter:"+pl);window.SFX&&SFX.play("door");await refresh();shelfNews(pl)}catch(e){if(/還不能進去/.test(e.message))NOENTER[pl]=1;else if(!quiet)toast(e.message)}renderPanel()}
+async function enterRoom(pl,quiet){try{await rpc("town_fi",{rid:me,pin,op:"enter",pl});UT.hit("fac:enter:"+pl);window.SFX&&SFX.play("door");await refresh();shelfNews(pl)}catch(e){if(/還不能進去/.test(e.message))NOENTER[pl]=1;else if(!quiet||String(pl).startsWith("estate:"))toast(e.message)}renderPanel()}
 async function exitRoom(){const xp=R[me]&&R[me].place;leaveRoomLocal();try{await rpc("town_fi",{rid:me,pin,op:"exit"});UT.hit("fac:exit:"+String(xp).replace(/^home:.*/,"home"));await refresh()}catch(e){toast(e.message)}renderPanel()}
 function leaveRoomLocal(){const r=R[me];if(vin(r)){r.items={...r.items};delete r.items.fv}if(!fin(r))return false;r.items={...r.items};delete r.items.fi;rpc("town_fi",{rid:me,pin,op:"exit"}).catch(()=>{});return true}
 // 室內互動動畫：角色走到對應物件旁（約 0.4 秒）→ 播動畫（約 0.9 秒）→ 走回來（約 0.3 秒），共 1.7 秒；只畫在 12×5 的小畫布，手機不卡
@@ -2578,7 +2626,7 @@ const PAIR_FX={fight:"punch",egg:"eggs",prank:"puff",splash:"splash",sticker:"st
 function playRoomFx(a,target){const r=R[me],rm=roomOf(r,R);if(!rm)return;const pf=PAIR_FX[a];
  const L=spotsBefore&&spotsBefore[target]?spotsBefore:lastSpots;
  if(pf&&target&&L[target]){const sp=L[target],mx=sp[0]>0?sp[0]-1:sp[0]+1;roomAnim={code:pf,it:[pf,mx,Math.max(0,sp[1]-1)],tv:null,home:!!rm.home,w:rw(rm),h:rh(rm),born:performance.now(),dur:1700,age:0,tgt:sp};loopRoom();return}
- let code=rm.home?HOME_ACT[a]:ROOM_ACT[a],tv=null;if(!code)return;if(!rm.home&&ROOM_ALT[a]&&!rm.items.some(o=>o[0]==code))code=ROOM_ALT[a];
+ let code=rm.home||(rm.est&&HOME_ACT[a])?HOME_ACT[a]:ROOM_ACT[a],tv=null;if(!code)return;if(!rm.home&&ROOM_ALT[a]&&!rm.items.some(o=>o[0]==code))code=ROOM_ALT[a];
  if(rm.home&&a=="tv"){tv=rm.items.find(o=>o[0]=="tvcab")||null;if(rm.items.some(o=>o[0]=="sofa"))code="sofa"}
  let it=rm.items.find(o=>o[0]==code);if(!it){if(!rm.home)return;it=[code,Math.floor(rw(rm)/2),2]}
  roomAnim={code,it,tv,home:!!rm.home,w:rw(rm),h:rh(rm),born:performance.now(),dur:1700,age:0};loopRoom()}
@@ -2650,11 +2698,11 @@ function drawRoom(){const cv=$("room");if(!cv)return;const r=R[me],rm=roomOf(r,R
  c.fillStyle=rm.wall;c.fillRect(0,0,W*C,C);for(let y=1;y<H;y++)for(let x=0;x<W;x++){c.fillStyle=rm.floor[(x+y)%2];c.fillRect(x*C,y*C,C,C)}
  {const hr=new Date(Date.now()+8*36e5).getUTCHours();if(!rm.home&&(hr>=19||hr<6)){c.fillStyle="rgba(20,20,70,.26)";c.fillRect(0,C,W*C,(H-1)*C)}}
  c.fillStyle="rgba(0,0,0,.25)";c.fillRect(0,C-3,W*C,3);
- for(const o of rm.items){if(rm.home){furnDraw(c,o[0],o[1]*C,o[2]*C,C);continue}const im=roomImg(ITEM[o[0]][0]);if(im.complete&&im.naturalWidth)c.drawImage(im,o[1]*C,o[2]*C,C,C)}
+ for(const o of rm.items){if(rm.home||!ITEM[o[0]]){furnDraw(c,o[0],o[1]*C,o[2]*C,C);continue}const im=roomImg(ITEM[o[0]][0]);if(im.complete&&im.naturalWidth)c.drawImage(im,o[1]*C,o[2]*C,C,C)}
  for(const NP of (rm.home?[]:[[r.place,rm.npc]].concat((rm.npc2||[]).map(a=>[a[0],[a[1],a[2]]])))){if(!NP[1])continue;const P0=r.place,P=NP[0],nn=NPCS[P],t=Date.now(),nx=(NP[1][0]+.5)*C,ny=NP[1][1]*C+2,cnt=Object.values(R).filter(o=>o.place==P0&&fin(o)&&!o.sleeping).length;drawChar(c,nx,ny,1.05,{hair:nn.hair},{moving:false},Math.floor(t/90));c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.fillStyle="#9fe3ff";c.strokeText(nn.n,nx,Math.max(11,ny-30));c.fillText(nn.n,nx,Math.max(11,ny-30));if(t%9000<4000){const tx=npcSay(P,t,cnt),w=Math.min(W*C-4,tx.length*11+10),bx=Math.max(2,Math.min(W*C-w-2,nx-w/2));c.fillStyle="#fff";c.fillRect(bx,ny-52,w,16);c.strokeStyle="#1b1b2f";c.lineWidth=1;c.strokeRect(bx,ny-52,w,16);c.fillStyle="#1b1b2f";c.textAlign="left";c.fillText(tx,bx+5,ny-40)}}
  if(rm.guests&&!rm.home&&r.place=="casino"){const occ=new Set(Object.values(lastSpots||{}).map(a=>a[0]+","+a[1])),t=Date.now();rm.guests.forEach((g,k)=>{if(occ.has(g[0]+","+g[1]))return;drawChar(c,(g[0]+.5)*C,g[1]*C+2,1.05,{hair:g[2]},{moving:false},Math.floor(t/90)+k)});}
  const here=rm.home?(rm.visit?[tickLocal(R[rm.hid],now()),...Object.values(R).filter(o=>o.id!=rm.hid&&vin(o)&&+o.items.fv==rm.hid&&!o.sleeping&&!(walkers[o.id]&&walkers[o.id].path.length)).sort((a,b)=>(b.id==me)-(a.id==me))]:[r]):Object.values(R).filter(o=>o.place==r.place&&fin(o)&&(o.place=="jail"||!jailed(o))&&!(walkers[o.id]&&walkers[o.id].path.length)).sort((a,b)=>(b.id==me)-(a.id==me)),spots=roomSpots(rm);
- const beds=rm.home?[]:rm.items.filter(q=>q[0]=="hbed"||q[0]=="bunk");let bi=0;
+ const beds=rm.home?[]:rm.items.filter(q=>q[0]=="hbed"||q[0]=="bunk"||(rm.est&&q[0]=="bed"));let bi=0;
  lastSpots={};here.slice(0,Math.max(1,spots.length)).forEach((o,i)=>{const sp=spots[i]||[Math.floor(W/2),2];lastSpots[o.id]=sp;let x=(sp[0]+.5)*C,y=sp[1]*C+2,mv=false;
   if(!rm.home&&o.sleeping){const bd=beds[bi++]||null,bx=bd?(bd[1]+.5)*C:x,by=bd?bd[2]*C+C-4:y;c.save();c.translate(bx,by-2);c.rotate(-Math.PI/2);drawChar(c,0,0,1.05,o.look,{moving:false},0);c.restore();c.font="11px 'Cubic 11',monospace";c.textAlign="center";c.lineWidth=3;c.strokeStyle="#1b1b2f";c.fillStyle="#fff";c.strokeText("Z z",bx+4,by-C+2);c.fillText("Z z",bx+4,by-C+2);c.strokeText(o.name.slice(0,4),bx,Math.max(11,by-C-8));c.fillStyle=o.id==me?"#fee761":"#fff";c.fillText(o.name.slice(0,4),bx,Math.max(11,by-C-8));return}
   if(rm.home&&o.sleeping&&!(roomAnim&&roomAnim.code=="bed"&&roomAnim.age<.25)){const bd=rm.items.find(q=>q[0]=="bed"),bx=bd?(bd[1]+.5)*C:x,by=bd?bd[2]*C+C-4:y;c.save();c.translate(bx,by-2);c.rotate(-Math.PI/2);drawChar(c,0,0,1.05,o.look,{moving:false},0);c.restore();
@@ -2678,8 +2726,8 @@ if(P=="casinobar"){const tp=casTop();rows.push(["賭場榜第一",tp?`${tp.name}
 function roomTap(fx,fy){const r=R[me],rm=roomOf(r,R);if(!rm)return;if(rm.visit&&!vin(r)){interiorModal(rm.hid);return}const cx=Math.floor(fx*rw(rm)),cy=Math.floor(fy*rh(rm)),pid=Object.keys(lastSpots).find(k=>+k!=me&&lastSpots[k][0]==cx&&(lastSpots[k][1]==cy||lastSpots[k][1]-1==cy));   // 人的腳在格子上緣、身體畫在上一格，兩格都算點到
  if(rm.npc&&!rm.home&&cx==rm.npc[0]&&(cy==rm.npc[1]||cy==rm.npc[1]-1)){npcModal(r.place);return}
  {const n2=(rm.npc2||[]).find(a=>cx==a[1]&&(cy==a[2]||cy==a[2]-1));if(n2){npcModal(n2[0]);return}}
- if(pid){sel=sel==+pid?null:+pid;renderPanel();return}const o=rm.items.find(o=>o[1]==cx&&o[2]==cy);if(!o){if(rm.home&&!r.sleeping&&!rm.visit)interiorModal(me);return}
- const d=rm.home?[0,(FURN.find(a=>a[0]==o[0])||[0,o[0]])[1],HACT[o[0]]?HACT[o[0]][0]:null]:ITEM[o[0]];if(!d[2]){if(rm.home)interiorModal(me);else toast(d[1]);return}
+ if(pid){sel=sel==+pid?null:+pid;renderPanel();return}const o=rm.items.find(o=>o[1]==cx&&o[2]==cy);if(!o){if(rm.home&&!r.sleeping&&!rm.visit)interiorModal(me);else if(rm.est&&r.place=="estate:"+me&&!r.sleeping)estateEditModal();return}
+ const mineE=rm.est&&r.place=="estate:"+me,d=rm.home?[0,(FURN.find(a=>a[0]==o[0])||[0,o[0]])[1],HACT[o[0]]?HACT[o[0]][0]:null]:ITEM[o[0]]&&!(mineE&&HACT[o[0]]&&o[0]!="plant")?ITEM[o[0]]:[0,ITEM[o[0]]?ITEM[o[0]][1]:(FURN.find(a=>a[0]==o[0])||[0,o[0]])[1],HACT[o[0]]?HACT[o[0]][0]:null];if(!d[2]){if(rm.home)interiorModal(me);else if(mineE&&!r.sleeping)estateEditModal();else toast(d[1]);return}
  const i=panelFns.findIndex(f=>d[2].test(f.label));let el=i<0?null:document.querySelector(`#panel button[data-i="${i}"]`);if(i>=0&&!el){panelFnTab(panelFns[i]);el=document.querySelector(`#panel button[data-i="${i}"]`)}if(el)el.click();else toast(`${d[1]}現在不能用`)}
 {const cv=typeof document!=="undefined"&&document.getElementById("room");if(cv)cv.addEventListener("click",ev=>{const b=cv.getBoundingClientRect();roomTap((ev.clientX-b.left)/b.width,(ev.clientY-b.top)/b.height)})}
 // 主畫面帶屋內：自己人在室內（設施裡、自己家屋裡、朋友家屋裡；醫院住院的人也算）而且沒在走路時，主畫面改畫室內（放大），不再畫地圖；點物件、點人和面板按鈕一樣用

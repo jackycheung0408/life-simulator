@@ -368,7 +368,7 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(tjs.includes("function stageRoom()")&&tjs.includes("function drawRoomStage()")&&tjs.includes("if(drawRoomStage())return;")&&tjs.includes("if(stageRoom()){stageTap(e);return}"),"在室內時主畫面要改畫室內（frame 開頭畫室內並 return、點擊走 stageTap）");
  check(tjs.includes("function roomTap(fx,fy)")&&tjs.includes("lastSpots[k][1]-1==cy"),"點室內的人與物件走 roomTap（人的身體畫在腳的上一格，兩格都算點到）");
  check(tjs.includes('cv.classList.toggle("hide",!show||!!stageRoom())'),"自己在室內時，面板的小畫布不顯示（主畫面已經有室內）");
- check(tjs.includes('const beds=rm.home?[]:rm.items.filter(q=>q[0]=="hbed"||q[0]=="bunk")')&&tjs.includes("if(!rm.home&&o.sleeping)"),"住院、坐牢睡著的人要躺在病床、上下鋪上")}
+ check(tjs.includes('const beds=rm.home?[]:rm.items.filter(q=>q[0]=="hbed"||q[0]=="bunk"')&&tjs.includes("if(!rm.home&&o.sleeping)"),"住院、坐牢睡著的人要躺在病床、上下鋪上")}
 // 公共建設：醫院、警察局、市政廳（supabase/town_civic.sql；前端 HOSP／POLICE／CIVIC 要和 SQL 一致）
 {const fs=require("fs"),csql=fs.readFileSync(__dirname+"/../supabase/town_civic.sql","utf8"),tsql=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8"),jsql=fs.readFileSync(__dirname+"/../supabase/town_jail.sql","utf8"),tjs=fs.readFileSync(__dirname+"/town.js","utf8");
  const names=["hospital","police","townhall"];
@@ -539,6 +539,14 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(sq.split("\n").slice(0,4).every(l=>/^--/.test(l)||l.trim()==""),"town_estate_plot.sql 檔頭每行都要是註解");
  check(/py > 120/.test(sq)&&/\^estate:\\d\+\$/.test(sq)&&/town_estate_gate/.test(sq)&&/'pt'/.test(sq)&&/estate_plot/.test(sq),"town_estate_plot.sql 要含 py 放寬、estate 白名單、進入規則、派對開放、遷移");
  check(!/it\.lx&&it\.lx\.estate/.test(tj),"房子不能再因 lx.estate 換外觀（莊園是獨立一棟）");}
+{const fs=require("fs"),tj=fs.readFileSync(__dirname+"/town.js","utf8"),sq=fs.readFileSync(__dirname+"/../supabase/town_estate_free.sql","utf8");
+ check(sq.split("\n").slice(0,4).every(l=>/^--/.test(l)||l.trim()==""),"town_estate_free.sql 檔頭每行都要是註解");
+ check(/town_inside/.test(sq)&&/town_fu/.test(sq)&&/town_furn/.test(sq)&&/town_estate_gate/.test(sq)&&/town_estate_ctl/.test(sq)&&/efc/.test(sq),"town_estate_free.sql 要補 town_inside／town_fu／town_furn／town_estate_gate 並有 town_estate_ctl");
+ const def=[...sq.matchAll(/\{"k":"(\w+)","c":"(\w+)","x":(\d+),"y":(\d+),"m":(\d)\}/g)].map(m=>[m[1],m[2],+m[3],+m[4],+m[5]]),fj=(tj.match(/const EST_DEF=(\[\[[^;]*\]\]);/)||[])[1];
+ check(!!fj&&JSON.stringify(eval(fj))==JSON.stringify(def),"前端 EST_DEF 要和 SQL town_estate_def 一致");
+ const room=tj.match(/const ROOM_EST=\{[^\n]*\n/);if(room&&fj){const its=[...room[0].matchAll(/\["(\w+)",(\d+),(\d+)\]/g)].map(m=>m[1]+m[2]+","+m[3]).sort().join("|"),d2=eval(fj).map(a=>a[1]+a[2]+","+a[3]).sort().join("|");check(its==d2,"ROOM_EST 預設物件要和 EST_DEF 一致")}
+ check(/function estateEditModal/.test(tj)&&/function estateCtlModal/.test(tj)&&/town_estate_ctl/.test(tj)&&/homeLife\(r\)/.test(tj),"要有莊園佈置、莊園管理與共用的生活按鈕");
+ check(/\\^mv:/.test(sq.replace(/\\\\/g,"\\"))||/'\^mv:/.test(sq),"town_estate_furn 要支援 mv／rm／rs")}
 {const sq=require("fs").readFileSync(__dirname+"/../supabase/town_estate_plot.sql","utf8");
  const calls=sq.split("select public.town_estate_patch(").slice(1);check(calls.length>=7,"town_estate_plot.sql 應有 7 個以上的 patch");
  calls.forEach(c=>{const body=c.slice(0,c.indexOf(");\n")+1),lits=[...body.matchAll(/'((?:[^']|'')*)'/g)].map(m=>m[1].replace(/''/g,"'")),bal=x=>(x.match(/\(/g)||[]).length-(x.match(/\)/g)||[]).length;

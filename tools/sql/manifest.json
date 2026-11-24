@@ -1164,6 +1164,21 @@
    ]
   },
   {
+   "file": "town_estate_free.sql",
+   "kind": "patch",
+   "needs": [
+    "town_estate_plot.sql"
+   ],
+   "note": "莊園自由：家居動作在莊園室內可用（town_inside／town_fu／town_furn 補丁、莊園家具 lx.efp）、進出控管 lx.gate／wl（town_estate_gate 補丁、town_estate_ctl）、預設物件佈局 lx.ro；重套 town.sql／town_fi.sql／town_estate_plot.sql 後要再套"
+  },
+  {
+   "file": "town_estate_free_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_estate_free.sql"
+   ]
+  },
+  {
    "file": "town_errlog.sql",
    "kind": "patch",
    "needs": [

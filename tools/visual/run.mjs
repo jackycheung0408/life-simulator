@@ -55,7 +55,48 @@ const SC=[
  {n:"modal-goods",mut:r=>{r.place="market";r.x=28;r.y=14;r.items.fi="market"},run:async p=>{await p.evaluate(()=>{const b=[...document.querySelectorAll('#acts button,#mainrow button')].find(x=>x.textContent.includes('逛貨架'));if(b)b.click()});await p.waitForTimeout(700)},soft:1},
  {n:"estate-home",mut:r=>{r.place="home:"+r.id;r.items.dr=1;r.items.lx={estate:"2026-11-24",ep:0};r.items.hl=4}},
  {n:"estate-yard",mut:r=>{r.place="street";r.x=6;r.y=31;r.items.lx={estate:"2026-11-24",ep:0}}},
- {n:"in-estate",mut:r=>{r.place="estate:"+r.id;r.x=5;r.y=31;r.items.lx={estate:"2026-11-24",ep:0};r.items.fi="estate:"+r.id}},
+ {n:"in-estate",mut:r=>{r.place="estate:"+r.id;r.x=5;r.y=31;r.items.fi="estate:"+r.id;r.items.f=["bed","fridge","toilet","shower","tvcab","sofa"];r.items.lx={estate:"2026-11-24",ep:0,efp:[["fridge",1,1],["toilet",2,1],["shower",3,1],["tvcab",7,1],["sofa",7,3],["bed",11,1]],efc:["fridge","toilet","shower","tvcab","sofa","bed"],ro:{piano:null,fount:[4,4]},gate:"list",wl:[2]}}},
+ {n:"estate-manage",mut:r=>{r.place="estate:"+r.id;r.x=5;r.y=31;r.items.fi="estate:"+r.id;r.items.f=["bed","fridge","toilet","shower","tvcab","sofa"];r.items.lx={estate:"2026-11-24",ep:0,efp:[["fridge",1,1],["toilet",2,1],["shower",3,1],["tvcab",7,1],["sofa",7,3],["bed",11,1]],efc:["fridge","toilet","shower","tvcab","sofa","bed"],ro:{piano:null,fount:[4,4]},gate:"list",wl:[2]}},run:async p=>{await p.evaluate(()=>{const b=[...document.querySelectorAll("#acts button")].find(x=>/莊園管理/.test(x.textContent));if(b)b.click()});await p.waitForTimeout(600)},soft:1},
+ {n:"estate-flow",mut:r=>{r.place="estate:"+r.id;r.x=5;r.y=31;r.items.fi="estate:"+r.id;r.items.f=["bed","fridge","toilet","shower","tvcab","sofa","rug","massage","plant"];r.items.lx={estate:"2026-11-24",ep:0};r.hunger=30;r.bladder=30;r.hygiene=30;r.fun=30;r.energy=40;r.money=5000},run:async p=>{
+   const vp=p.viewportSize(),tag=`${vp.width}x${vp.height}`,L=[],ck=(k,v,m)=>L.push(`${v?"OK ":"NG "}${k}${m?"："+m:""}`);
+   const me=()=>p.evaluate(()=>JSON.parse(sessionStorage.getItem("mockdb")).res.find(x=>x.id==1));
+   const shot=n=>p.screenshot({path:path.join(OUT,`${tag}-estate-flow-${n}.png`)});
+   const click=async re=>{const find=src=>p.evaluate(src=>{const rg=new RegExp(src),vis=e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0};const b=[...document.querySelectorAll("#mbody button, #acts button, #mainrow button, #pinbox button")].filter(vis).find(x=>rg.test(x.textContent.trim().replace(/^[^\u4e00-\u9fa5A-Za-z0-9✔＋]+/,"")));if(b){b.click();return true}return false},src);let ok=await find(re.source);if(!ok){const n=await p.evaluate(()=>document.querySelectorAll("#ptabs button").length);for(let i=0;i<n&&!ok;i++){await p.evaluate(i=>document.querySelectorAll("#ptabs button")[i].click(),i);await p.waitForTimeout(250);ok=await find(re.source)}}await p.waitForTimeout(450);return ok};
+   const cell=async(x,y)=>{const bb=await p.evaluate(()=>{const c=document.getElementById("hm");if(!c)return null;const r=c.getBoundingClientRect();return [r.left,r.top,r.width,r.height]});if(!bb)return false;await p.mouse.click(bb[0]+(x+.5)/12*bb[2],bb[1]+(y+.5)/5*bb[3]);await p.waitForTimeout(450);return true};
+   // A 家裡的事
+   let a=await me();ck("在莊園室內",a.place=="estate:1"&&a.items.fi=="estate:1");await shot(0);
+   let h0=a.hunger;ck("按得到吃飯",await click(/^吃飯/));a=await me();ck("吃飯有效",a.hunger>h0,`${h0}→${a.hunger}`);
+   ck("按得到上廁所",await click(/^上廁所/));a=await me();ck("上廁所有效",a.bladder==100);
+   ck("按得到洗澡",await click(/^洗澡/));a=await me();ck("洗澡有效",a.hygiene==100);
+   let f0=a.fun;ck("按得到看電視",await click(/^看電視/));a=await me();ck("看電視有效",a.fun>f0);
+   let e0=a.energy;ck("按得到快速休息",await click(/^快速休息/));a=await me();ck("快速休息有效",a.energy>e0);
+   ck("按得到睡覺",await click(/^睡覺/));a=await me();ck("睡覺後仍在莊園",a.sleeping&&a.place=="estate:1",`sleeping=${a.sleeping}`);await shot(1);
+   ck("睡著有起床鈕",await click(/^起床/));a=await me();ck("起床後仍在莊園",!a.sleeping&&a.place=="estate:1");
+   ck("按得到快速睡覺",await click(/^快速睡覺/));a=await me();ck("快速睡覺在莊園",a.sleeping&&a.place=="estate:1");await click(/^起床/);
+   // 擺家具
+   ck("開佈置莊園",await click(/^佈置莊園/));await shot(2);
+   ck("選背包的地毯",await click(/^地毯/));ck("放地毯到(2,3)",await cell(2,3));a=await me();ck("地毯進 efp",((a.items.lx||{}).efp||[]).some(o=>o[0]=="rug"&&o[1]==2&&o[2]==3),JSON.stringify((a.items.lx||{}).efp));
+   ck("選背包的床",await click(/^好床/));ck("放床到(11,1)",await cell(11,1));a=await me();ck("床進 efc",((a.items.lx||{}).efc||[]).includes("bed"));
+   ck("選鋼琴",await cell(10,4));ck("移鋼琴到(9,3)",await cell(9,3));a=await me();ck("鋼琴 ro",JSON.stringify((a.items.lx||{}).ro||{}).includes('"piano":[9,3]'),JSON.stringify((a.items.lx||{}).ro));
+   ck("選噴水池",await cell(5,2));ck("收回噴水池",await click(/^收回/));a=await me();ck("噴水池收回 ro=null",((a.items.lx||{}).ro||{}).fount===null);await shot(3);
+   ck("收起的擺設可放回",await click(/噴水池.*收起/));ck("放回(5,1)",await cell(5,1));a=await me();ck("噴水池新位置",JSON.stringify((a.items.lx||{}).ro||{}).includes('"fount":[5,1]'));
+   ck("點固定吊燈不動",await cell(2,0));await p.waitForTimeout(200);await shot(4);
+   // 莊園管理
+   ck("開莊園管理",await click(/^莊園管理/));await shot(5);
+   ck("改全開",await click(/^✔?\s*全開/));a=await me();ck("gate=open",(a.items.lx||{}).gate=="open");
+   ck("改上鎖",await click(/上鎖/));a=await me();ck("gate=lock",(a.items.lx||{}).gate=="lock");
+   const ent=()=>p.evaluate(async()=>{const r=await fetch("/rest/v1/rpc/town_fi",{method:"POST",body:JSON.stringify({rid:2,pin:"x",op:"enter",pl:"estate:1"})});return r.status+" "+(await r.text()).slice(0,60)});
+   const t1=await ent();ck("上鎖：乙被擋",/^400/.test(t1)&&/上鎖/.test(t1),t1);
+   ck("改受邀名單",await click(/受邀名單/));a=await me();ck("gate=list",(a.items.lx||{}).gate=="list");
+   const t2=await ent();ck("名單：乙(未受邀)被擋",/^400/.test(t2)&&/受邀/.test(t2),t2);
+   const nm=await p.evaluate(()=>[...document.querySelectorAll("#wl button")].map(b=>b.textContent));ck("名單有朋友可加",nm.length>0,nm.join("/"));
+   if(nm.length){ck("加入第一位",await p.evaluate(()=>{const b=document.querySelector("#wl button");if(b){b.click();return true}return false}));await p.waitForTimeout(500);a=await me();ck("wl 寫入",((a.items.lx||{}).wl||[]).length==1,JSON.stringify((a.items.lx||{}).wl));await shot(6);
+    const t3=await ent();ck("名單：受邀者可進",/^200/.test(t3),t3);
+    await p.evaluate(()=>{const b=document.querySelector("#wl button");b&&b.click()});await p.waitForTimeout(500);a=await me();ck("再點移除",!((a.items.lx||{}).wl||[]).length)}
+   ck("改預設",await click(/^預設/));a=await me();ck("gate 還原",(a.items.lx||{}).gate===undefined);
+   ck("完成關閉",await click(/^完成/));await p.waitForTimeout(300);await shot(7);
+   console.log("\nFLOW "+tag+"\n"+L.join("\n"))},soft:1},
+ {n:"estate-edit",mut:r=>{r.place="estate:"+r.id;r.x=5;r.y=31;r.items.fi="estate:"+r.id;r.items.f=["bed","fridge","toilet","shower","tvcab","sofa"];r.items.lx={estate:"2026-11-24",ep:0,efp:[["fridge",1,1],["toilet",2,1],["shower",3,1],["tvcab",7,1],["sofa",7,3],["bed",11,1]],efc:["fridge","toilet","shower","tvcab","sofa","bed"],ro:{piano:null,fount:[4,4]},gate:"list",wl:[2]}},run:async p=>{await p.evaluate(()=>{const b=[...document.querySelectorAll("#acts button")].find(x=>/佈置莊園/.test(x.textContent));if(b)b.click()});await p.waitForTimeout(600)},soft:1},
  {n:"modal-civic",mut:r=>{r.place="townhall";r.x=68;r.y=5},run:async p=>{await clickText(p,"市政廳大廳");await p.waitForTimeout(500)},soft:1},
  {n:"onboarding-comic",mut:r=>{r.place="plaza"},run:async p=>{await p.click("#menuBtn");await p.click("#obBtn");await p.waitForTimeout(500)},soft:1},
  {n:"onboarding-task",mut:r=>{r.place="street";r.x=15;r.y=12;r.items.tr=[];r.items.wish={k:"rich",m:0};r.items.at={init:1};globalThis.__obid=r.id},run:async p=>{await p.evaluate(id=>localStorage.setItem("town-ob_"+id,'{"d":[]}'),globalThis.__obid);await p.waitForTimeout(3200)},soft:1},
