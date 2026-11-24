@@ -1270,6 +1270,22 @@
    ]
   },
   {
+   "file": "town_casino_nogap.sql",
+   "kind": "patch",
+   "needs": [
+    "town_casino_resume.sql"
+   ],
+   "note": "取消賭場每局間隔 3 秒；就地改 town_casino；重套 town_casino*.sql／town_bj2／town_casino_resume 後要再套"
+  },
+  {
+   "file": "town_casino_nogap_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_casino_nogap.sql"
+   ],
+   "note": "取消間隔後連續呼叫、籌碼守恆、鎖、獎池、計數回滾實測"
+  },
+  {
    "file": "town_fix_numbers.sql",
    "kind": "patch",
    "needs": [
