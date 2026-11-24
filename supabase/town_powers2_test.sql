@@ -45,7 +45,7 @@ begin
   -- 規模係數：另一個 11 人的鎮 → 3000 × 2.2 = 6600
   cr := public.town_create('ZZP2C','甲','1234'); tid3 := cr->>'town_id';
   for i in 1..10 loop perform public.town_join(tid3,(select invite from public.town_towns where id = tid3),'民'||i,'1234'); end loop;
-  rep := rep||'規模費用：4 人鎮 '||public.town_pw2_cost(tid,1)||'／4 人鎮 '||public.town_pw2_cost(tid,1)||'／11 人鎮 '||public.town_pw2_cost(tid3,1)||'／'||public.town_pw2_cost(tid3,2)||'／'||public.town_pw2_cost(tid3,3)||'（期望 3000／6600／17600／4400；鎮最多 12 人，係數上限實際 2.4）'||E'\n';
+  rep := rep||'規模費用：4 人鎮 '||public.town_pw2_cost(tid,1)||'／11 人鎮 '||public.town_pw2_cost(tid3,1)||'／'||public.town_pw2_cost(tid3,2)||'／'||public.town_pw2_cost(tid3,3)||'（期望 3000／6600／17600／4400；鎮最多 12 人，係數上限實際 2.4）'||E'\n';
 
   -- 2) 任命官員
   update public.town_residents set seen_at = now() where town_id = tid;
