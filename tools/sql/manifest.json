@@ -1003,6 +1003,23 @@
    ]
   },
   {
+   "file": "town_powers2.sql",
+   "kind": "patch",
+   "needs": [
+    "town_powers.sql",
+    "town_world.sql",
+    "town_move.sql"
+   ],
+   "note": "鎮長管理權第二批：全鎮活動 event、任命官員 appoint、全民紅包 payout、搬設施 relocate（登錄）；就地補丁 town_pw_*／town_power／town_world；重套 town_powers.sql／town_world.sql 後要再套"
+  },
+  {
+   "file": "town_powers2_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_powers2.sql"
+   ]
+  },
+  {
    "file": "town_catalog1.sql",
    "kind": "patch",
    "needs": [
