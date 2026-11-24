@@ -513,8 +513,8 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  fs.readdirSync(sd).filter(f=>f.endsWith(".sql")).forEach(f=>check(inM.has(f)||(mf.ignore||[]).includes(f),"supabase/"+f+" 要加進 tools/sql/manifest.json（files 或 ignore）"))}
 {const fs=require("fs"),sql=fs.readFileSync(__dirname+"/../supabase/town_casino_rank.sql","utf8"),js=fs.readFileSync(__dirname+"/town.js","utf8");
  check(sql.split("\n").slice(0,4).every(l=>/^--/.test(l)||l.trim()==""),"town_casino_rank.sql 檔頭每行都要是註解");
- check(/town_casino_log/.test(sql)&&/'casino'\]/.test(sql)&&!/create or replace function public\.town_casino(_state)?\(/.test(sql)&&/from public, anon, authenticated/.test(sql),"town_casino_rank.sql 讀 town_casino_log、不重建 town_casino、revoke 含 anon");
- check(/\["casino","賭神"/.test(js),"排行榜前端要有賭神分頁");}
+ check(/town_casino_log/.test(sql)&&/'casino','casino_all'\]/.test(sql)&&!/create or replace function public\.town_casino(_state)?\(/.test(sql)&&/from public, anon, authenticated/.test(sql),"town_casino_rank.sql 讀 town_casino_log、不重建 town_casino、revoke 含 anon");
+ check(/\["casino","賭神（7 天）"/.test(js)&&/\["casino_all","賭神（累計）"/.test(js)&&/'casino_all'\]/.test(sql)&&/when 'casino_all' then[^;]*town_casino_log l where l\.rid = p\.id\), 0\)/.test(sql)&&/works' then coalesce\(\(p\.items->>'works'\)::bigint, 0\) \+ coalesce\(\(select sum[^]*?'jw'/.test(sql),"排行榜要有賭神（7 天）與（累計）兩榜，打工榜要加總 jw");}
 {const fs=require("fs"),sq=fs.readFileSync(__dirname+"/../supabase/town_persona.sql","utf8"),tj=fs.readFileSync(__dirname+"/town.js","utf8");check(/town_pf_clean\(j->>'nick', 6\)/.test(sq)&&/town_pf_clean\(s, 16\)/.test(sq)&&/> 3 then return json_build_object\('error','口頭禪最多 3 句/.test(sq),"人設 SQL 長度限制 6／16／3 句");check(/maxlength="6"/.test(tj)&&/maxlength="16"/.test(tj)&&/pd'->>'n'\)::int, 0\) >= 3/.test(sq),"人設前端 maxlength 與每天 3 個提議上限")}
 {const fs=require("fs"),tj=fs.readFileSync(__dirname+"/town.js","utf8"),sq=fs.readFileSync(__dirname+"/../supabase/town_estate_plot.sql","utf8");
  const g=re=>{const m=tj.match(re);return m?+m[1]:NaN};const PER=g(/EST_PER=(\d+)/),RH=g(/EST_ROWH=(\d+)/),W=g(/EST_W=(\d+)/),H=g(/EST_H=(\d+)/);

@@ -838,7 +838,14 @@
     "town_rank.sql",
     "town_casino.sql"
    ],
-   "note": "排行榜加賭場榜：town_casino_log 近 7 天淨贏（只列 >0）；重建 town_rank，不動 town_casino"
+   "note": "排行榜加賭場榜：近 7 天淨贏與累計淨贏（town_casino_log，只列 >0）；重建 town_rank，不動 town_casino"
+  },
+  {
+   "file": "town_casino_rank_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_casino_rank.sql"
+   ]
   },
   {
    "file": "town_econ.sql",
@@ -1126,6 +1133,29 @@
    "needs": [
     "town_estate_plot.sql"
    ]
+  },
+  {
+   "file": "town_errlog.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql"
+   ],
+   "note": "自建錯誤紀錄：town_errlog 表＋限速表、RPC town_errlog（anon、限速、截長、遮個資、2% 機率清 7 天前）、town_errlog_view（鎮長）"
+  },
+  {
+   "file": "town_errlog_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_errlog.sql"
+   ]
+  },
+  {
+   "file": "town_stress_test.sql",
+   "kind": "test",
+   "needs": [
+    "town.sql"
+   ],
+   "note": "壓測：交易內建 100 人，量 town_state／act／casino／rank／tick 單次成本與回傳大小，最後 rollback"
   }
  ]
 }

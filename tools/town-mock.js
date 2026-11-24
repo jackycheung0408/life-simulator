@@ -130,6 +130,7 @@ if(!String(url).includes("/rpc/"))return _fetch(url,o);const fn=url.split("/rpc/
  if(fn=="town_traveler"){if(b.op=="pick")return ok({msg:"親切地帶路，心情變好"});return ok({here:true,place:"plaza",q:1})}
  if(fn=="town_npc"){if(b.op=="buy")return ok({msg:"買了一件奇貨",bought:[b.item]});return ok({here:true,place:"plaza",until:new Date(Date.now()+36e5).toISOString(),bought:[]})}
  if(fn=="town_world"){if(b.op=="luck")return ok({msg:"路邊撿到 €40"});return ok({ev:{k:"market",name:"市集日",until:new Date(Date.now()+36e5).toISOString(),px:85,wd:100}})}
+ if(fn=="town_rank"){const L=(v)=>[[1,"小明",v],[2,"阿花",Math.round(v*.6)],[3,"老王",Math.round(v*.2)]].map(a=>({id:a[0],n:a[1],look:"pig",v:a[2]}));return ok({me:b.rid,boards:{rich:L(90000),streak:L(12),works:L(80),arcade:L(300),casino:L(4200),casino_all:L(68000)},at:Math.floor(Date.now()/1e3)})}
  if(fn=="town_zombie"){const r=R(b.rid);window.__ZB=window.__ZB||[{id:1,x:(r.x||10)+2,y:r.y||10,hp:3},{id:2,x:(r.x||10)-6,y:(r.y||10)+1,hp:3}];const night=(window.__night!==undefined?window.__night:true);if(!night){window.__ZB=[];return ok({z:[],night:false,hit:false,pork:0})}
   const it=r.items=Object.assign({},r.items);
   if(b.op=="hit"){const z=window.__ZB.find(q=>q.id==b.target);if(!z)return bad("喪屍豬不見了");z.hp--;if(z.hp<=0){window.__ZB=window.__ZB.filter(q=>q.id!=z.id);r.money+=40;it.zp=(it.zp||0)+1;return ok({z:window.__ZB,night:true,killed:true,msg:"打倒了一隻喪屍豬，掉了 €40，還掉了一塊生豬肉",pork:it.zp})}r.energy-=5;return ok({z:window.__ZB,night:true,msg:"揍了喪屍豬一拳",pork:it.zp||0})}
