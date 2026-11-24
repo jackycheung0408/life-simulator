@@ -355,6 +355,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"bal2-1124",date:"11/24",title:"財產稅調整",items:["100 萬以上稅率提高","500 萬以上再加重"]},
   {id:"bal1-1124",date:"11/24",title:"餓昏倒再減輕",items:["自動吃零食預設開啟","醒來後 30 分鐘不再餓昏"]},
   {id:"faint-1123",date:"11/23",title:"餓昏倒減輕",items:["餓昏倒醫藥費改階梯","我的人生可開自動吃零食"]},
   {id:"shops3-1123",date:"11/23",title:"市政廳櫃台",items:["拍賣出價、捐款在市政廳","小鎮經濟選單改導引"]},
@@ -1168,7 +1169,7 @@ const alN=r=>((r.items&&r.items.al)||{}).n||0;
 const lvOf=n=>{let l=0;AL.forEach((a,i)=>{if(n>=a[0])l=i});return l};// 0..4
 const alOf=r=>AL[lvOf(alN(r))];
 const wkLeft=r=>0;
-const taxOf=m=>Math.floor(Math.max(0,Math.min(m,1e5)-5e4)*0.003+Math.max(0,Math.min(m,1e6)-1e5)*0.008+Math.max(0,Math.min(m,5e6)-1e6)*0.015+Math.max(0,m-5e6)*0.03);const RENT=[400,800,1500,3000];const rentOf=r=>{const b=RENT[Math.min(3,Math.max(0,((r.items&&r.items.hl)||1)-1))];return b-Math.floor(b*alOf(r)[4]/100)};
+const taxOf=m=>Math.floor(Math.max(0,Math.min(m,1e5)-5e4)*0.003+Math.max(0,Math.min(m,1e6)-1e5)*0.008+Math.max(0,Math.min(m,5e6)-1e6)*0.03+Math.max(0,m-5e6)*0.05);const RENT=[400,800,1500,3000];const rentOf=r=>{const b=RENT[Math.min(3,Math.max(0,((r.items&&r.items.hl)||1)-1))];return b-Math.floor(b*alOf(r)[4]/100)};
 // 其他工作（和 town.sql 的 town_pjob_* 一致）：[名稱, 地點, 底薪, [精力,飽足,心情,清潔], SQL 的 act 營業鍵]；熟練 15 次 ×1.15、40 次 ×1.3；拉菲底薪 320／450／650，要先升到「員工」
 const pjN=(r,k)=>((r.items&&r.items.jw)||{})[k]||0;
 const pjPay=(k,r)=>Math.floor(payOf(pjWage(k,pjN(r,k)),r)*workPct(workToday(r))/100);

@@ -1014,6 +1014,21 @@
    "needs": [
     "town_bal1_faint.sql"
    ]
+  },
+  {
+   "file": "town_bal2_tax.sql",
+   "kind": "patch",
+   "needs": [
+    "town_econ.sql"
+   ],
+   "note": "平衡批2：財產稅階梯加高、kt 上限 2.0；town_tax 以此檔為準（取代 town.sql／town_balance2 的版本）"
+  },
+  {
+   "file": "town_bal2_tax_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_bal2_tax.sql"
+   ]
   }
  ]
 }
