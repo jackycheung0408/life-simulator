@@ -976,13 +976,43 @@
    "needs": [
     "town_catalog1.sql"
    ],
-   "note": "商品目錄第二批：咖啡廳、餐廳、電影院、健身房、公園、廣場 30 項；重建 town_catalog／town_goods"
+   "note": "商品目錄第二批：咖啡廳、餐廳、電影院、健身房、公園、廣場 30 項；重建 town_catalog／town_goods",
+   "superseded_funcs": [
+    "town_catalog",
+    "town_goods"
+   ],
+   "superseded_by": "town_shelf1.sql"
   },
   {
    "file": "town_catalog2_test.sql",
    "kind": "test",
    "needs": [
     "town_catalog2.sql"
+   ]
+  },
+  {
+   "file": "town_shelf1.sql",
+   "kind": "patch",
+   "needs": [
+    "town_catalog2.sql"
+   ],
+   "note": "店內商品每天輪替（超市／餐廳／咖啡廳）＋時段菜單＋節慶；重建 town_catalog／town_goods，新增 town_shelf_live／until／special、town_cat_sale 3 參數"
+  },
+  {
+   "file": "town_shelf2.sql",
+   "kind": "patch",
+   "needs": [
+    "town_shelf1.sql",
+    "town_fac.sql"
+   ],
+   "note": "town_fac 的特餐、特調名字改讀 town_shelf_special（就地改文字，只換名字）"
+  },
+  {
+   "file": "town_shelf1_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_shelf1.sql",
+    "town_shelf2.sql"
    ]
   },
   {
