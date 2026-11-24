@@ -137,7 +137,7 @@ const ERR=(()=>{const q=[],seen=new Set();let tm=0;const ver=()=>{try{return Str
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
 // ── 地圖：寬 34 格。市中心固定；住宅一排 3 間（5×4 格，門在正下方），住滿就往下多開一條街，最多 4 排 ──
-const T=32,COLS=85,MAXROWS=4;let NR=2,OFF=new Set(),POOPS=[];
+const T=32,COLS=85,MAXROWS=4;let OCC=new Set(),NR=2,OFF=new Set(),POOPS=[];
 // 鎮長可以關掉的設施
 const FEATS=[["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、打地鼠、記憶翻牌、下戰帖"],["casino","小豬賭場","押錢遊戲 9 種，用籌碼玩，換回現金抽 0.5%"],["rafi","拉菲's office","白領打工，薪水較高"],["stock","證券交易所","買賣 8 檔小豬鎮股票"],["zombie","喪屍豬","夜間街上會出現喪屍豬，打倒領獎"],["carshop","車行","買腳踏車、機車、汽車"],["lux","奢侈品","高級套餐、溫泉、旅行（錢多的人花錢用）"],["jail","監獄","砍人被抓的人關在這裡，可勞動、探監、保釋"],["hospital","醫院","昏倒、住院的人送這裡，可看診、探病"],["police","警察局","繳罰單、自首、報案、治安統計"],["townhall","市政廳","鎮基金、公告、居民投票、建設案"],["realty","不動產公司","房子升級、買莊園"],["harbor","碼頭船行","買遊艇"],["furnshop","家具行","買家具、小道具、門口擺飾"],["wearshop","服飾店","買造型服飾、試穿"]];
 const setOff=a=>{OFF=new Set(a||[])};const isOn=k=>!OFF.has(k);
@@ -247,7 +247,7 @@ const objNear=(k,x,y,place)=>{const o=OBJS[k];return o.place?place==o.place:Math
 const inRect=(x,y,[rx,ry,rw,rh])=>x>=rx&&x<rx+rw&&y>=ry&&y<ry+rh;
 const roadRowsAt=y=>y==6||y==7||y==15||y==16||(y>=22&&(y-22)%7<2&&Math.floor((y-22)/7)+2<NR);
 const isRoad=(x,y)=>y<mapRows()&&(roadRowsAt(y)||((x==16||x==17)&&!(y>=8&&y<=14)));
-const slotAt=(x,y)=>{for(let s=0;s<NR*3;s++){const [hx,hy]=homeXY(s);if(inRect(x,y,[hx,hy,5,4]))return s}return -1};
+const slotAt=(x,y)=>{for(let s=0;s<NR*3;s++){if(!OCC.has(s))continue;const [hx,hy]=homeXY(s);if(inRect(x,y,[hx,hy,5,4]))return s}return -1};
 function blocked(x,y){if(x<0||y<0||x>=COLS||y>=mapRows())return true;if(inRect(x,y,FOUNTAIN)||inRect(x,y,DOCK))return true;if(slotAt(x,y)>=0)return true;
  for(const k in PLACES)if(PLACES[k].block&&isOn(k)&&inRect(x,y,PLACES[k].r))return true;return false}
 // ── 交通工具（價格、速度、油錢要和 town.sql 的 vbuy／move 一致）：[名稱, 價格, 速度倍率, 每格油錢, 圖示] ──
@@ -656,7 +656,7 @@ function baccBig(bh){const rows=6,cells={},ties={};let last="",c=-1,r=0,maxc=-1,
   if(!last){c=0;r=0}else if(ch==last){if(r<rows-1&&!cells[key(c,r+1)])r++;else c++;while(cells[key(c,r)])c++}else{c=maxc+1;r=0}
   cells[key(c,r)]=ch;last=ch;maxc=Math.max(maxc,c);if(pend){ties[key(c,r)]=pend;pend=0}}
  const cols=Math.max(maxc+1,1),g=Array.from({length:cols},(_,x)=>Array.from({length:rows},(_,y)=>({w:cells[key(x,y)]||"",t:ties[key(x,y)]||0})));return g}
-if(typeof module!=="undefined")module.exports={DOCK,BOARDP,STATUEP,mnMult,crM,PLK,SCM,SCP,CHV,PIGW,PIGO1,PIGO2,PJPIPS,PJTYPE_PIPS,baccBig,baccBead,chipStack,CHIPD,DGM,SLW,SLPAY,KPAY,DSUM,RWHEEL,RRED,DGFEE,NIUM,VENACT,HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,TAP_DEF,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,JOBS,PJT,PJM,PJN,RFT,RFW,pjTier,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,happyAt,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
+if(typeof module!=="undefined")module.exports={__setOcc:a=>{OCC=new Set(a)},DOCK,BOARDP,STATUEP,mnMult,crM,PLK,SCM,SCP,CHV,PIGW,PIGO1,PIGO2,PJPIPS,PJTYPE_PIPS,baccBig,baccBead,chipStack,CHIPD,DGM,SLW,SLPAY,KPAY,DSUM,RWHEEL,RRED,DGFEE,NIUM,VENACT,HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,TAP_DEF,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,JOBS,PJT,PJM,PJN,RFT,RFW,pjTier,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,happyAt,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
 
 function init(){
 
@@ -736,7 +736,7 @@ $("lg").innerHTML=`${LP.top(list)}
 // ── 鎮內登入：我住在這裡，或用邀請碼搬進來 ──
 let refAt=0,obPend=0;async function refresh(){const st=await rpc("town_state",{tid:TID});refAt=Date.now();apply(st);if(me&&!acctChk&&!modalOpen()&&acctNag()){acctChk=1;setTimeout(()=>acctModal(1),500)}if(me)try{checkInvite();checkPk();checkWoken();checkPwn();checkPersona()}catch(e){}if(Date.now()-civT>6e4)civSync()}
 const seenLuck=new Set();
-function apply(st){S=st;try{estSync(st.residents)}catch(e){}try{UT.names(Object.values(R).map(r=>r.name))}catch(e){}setTimeout(popCheck,0);POOPS=st.poops||[];CUR="$";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>(e.kind=="luck"||e.kind=="rent"||e.kind=="ticket"||e.kind=="crash")&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
+function apply(st){S=st;OCC=new Set((st.residents||[]).map(r=>r.slot));try{estSync(st.residents)}catch(e){}try{UT.names(Object.values(R).map(r=>r.name))}catch(e){}setTimeout(popCheck,0);POOPS=st.poops||[];CUR="$";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>(e.kind=="luck"||e.kind=="rent"||e.kind=="ticket"||e.kind=="crash")&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
  st.residents.forEach(r=>{R[r.id]=r;const w=walkers[r.id];
   if(!w)walkers[r.id]={x:r.x,y:r.y,path:[],tx:r.x,ty:r.y};else if(r.id!=me&&(Math.abs(w.tx-r.x)>.01||Math.abs(w.ty-r.y)>.01)){const p=route([Math.round(w.x),Math.round(w.y)],[Math.round(r.x),Math.round(r.y)],vehOf(r));w.path=p?p.slice(1):[[r.x,r.y]]}
   walkers[r.id].tx=r.x;walkers[r.id].ty=r.y});
@@ -832,9 +832,8 @@ function forgotPw(id0){const host=$("lg");host.innerHTML="";const box=document.c
 function joinStep(){const free=[];for(let s=0;s<12;s++)if(!bySlot(s))free.push(s);const show=free.filter(s=>Math.floor(s/3)<NR);if(!show.length&&free.length)show.push(free[0]);let slot=show[0],look=randLook();
  $("lg").innerHTML=`${LP.scene(1)}${LP.stepBar(2)}<p><b>搬進${esc(S.town.name)}</b></p><label class="lpcode">邀請碼（問鎮長）<input id="inv" maxlength="8" autocomplete="off" style="text-transform:uppercase" value="${esc(savedInv())}"></label>
   <label>你的名字<input id="mn" maxlength="12"></label>
-  <p class="mut" style="margin:10px 0 4px">選一間空屋</p><div class="houses">${show.map(s=>`<button class="sw${s==slot?" on":""}" data-s="${s}">${houseName(s)}${Math.floor(s/3)>=NR?"（新街）":""}</button>`).join("")}</div>
+  <p class="mut" style="margin:10px 0 4px">搬進來會在 ${houseName(slot)} 新蓋一間你的家</p>
   <div id="lk"></div><p class="err" id="lerr"></p><div class="row"><button id="back">← 返回</button><button class="pri" id="go">搬進去</button></div>`;
- $("lg").querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{slot=+b.dataset.s;$("lg").querySelectorAll("[data-s]").forEach(x=>x.classList.toggle("on",x==b))});
  lookPicker($("lk"),look,l=>look=l);$("back").onclick=townLogin;
  $("go").onclick=async()=>{const inv=$("inv").value.trim().toUpperCase(),mn=$("mn").value.trim(),p=newKey();
   if(!inv){$("lerr").textContent="先填鎮長給你的邀請碼";return}if(!mn){$("lerr").textContent="再填你的名字，鎮上大家會這樣叫你";return}
@@ -1995,7 +1994,7 @@ function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas")
  m.fillStyle="#f2f2f2";for(let j=0;j<ROWS;j++)for(let i=0;i<COLS;i++)if(isCross(i,j)){const X=i*T,Y=j*T;if(roadRowsAt(j))for(let k=3;k<T;k+=8)m.fillRect(X+k,Y,5,T);else for(let k=3;k<T;k+=8)m.fillRect(X,Y+k,T,5)}
  const [px,py,pw,ph]=PLACES.plaza.r;for(let j=py;j<py+ph;j++)for(let i=px;i<px+pw;i++){m.fillStyle=(i+j)%2?"#cbbf9f":"#d9cfb4";m.fillRect(i*T,j*T,T,T)}
  m.fillStyle="#5aa84f";const [qx,qy,qw,qh]=PLACES.park.r;m.fillRect(qx*T,qy*T,qw*T,qh*T);m.fillStyle="#d9cfb4";m.fillRect(qx*T,19*T+10,qw*T,12);m.fillStyle="#8b5a2b";m.fillRect(32*T,18*T+4,44,10);m.fillRect(32*T+4,18*T+14,4,8);m.fillRect(32*T+36,18*T+14,4,8);
- for(let s=0;s<NR*3;s++){const [hx,hy]=homeXY(s),X=hx*T,Y=hy*T,W=5*T,o=bySlot(s);m.fillStyle="rgba(0,0,0,.18)";m.fillRect(X+8,Y+T+10,W,3*T);const it=(o&&o.items)||{};m.fillStyle=o?(it.wall||"#f4ead6"):"#e2ddd2";m.fillRect(X,Y+T,W,3*T-6);
+ for(let s=0;s<NR*3;s++){const [hx,hy]=homeXY(s),X=hx*T,Y=hy*T,W=5*T,o=bySlot(s);if(!o)continue;m.fillStyle="rgba(0,0,0,.18)";m.fillRect(X+8,Y+T+10,W,3*T);const it=(o&&o.items)||{};m.fillStyle=o?(it.wall||"#f4ead6"):"#e2ddd2";m.fillRect(X,Y+T,W,3*T-6);
   m.fillStyle=o?(it.roof||ROOFS[s]):"#9a9a9a";m.fillRect(X-8,Y,W+16,T+14);m.fillStyle="rgba(0,0,0,.15)";for(let k=0;k<W+16;k+=12)m.fillRect(X-8+k,Y,6,T+14);m.fillStyle="rgba(255,255,255,.25)";m.fillRect(X-8,Y,W+16,4);
   win(X+20,Y+T+26,!!o);win(X+W-36,Y+T+26,!!o);m.fillStyle="#7a4a24";m.fillRect(X+W/2-11,Y+3*T+4,22,T-10);m.fillStyle="#e0b050";m.fillRect(X+W/2+5,Y+3*T+18,3,3);m.fillStyle="#cbbf9f";m.fillRect(X+W/2-10,Y+4*T,20,T);
   {const hl=o?hlc(it.hl):1;
@@ -2211,16 +2210,17 @@ const zoomAt=(ns,mx,my)=>{const rc=cv.getBoundingClientRect(),px=mx-rc.left,py=m
  // 手指下的那個點保持不動
  cam.s=ns;cam.user=true;camFree=true;cam.x=wx-px/ns+W/(2*ns);cam.y=wy-py/ns+Hh/(2*ns)};
 cv.addEventListener("pointerdown",e=>{e.preventDefault();cam.vx=cam.vy=0;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});cv.setPointerCapture(e.pointerId);
- if(ptrs.size==2){const [a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1,s:cam.s,mx:(a.x+b.x)/2,my:(a.y+b.y)/2};down=null;return}
+ if(ptrs.size==2){const [a,b]=[...ptrs.values()];const rc=cv.getBoundingClientRect(),mx=(a.x+b.x)/2,my=(a.y+b.y)/2;pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1,s:cam.s,wx:(mx-rc.left)/cam.s+cam.ox,wy:(my-rc.top)/cam.s+cam.oy};down=null;return}
  down={x:e.clientX,y:e.clientY,ox:cam.x,oy:cam.y,moved:false,pinched:false}});
 cv.addEventListener("pointermove",e=>{if(!ptrs.has(e.pointerId)||stageRoom())return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
- if(pinch&&ptrs.size>=2){const [a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2;zoomAt(pinch.s*d/pinch.d,mx,my);
-  cam.x-=(mx-pinch.mx)/cam.s;cam.y-=(my-pinch.my)/cam.s;pinch.mx=mx;pinch.my=my;pinch.s=cam.s;pinch.d=d;return}
+ if(pinch&&ptrs.size>=2){const [a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y),rc=cv.getBoundingClientRect(),px=(a.x+b.x)/2-rc.left,py=(a.y+b.y)/2-rc.top,ns=snapS(clamp(pinch.s*d/pinch.d,cam.minS,cam.maxS));
+  // 用「開始時的比例」算，不要逐次累加（逐次累加每次變化太小，會被對齊整數像素吃掉，永遠縮不動）；兩指中心下的那個點保持不動
+  cam.s=ns;cam.user=true;camFree=true;cam.x=pinch.wx-px/ns+W/(2*ns);cam.y=pinch.wy-py/ns+Hh/(2*ns);zoomLbl();return}
  if(!down)return;const dx=e.clientX-down.x,dy=e.clientY-down.y;if(Math.hypot(dx,dy)>6){down.moved=true;camFree=true;const t=performance.now(),px=down.lx??down.x,py=down.ly??down.y,dt2=Math.max(1,t-(down.lt||t-16));
   cam.vx=-(e.clientX-px)/cam.s/dt2;cam.vy=-(e.clientY-py)/cam.s/dt2;down.lx=e.clientX;down.ly=e.clientY;down.lt=t;cam.x-=(e.clientX-px)/cam.s;cam.y-=(e.clientY-py)/cam.s}});
 const endPtr=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2&&pinch){pinch=null;down=null}};
 cv.addEventListener("pointercancel",endPtr);
-cv.addEventListener("wheel",e=>{if(!e.ctrlKey&&!e.metaKey&&(!isPC()||stageRoom()))return;e.preventDefault();zoomAt(cam.s*Math.exp(-e.deltaY*.01),e.clientX,e.clientY)},{passive:false});
+cv.addEventListener("wheel",e=>{if(!e.ctrlKey&&!e.metaKey&&(!isPC()||stageRoom()))return;e.preventDefault();zoomAt(cam.s*Math.exp(-e.deltaY*.01),e.clientX,e.clientY);zoomLbl()},{passive:false});
 cv.addEventListener("pointerup",e=>{const wasPinch=ptrs.size>=2||!down;endPtr(e);if(wasPinch)return;const d=down;down=null;if(stageRoom()){stageTap(e);return}
  // 停在原地才放手就不要慣性
  if(d.moved&&performance.now()-(d.lt||0)>80){cam.vx=cam.vy=0}if(d.moved||!S)return;const rc=cv.getBoundingClientRect(),wx=(e.clientX-rc.left)/cam.s+cam.ox,wy=(e.clientY-rc.top)/cam.s+cam.oy,tx=Math.floor(wx/T),ty=Math.floor(wy/T);
@@ -2228,7 +2228,8 @@ cv.addEventListener("pointerup",e=>{const wasPinch=ptrs.size>=2||!down;endPtr(e)
  if(hit){if(R[me].sleeping||jailed(R[me])){sel=hit.id;renderPanel();return}pendingThen=()=>{sel=hit.id;tapTab("social",/擊掌/)};walkToPerson(hit.id);return}sel=null;if(!R[me].sleeping&&!blocked(tx,ty)&&tapNpc(tx,ty))return;
  if(R[me].sleeping){toast("先起床才能出門");return}
  const p=placeAt(tx,ty);window.__tap=`tap ${tx},${ty} scale ${cam.s.toFixed(2)} blocked ${blocked(tx,ty)} place ${p?(p.slot!=null?'house':p.dest):'none'} t ${new Date().toLocaleTimeString()}`;if(!p){toast("那裡走不過去");return}tapPlace(p)});
-$("zoom").onclick=()=>{zoomFar=!zoomFar;cam.user=false;$("zoom").textContent=zoomFar?"🔍 拉近":"🗺️ 看全鎮";camFree=zoomFar;resize()};
+const zoomLbl=()=>{$("zoom").textContent=cam.user&&!zoomFar?"🔍 重設縮放":zoomFar?"🔍 拉近":"🗺️ 看全鎮"};
+$("zoom").onclick=()=>{if(cam.user&&!zoomFar){cam.user=false;camFree=false;zoomLbl();resize();return}zoomFar=!zoomFar;cam.user=false;$("zoom").textContent=zoomFar?"🔍 拉近":"🗺️ 看全鎮";camFree=zoomFar;resize()};
 // ── PC：游標 hover 提示、鍵盤（≥900px） ──
 {const inf=document.createElement("div");inf.id="info";document.body.appendChild(inf);
  const wkN=r=>{const dc=(r.items&&r.items.dc)||{},d=new Date(now()+8*36e5).toISOString().slice(0,10);return dc.d==d?(dc.work||0):0};
