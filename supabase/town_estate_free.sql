@@ -127,7 +127,6 @@ select public.town_estate_patch('town_estate_gate', 2,
   if coalesce(o.items->''lx''->>''gate'', '''') = ''lock'' then raise exception ''% 把莊園上鎖了，只有莊主能進去'', o.name; end if;
   if coalesce(o.items->''lx''->>''gate'', '''') = ''list'' then
     if coalesce(o.items->''lx''->''wl'', ''[]''::jsonb) @> to_jsonb(r.id) then return; end if;
-    raise exception ''% 的莊園只開放給受邀的朋友'', o.name;
   end if;
   if o.items->>''fi'' = pl and o.place = pl and not o.sleeping then return; end if;', 'gate');
 drop function public.town_estate_patch(text, int, text, text, text);

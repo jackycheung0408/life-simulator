@@ -101,7 +101,7 @@ begin
   begin v_j := public.town_fi(v_b,'x','enter','estate:' || v_a); v_rep := v_rep || ' lock(甲在)乙進=成功(錯)'; exception when others then v_rep := v_rep || ' lock(甲在)乙進=擋「' || sqlerrm || '」'; end;
   v_j := public.town_fi(v_a,'x','enter','estate:' || v_a); v_rep := v_rep || ' lock 莊主自己可進';
   v_j := public.town_estate_ctl(v_a,'x','gate',null,'list');
-  begin v_j := public.town_fi(v_b,'x','enter','estate:' || v_a); v_rep := v_rep || ' list 未受邀乙進=成功(錯)'; exception when others then v_rep := v_rep || ' list 未受邀乙進=擋「' || sqlerrm || '」'; end;
+  begin v_j := public.town_fi(v_b,'x','enter','estate:' || v_a); v_rep := v_rep || ' list 未受邀乙進（莊主在）=可'; exception when others then v_rep := v_rep || ' list 未受邀乙進（莊主在）=擋(錯)「' || sqlerrm || '」'; end;
   v_j := public.town_estate_ctl(v_a,'x','wl_add',v_b,null);
   v_rep := v_rep || ' 名單=' || (v_j->>'wl');
   v_j := public.town_fi(v_b,'x','enter','estate:' || v_a); v_rep := v_rep || ' list 受邀乙進=可';
@@ -109,7 +109,13 @@ begin
   begin v_j := public.town_estate_ctl(v_a,'x','wl_add',v_a,null); v_rep := v_rep || ' 加自己=成功(錯)'; exception when others then v_rep := v_rep || ' 加自己=擋'; end;
   begin v_j := public.town_estate_ctl(v_a,'x','gate',null,'zzz'); v_rep := v_rep || ' 亂模式=成功(錯)'; exception when others then v_rep := v_rep || ' 亂模式=擋'; end;
   update public.town_residents set place = 'estate:' || v_a, x = 3, y = 80, items = items - 'fi' where id = v_c;
-  begin v_j := public.town_fi(v_c,'x','enter','estate:' || v_a); v_rep := v_rep || ' list 丙(未受邀，甲在)進=成功(錯)'; exception when others then v_rep := v_rep || ' list 丙(未受邀，甲在)進=擋'; end;
+  begin v_j := public.town_fi(v_c,'x','enter','estate:' || v_a); v_rep := v_rep || ' list 丙(未受邀，甲在)進=可'; exception when others then v_rep := v_rep || ' list 丙(未受邀，甲在)進=擋(錯)'; end;
+  update public.town_residents set place = 'street', items = items - 'fi' where id = v_a;
+  update public.town_residents set place = 'estate:' || v_a, x = 3, y = 80, items = items - 'fi' where id = v_c;
+  begin v_j := public.town_fi(v_c,'x','enter','estate:' || v_a); v_rep := v_rep || ' list 丙(未受邀，甲不在)進=成功(錯)'; exception when others then v_rep := v_rep || ' list 丙(未受邀，甲不在)進=擋'; end;
+  update public.town_residents set place = 'estate:' || v_a, x = 3, y = 80, items = items - 'fi' where id = v_b;
+  begin v_j := public.town_fi(v_b,'x','enter','estate:' || v_a); v_rep := v_rep || ' list 乙(受邀，甲不在)進=可'; exception when others then v_rep := v_rep || ' list 乙(受邀，甲不在)進=擋(錯)'; end;
+  update public.town_residents set place = 'estate:' || v_a, items = jsonb_set(items,'{fi}',to_jsonb('estate:' || v_a)) where id = v_a;
   v_j := public.town_estate_ctl(v_a,'x','wl_del',v_b,null); v_rep := v_rep || ' 刪後名單=' || (v_j->>'wl');
   begin v_j := public.town_estate_ctl(v_b,'x','gate',null,'open'); v_rep := v_rep || ' 乙(沒莊園)改模式=成功(錯)'; exception when others then v_rep := v_rep || ' 乙改模式=擋「' || sqlerrm || '」'; end;
   -- 派對期間 lock 也全員可進
