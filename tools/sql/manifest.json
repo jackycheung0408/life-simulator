@@ -1235,6 +1235,23 @@
    "needs": [
     "town_fix_numbers.sql"
    ]
+  },
+  {
+   "file": "town_fix_rest.sql",
+   "kind": "patch",
+   "needs": [
+    "town_onboard.sql",
+    "town_fac.sql",
+    "town_mischief.sql"
+   ],
+   "note": "體檢修復（其餘）：長椅／飲水機每天精力上限 100、垃圾桶／郵筒每天 3 次、單機分數開局驗證（town_score_start）、town_onboard 逐步驗事實、PK 死碼；就地補丁 town_act／town_pk，重套 town.sql／town_mischief.sql 後要再套"
+  },
+  {
+   "file": "town_fix_rest_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_fix_rest.sql"
+   ]
   }
  ]
 }

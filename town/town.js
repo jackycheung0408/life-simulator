@@ -142,7 +142,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ── 地圖：寬 34 格。市中心固定；住宅一排 3 間（5×4 格，門在正下方），住滿就往下多開一條街，最多 4 排 ──
 const T=32,COLS=85,MAXROWS=4;let OCC=new Set(),NR=2,OFF=new Set(),POOPS=[];
 // 鎮長可以關掉的設施
-const FEATS=[["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、打地鼠、記憶翻牌、下戰帖"],["casino","小豬賭場","押錢遊戲 9 種，用籌碼玩，換回現金抽 0.5%"],["rafi","拉菲's office","白領打工，薪水較高"],["stock","證券交易所","買賣 8 檔小豬鎮股票"],["zombie","喪屍豬","夜間街上會出現喪屍豬，打倒領獎"],["carshop","車行","買腳踏車、機車、汽車"],["lux","奢侈品","高級套餐、溫泉、旅行（錢多的人花錢用）"],["jail","監獄","砍人被抓的人關在這裡，可勞動、探監、保釋"],["hospital","醫院","昏倒、住院的人送這裡，可看診、探病"],["police","警察局","繳罰單、自首、報案、治安統計"],["townhall","市政廳","鎮基金、公告、居民投票、建設案"],["realty","不動產公司","房子升級、買莊園"],["harbor","碼頭船行","買遊艇"],["furnshop","家具行","買家具、小道具、門口擺飾"],["wearshop","服飾店","買造型服飾、試穿"]];
+const FEATS=[["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、打地鼠、記憶翻牌、下戰帖"],["casino","小豬賭場","押錢遊戲 9 種，用籌碼玩，換回現金抽 0.5%"],["rafi","拉菲's office","白領打工，薪水較高"],["stock","證券交易所","買賣 8 檔小豬鎮股票"],["zombie","喪屍豬","街上全天會出現喪屍豬，夜間更多，打倒領獎"],["carshop","車行","買腳踏車、機車、汽車"],["lux","奢侈品","高級套餐、溫泉、旅行（錢多的人花錢用）"],["jail","監獄","砍人被抓的人關在這裡，可勞動、探監、保釋"],["hospital","醫院","昏倒、住院的人送這裡，可看診、探病"],["police","警察局","繳罰單、自首、報案、治安統計"],["townhall","市政廳","鎮基金、公告、居民投票、建設案"],["realty","不動產公司","房子升級、買莊園"],["harbor","碼頭船行","買遊艇"],["furnshop","家具行","買家具、小道具、門口擺飾"],["wearshop","服飾店","買造型服飾、試穿"]];
 const setOff=a=>{OFF=new Set(a||[])};const isOn=k=>!OFF.has(k);
 const setRows=n=>{NR=clamp(n||2,2,MAXROWS)};
 const baseRows=()=>NR<=2?23:30+7*(NR-3);
@@ -193,10 +193,10 @@ const pjName=(k,n)=>PJN[k][pjTier(k,n)];
 const JOBS=[["實習生",0,190],["員工",10,260],["組長",30,350],["經理",70,520],["主管",150,800],["資深主管",250,920],["協理",400,1050],["副總",650,1250],["總經理",1000,1500]];
 const FOUNTAIN=[16,10,2,3];const DOCK=[66,17,5,4];const BOARDP=[13,9],STATUEP=[15,9];
 // 路上物件：位置要和資料庫 town_obj_near 一致；用法：[名稱, 按鈕, 說明]
-const OBJS={vend:{x:19,y:5,name:"自動販賣機",acts:[["投一罐飲料 🥤","€30 · 精力 +12 · 偶爾掉兩罐"]]},trash:{x:8,y:14,name:"垃圾桶",acts:[["撿垃圾 🗑️","心情 +4 · 說不定撿到東西"]]},
+const OBJS={vend:{x:19,y:5,name:"自動販賣機",acts:[["投一罐飲料 🥤","€30 · 精力 +12 · 偶爾掉兩罐"]]},trash:{x:8,y:14,name:"垃圾桶",acts:[["撿垃圾 🗑️","心情 +4 · 每天翻 3 次 · 可能撿到東西"]]},
  stall:{x:22,y:14,name:"烤地瓜攤",acts:[["買烤地瓜 🍠","€60 · 飽足 +25"]]},well:{place:"plaza",name:"小豬噴水池",acts:[["丟硬幣許願 🪙","€10 · 小機率願望成真"]]},
- dummy:{x:22,y:11,name:"人型靶",acts:[["揍人型靶 👊","免費 · 心情 +5 · 精力 −3 · 沒有冷卻，每揍 10 下體能 +1"]]},bench:{x:14,y:5,name:"長椅",acts:[["坐一下 💤","免費 · 精力 +20"]]},cooler:{x:10,y:14,name:"飲水機",acts:[["喝杯水 💦","免費 · 精力 +3 · 飽足 +3"]]},pwc:{x:18,y:19,name:"公共廁所",acts:[["上公廁 🚽","免費 · 膀胱回滿"]]},
- mailbox:{x:34,y:5,name:"郵筒",acts:[["查信箱 💌","免費 · 偶爾收到退款 "]]},news:{x:14,y:19,name:"報攤",acts:[["買份報紙 📰","€20 · 心情 +8"]]},claw:{x:33,y:14,name:"夾娃娃機",acts:[["夾娃娃 🎁","€30 · 兩成夾到禮物"]]},lottery:{x:8,y:19,name:"刮刮樂攤",acts:[["刮一張 🍀","€100 · 有機會中大獎"]]},
+ dummy:{x:22,y:11,name:"人型靶",acts:[["揍人型靶 👊","免費 · 心情 +5 · 精力 −3 · 沒有冷卻，每揍 10 下體能 +1"]]},bench:{x:14,y:5,name:"長椅",acts:[["坐一下 💤","免費 · 精力 +20 · 每天最多補 100"]]},cooler:{x:10,y:14,name:"飲水機",acts:[["喝杯水 💦","免費 · 精力 +3 · 飽足 +3 · 和長椅共用每天 100 精力"]]},pwc:{x:18,y:19,name:"公共廁所",acts:[["上公廁 🚽","免費 · 膀胱回滿"]]},
+ mailbox:{x:34,y:5,name:"郵筒",acts:[["查信箱 💌","免費 · 每天看 3 次 · 偶爾收到退款"]]},news:{x:14,y:19,name:"報攤",acts:[["買份報紙 📰","€20 · 心情 +8"]]},claw:{x:33,y:14,name:"夾娃娃機",acts:[["夾娃娃 🎁","€30 · 兩成夾到禮物"]]},lottery:{x:8,y:19,name:"刮刮樂攤",acts:[["刮一張 🍀","€100 · 有機會中大獎"]]},
  busker:{place:"plaza",name:"街頭藝人",acts:[["打賞 🎸","€50 · 心情 +15"]]},pond:{place:"park",name:"池塘",acts:[["餵鴨子 🐦","用一包零食 · 心情 +12","feed"]]},
  swing:{place:"park",name:"鞦韆",acts:[["盪鞦韆","心情 +12"]]},cat:{place:"park",name:"流浪貓",acts:[["摸摸貓 🐱","心情 +8 · 可能被抓"],["餵貓吃零食","用一包零食 · 心情 +15","feed"]]}};
 // 點擊即互動：走到物件旁自動做主要動作。cost = 花費（與 OBJS 說明、SQL 一致）、ok = 免確認、需要確認的會跳確認條、feed 要有零食
@@ -374,6 +374,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"rest-fix-1124",date:"11/24",title:"小公平調整",items:["長椅每天最多補 100 精力","垃圾桶、郵筒每天各 3 次","我的人生補車險與事故"]},
   {id:"casino-fix-1124",date:"11/24",title:"賭場更穩",items:["關掉牌桌可接回牌局","連點不會重複出牌","小螢幕牌桌更大"]},
   {id:"shops-1124",date:"11/24",title:"商店整理",items:["買東西一律到店裡","大額花費先確認","莊園派對修好了"]},
   {id:"bj2-1124",date:"11/24",title:"21 點更擬真",items:["可加倍、分牌","天生 21 點賠 3:2","有基本策略提示"]},
@@ -568,6 +569,10 @@ const RULES=[
 {k:"buy:gift",m:/^買禮物/,t:"買禮物",fx:[["money",-300],["fun",3]],need:[["item","背包未滿"]],p:"禮物 +1，可送朋友",sql:"town.sql#n := case item when 'gift' then 300 else 60 end;",chk:[[/n := case item when 'gift' then (\d+) else (\d+) end;[^]*?r\.fun := r\.fun \+ (\d+);\n  elsif act = 'job'/,"300,60,3"]]},
 {k:"buy:snack",m:/^買零食/,t:"買零食",fx:[["money",-60],["fun",3]],need:[["item","背包未滿"]],p:"零食 +1",sql:"town.sql#n := case item when 'gift' then 300 else 60 end;",chk:[[/n := case item when 'gift' then (\d+) else (\d+) end;/,"300,60"]]},
 {k:"sweep",m:/^清掉便便/,t:"清掉便便",fx:[["money",30]],need:[["near","便便 2 格內、2 小時內"]],sql:"town.sql#elsif act = 'sweep' then",chk:[[/elsif act = 'sweep' then[^]*?abs\(p\.y - r\.y\) <= (\d+)[^]*?r\.money := r\.money \+ (\d+);/,"2,30"]]},
+{k:"obj:trash",m:/^撿垃圾/,t:"撿垃圾",fx:[["fun",4],["money","+$20～60"]],p:"每天最多 3 次（第 4 次起「今天這個垃圾桶已經翻過了」）；每次 20% 撿到 $20～60、5% 撿到禮物（幸運兒機率 ×1.33）；一天期望約 $24（幸運兒約 $32）加禮物",sql:"town_fix_rest.sql#今天這個垃圾桶已經翻過了"},
+{k:"obj:mail",m:/^查信箱/,t:"查信箱",fx:[["fun",2],["money","+$30～90"]],p:"每天最多 3 次；每次 30% 收到 $30～90（幸運兒 40%）；一天期望約 $54（幸運兒約 $72）",sql:"town_fix_rest.sql#今天這個郵筒已經看過了"},
+{k:"obj:bench",m:/^坐一下/,t:"坐長椅",fx:[["energy","+20"],["fun",2]],p:"每天靠長椅與飲水機最多補 100 精力，用完要睡覺才補得回來",sql:"town_fix_rest.sql#今天坐夠長椅了"},
+{k:"obj:cooler",m:/^喝杯水/,t:"喝杯水",fx:[["energy",3],["hunger",3]],p:"和長椅共用每天 100 精力額度",sql:"town_fix_rest.sql#今天喝太多水了"},
 {k:"zb:hit",m:/^打喪屍豬/,t:"打喪屍豬",fx:[["energy",-5],["money","+60～140（打倒時）"]],need:[["energy",5]],p:"牠 3 點血，要在 3 格內；25% 反咬心情 −3；每人每天獎勵最多 $600；打倒 35% 掉生豬肉",sql:"town_tweaks.sql#if op = 'hit' then",chk:[[/if r\.energy < (\d+) then raise exception '精力不夠，打不動了'[^]*?> (\d+) then raise exception '離牠太遠[^]*?r\.energy := r\.energy - (\d+);\s+msg := '揍了喪屍豬一拳';\s+if random\(\) < \.(\d+) then r\.fun := r\.fun - (\d+)/,"5,3,5,25,3"],[/rew := greatest\(0, \((\d+) \+ floor\(random\(\) \* (\d+)\)::int\)\)/,"60,81"]]},
 {k:"zb:sell",m:/^賣生豬肉/,t:"賣生豬肉",fx:[["money","+30／塊"]],need:[["item","生豬肉"]],sql:"town_tweaks.sql#elsif op = 'sell' then",chk:[[/r\.money := r\.money \+ (\d+) \* pork/,"30"]]},
 {k:"browse",m:/^逛逛/,t:"逛超市",fx:[["fun",6]],sql:"town.sql#else r.fun := r.fun + 6; end if;",chk:[[/\n    else r\.fun := r\.fun \+ (\d+); end if;/,"6"]]},
@@ -907,7 +912,7 @@ async function mayorPanel(){let inv="",cta=[],fund=null,errs=null;try{errs=await
  const ctaHTML=()=>{const sh=cta.reduce((a,c)=>a+c.shows,0),cl=cta.reduce((a,c)=>a+c.clicks,0);return cta.length?`<p class="mut">近 7 天共顯示 ${sh} 次、點了 ${cl} 次（${sh?Math.round(cl/sh*100):0}%）</p><div class="list">${cta.map(c=>`<div class="mrow"><span><b>${esc(c.key)}</b></span><small class="mut">顯示 ${c.shows} · 點 ${c.clicks} · ${c.shows?Math.round(c.clicks/c.shows*100):0}%</small></div>`).join("")}</div>`:`<p class="mut">還沒有資料，大家玩一陣子就會出現。</p>`};try{inv=(await rpc("town_mayor",{rid:me,pin,act:"invite"})).invite}catch(e){toast(e.message);return}
  const draw=()=>{$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>🏛️ 鎮長</h2><p>邀請碼：<b class="code">${esc(inv)}</b></p>
   <div class="row" style="justify-content:flex-start"><button class="pri" id="msh">邀請朋友</button><button id="mni">換一組新邀請碼</button></div>
-  ${fund?`<h2 style="margin-top:16px">鎮基金</h2><div class="mrow"><span><b>€${fund.fund}</b> <small class="mut">房租 5%、財產稅、奢侈品 5% 累積而來（還不能花）</small></span></div><p class="mut">累計流入：房租 €${(fund.log||{}).rent||0} · 財產稅 €${(fund.log||{}).tax||0} · 奢侈品 €${(fund.log||{}).lux||0}</p>`:""}
+  ${fund?`<h2 style="margin-top:16px">鎮基金</h2><div class="mrow"><span><b>€${fund.fund}</b> <small class="mut">房租 5%、財產稅、奢侈品 5% 等累積而來；花在建設案、補助、拍賣</small></span></div><p class="mut">累計流入：房租 €${(fund.log||{}).rent||0} · 財產稅 €${(fund.log||{}).tax||0} · 奢侈品 €${(fund.log||{}).lux||0}</p>`:""}
   <h2 style="margin-top:16px">管理權</h2><p class="mut">關人、放人、罰款、發補助、公告、建設案、彈劾——全部公開，居民可以申訴</p><div class="row" style="justify-content:flex-start"><button class="pri" id="mpw">鎮長管理權與使用紀錄</button></div>
   <h2 style="margin-top:16px">小鎮特色</h2>${featChecks([...OFF])}<div class="row" style="justify-content:flex-start"><button class="pri" id="mfs">儲存設施</button></div>
   <h2 style="margin-top:16px">建議下一步統計</h2>${ctaHTML()}${errs&&errs.rows?`<h2 style="margin-top:16px">錯誤紀錄（近 7 天）</h2>${errs.rows.length?`<p class="mut">共 ${errs.total} 次，前 ${errs.rows.length} 組</p><div class="list">${errs.rows.map(e=>`<div class="mrow"><span><b>${esc(e.msg)}</b><br><small class="mut">${esc(e.src||"")}${e.line?":"+e.line:""} · v${esc(e.ver||"?")}</small></span><small class="mut">${e.n} 次</small></div>`).join("")}</div>`:`<p class="mut">近 7 天沒有錯誤紀錄。</p>`}`:""}
@@ -1214,6 +1219,7 @@ const alN=r=>((r.items&&r.items.al)||{}).n||0;
 const lvOf=n=>{let l=0;AL.forEach((a,i)=>{if(n>=a[0])l=i});return l};// 0..4
 const alOf=r=>AL[lvOf(alN(r))];
 const wkLeft=r=>0;
+const moneyAll=r=>r.money+((r.items&&r.items.cas&&+r.items.cas.ch)||0);
 const taxOf=m=>Math.floor(Math.max(0,Math.min(m,1e5)-5e4)*0.003+Math.max(0,Math.min(m,1e6)-1e5)*0.008+Math.max(0,Math.min(m,5e6)-1e6)*0.03+Math.max(0,m-5e6)*0.05);const RENT=[400,800,1500,3000];const rentOf=r=>{const b=RENT[Math.min(3,Math.max(0,((r.items&&r.items.hl)||1)-1))];return b-Math.floor(b*alOf(r)[4]/100)};
 // 其他工作（和 town.sql 的 town_pjob_* 一致）：[名稱, 地點, 底薪, [精力,飽足,心情,清潔], SQL 的 act 營業鍵]；熟練 15 次 ×1.15、40 次 ×1.3；拉菲底薪 320／450／650，要先升到「員工」
 const pjN=(r,k)=>((r.items&&r.items.jw)||{})[k]||0;
@@ -1257,20 +1263,26 @@ function traitModal(){const sel=[];$("modal").classList.remove("hide");$("mbody"
  $("tok").onclick=()=>go(sel);$("tskip").onclick=()=>go([])}
 function alHtml(r){const n=alN(r),l=lvOf(n),a=AL[l],nx=AL[l+1],s=((r.items.al||{}).s)||0;
  const pct=nx?Math.round((n-a[0])/(nx[0]-a[0])*100):100;
- return `<h3>小鎮居民等級</h3><div class="mrow"><span><b>Lv${l+1} ${a[1]}</b> <small class="mut">活躍 ${n} 天${s>1?` · 連續 ${s} 天`:""}${nx?` · 再活躍 ${nx[0]-n} 天升 Lv${l+2}「${nx[1]}」`:" · 已是最高等級"}</small><i class="bond"><b style="left:0;width:${pct}%;background:var(--good)"></b></i><small class="mut">每天有上線動作就算活躍一天，只給便利，不影響打工薪水。斷了不會掉級、不扣東西。</small></span></div><div class="list">${AL.map((x,i)=>`<div class="mrow"><span>${i<=l?"✔":"・"} Lv${i+1} ${x[1]}（${x[0]} 天）<br><small class="mut">打工冷卻 ${x[2]} 分 · 背包 ${x[3]} · 房租 −${x[4]}%${x[5]?` · 每日登入禮 €${x[5]}`:""}</small></span></div>`).join("")}</div>`}
+ return `<h3>小鎮居民等級</h3><div class="mrow"><span><b>Lv${l+1} ${a[1]}</b> <small class="mut">活躍 ${n} 天${s>1?` · 連續 ${s} 天`:""}${nx?` · 再活躍 ${nx[0]-n} 天升 Lv${l+2}「${nx[1]}」`:" · 已是最高等級"}</small><i class="bond"><b style="left:0;width:${pct}%;background:var(--good)"></b></i><small class="mut">每天有上線動作就算活躍一天，只給便利，不影響打工薪水。斷了不會掉級、不扣東西。</small></span></div><div class="list">${AL.map((x,i)=>`<div class="mrow"><span>${i<=l?"✔":"・"} Lv${i+1} ${x[1]}（${x[0]} 天）<br><small class="mut">背包 ${x[3]} · 房租 −${x[4]}%${x[5]?` · 每日登入禮 €${x[5]}`:""}</small></span></div>`).join("")}</div>`}
 let lastLv=null;
 function lvUpModal(l){window.SFX&&SFX.play("levelup");const a=AL[l],p=AL[l-1];$("modal").classList.remove("hide");
- $("mbody").innerHTML=`<h2>升級了！</h2><div class="lvup"><img class="px" alt="" src="${window.PIXICON_NAME?PIXICON_NAME("star"):""}"><img class="px" alt="" src="${window.PIXICON_NAME?PIXICON_NAME("star"):""}"><img class="px" alt="" src="${window.PIXICON_NAME?PIXICON_NAME("star"):""}"></div><p style="text-align:center"><b>Lv${l+1} ${a[1]}</b></p><p class="mut">新福利：${a[2]<p[2]?`打工冷卻 ${a[2]} 分鐘 · `:""}${a[3]>p[3]?`背包上限 ${a[3]} · `:""}${a[4]>p[4]?`房租 −${a[4]}% · `:""}${a[5]>p[5]?`每日登入禮 €${a[5]}`:""}</p><p class="mut">獲得稱號「${a[1]}」</p><div class="row"><button id="lvok" class="pri">好</button></div>`;
+ $("mbody").innerHTML=`<h2>升級了！</h2><div class="lvup"><img class="px" alt="" src="${window.PIXICON_NAME?PIXICON_NAME("star"):""}"><img class="px" alt="" src="${window.PIXICON_NAME?PIXICON_NAME("star"):""}"><img class="px" alt="" src="${window.PIXICON_NAME?PIXICON_NAME("star"):""}"></div><p style="text-align:center"><b>Lv${l+1} ${a[1]}</b></p><p class="mut">新福利：${a[3]>p[3]?`背包上限 ${a[3]} · `:""}${a[4]>p[4]?`房租 −${a[4]}% · `:""}${a[5]>p[5]?`每日登入禮 €${a[5]}`:""}</p><p class="mut">獲得稱號「${a[1]}」</p><div class="row"><button id="lvok" class="pri">好</button></div>`;
  $("lvok").onclick=()=>$("modal").classList.add("hide")}
+const vehLife=r=>{const it=r.items||{},ac=(it.ac&&it.ac.n)|0,db=(it.db&&it.db.a)|0,ins=it.ins||{};const dl=v=>{const ms=Date.parse(v)-nowFn();return !(ms>0)?"已到期":ms>=864e5?`剩 ${Math.ceil(ms/864e5)} 天`:`剩 ${fmtH(ms)}`};
+ const iv=Object.keys(ins).filter(k=>VEH[k]&&ins[k]&&(ins[k].c||ins[k].f)).map(k=>`${VEH[k][0]} 強制險${ins[k].c?dl(ins[k].c):"沒有"}${ins[k].f?`、任意險${dl(ins[k].f)}`:""}`);
+ const wt=wantedOn(r)?`通緝中（還有 ${fmtH(untilLeft(r,"wt"))}）`:"";
+ if(!iv.length&&!ac&&!db&&!wt)return"";
+ return `<div class="mrow"><span><b>車險與事故</b> <small class="mut">${[iv.length?"保險："+iv.join("；"):"沒有買車險",`事故 ${ac} 次`,db?`欠款 €${db}${db>=5000?"（欠太多，不能上機車、汽車）":""}`:"沒有欠款",wt].filter(Boolean).join(" · ")}</small></span></div>`};
 function lifeModal(){const r=R[me],c=career(r),w=(r.items&&r.items.wish)||{},k=WISHES[w.k],m=w.m||0,t=titlesOf(r);$("modal").classList.remove("hide");
  let wh;if(k){const v=k[4](r),ms=k[2],cur=ms[Math.min(m,2)];wh=`<div class="mrow"><span><b>${k[0]}</b> <small class="mut">${m>=3?"三個里程碑都達成了":w.k=="work"?`第 ${m+1} 關：升到「${JOBS[cur][0]}」（現在${c.name}）`:`第 ${m+1} 關：${k[1]} ${Math.min(v,cur)} / ${cur}`}</small></span></div><div class="list">${ms.map((x,i)=>`<div class="mrow"><span>${i<m?"✔":"・"} ${w.k=="work"?"升到「"+JOBS[x][0]+"」":k[1]+" "+x}　<small class="mut">稱號「${k[3][i]}」＋€${WISH_BONUS[i]}</small></span></div>`).join("")}</div>`;if(m>=3)wh+=`<div class="row" style="justify-content:flex-start"><button id="lwNew">換一個新願望</button></div>`}
  else wh=`<p class="mut">${w.k=="none"?"你選擇先不訂願望。":"還沒選願望。"}</p><div class="row" style="justify-content:flex-start"><button id="lwNew" class="pri">選一個願望</button></div>`;
- $("mbody").innerHTML=`<h2>我的人生</h2><div class="mrow"><span><b>${c.name}</b> <small class="mut">每次打工 €${payOf(c.wage,tickLocal(r,now()))} · 已打工 ${c.n} 次</small></span></div><p class="mut">今天已打工 ${workToday(r)} 次，薪水全額、每 ${alOf(r)[2]} 分鐘可打一次 · 每天房租水電 €${rentOf(r)}${taxOf(r.money)?`、財產稅 €${taxOf(r.money)}（存款超過 50000 的部分，階梯 0.3%～3%）`:""}${alOf(r)[4]?`（已含 ${alOf(r)[4]}% 折扣）`:""}（每天第一次上線扣）</p>${Object.keys(PJ).some(k=>pjN(r,k))?`<p class="mut">其他工作：${Object.keys(PJ).filter(k=>pjN(r,k)).map(k=>pjName(k,pjN(r,k))+" "+pjN(r,k)+" 次").join("、")}</p>`:""}<p class="mut">${c.next?`再打工 ${c.left} 次升「${c.next}」`:"已經是最高職位了"}</p>
+ $("mbody").innerHTML=`<h2>我的人生</h2><div class="mrow"><span><b>${c.name}</b> <small class="mut">每次打工 €${payOf(c.wage,tickLocal(r,now()))} · 已打工 ${c.n} 次</small></span></div><p class="mut">今天已打工 ${workToday(r)} 次 · 每天房租水電 €${rentOf(r)}${taxOf(moneyAll(r))?`、財產稅約 €<span id="lTax">${taxOf(moneyAll(r))}</span>（現金加籌碼超過 50000 的部分，階梯 0.3%～5%，依全鎮係數浮動）`:""}${alOf(r)[4]?`（已含 ${alOf(r)[4]}% 折扣）`:""}（每天第一次上線扣）</p>${Object.keys(PJ).some(k=>pjN(r,k))?`<p class="mut">其他工作：${Object.keys(PJ).filter(k=>pjN(r,k)).map(k=>pjName(k,pjN(r,k))+" "+pjN(r,k)+" 次").join("、")}</p>`:""}<p class="mut">${c.next?`再打工 ${c.left} 次升「${c.next}」`:"已經是最高職位了"}</p>
+ ${vehLife(r)}
  ${statLine(r)?`<div class="mrow"><span><b>案底</b> <small class="mut">${statLine(r)}</small></span></div>`:""}
  ${alHtml(r)}
  <h3>自動吃零食</h3><p class="mut">快餓昏前約 15 分鐘，有零食就自動吃一包（飽足 +20）。預設開啟。</p><div class="row" style="justify-content:flex-start"><button id="lAe" class="${(!r.items||r.items.ae!==false)?"pri":""}">${(!r.items||r.items.ae!==false)?"已開啟，點一下關閉":"已關閉，點一下開啟"}</button></div><h3>個性與心情</h3><p><span class="sw on">${MOOD[moodOf(tickLocal(r,now()))][0]} ${MOOD[moodOf(tickLocal(r,now()))][1]}</span> <small class="mut">${MOOD[moodOf(tickLocal(r,now()))][2]}</small></p>${(r.items&&r.items.tr&&r.items.tr.length)?r.items.tr.map(k=>`<div class="mrow"><span><b>${TRAITS[k][0]}</b> <small class="mut">${TRAITS[k][1]}</small></span></div>`).join(""):`<p class="mut">還沒有個性特質。</p><div class="row" style="justify-content:flex-start"><button id="ltNew" class="pri">選個性</button></div>`}
  <h3>人生願望</h3>${wh}<h3>稱號</h3><p>${t.length?t.map(x=>`<span class="sw on">${esc(x)}</span>`).join(" "):'<span class="mut">還沒有稱號</span>'}</p><div class="row"><button id="lclose">關閉</button></div>`;
- $("lclose").onclick=()=>$("modal").classList.add("hide");if($("lAe"))$("lAe").onclick=async()=>{try{await rpc("town_autoeat",{rid:me,pin,op:!!(R[me].items&&R[me].items.ae===false)});await refresh();toast("設定好了");lifeModal()}catch(e){toast(e.message)}};if($("lwNew"))$("lwNew").onclick=()=>wishModal();if($("ltNew"))$("ltNew").onclick=()=>traitModal()}
+ $("lclose").onclick=()=>$("modal").classList.add("hide");if($("lTax"))rpc("town_econ_view",{rid:me,pin,op:"view"}).then(st=>{const e=$("lTax");if(e&&st&&+st.kt>0)e.textContent=Math.floor(taxOf(moneyAll(r))*st.kt)}).catch(()=>{});if($("lAe"))$("lAe").onclick=async()=>{try{await rpc("town_autoeat",{rid:me,pin,op:!!(R[me].items&&R[me].items.ae===false)});await refresh();toast("設定好了");lifeModal()}catch(e){toast(e.message)}};if($("lwNew"))$("lwNew").onclick=()=>wishModal();if($("ltNew"))$("ltNew").onclick=()=>traitModal()}
 function wishModal(){$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>選一個人生願望</h2><p class="mut">每達成一個里程碑，有獎金、稱號和動態公告。可以先跳過。</p><div class="list">${Object.entries(WISHES).map(([k,v])=>`<button data-wk="${k}" style="width:100%;text-align:left;margin-bottom:6px"><b>${v[0]}</b><br><small>${v[1]}：${v[2].join("、")}</small></button>`).join("")}</div><div class="row"><button id="wskip">先跳過</button></div>`;
  const pick=async k=>{try{apply(await rpc("town_wish",{rid:me,pin,k}));$("modal").classList.add("hide");if(k!="skip"){toast("願望訂好了");lifeModal()}}catch(e){toast(e.message)}};
  $("mbody").querySelectorAll("[data-wk]").forEach(b=>b.onclick=()=>pick(b.dataset.wk));$("wskip").onclick=()=>pick("skip")}
@@ -1337,7 +1349,7 @@ function bondsModal(){const list=Object.values(R).filter(o=>o.id!=me).map(o=>({o
 const OBS=[{t:"去超市買零食",h:"點地圖上的超市，買一包零食",kw:["逛貨架","買零食"],ok:r=>(r.items.snack|0)>0||Object.keys(r.items.inv||{}).length>0||(r.items.mp|0)>0},
  {t:"去咖啡廳坐坐",h:"點地圖上的咖啡廳，走到門口",kw:["進去"],ok:r=>r.place=="cafe"},
  {t:"打第一次工",h:"去公司，按「打工」",kw:["打工"],ok:r=>(r.items.works|0)>=1},
- {t:"認識一位鄰居",h:"點地圖上的一個人",kw:[],ok:r=>!!(sel&&sel!=me&&R[sel])||Object.keys(R).length<2},
+ {t:"認識一位鄰居",h:"點一個人，做一次互動（例如擊掌）",kw:["擊掌"],ok:r=>(S.events||[]).some(e=>e.actor==me&&e.target&&e.target!=me)||Object.keys(R).length<2},
  {t:"回家睡一覺",h:"點自己的家，進屋按「睡覺」",kw:["睡覺"],ok:r=>!!r.sleeping&&r.place=="home:"+me}];
 const OBR=[100,100,500,300,300];
 function obLoad(){try{return JSON.parse(localStorage.getItem("town-ob_"+me)||"null")}catch(e){return null}}
@@ -1347,7 +1359,7 @@ function obCss(){if($("obcss"))return;const s=document.createElement("style");s.
 function obIntro(cb){obCss();const P=[["🏠","你搬進了小豬鎮","新家、新鄰居，慢慢來。"],["🏛️","祕書小雅","「歡迎！鎮上消息我來播報。」"],["🎰","酒保阿杰","「賭場我顧著，別玩過頭喔。」"],["🐷","領新手禮","完成 5 個小任務，最多 $1300。"]];let i=0;const end=()=>{$("modal").classList.add("hide");cb&&cb()};
  const draw=()=>{$("modal").classList.remove("hide");const p=P[i];$("mbody").innerHTML=`<div class="obp"><div class="obe">${p[0]}</div><b>${p[1]}</b><p>${p[2]}</p><div class="obd">${P.map((_,j)=>`<i class="${j<=i?"on":""}"></i>`).join("")}</div></div><div class="row"><button id="obx">跳過</button><button id="obn" class="pri">${i<3?"下一格":"開始"}</button></div>`;$("obx").onclick=()=>{const s=obLoad()||{d:[]};s.sk=1;obSave(s);end()};$("obn").onclick=()=>{if(i<3){i++;draw()}else end()}};draw()}
 function obStart(){const s=obLoad();if(!s)obSave({d:[]})}
-async function obClaim(i){const s=obLoad();if(!s||s.d.includes(i)||obBusy)return;obBusy=1;s.d.push(i);obSave(s);try{const r=await rpc("town_onboard",{rid:me,pin,step:i+1});toast(r&&r.reward?`新手任務完成 +$${r.reward}`:"新手任務完成");refresh().catch(()=>{})}catch(e){toast("新手任務完成")}obBusy=0;if(s.d.length>=5){s.fin=1;obSave(s);setTimeout(()=>{if(modalOpen())return;$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>新手任務全部完成</h2><p>歡迎正式成為小豬鎮居民。</p><div class="row"><button id="obok" class="pri">開始生活</button></div>`;$("obok").onclick=()=>$("modal").classList.add("hide")},1500)}}
+async function obClaim(i){const s=obLoad();if(!s||s.d.includes(i)||obBusy||(s.rt||0)>Date.now())return;obBusy=1;let okc=1;try{const r=await rpc("town_onboard",{rid:me,pin,step:i+1});toast(r&&r.reward?`新手任務完成 +$${r.reward}`:"新手任務完成");refresh().catch(()=>{})}catch(e){okc=0;s.rt=Date.now()+30000;obSave(s)}if(okc){s.d.push(i);obSave(s)}obBusy=0;if(!okc)return;if(s.d.length>=5){s.fin=1;obSave(s);setTimeout(()=>{if(modalOpen())return;$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>新手任務全部完成</h2><p>歡迎正式成為小豬鎮居民。</p><div class="row"><button id="obok" class="pri">開始生活</button></div>`;$("obok").onclick=()=>$("modal").classList.add("hide")},1500)}}
 function obOff(){const b=$("obbar");if(b)b.parentNode.removeChild(b);document.querySelectorAll(".obhl").forEach(e=>e.classList.remove("obhl"))}
 function obTick(){if(!me||!R[me]||!S)return;const s=obLoad();const r=R[me],it=r.items||{};
  if(!s||s.sk||s.fin||!$("game")||$("game").classList.contains("hide")||it.tr===undefined||!it.wish||!(it.at&&it.at.init)||!$("tips").classList.contains("hide")||modalOpen()){obOff();return}
@@ -1495,7 +1507,7 @@ function gamesModal(){$("modal").classList.remove("hide");$("mbody").classList.r
  if(!menu&&hall&&!solo&&gameTab&&betGame!=gameTab){betLoad(gameTab);gameBet=betSum()||50}
  $("mbody").innerHTML=menu?(hall?`<h2>🎰 小豬賭場</h2><p class="mut">籌碼 €<b id="gMoney">${CAS?CAS.chips:0}</b> · 押注 €50 起，沒有上限 · 離場自動換回現金（0.5%）</p>${casStatus()}
   <h3 class="gh">押錢遊戲（莊家有優勢，玩越久越可能輸）</h3><div class="gmenu">${gm(gmSort(CASINO,x=>x[0]))}</div><div class="row"><button id="mc">離開賭場</button></div>`
-  :`<h2>🕹️ 小豬街機</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b> · 押注 €50～€1000 · 押錢遊戲搬到小豬賭場了</p>
+  :`<h2>🕹️ 小豬街機</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b> · 押注 €50～€1000（猜拳最高 €10000）· 押錢遊戲搬到小豬賭場了</p>
   <h3 class="gh">對電腦</h3><div class="gmenu">${gm(ARCADE)}</div><h3 class="gh">單機（不押錢，心情 +2）</h3><div class="gmenu">${gm(SOLO)}</div><div class="row"><button id="mc">離開街機</button></div>`)
   :`${(ttl=>hall?`<div class="tbar"><h2>${ttl}</h2><span class="tchip">籌碼 €<b id="gMoney">${CAS?CAS.chips:0}</b></span><button id="swBtn" class="rbtn">換桌</button><button id="rulesBtn" class="rbtn">規則</button><button id="moreBtn" class="rbtn" aria-label="更多">⋯</button></div><div id="gMore" class="hide"><button id="gback">回賭場選單</button><button id="mc">收工離桌</button></div><div class="gtabs hide" id="gTabs">${gmSort(CASINO,x=>x[0]).map(g=>`<button data-g="${g[0]}" class="gt${g[0]==gameTab?" on":""}" title="${g[2]}">${gic(g[1])}<span>${g[2]}</span>${gmTag(g[0])?`<em class="hot">${gmTag(g[0])}</em>`:""}</button>`).join("")}</div><p class="mut godds">${(CASINO.find(g=>g[0]==gameTab)||[0,0,0,""])[3]}</p><div id="rulesPop" class="rpop hide"></div><p class="mut cdnote" id="gBud"></p>`:`<h2>${ttl}</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b></p>`)((g=>gic(g[1])+" "+g[2])([...ARCADE,...CASINO,...SOLO].find(g=>g[0]==gameTab)))}
   ${solo?"":hall?nochipH()+"":`<div class="chips">押注 ${bets.map(b=>`<button data-bet="${b}" class="${gameBet==b?"on":""}">€${b}</button>`).join("")}</div>`}
@@ -1670,13 +1682,13 @@ if(gameTab=="dg"){area.innerHTML=`<p class="mut">射龍門（莊家制，沒有�
  const soloEnd=async(game,score,note)=>{const r=await sendScore(game,score);$("gShow").innerHTML=`<p class="gres good">得分 <b>${score}</b>${note||""}</p><p class="mut">個人最佳 ${r?r.best:spOf(R[me],game)}${r&&r.gain?" · 心情 +"+r.gain:""}</p><div class="gbtns"><button class="pri" id="sgAgain">再玩一次</button></div>`;$("sgAgain").onclick=()=>gamesModal();try{playRes({win:score>0?1:0,bet:0})}catch(e){}};
  if(gameTab=="whack"){area.innerHTML=`<p class="mut">30 秒內點出現的地鼠，打中 +1。</p><div class="hud"><span>得分 <b id="wScore">0</b></span><span>時間 <b id="wTime">30</b></span></div><div class="holes">${[...Array(9)].map((_,i)=>`<button class="hole" data-h="${i}"></button>`).join("")}</div><div class="gbtns"><button class="pri" id="wGo">開始</button></div><div id="gShow"></div>`;
   const hs=[...area.querySelectorAll(".hole")];hs.forEach(h=>h.disabled=true);
-  $("wGo").onclick=()=>{$("wGo").disabled=true;let sc=0,t=30,cur=-1,spawns=0;const on=i=>{hs.forEach((h,j)=>{h.classList.toggle("up",j==i);h.innerHTML=j==i?"🔨":""});cur=i};
+  $("wGo").onclick=()=>{$("wGo").disabled=true;rpc("town_score_start",{rid:me,pin,game:"whack"}).catch(()=>{});let sc=0,t=30,cur=-1,spawns=0;const on=i=>{hs.forEach((h,j)=>{h.classList.toggle("up",j==i);h.innerHTML=j==i?"🔨":""});cur=i};
    hs.forEach((h,j)=>{h.disabled=false;h.onclick=()=>{if(j==cur){sc++;$("wScore").textContent=sc;on(-1)}}});
    const sp=setInterval(()=>{if(++spawns>40){return}let i;do{i=Math.floor(Math.random()*9)}while(i==cur);on(i);setTimeout(()=>{if(cur==i)on(-1)},650)},750);
    const tm=setInterval(async()=>{$("wTime").textContent=--t;if(t<=0){clearInterval(tm);clearInterval(sp);on(-1);hs.forEach(h=>h.disabled=true);await soloEnd("whack",Math.min(sc,40))}},1000)}}
  if(gameTab=="memory"){const IC=["🍀","⭐","🔔","🥚","💰","🎁","🐱","🍪"];let cards=[...IC,...IC].sort(()=>Math.random()-.5),open=[],done=new Set(),moves=0,lock=false;
   area.innerHTML=`<p class="mut">翻兩張一樣的就消掉。16 張，翻越少次分數越高。</p><div class="hud"><span>步數 <b id="mMoves">0</b></span></div><div class="mem">${cards.map((_,i)=>`<button class="mc" data-c="${i}">?</button>`).join("")}</div><div id="gShow"></div>`;
-  const bs=[...area.querySelectorAll(".mc")];
+  const bs=[...area.querySelectorAll(".mc")];rpc("town_score_start",{rid:me,pin,game:"memory"}).catch(()=>{});
   bs.forEach((b,i)=>b.onclick=async()=>{if(lock||open.includes(i)||done.has(i))return;b.innerHTML=cards[i];b.classList.add("flip");open.push(i);
    if(open.length==2){lock=true;moves++;$("mMoves").textContent=moves;const[a,c]=open;await new Promise(r=>setTimeout(r,650));
     if(cards[a]==cards[c]){done.add(a);done.add(c);bs[a].classList.add("ok");bs[c].classList.add("ok")}else{[a,c].forEach(k=>{bs[k].innerHTML="?";bs[k].classList.remove("flip")})}
