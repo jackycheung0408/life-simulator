@@ -114,6 +114,7 @@ const SB="https://gerqdagicybtyilihvvm.supabase.co/rest/v1/rpc/",SBK="sb_publish
 const rpcF=(fn,body={})=>{const b=JSON.stringify(body),p=window.LP&&LP.pre&&LP.pre[fn];if(p&&!p.used&&p.b==b&&Date.now()-p.t<2e4){p.used=1;return p.f}return fetch(SB+fn,{method:"POST",keepalive:true,headers:{apikey:SBK,"Content-Type":"application/json"},body:b})};
 // 匿名使用統計（supabase/town_usage.sql）：只記「哪個功能被用幾次」，不記角色、小鎮、裝置、輸入文字、金額；記憶體批次，每 20 秒或頁面隱藏時送一次，失敗靜默；瀏覽器開了 Do Not Track 就完全不送
 const UT=(()=>{const W=typeof window!=="undefined"?window:{},Q=new Map(),SEEN=new Set(),OK=new RegExp("^[A-Za-z0-9:_.\\-\\u4e00-\\u9fff]{1,40}"+String.fromCharCode(36)),NM=[],off=typeof navigator!=="undefined"&&(navigator.doNotTrack=="1"||W.doNotTrack=="1");let tm=0,started=0,lastTitle="",mo=null;
+ const RANKW=/資深業務經理|業務負責人|業務經理|業務總監|部門主任|行政專員|資深主管|餐飲總監|區總監|副店長|區經理|總經理|董事長|實習生|協理|副總|副理|領班|店長|組長|經理|主管|員工|企劃|熟手|資深/g;
  const clean=(t,n2)=>{let s=String(t||"");for(const n of NM)if(n)s=s.split(n).join("某人");return s.replace(/[^A-Za-z\u4e00-\u9fff]/g,"").slice(0,n2||12)};
  const send=()=>{tm=0;while(Q.size){const ks=[...Q.keys()].slice(0,20),cs=ks.map(k=>Math.min(50,Q.get(k)));ks.forEach(k=>Q.delete(k));try{fetch(SB+"town_usage_hit",{method:"POST",keepalive:true,headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify({keys:ks,counts:cs})}).catch(()=>{})}catch(e){}}};
  const hit=(k,n)=>{if(off||!k)return;k=String(k).slice(0,40);if(!OK.test(k))return;Q.set(k,(Q.get(k)||0)+(n||1));if(Q.size>=20)send();else if(!tm)tm=setTimeout(send,2e4)};
@@ -121,7 +122,7 @@ const UT=(()=>{const W=typeof window!=="undefined"?window:{},Q=new Map(),SEEN=ne
  const btitle=b=>{const t=b.querySelector(".at>b")||[...b.children].find(x=>x.tagName=="B")||b.querySelector("b,strong");if(t&&t.textContent.trim())return t.textContent;const n=[...b.childNodes].find(x=>x.nodeType==3&&x.textContent.trim());return n?n.textContent:b.textContent};
  const ctx=b=>b.closest("#ptabs")?"ui:tab":b.closest("#modal")?"ui:modal":b.closest("#panel")?"ui:act":b.closest(".bar,.tools")?"ui:nav":b.closest("#login,#lg")?"ui:login":"ui:btn";
  const start=()=>{if(started||off)return;started=1;once("session:start");
-  document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.target.closest("button");if(!b||b.closest("textarea,input,select"))return;if(b.dataset.chip){hit("casino:chip");return}const c=ctx(b),l=clean(btitle(b),24);if(l)hit(c+":"+l)},true);
+  document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.target.closest("button");if(!b||b.closest("textarea,input,select"))return;if(b.dataset.chip){hit("casino:chip");return}const c=ctx(b);let l=clean(btitle(b),24);if(c=="ui:act"||c=="ui:tab")l=l.replace(RANKW,"");if(l)hit(c+":"+l)},true);
   document.addEventListener("visibilitychange",()=>{if(document.visibilityState=="hidden")send()});addEventListener("pagehide",send);
   const m=document.getElementById("modal");if(m&&W.MutationObserver){let was=!m.classList.contains("hide");mo=new MutationObserver(()=>{const open=!m.classList.contains("hide");if(open==was)return;was=open;if(open)setTimeout(()=>{const h=m.querySelector("h2,h3");lastTitle=clean(h&&h.textContent)||"modal";hit("modal:"+lastTitle)},80);else if(lastTitle)hit("exit:modal:"+lastTitle)});mo.observe(m,{attributes:true,attributeFilter:["class"]})}};
  const q=W.UTQ;W.UTQ={push:once};if(Array.isArray(q))q.forEach(once);
@@ -131,7 +132,7 @@ let rpcHook=null,LOGIN_DEAD=0;const LOSTMSG="這台裝置的登入失效了";con
 // 錯誤回報（town_errlog）：靜默、批次、去重、不影響遊戲；不送個資（只有訊息、檔名、行號、版本、UA）
 const ERR=(()=>{const q=[],seen=new Set();let tm=0;const ver=()=>{try{return String(MYV)}catch(e){return ""}};
  function flush(){tm=0;const b=q.splice(0,3);b.forEach(e=>{try{fetch(SB+"town_errlog",{method:"POST",keepalive:true,headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify({msg:e[0],src:e[1],line:e[2],ua:(navigator.userAgent||"").slice(0,120),ver:ver()})}).catch(()=>{})}catch(x){}});if(q.length)tm=setTimeout(flush,5000)}
- function add(msg,src,line){try{msg=String(msg||"").slice(0,300);if(!msg)return;src=String(src||"").split("?")[0].split("/").pop().slice(0,200);const k=msg+"|"+src+"|"+(line|0);if(seen.has(k)||seen.size>=30)return;seen.add(k);q.push([msg,src,line|0]);if(!tm)tm=setTimeout(flush,5000)}catch(x){}}
+ function add(msg,src,line){try{msg=String(msg||"").slice(0,300);if(!msg||/^ResizeObserver loop/.test(msg))return;src=String(src||"").split("?")[0].split("/").pop().slice(0,200);const k=msg+"|"+src+"|"+(line|0);if(seen.has(k)||seen.size>=30)return;seen.add(k);q.push([msg,src,line|0]);if(!tm)tm=setTimeout(flush,5000)}catch(x){}}
  try{addEventListener("error",e=>{if(e&&e.message&&e.message.indexOf("Script error")!=0)add(e.message,e.filename,e.lineno)});addEventListener("unhandledrejection",e=>{const r=e&&e.reason;add("promise: "+((r&&r.message)||r),"promise",0)})}catch(x){}
  return{add,flush}})();
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -677,7 +678,7 @@ function pxify(root){if(!root)return;const w=document.createTreeWalker(root,Node
 // 畫面任何地方新增的 emoji 都自動變成像素圖示（選單、彈窗、首頁、需求列）
 {let q=new Set(),pend=false;new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)q.add(n.nodeType==3?n.parentElement:n);if(!pend){pend=true;requestAnimationFrame(()=>{pend=false;const l=[...q];q.clear();l.forEach(el=>el&&el.isConnected&&pxify(el))})}}).observe(document.body,{childList:true,subtree:true,characterData:false});
  if(document.readyState==="complete")setTimeout(()=>pxify(document.body),0);else addEventListener("load",()=>pxify(document.body))}// 這支程式是晚載入的：頁面 load 早就過了，改成 init() 跑完（CUR 等變數宣告好）再 pxify
-const toast=t=>{window.SFX&&SFX.toast(t);const q=toast.q||(toast.q=[]);if(q[q.length-1]===t||(toast.cur===t&&q.length==0))return;q.push(t);if(q.length>3)q.shift();if(!toast.run)toast.next()};toast.next=()=>{const el=$("toast"),t=toast.q.shift();if(t==null){toast.run=0;toast.cur=null;el.classList.remove("on");return}toast.run=1;toast.cur=t;el.textContent=t;el.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>{el.classList.remove("on");setTimeout(toast.next,180)},toast.q.length?1500:2400)};
+const toast=t=>{window.SFX&&SFX.toast(t);const q=toast.q||(toast.q=[]);if(q[q.length-1]===t||(toast.cur===t&&q.length==0))return;q.push(t);if(q.length>3)q.shift();if(!toast.run)toast.next()};toast.ev=t=>{toast.lo=t;if(!toast.run)toast.next()};toast.next=()=>{const el=$("toast");let t=toast.q.shift();if(t==null&&toast.lo!=null){t=toast.lo;toast.lo=null}if(t==null){toast.run=0;toast.cur=null;el.classList.remove("on");return}toast.run=1;toast.cur=t;el.textContent=t;el.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>{el.classList.remove("on");setTimeout(toast.next,180)},toast.q.length?1500:2400)};
 const SKIN=["#f1c9a5","#e0ac7e","#c68a5a","#8d5a3a"],HAIR=["#222222","#5a3a1a","#a0522d","#d9b26a","#c0c0c0","#c0392b"],SHIRT=["#d9534f","#3b7dd8","#b45cc4","#8b5a2b","#2e9e5b","#d8901a","#333a44","#f0f0f0"],STYLE=["短髮","長髮","光頭","帽子"];
 const rp=a=>a[Math.floor(Math.random()*a.length)];
 const randLook=()=>({skin:rp(SKIN),hair:rp(HAIR),shirt:rp(SHIRT),style:rp(["短髮","長髮","馬尾","捲髮","瀏海"]),eyes:rp(["圓眼","瞇眼","眼鏡"]),top:rp(["T恤","帽T","襯衫"]),pants:rp(["#2b2b3a","#3b5a8a","#6b4a2b"]),bottom:rp(["長褲","短褲","裙子"]),acc:"無"});
@@ -972,6 +973,7 @@ function tapObj(k){const r=R[me],d=TAP_DEF[k],o=OBJS[k];if(!r||!d)return;if(r.sl
  const go=()=>act("obj",{item:k,note:d.feed?"feed":null});
  if(d.ok){go();return}
  tapConfirm(`${o.name} $${d.cost}`,go)}
+const bigGo=(txt,amt,fn)=>amt>=5000?tapConfirm(txt,fn):fn();
 function tapConfirm(txt,fn){let c=$("tapc");if(c)c.remove();c=document.createElement("div");c.id="tapc";c.style.cssText="position:fixed;left:50%;top:40%;transform:translateX(-50%);z-index:60;background:#fff7d6;border:3px solid #2b2b2b;padding:12px;display:flex;gap:8px;align-items:center;font:16.5px 'Cubic 11',monospace;color:#2b2b2b";c.innerHTML=`<span>${esc(txt)}</span>`;
  for(const [l,f] of [["做",()=>{c.remove();fn()}],["取消",()=>c.remove()]]){const b=document.createElement("button");b.textContent=l;b.style.cssText="min-height:44px;padding:0 16px;font:inherit;border:3px solid #2b2b2b;background:#f6a5c0;color:#2b2b2b";b.onclick=f;c.appendChild(b)}document.body.appendChild(c);setTimeout(()=>c.isConnected&&c.remove(),8000)}
 function tapPlace(p){const w=walkers[me];if(p.slot!=null){const o=bySlot(p.slot);if(o&&o.id==me){if(inside(R[me])&&!(w.path.length)){act("exit");return}pendingThen=async()=>{await act("enter")};goHouse(p.slot);return}pendingThen=()=>tapTab("here");goHouse(p.slot);return}
@@ -1000,7 +1002,7 @@ const cdLeft=(r,key,mins)=>!/^(esc|yard|jv|slash|lic)/.test(String(key))?0:Math.
 const dbtn=(label,sub,fn,left,g)=>({...btn(label,sub,fn,g),dis:left?`剛做過，${fmtLeft(left)}後再來`:""});
 const ICALIAS={"🥊":"👊","💬":"👥","🔪":"⚔️","🕳":"🚪","📊":"📈"},ACT_ICON={打喪屍豬:"👊",賣生豬肉:"💰",佈置:"🛋️",裝潢:"🎨",吃飯:"🍚",上廁所:"🚽",洗澡:"🛁",看電視:"📺",睡覺:"😴",起床:"☀️",吃一頓:"🍽️",打工:"💼",玩一下:"🎈",逛逛:"👀",煮飯給他:"🍳",幫他洗澡:"🧽",叫醒他:"⏰",串門子:"🏠",惡作劇:"💨",送禮物:"🎁",盪鞦韆:"🎠",快速休息:"😴",快速睡覺:"💤",進屋:"🏠",出門:"🚪",室內:"🛋️",餵貓吃零食:"🐟",取消:"✖️"};
 const GROUP={tip:"建議下一步",self:"照顧自己",friend:"在他家",place:"在這裡",face:"面對面",online:"線上 · 在哪都能做",mis:"惡趣味",move:"移動",eat:"吃喝",fun:"玩樂",soc:"社交",work:"工作與任務",home:"房子"};let lastPanel="",panelFns=[];
-function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),p=r.place,list=[];let title="",note="";
+function renderPanel(){if(!S||!me||!R[me])return;const econFun=op=>bigGo(op=="party"?"辦派對要花 $5000，確定？":"出海要花 $2000，確定？",op=="party"?5000:2000,async()=>{try{UT.hit("econ:"+op);const x=await rpc("town_econ_fun",{rid:me,pin,op});toast(x.msg||"完成");refresh()}catch(e){toast(e.message)}});const r=tickLocal(R[me],now()),p=r.place,list=[];let title="",note="";
  if(walkers[me]&&walkers[me].path.length){title="走路中…";note="到了就可以做事"}
  else if(r.sleeping){title=`在${placeName(p)}睡覺 💤`;list.push(btn("起床","",()=>act("wake")))}
  else if(p=="home:"+me&&!inside(r)){title="家門口";note="走進屋裡才能吃飯、洗澡、睡覺、擺家具";list.push(btn("🚪 進屋",`回到家裡 · ${HOUSES[hlc((r.items||{}).hl)-1][0]}`,()=>act("enter"),"pin"))}
@@ -1029,7 +1031,7 @@ function renderPanel(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now()),
  else if(p=="gym"){title="健身房";list.push(btn("健身 🏋️",`精力 −15 · 心情 +10 · 打架更強（${Math.min(10,(r.items||{}).fit||0)}/10）`,()=>act("workout")),pjBtn("gym",r));note=pjNote("gym",r)}
  else if(p=="arena"){title="格鬥場";const it=r.items||{};list.push(btn("打擂台 🥊",`精力 −12 · 贏了拿獎金、連勝越多越貴 · 目前 ${it.streak||0} 連勝（最高 ${it.best||0}）`,()=>act("spar")));note="點別人可約打，贏的拿 €100"}
  else if(p=="slaughter"){title="屠宰場";list.push(btn("溜進去偷飼料 🔪","買通守衛 €400 · 精力 −10 · 約四成賺 €500～900 · 可能被屠夫追、被抓去賠 €1200 · 一天最多 3 次",()=>act("sneak")));note="健身越多，越跑得掉"}
- else if(p=="market"){title="超市";list.push(btn("逛貨架 🛒","飲料、日用、掌機、扭蛋，每天特價",()=>goodsModal("market")),btn("買禮物 🎁","€300 · 送朋友心情 +20",()=>act("buy",{item:"gift"})),btn("買零食 🍪","€60 · 隨時吃，飽足 +20",()=>act("buy",{item:"snack"})),btn("🛍️ 家具、服飾、擺飾","改到家具行、服飾店買（這裡是舊入口，之後移除）",()=>shopModal()),btn("逛逛","心情 +6",()=>act("browse")),pjBtn("shop",r));note=pjNote("shop",r)}
+ else if(p=="market"){title="超市";list.push(btn("逛貨架 🛒","飲料、日用、掌機、扭蛋，每天特價",()=>goodsModal("market")),btn("逛逛","心情 +6",()=>act("browse")),pjBtn("shop",r));note=pjNote("shop",r)}
  else if(p=="jail"){title="監獄";const inm=Object.values(R).filter(o=>o.id!=me&&o.place=="jail"&&jailed(o)),stat=statLine(r),dz=(b,m)=>m?{...b,dis:m}:b;
   if(jailed(r)){const jp=jpOf(r)||{},ps=paroleWhy(r),eL=cdLeft(r,"esc",JAILX.esc[4]);
    note=`你被關著，還有 ${fmtLeft(jlLeft(r))}${jp.bad?"，不能假釋":""}`;
@@ -1053,7 +1055,7 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  else if(p=="realty"){title="不動產公司";note="房子升級、買莊園；不用回家，在這裡辦（價格依小鎮經濟微調）";const lx=(r.items||{}).lx||{},nx=HOUSES[+((r.items||{}).hl)||1];
   list.push(nx?btn(`升級${nx[0]}`,`€${nx[1]} · 房間更大、可擺 ${nx[2]} 件家具`,async()=>{await act("upgrade")},"place"):btn("房子已是豪宅","最高級了",()=>toast("已經是最高級的豪宅"),"place"));
   list.push(lx.estate?btn("走去我的莊園","地圖最下方的莊園區 · 進去辦派對",()=>{const k="estate:"+me;if(PLACES[k])walkTo(k,PLACES[k].door);else toast("莊園還在整理，等一下再試")},"place"):btn("買莊園 $600,000","稱號「莊園主人」· 獨立一棟（在莊園區）· 家不變 · 可辦派對",()=>econBuy("estate"),"place"))}
- else if(p.startsWith("estate:")){title=(PLACES[p]||{}).name||"莊園";note=p=="estate:"+me?"你的莊園 · 在裡面辦派對；朋友在你在裡面時可以進來參觀":"莊園主人在裡面時才能進去參觀";if(p=="estate:"+me&&fin(r)&&!r.sleeping&&!jailed(r))list.push(btn("辦派對","$5000 · 在線醒著的居民心情 +15、好感 +2 · 30 分鐘內朋友都能進來 · 每天 1 次",()=>fun("party"),"place"))}
+ else if(p.startsWith("estate:")){title=(PLACES[p]||{}).name||"莊園";note=p=="estate:"+me?"你的莊園 · 在裡面辦派對；朋友在你在裡面時可以進來參觀":"莊園主人在裡面時才能進去參觀";if(p=="estate:"+me&&fin(r)&&!r.sleeping&&!jailed(r))list.push(btn("辦派對","$5000 · 在線醒著的居民心情 +15、好感 +2 · 30 分鐘內朋友都能進來 · 每天 1 次",()=>econFun("party"),"place"))}
  else if(p=="harbor"){title="碼頭船行";note="買遊艇；出海要到碼頭邊（船行裡不能出海）";const lx=(r.items||{}).lx||{};
   list.push(lx.yacht?btn("遊艇 ✔","已擁有 · 到碼頭邊就能出海",()=>toast("你已經有遊艇了"),"place"):btn("買遊艇 $200,000","稱號「遊艇船長」· 可帶朋友出海 · 心情 +25",()=>econBuy("yacht"),"place"));
   list.push(btn("去碼頭出海","走到碼頭邊 · 船主才能出海",()=>walkTo("street",[68,16]),"move"))}
@@ -1066,9 +1068,9 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  if(!sel&&!r.sleeping&&!jailed(r)&&!(walkers[me]&&walkers[me].path.length))list.push(...trainBtns(r));
  if(r.place=="plaza"&&!r.sleeping&&!jailed(r))list.push(btn("看排行榜 🏆","首富、連續上線、打工、街機、賭神前 10 名",()=>rankBoard(),"place"));
  if(TRV&&TRV.here&&r.place==TRV.place&&!r.sleeping&&!jailed(r))list.push(btn("和旅人聊聊 💬","今天來鎮上的旅人，選擇題",trvTalk,"place"));
- {const lx=(r.items||{}).lx||{},fun=async op=>{try{UT.hit("econ:"+op);const x=await rpc("town_econ_fun",{rid:me,pin,op});toast(x.msg||"完成");refresh()}catch(e){toast(e.message)}};
+ {const lx=(r.items||{}).lx||{};
   if(!r.sleeping&&!jailed(r)){
-   if(lx.yacht&&p=="street"&&Math.abs(r.x-68.5)<=6&&Math.abs(r.y-18.5)<=5)list.push(btn("出海","$2000 · 自動帶碼頭邊最多 3 位朋友 · 大家心情 +25 · 1 小時 1 次",()=>fun("yacht"),"place"));
+   if(lx.yacht&&p=="street"&&Math.abs(r.x-68.5)<=6&&Math.abs(r.y-18.5)<=5)list.push(btn("出海","$2000 · 自動帶碼頭邊最多 3 位朋友 · 大家心情 +25 · 1 小時 1 次",()=>econFun("yacht"),"place"));
   }}
  if(NPCV&&NPCV.here&&Date.parse(NPCV.until)>Date.now()&&r.place==NPCV.place&&!r.sleeping&&!jailed(r))list.push(btn("找流動商人 💰","限量奇貨，價格偏貴",npcShop,"place"));
  if(!sel&&!r.sleeping&&FACP.includes(p)&&!(walkers[me]&&walkers[me].path.length)){list.push(...facBtns(r));const fn=fqOf(r,p);if(fn)note=(note?note+" · ":"")+`來過 ${fn} 次${tierOf(fn)?"：這裡的"+tierOf(fn):"，5 次變常客有折扣"}`}
@@ -1178,13 +1180,13 @@ function renderNeeds(){if(!S||!me||!R[me])return;const r=tickLocal(R[me],now());
 // 排行榜：頒獎台（前三名大頭貼）＋其餘名次＋你的名次；最近 7 天的事件，加上現在的存款和好友數
 function renderRank(){const w=(S&&S.week)||{},all=Object.values(R);
  const fromWeek=k=>(w[k]||[]).filter(x=>R[x.id]).map(x=>({id:x.id,n:x.n}));
- const rich=all.map(r=>({id:r.id,n:r.money})).sort((a,b)=>b.n-a.n),friends=all.map(r=>({id:r.id,n:((S&&S.bonds)||[]).filter(b=>(b.a==r.id||b.b==r.id)&&b.s>=10).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
- const cats=[["work","💼","最勤勞","次打工",fromWeek("work")],["popular","💗","最受歡迎","次被照顧",fromWeek("popular")],["kind","🤲","最愛照顧人","次照顧別人",fromWeek("kind")],
+ const rich=all.map(r=>({id:r.id,n:(r.money|0)+(((r.items||{}).cas||{}).ch|0)})).sort((a,b)=>b.n-a.n),friends=all.map(r=>({id:r.id,n:((S&&S.bonds)||[]).filter(b=>(b.a==r.id||b.b==r.id)&&b.s>=10).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
+ const cats=[["work","💼","最勤勞（7天）","次打工",fromWeek("work")],["popular","💗","最受歡迎","次被照顧",fromWeek("popular")],["kind","🤲","最愛照顧人","次照顧別人",fromWeek("kind")],
   ["rich","💰","小鎮首富","€",rich],["friends","🤝","人緣最好","個好朋友",friends],["punched","🤕","最欠扁","次被欺負",fromWeek("punched")],
   ...SOLO.map(g=>[g[0],g[1],g[2]+"王","分",all.map(r=>({id:r.id,n:spOf(r,g[0])})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n)])];
  const av=(id,big)=>`<canvas class="rav${big?" big":""}" width="28" height="34" data-look='${esc(JSON.stringify((R[id]||{}).look||{}))}'></canvas>`;
  const val=(c,x)=>c[0]=="rich"?`€${x.n}`:`${x.n} ${c[3]}`;
- $("tab-rank").innerHTML=`<p class="mut" style="margin:0 0 8px">次數類是最近 7 天；首富和人緣是現在的狀態。</p>`+cats.map(c=>{const L=c[4];if(!L.length)return `<div class="rk"><div class="rkh">${c[1]} ${c[2]}</div><p class="mut">還沒有人上榜，搶第一！</p></div>`;
+ $("tab-rank").innerHTML=`<p class="mut" style="margin:0 0 8px">次數類是近 7 天；首富（現金＋籌碼）和人緣是現在的狀態。</p>`+cats.map(c=>{const L=c[4];if(!L.length)return `<div class="rk"><div class="rkh">${c[1]} ${c[2]}</div><p class="mut">還沒有人上榜，搶第一！</p></div>`;
   const top=[L[1],L[0],L[2]],mine=L.findIndex(x=>x.id==me);
   return `<div class="rk"><div class="rkh">${c[1]} ${c[2]}</div><div class="podium">${top.map((x,i)=>x?`<div class="pd p${[2,1,3][i]}${x.id==me?" me":""}">${av(x.id,i==1)}<b>${esc(dn(R[x.id]))}</b><small>${val(c,x)}</small><div class="step">${[2,1,3][i]}</div></div>`:`<div class="pd empty"></div>`).join("")}</div>
    ${L.length>3?`<div class="rest">${L.slice(3,8).map((x,i)=>`<div class="rr${x.id==me?" me":""}"><span>${i+4}</span><b>${esc(dn(R[x.id]))}</b><small>${val(c,x)}</small></div>`).join("")}</div>`:""}
@@ -1678,8 +1680,8 @@ function shopModal(mode){const it=R[me].items||{},w=new Set(it.w||[]),d=new Set(
  const sec={wear:`<h3>造型</h3>${["style","top","acc"].map(k=>WEAR[k].filter(a=>a[2]).map(a=>row(a[0],a[1],a[2],w.has(a[0]),"w")).join("")).join("")}<p class="mut">🔒 情侶 T：和人變成好麻吉就能穿。繃帶頭：被扁 10 次就能戴。</p>`,
   deco:`<h3>門口擺飾</h3>${DECO.map(([id,n,pr])=>row(id,n,pr,d.has(id),"d")).join("")}`,
   furn:`<h3>室內家具</h3><p class="mut">買了放進背包，到家裡「室內」擺放，每種一件。</p>${FURN.map(([id,n,pr,ds])=>`<div class="mrow"><span><b>${n}</b> <small class="mut">€${pr} · ${ds}</small></span>${f.has(id)?`<small class="mut">✔ 已在背包</small>`:`<button data-b="f:${id}">買</button>`}</div>`).join("")}`};
- const head=mode?`<h2>${{wear:"服飾店",deco:"門口擺飾",furn:"家具行"}[mode]}</h2>`:`<h2>🛍️ 造型、擺飾、家具</h2><p class="mut">現在改到店裡買：</p><div class="row"><button data-go="furnshop">去家具行</button><button data-go="wearshop">去服飾店</button></div><p class="mut">下面是舊入口，之後會移除。</p>`;
- $("mbody").innerHTML=`${head}<p class="mut">你有 €${R[me].money} · 背包：零食 ${it.snack||0}、禮物 ${it.gift||0}。造型自動穿上，擺飾自動放門口（最多 4 樣）。</p>${mode?sec[mode]:sec.wear+sec.deco+sec.furn}<div class="row"><button id="bagGo">看背包</button><button id="mc">關閉</button></div>`;
+ const head=mode?`<h2>${{wear:"服飾店",deco:"門口擺飾",furn:"家具行"}[mode]}</h2>`:`<h2>🛍️ 買東西到店裡</h2><p class="mut">超市、家具行、服飾店都有店員和貨架：</p><div class="row"><button data-go="market">去超市</button><button data-go="furnshop">去家具行</button><button data-go="wearshop">去服飾店</button></div>`;
+ $("mbody").innerHTML=`${head}<p class="mut">你有 €${R[me].money}${mode=="wear"?" · 買了自動穿上":mode=="deco"?" · 自動放門口（最多 4 樣）":mode=="furn"?" · 買了放背包，回家擺放":""}</p>${mode?sec[mode]:""}<div class="row"><button id="bagGo">看背包</button><button id="mc">關閉</button></div>`;
  $("mc").onclick=()=>$("modal").classList.add("hide");$("bagGo").onclick=()=>bagModal();
  $("mbody").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{const k=b.dataset.go;UT.hit("shop:go:"+k);$("modal").classList.add("hide");walkTo(k,PLACES[k].door)});
  $("mbody").querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{b.disabled=true;const [k,id]=b.dataset.b.split(":"),had=((R[me].items||{})[k]||[]).includes(id);await act("buy",{item:b.dataset.b});if(k=="w"&&!had&&((R[me].items||{}).w||[]).includes(id))await wearOn(id);if(!had&&((R[me].items||{})[k]||[]).includes(id))playRoomFx(k=="w"?"buyw":"buyf");shopModal(mode)})}
@@ -1963,8 +1965,7 @@ async function econModal(){$("modal").classList.remove("hide");$("mbody").innerH
  <p>財產稅係數 ${st.kt} · 奢侈品價格 ${st.kp} · 生活補助 ${st.ks}</p>
  <p class="mut">活躍 ${h.n||0} 人 · 人均 ${f(h.m)} · 首富占 ${pc(h.top)} · 窮人 ${pc(h.poor)}</p>
  <p>鎮基金 ${f(st.fund)}${+st.mine?` · 你有 ${f(st.mine)} 補差金，下次登入領`:""}</p><p class="mut">每 7 天結算（上次 ${esc(st.wk||"—")}）：基金 7 成可動用，4 成補差金、3 成慶典、3 成蓋建設</p>${pays}
- <h3>大額花費</h3><p class="mut">遊艇到碼頭船行買、莊園到不動產公司買、房子升級也在不動產公司；拍賣與捐款到市政廳。下面是舊入口，之後會移除。</p><div class="row"><button data-go="harbor">去碼頭船行</button><button data-go="realty">去不動產公司</button><button data-go="townhall">去市政廳</button></div><div class="col">${items}<button class="act" data-eb="d1"><b>捐款 ${f(10000)}</b><small>全進鎮基金；累計 1 萬／10 萬／100 萬有稱號，不減稅</small></button><button class="act" data-eb="d2"><b>捐款 ${f(100000)}</b><small>已捐 ${f(us.donated)}</small></button>
- <button class="act" data-eb="bid"><b>拍賣會：${esc(A.lot||"")}</b><small>${A.bidder?esc(A.bname)+" 最高價 "+f(A.bid):"還沒人出價"} · 我要出 ${f(A.min)}（出價先托管，被超過退回，每週一結算）</small></button></div>
+ <h3>大額花費</h3><p class="mut">遊艇到碼頭船行買、莊園到不動產公司買、房子升級也在不動產公司；拍賣與捐款到市政廳。</p><div class="row"><button data-go="harbor">去碼頭船行</button><button data-go="realty">去不動產公司</button><button data-go="townhall">去市政廳</button></div>
  ${mayor?`<div class="row"><button id="ebT">${st.on?"關閉":"開啟"}自動調節</button></div>`:""}<div class="row"><button id="mc" class="pri">關閉</button></div>`;
  pxify($("mbody"));$("mc").onclick=()=>$("modal").classList.add("hide");
  const go=async(op,item,num)=>{try{const x=await rpc("town_econ_use",{rid:me,pin,op,item,num});toast(x.msg||"完成");typeof refresh=="function"&&refresh()}catch(e){toast(e.message)}econModal()};
@@ -2657,22 +2658,22 @@ function wevDraw(){let b=$("wev");const on=!!wevK&&wevUntil>=Date.now(),hp=happy
  b.textContent=parts.join("　");b.classList.add("on")}
 let NPCV=null;
 const NPCI=[["tonic","特調補品","€1500 · 心情 +30、清潔 +30"],["toy","小豬玩偶","€2500 · 收藏品，純裝飾"],["book","訓練手冊","€2000 · 隨機一項能力進度 +2"]];
-async function npcPoll(){if(document.visibilityState!="visible"||!me||!S)return;try{const j=await rpc("town_npc",{rid:me,pin,op:"view"});if(j&&!j.error){const was=NPCV&&NPCV.here;NPCV=j;if(j.here&&!was)toast("流動商人來了，在"+(j.place=="plaza"?"廣場":"公園"))}}catch(e){}}
+async function npcPoll(){if(document.visibilityState!="visible"||!me||!S)return;try{const j=await rpc("town_npc",{rid:me,pin,op:"view"});if(j&&!j.error){const was=NPCV&&NPCV.here;NPCV=j;if(j.here&&!was)toast.ev("流動商人來了，在"+(j.place=="plaza"?"廣場":"公園"))}}catch(e){}}
 function npcShop(){const b=(NPCV&&NPCV.bought)||[];choiceModal("流動商人","限量奇貨，每種每天限買一次",NPCI.map(a=>[a[1]+(b.includes(a[0])?"（今天買過了）":""),a[2],async()=>{if(b.includes(a[0])){toast("今天買過了");return}try{const j=await rpc("town_npc",{rid:me,pin,op:"buy",item:a[0]});if(j&&j.error)toast(j.error);else{toast(j.msg);if(NPCV)NPCV.bought=j.bought;await refresh()}}catch(e){toast("連不上小鎮，再試一次")}}]))}
 let TRV=null;
 const TRQ=[["旅人問路","「請問車站怎麼走？」",["親切帶路","心情 +8"],["隨便指一下","心情 −2"]],["旅人賣藏寶圖","「這張圖要 €200，說不定能挖到寶。」",["買下來","€200 · 一半機率挖到 €300、否則心情 −5"],["不買","沒有影響"]],["旅人說故事","「我來跟你講講我的旅行。」",["認真聽","心情 +10"],["打斷他","心情 −3"]],["旅人請你喝一杯","「一起喝一杯吧，我請……不對，你請？」",["請他喝","€100 · 心情 +12"],["婉拒","沒有影響"]]];
 async function rankGet(force){if(!me||!pin)return RANKD;if(!force&&RANKD&&Date.now()-RANKAT<6e4)return RANKD;try{const j=await rpc("town_rank",{rid:me,pin,kind:null});if(j&&j.boards){RANKD=j.boards;RANKD.me=j.me;RANKAT=Date.now()}}catch(e){}return RANKD}
-const RKT=[["rich","首富","$"],["streak","連續上線","天"],["works","打工","次"],["arcade","街機","分"],["casino","賭神（7 天）","籌碼"],["casino_all","賭神（累計）","籌碼"]];
+const RKT=[["rich","首富","$"],["streak","連續上線","天"],["works","打工（累計）","次"],["arcade","街機","分"],["casino","賭神（7 天）","籌碼"],["casino_all","賭神（累計）","籌碼"]];
 async function rankBoard(tab){tab=tab||"rich";const d=await rankGet();$("modal").classList.remove("hide");
  if(!d){$("mbody").innerHTML=`<h2>排行榜</h2><p class="mut">排行榜還沒開放，晚點再來看。</p><button class="act" id="rkx" style="min-height:44px">關閉</button>`;$("rkx").onclick=()=>$("modal").classList.add("hide");return}
  const L=d[tab]||[],c=RKT.find(k=>k[0]==tab);
  $("mbody").innerHTML=`<h2>🏆 排行榜</h2><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">${RKT.map(k=>`<button data-k="${k[0]}" style="flex:1 1 30%;min-height:44px;padding:0 2px;font:inherit;border:3px solid #2b2b2b;background:${k[0]==tab?"#f6a5c0":"#fff"};color:#2b2b2b">${k[1]}</button>`).join("")}</div><p class="mut" style="margin:0 0 8px">每分鐘更新，只列前 10 名${tab=="casino"?"（近 7 天淨贏）":tab=="casino_all"?"（累計淨贏，含全部歷史）":""}</p>${L.length?L.map((x,i)=>`<div class="act" style="display:flex;gap:8px;align-items:center;min-height:44px;margin-bottom:4px;border:3px solid ${x.id==d.me?"#f1c40f;background:#2b2b2b;color:#ffe066":"transparent"}"><b style="width:28px">${i+1}</b><span style="flex:1">${x.id==d.me?"你 · ":""}${esc(x.n)}</span><span>${c[0]=="rich"?"$":""}${x.v}${c[0]=="rich"?"":" "+c[2]}</span></div>`).join(""):`<p class="mut">還沒有人上榜，搶第一！</p>`}<button class="act" id="rkx" style="min-height:44px;margin-top:8px">關閉</button>`;
  $("mbody").querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>rankBoard(b.dataset.k));$("rkx").onclick=()=>$("modal").classList.add("hide");pxify($("mbody"))}
-async function trvPoll(){if(document.visibilityState!="visible"||!me||!S)return;rankGet();try{const j=await rpc("town_traveler",{rid:me,pin,op:"view"});if(j&&!j.error){const was=TRV&&TRV.here;TRV=j;if(j.here&&!was)toast("有旅人來鎮上了，在"+(j.place=="plaza"?"廣場":"公園"))}}catch(e){}}
+async function trvPoll(){if(document.visibilityState!="visible"||!me||!S)return;rankGet();try{const j=await rpc("town_traveler",{rid:me,pin,op:"view"});if(j&&!j.error){const was=TRV&&TRV.here;TRV=j;if(j.here&&!was)toast.ev("有旅人來鎮上了，在"+(j.place=="plaza"?"廣場":"公園"))}}catch(e){}}
 function trvTalk(){const q=TRQ[TRV.q];choiceModal(q[0],q[1],[q[2],q[3]].map((a,i)=>[a[0],a[1],async()=>{try{const j=await rpc("town_traveler",{rid:me,pin,op:"pick",item:String(i)});if(j&&j.error)toast(j.error);else{toast(j.msg);TRV.here=false;await refresh()}}catch(e){toast("連不上小鎮，再試一次")}}]))}
 setInterval(trvPoll,6e4);setTimeout(trvPoll,6000);
 setInterval(npcPoll,6e4);setTimeout(npcPoll,5000);
-async function wevPoll(){if(wevBusy||document.visibilityState!="visible"||!me||!S)return;wevBusy=true;try{const j=await rpc("town_world",{rid:me,pin,op:"poll"});const ev=j&&j.ev&&WEV[j.ev.k]?j.ev:null;const k=ev?ev.k:null;if(k!==wevK){if(k)toast(`小鎮事件：${WEV[k][0]}，${WEV[k][1]}`);else if(wevK)toast("小鎮事件結束了");}wevK=k;wevUntil=ev?Date.parse(ev.until):0;wevDraw()}catch(e){}finally{wevBusy=false}}
+async function wevPoll(){if(wevBusy||document.visibilityState!="visible"||!me||!S)return;wevBusy=true;try{const j=await rpc("town_world",{rid:me,pin,op:"poll"});const ev=j&&j.ev&&WEV[j.ev.k]?j.ev:null;const k=ev?ev.k:null;if(k!==wevK){if(k)toast.ev(`小鎮事件：${WEV[k][0]}，${WEV[k][1]}`);else if(wevK)toast.ev("小鎮事件結束了");}wevK=k;wevUntil=ev?Date.parse(ev.until):0;wevDraw()}catch(e){}finally{wevBusy=false}}
 async function luckPoll(){if(document.visibilityState!="visible"||!me||!S||updBusy())return;const r=R[me];if(!r||r.sleeping||!["street","plaza","park"].includes(r.place))return;try{const j=await rpc("town_pool",{rid:me,pin,op:"luck"});if(j&&j.title)await refresh().catch(()=>{})}catch(e){}}
 setInterval(wevPoll,6e4);setInterval(wevDraw,3e4);setInterval(luckPoll,18e4);setTimeout(wevPoll,4000);
 function drawZpig(g,X,Y,t){const b=Math.round(Math.sin(t/220)*1.5),R0=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(X+x,Y+y+b,w,h)};g.fillStyle="rgba(0,0,0,.25)";g.fillRect(X+4,Y+22,22,4);
