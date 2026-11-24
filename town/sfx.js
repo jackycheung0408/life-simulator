@@ -68,6 +68,7 @@ window.SFX={
  toast:function(t){t=String(t||"");play(ERR.test(t)?"error":/任務/.test(t)&&/完成|領/.test(t)?"quest":MSG.test(t)?"msg":"toast")},
  act:function(a,x,dm){var n=a=="enter"||a=="exit"?"door":a=="buy"||a=="vbuy"||a=="unwrap"||a=="gift"?"item":null;if(n)play(n);if(dm>=1)setTimeout(function(){play("coin")},n?120:0);else if(dm<=-1)setTimeout(function(){play("pay")},n?120:0)},
  fx:function(ty,mine){if(!mine)return;var m={fight:"hit",crash:"hit",wk_desk:"work_desk",wk_docs:"work_desk",wk_cafe:"work_cafe",wk_serve:"work_serve",wk_lift:"work_lift",wk_scan:"work_scan",eat:"eat",zzz:"zzz",level:"levelup",check:"quest"}[ty];if(m)play(m)},
+ burst:function(e,s){if(window.TMUSIC)TMUSIC.burst(e,s)},
  ctx:function(o){if(window.TMUSIC){o.night=night();TMUSIC.set(o)}},
  ready:function(){return run()}
 };

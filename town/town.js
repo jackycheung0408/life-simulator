@@ -374,7 +374,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
-  {id:"dex-1124",date:"11/24",title:"新增圖鑑",items:["選單「圖鑑」：收藏、造型、家具","美食、地點、鎮民也能收","集滿拿稱號和零食"]},
+  {id:"music2-1124",date:"11/24",title:"新音樂",items:["慶典、賭場大贏有舞曲","酒吧、舞池、賭場、監獄有專屬曲","市政廳、PK 也換新曲"]},  {id:"dex-1124",date:"11/24",title:"新增圖鑑",items:["選單「圖鑑」：收藏、造型、家具","美食、地點、鎮民也能收","集滿拿稱號和零食"]},
   {id:"rest-fix-1124",date:"11/24",title:"小公平調整",items:["長椅每天最多補 100 精力","垃圾桶、郵筒每天各 3 次","我的人生補車險與事故"]},
   {id:"casino-fix-1124",date:"11/24",title:"賭場更穩",items:["關掉牌桌可接回牌局","連點不會重複出牌","小螢幕牌桌更大"]},
   {id:"shops-1124",date:"11/24",title:"商店整理",items:["買東西一律到店裡","大額花費先確認","莊園派對修好了"]},
@@ -1470,7 +1470,7 @@ let GBUSY=false;const gBusy=on=>{GBUSY=on;const m=$("mbody");if(m)m.classList.to
 async function resumeGame(game){try{const res=await rpc("town_casino",{rid:me,pin,game,bet:0});R[me].money=res.money;if(res.casino)CAS={...(CAS||{}),...res.casino};renderNeeds();return res.game||{none:true}}catch(e){return{none:true}}}
 const STALE=/還沒打完/;
 async function playGame(game,extra={},fn){if(game=="cr_poll")return playGame0(game,extra,fn);if(GBUSY)return new Promise(()=>{});gBusy(true);try{return await playGame0(game,extra,fn)}finally{gBusy(false)}}
-async function playGame0(game,extra={},fn){if(["hl_start","bj_start","bacc","niu","dg_start","sangong","shiba","pj_start"].includes(game))DEALT.clear();const res=await rpc(fn||(game=="rps"?"town_game":"town_casino"),{rid:me,pin,game,bet:gameBet,...extra});R[me].money=res.money;if(res.casino){CAS={...(CAS||{}),...res.casino};updBud();lastBet=gameBet;lastChips=betChips.length?betChips.slice():[gameBet];betSave(gameTab);if(res.game&&typeof res.game.win=="number")lastWin=res.game.win-(res.game.bet||gameBet)}renderNeeds();return res.game}
+async function playGame0(game,extra={},fn){if(["hl_start","bj_start","bacc","niu","dg_start","sangong","shiba","pj_start"].includes(game))DEALT.clear();const res=await rpc(fn||(game=="rps"?"town_game":"town_casino"),{rid:me,pin,game,bet:gameBet,...extra});R[me].money=res.money;if(res.casino){CAS={...(CAS||{}),...res.casino};updBud();lastBet=gameBet;lastChips=betChips.length?betChips.slice():[gameBet];betSave(gameTab);if(res.game&&typeof res.game.win=="number")lastWin=res.game.win-(res.game.bet||gameBet);if(lastWin>=Math.max(1000,(res.game.bet||gameBet)*5)&&window.SFX&&SFX.burst)SFX.burst("win",20)}renderNeeds();return res.game}
 const casMin=iso=>iso?Math.max(1,Math.ceil((Date.parse(iso)-now())/60000)):0;
 const chipLine=()=>CAS?`籌碼 €${CAS.chips}`:"";
 function updBud(){const e=document.getElementById("gBud");if(e)e.textContent=""}
@@ -2331,7 +2331,7 @@ $("zoom").onclick=()=>{if(cam.user&&!zoomFar){cam.user=false;camFree=false;zoomL
   const ev=((S.events)||[]).filter(e=>e.kind!="rent"||e.actor==me).slice().sort((a,b)=>b.at.localeCompare(a.at)||b.id-a.id).slice(0,8);
   const h=jb+`<div class="ev"><h4>最近動態</h4>`+(ev.length?ev.map(e=>`<div class="ir"><em>${hm(e.at)}</em>${esc(e.msg)}</div>`).join(""):`<div class="ir">還沒有動態</div>`)+`</div>`;if(inf.dataset.h!==h){inf.dataset.h=h;inf.innerHTML=h}};
  setInterval(infR,2000);setTimeout(infR,500);
- setInterval(()=>{const r=R[me];if(!r||!window.SFX||!SFX.ctx)return;SFX.ctx({mood:moodOf(r),crowd:Object.values(R).filter(o=>o.id!=me&&o.place==r.place&&!o.sleeping).length,place:r.place})},5000);
+ setInterval(()=>{const r=R[me];if(!r||!window.SFX||!SFX.ctx)return;SFX.ctx({fest:typeof wevK!="undefined"&&wevK=="festival"?1:0,mood:moodOf(r),crowd:Object.values(R).filter(o=>o.id!=me&&o.place==r.place&&!o.sleeping).length,place:r.place})},5000);
 const kb=document.createElement("div");kb.id="kbh";kb.textContent="方向鍵移動 · E 建議 · 1-9 按鈕";document.body.appendChild(kb);const tp=document.createElement("div");tp.id="tip2";document.body.appendChild(tp);
  const hov=e=>{if(e.pointerType!=="mouse"||ptrs.size||!S||!isPC()||stageRoom()||!R[me]){tp.style.display="none";cv.style.cursor="";return}
   const rc=cv.getBoundingClientRect(),wx=(e.clientX-rc.left)/cam.s+cam.ox,wy=(e.clientY-rc.top)/cam.s+cam.oy,tx=Math.floor(wx/T),ty=Math.floor(wy/T);let nm="";
@@ -2731,7 +2731,7 @@ let pkSeen="";
 function checkPk(){const r=R[me];if(!r||!r.items||!r.items.pk||modalOpen()||!S)return;const iv=r.items.pk,age=Date.parse(S.now)-Date.parse(iv.at),f=R[iv.f];
  if(age>175e3||age<0||pkSeen==iv.at||!f||r.sleeping||jailed(r))return;pkSeen=iv.at;const bet=iv.b||0;
  choiceModal(`${f.name} 邀你去格鬥場 PK`,`3 分鐘內有效 · 三回合分勝負，不會死 · ${bet?`賭注 €${bet}：輸的付、贏的拿 95%`:"友誼賽：贏的人 €100"}`,[["接受，走吧","兩個人都被帶到格鬥場",async()=>{try{const j=await rpc("town_pk",{rid:me,pin,op:"accept",target:f.id});await refresh();snapMe();pkAnim(j.pkr)}catch(e){toast(e.message)}renderPanel()}],["婉拒","他會收到通知",async()=>{try{await rpc("town_pk",{rid:me,pin,op:"decline",target:f.id});await refresh()}catch(e){toast(e.message)}}]])}
-function pkAnim(pk){const A=R[pk.a],B=R[pk.b];if(!A||!B)return;$("modal").classList.remove("hide");
+function pkAnim(pk){window.SFX&&SFX.burst&&SFX.burst("pk",25);const A=R[pk.a],B=R[pk.b];if(!A||!B)return;$("modal").classList.remove("hide");
  $("mbody").innerHTML=`<h2>格鬥場 PK</h2><p class="mut">${esc(pk.an)} vs ${esc(pk.bn)}${pk.bet?` · 賭注 €${pk.bet}`:""}</p><canvas id="pkc" width="288" height="144" style="display:block;margin:6px auto;width:100%;max-width:288px;image-rendering:pixelated;border:3px solid var(--ink)"></canvas><p id="pkt" class="mut" style="text-align:center">準備…</p><div class="row"><button class="pri hide" id="pkOk">好</button></div>`;
  const cv=$("pkc"),c=cv.getContext("2d");c.imageSmoothingEnabled=false;const rounds=pk.rounds.split(""),T0=performance.now(),RD=1300;let hpA=3,hpB=3,done=false;
  const P=(x,y,w,h,col)=>{c.fillStyle=col;c.fillRect(Math.round(x),Math.round(y),w,h)};
