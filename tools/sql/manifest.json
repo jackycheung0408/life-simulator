@@ -1029,6 +1029,22 @@
    "needs": [
     "town_bal2_tax.sql"
    ]
+  },
+  {
+   "file": "town_bal3_bond.sql",
+   "kind": "patch",
+   "needs": [
+    "town_jail.sql",
+    "town_bond_recover.sql"
+   ],
+   "note": "平衡批3：好感負值回復加倍、和好+10、好麻吉打工+3%（重建 town_pr_pct、改 town_act、cron）"
+  },
+  {
+   "file": "town_bal3_bond_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_bal3_bond.sql"
+   ]
   }
  ]
 }
