@@ -829,3 +829,7 @@
 ## 賭場下注間隔已取消（2026-11-24；SQL `supabase/town_casino_nogap.sql` **已套用正式站**，回滾實測通過）
 - 伺服器 `town_casino` 的「每局至少間隔 3 秒」已移除（`items.cas.t` 仍會寫入但沒人讀）。重複操作安全：同一居民併發由 `town_auth` 的 `for update` 序列化；有狀態遊戲（21 點、牌九、比大小、地雷、開寶箱、**飛行器**）上一局沒結束再開局一律被擋並導回續玩（飛行器開桌用 `cr_poll` 還原，墜毀則當場結算為輸）；射龍門連發＝放棄重發；無狀態遊戲同一秒連打籌碼守恆。前端防連點 `playGame` 的 `GBUSY` 執行中鎖保留。
 - **教訓**：就地補丁的略過標記（`chk`）不可以是函式名稱或舊內容的子字串（`town_estate_free.sql` 的 `gate` 誤判），要用只出現在補丁新內容的字串；套用後要用 `pg_get_functiondef` 確認補丁真的生效，不要只看「Success」。
+
+## 主線劇情（長期目標批 4，2026-11-24；前端 v390 已上線，SQL `supabase/town_story.sql` **尚未套用正式站**，實測 `town_story_test.sql`（回滾，REPORT）；順序在 `town_goal`／`town_dex`／`town_season`／`town_catalog2`／`town_fix_numbers` 之後）
+- 8 章各 4 任務依序解鎖（`town_story_def` 與前端 `STORY` 要一致，`town/test_story.js` 比對）；資料 `items.mq`；RPC `town_story(rid,pin,op,id,choice)`：view／start／pause／talk／advance／choose／claim。任務種類：talk（`dexMark` 順手呼叫 `stTalk`，伺服器驗地點）、at、do（`town_goal_hook`／`town_goods` 補丁呼叫 `town_story_hook`）、n（讀 `town_ach_val`）、ch 選擇題（第 8 章三結局各一稱號）。
+- 獎勵只有稱號、零食、限定造型 mq3／mq6／mq8（第 3／6／8 章，`town_shop` unlock='story'）；不給錢。成就 81～86（`town_ach_def` 補丁）。前端：選單「主線」、祕書小雅「主線劇情」、`#stbar` 追蹤條、`stScene` 劇情畫面。驗證腳本 `tools/visual/story-verify.mjs`；視覺情境 `modal-story`／`story-chapter1`／`story-clear`。
