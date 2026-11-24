@@ -60,7 +60,7 @@ body.ingame #modal:has(.garea) .card{touch-action:pan-y}
 #modal .card:has(.betbar) .garea .gbtns{margin:0;min-height:56px;align-items:stretch}
 #modal .card:has(.betbar) .garea .gbtns>button{min-height:56px;flex:1 1 0}
 #modal .card:has(.betbar) .pcard{width:var(--cw);height:calc(var(--cw)*1.38)}
-.betbar .cacts,.betbar .ctray{display:none}.betbar.open .cacts{display:grid}.betbar.open .ctray{display:flex}
+.betbar.shut .cacts,.betbar.shut .ctray,.bl .betbar .cacts,.bl .betbar .ctray{display:none}.betbar:not(.shut) .cacts{display:grid}.betbar:not(.shut) .ctray{display:flex}
 .bl .betbar .betedit{display:none}.bl .betbar .glast{display:none}
 .betedit{min-height:44px;padding:0 10px;white-space:nowrap}
 #modal .card:has(.betbar) .garea .gres{font-size:16.5px;margin:2px 0}
@@ -372,6 +372,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
   {id:"ach-1124",date:"11/24",title:"成就上線",items:["選單新增「成就」80 項","銅給零食，銀金給稱號","解鎖會跳通知"]},
+  {id:"bet-open-1124",date:"11/24",title:"賭桌下注更順",items:["籌碼盤預設展開","自動記住每款上次注碼"]},
   {id:"pinch-empty-1124",date:"11/24",title:"雙指縮放、空屋消失",items:["地圖可雙指縮放","按「重設縮放」回原樣","沒人住的空屋不再顯示"]},
   {id:"onboard-pwa-1124",date:"11/24",title:"新手引導上線",items:["新角色有開場漫畫和 5 個任務","選單可重看「新手引導」","可安裝到主畫面，離線有提示"]},
   {id:"load-street-1124",date:"11/24",title:"載入畫面變好看",items:["小豬在街上走，跟著進度前進","白天夜晚依時間變化","顯示上次上線與小知識"]},
@@ -1386,9 +1387,14 @@ const ARCADE=[["rps","g_rps","猜拳","贏 ×2，平手退回"]],
  SOLO=[["whack","🔨","打地鼠","30 秒，打越多越高分"],["memory","🧠","記憶翻牌","步數越少越高分"]];
 // ── 籌碼面額與百家樂路單（賭場）──
 const stackHtml=()=>betChips.length?`<span class="cstk">${betChips.map((v,k)=>`<button class="chip u" data-un="${k}" style="--c:${chipCol(v)}" aria-label="取消這顆 ${v}"${betLock?" disabled":""}>${chipLbl(v)}</button>`).join("")}</span><b class="bamt">€${betSum()}</b>`:`<span class="cstk"><i class="chip u dim" style="--c:${CHIPD[0][1]}">50</i></span><b class="bamt">€50</b><small class="mut">最低額</small>`;
-let betChips=[],lastBet=0,lastChips=[],lastWin=null,betLock=false;// betChips：桌上的注碼（每顆可單獨取消）；空 = 預設最低額 50，第一次點籌碼要「取代」它，不是加上去
+const BETDEF={bj:500,bacc:500,wheel:100,niu:200,sangong:200,shiba:200,dice:100,slots:100,keno:100,pj:200,pigrace:100};
+const betOpen=()=>{try{return localStorage.getItem("town-betopen")!="0"}catch(e){return true}};
+const betMem=()=>{try{return JSON.parse(localStorage.getItem("town-betmem"))||{}}catch(e){return{}}};
+function betLoad(g){const ch=(CAS&&CAS.chips)||0,cap=Math.max(50,ch),m=betMem()[g];let a=Array.isArray(m)&&m.length?m.filter(v=>CHIPD.some(c=>c[0]==v)):[];if(!a.length){const d=Math.max(50,Math.min(BETDEF[g]||100,Math.floor(ch*.2/50)*50||50));a=[d]}while(a.length>1&&a.reduce((x,y)=>x+y,0)>cap)a.pop();if(a.reduce((x,y)=>x+y,0)>cap)a=[cap];betChips=a;betGame=g}
+function betSave(g){try{const m=betMem();m[g]=betChips.slice();localStorage.setItem("town-betmem",JSON.stringify(m))}catch(e){}}
+let betGame="",betChips=[],lastBet=0,lastChips=[],lastWin=null,betLock=false;// betChips：桌上的注碼（每顆可單獨取消）；空 = 預設最低額 50，第一次點籌碼要「取代」它，不是加上去
 const betSum=()=>betChips.reduce((a,b)=>a+b,0),chipLbl=v=>{const d=CHIPD.find(c=>c[0]==v);return d?d[2]:v>=1e4?(v/1e4).toFixed(1).replace(/\.0$/,"")+"萬":""+v},chipCol=v=>{let c=CHIPD[0][1];for(const d of CHIPD)if(d[0]<=v)c=d[1];return c};
-const chipTray=chips=>`<div class="betbar"><div class="crow"><div id="bstack" class="bstack">${stackHtml()}</div><button id="betEdit" class="betedit">改注</button><span id="glast" class="glast">${lastWin==null?"":lastWin>0?`上局 +€${lastWin}`:lastWin<0?`上局 −€${-lastWin}`:"上局 平手"}</span></div><div class="ctray">${CHIPD.map(([v,c,l])=>`<button class="chip" data-chip="${v}" style="--c:${c}"${v>chips?" disabled":""}>${l}</button>`).join("")}</div><div class="cacts"><button data-chip="undo">撤銷</button><button data-chip="again">同上注</button><button data-chip="clr">清除</button><button data-chip="all">全押</button></div></div>`;
+const chipTray=chips=>`<div class="betbar${betOpen()?"":" shut"}"><div class="crow"><div id="bstack" class="bstack">${stackHtml()}</div><button id="betEdit" class="betedit">${betOpen()?"收合":"改注"}</button><span id="glast" class="glast">${lastWin==null?"":lastWin>0?`上局 +€${lastWin}`:lastWin<0?`上局 −€${-lastWin}`:"上局 平手"}</span></div><div class="ctray">${CHIPD.map(([v,c,l])=>`<button class="chip" data-chip="${v}" style="--c:${c}"${v>chips?" disabled":""}>${l}</button>`).join("")}</div><div class="cacts"><button data-chip="undo">撤銷</button><button data-chip="again">同上注</button><button data-chip="clr">清除</button><button data-chip="all">全押</button></div></div>`;
 function chipSync(){const ch=(CAS&&CAS.chips)||0;if(ch>=50&&betSum()>ch)betChips=[ch];gameBet=betChips.length?betSum():50;if(ch>=50&&gameBet>ch)gameBet=ch;const b=document.getElementById("bstack");if(b)b.innerHTML=stackHtml();document.querySelectorAll("[data-chip]").forEach(x=>{const k=x.dataset.chip,v=+k;if(v)x.disabled=v>ch;else if(k=="undo")x.disabled=!betChips.length;else if(k=="again")x.disabled=!(lastBet>=50&&lastBet<=ch);else if(k=="clr")x.disabled=!betChips.length;else if(k=="all")x.disabled=ch<50});const gl=document.getElementById("glast");if(gl)gl.textContent=lastWin==null?"":lastWin>0?`上局 +€${lastWin}`:lastWin<0?`上局 −€${-lastWin}`:"上局 平手";if(gl)gl.className="glast "+(lastWin>0?"good":lastWin<0?"bad":"")}
 function roadsHtml(bh){bh=bh||"";if(!bh)return`<p class="mut">還沒有路單，玩幾局百家樂就會出現。</p>`;
  const bead=baccBead(bh),big=baccBig(bh),vis=big.slice(-18),nB=[...bh].filter(x=>x=="B").length,nP=[...bh].filter(x=>x=="P").length,nT=bh.length-nB-nP,nm={B:"莊",P:"閒",T:"和"};
@@ -1421,7 +1427,7 @@ function squeezeDeal(show){return new Promise(res=>{const cards=[...show.querySe
 const playRes=g=>{document.querySelectorAll("#gShow .gres").forEach(e=>{e.dataset.fx="1";e.classList.add("late");e.style.setProperty("--d","0ms")});try{if(window.SFX)SFX.play(g.win>g.bet?"coin":g.win<g.bet?"pay":"click")}catch(e){}};
 let gameTab="",gameBet=50,gameHall="arcade",CAS=null;
 const NIUC=c=>c==10?"妞妞":c==0?"沒妞":"妞"+c;
-async function playGame(game,extra={},fn){if(["hl_start","bj_start","bacc","niu","dg_start","sangong","shiba","pj_start"].includes(game))DEALT.clear();const res=await rpc(fn||(game=="rps"?"town_game":"town_casino"),{rid:me,pin,game,bet:gameBet,...extra});R[me].money=res.money;if(res.casino){CAS={...(CAS||{}),...res.casino};updBud();lastBet=gameBet;lastChips=betChips.length?betChips.slice():[gameBet];if(res.game&&typeof res.game.win=="number")lastWin=res.game.win-(res.game.bet||gameBet)}renderNeeds();return res.game}
+async function playGame(game,extra={},fn){if(["hl_start","bj_start","bacc","niu","dg_start","sangong","shiba","pj_start"].includes(game))DEALT.clear();const res=await rpc(fn||(game=="rps"?"town_game":"town_casino"),{rid:me,pin,game,bet:gameBet,...extra});R[me].money=res.money;if(res.casino){CAS={...(CAS||{}),...res.casino};updBud();lastBet=gameBet;lastChips=betChips.length?betChips.slice():[gameBet];betSave(gameTab);if(res.game&&typeof res.game.win=="number")lastWin=res.game.win-(res.game.bet||gameBet)}renderNeeds();return res.game}
 const casMin=iso=>iso?Math.max(1,Math.ceil((Date.parse(iso)-now())/60000)):0;
 const chipLine=()=>CAS?`籌碼 €${CAS.chips}`:"";
 function updBud(){const e=document.getElementById("gBud");if(e)e.textContent=""}
@@ -1455,6 +1461,7 @@ function gamesModal(){$("modal").classList.remove("hide");$("mbody").classList.r
  const gic=ic=>/^g_/.test(ic)&&window.PIXICON_NAME?`<img class="px" alt="" src="${PIXICON_NAME(ic)}">`:ic;
  const gm=l=>l.map(([k,ic,n,d])=>`<button class="gm" data-g="${k}"><span class="gi">${gic(ic)}</span><b>${n}${hall&&gmTag(k)?`<em class="hot">${gmTag(k)}</em>`:""}</b><small>${d}${SOLO.some(g=>g[0]==k)?` · 最佳 ${spOf(R[me],k)}`:""}</small></button>`).join("");
  const hall=gameHall=="casino",bets=hall?[...[50,100,200,500,1000,2000,5000,10000,20000,50000,100000,500000,1000000].filter(b=>b<((CAS&&CAS.chips)||0)),...(CAS&&CAS.chips>=50?[CAS.chips]:[])]:[50,100,200,500,1000],hn=hall?"賭場":"街機";
+ if(!menu&&hall&&!solo&&gameTab&&betGame!=gameTab){betLoad(gameTab);gameBet=betSum()||50}
  $("mbody").innerHTML=menu?(hall?`<h2>🎰 小豬賭場</h2><p class="mut">籌碼 €<b id="gMoney">${CAS?CAS.chips:0}</b> · 押注 €50 起，沒有上限 · 離場自動換回現金（0.5%）</p>${casStatus()}
   <h3 class="gh">押錢遊戲（莊家有優勢，玩越久越可能輸）</h3><div class="gmenu">${gm(gmSort(CASINO,x=>x[0]))}</div><div class="row"><button id="mc">離開賭場</button></div>`
   :`<h2>🕹️ 小豬街機</h2><p class="mut">你有 €<b id="gMoney">${R[me].money}</b> · 押注 €50～€1000 · 押錢遊戲搬到小豬賭場了</p>
@@ -1465,7 +1472,7 @@ function gamesModal(){$("modal").classList.remove("hide");$("mbody").classList.r
  $("mc").onclick=()=>{gameTab="";$("modal").classList.add("hide");refresh().catch(()=>{})};
  if(!menu)$("gback").onclick=()=>{gameTab="";gamesModal()};
  $("mbody").querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{gameTab=b.dataset.g;gamesModal()});
- if($("moreBtn"))$("moreBtn").onclick=()=>$("gMore").classList.toggle("hide");if($("betEdit"))$("betEdit").onclick=()=>document.querySelector(".betbar").classList.toggle("open");if($("swBtn"))$("swBtn").onclick=()=>$("gTabs").classList.toggle("hide");
+ if($("moreBtn"))$("moreBtn").onclick=()=>$("gMore").classList.toggle("hide");if($("betEdit"))$("betEdit").onclick=()=>{const bb=document.querySelector(".betbar"),sh=bb.classList.toggle("shut");$("betEdit").textContent=sh?"改注":"收合";try{localStorage.setItem("town-betopen",sh?"0":"1")}catch(e){}};if($("swBtn"))$("swBtn").onclick=()=>$("gTabs").classList.toggle("hide");
  $("mbody").querySelectorAll("[data-cin]").forEach(b=>b.onclick=()=>casDo("buy",+b.dataset.cin));
  $("mbody").querySelectorAll("[data-cout]").forEach(b=>b.onclick=()=>casDo("sell",+b.dataset.cout));
  if(menu)return;
@@ -1475,7 +1482,7 @@ function gamesModal(){$("modal").classList.remove("hide");$("mbody").classList.r
  {const bs=$("bstack");if(bs)bs.onclick=e=>{const c=e.target.closest&&e.target.closest("[data-un]");if(!c||betLock)return;const n=+c.dataset.un;c.classList.add("rm");if(window.SFX)SFX.play("click");setTimeout(()=>{if(n>=0&&n<betChips.length)betChips.splice(n,1);gameBet=betChips.length?betSum():50;betSync();chipSync()},fxReduce()?0:110)}}
  const area=$("gArea"),money=()=>{$("gMoney").textContent=(gameHall=="casino"&&CAS?CAS.chips:R[me].money);if(gameHall=="casino"){chipSync();roadsSync()}},err=e=>{area.querySelector(".gres")?area.querySelector(".gres").textContent=e.message:toast(e.message)};
  const result=(g,extra="")=>{const win=g.win,b=g.bet||gameBet;return `<p class="gres ${win>b?"good":win==b?"":"bad"}">${win>b?`贏了 €${win-b}！`:win==b?"平手，退回押注":`輸了 €${b}`}${extra}</p>`};
- const lockBet=on=>{betLock=on;$("mbody").classList.toggle("bl",on);if(on){const bb=document.querySelector(".betbar");if(bb)bb.classList.remove("open")};$("mbody").querySelectorAll("[data-bet],[data-chip]").forEach(x=>x.disabled=on);chipSync()};
+ const lockBet=on=>{betLock=on;$("mbody").classList.toggle("bl",on);$("mbody").querySelectorAll("[data-bet],[data-chip]").forEach(x=>x.disabled=on);chipSync()};
  if(gameTab=="rps"){area.innerHTML=`<p>出一個（押 €${gameBet}）：</p><div class="gbtns">${Object.entries(RPS).map(([k,[ic,n]])=>`<button class="gbig" data-m="${k}">${ic}<span>${n}</span></button>`).join("")}</div><div id="gShow" class="gshow"></div>`;
   area.querySelectorAll("[data-m]").forEach(b=>b.onclick=async()=>{area.querySelectorAll("[data-m]").forEach(x=>x.disabled=true);const show=$("gShow"),F=fxSkipper();let i=0;const spin=setInterval(()=>{show.innerHTML=`<div class="vs"><b>${RPS[b.dataset.m][0]}</b> VS <b>${Object.values(RPS)[i++%3][0]}</b></div>`},90);
    try{const g=await playGame("rps",{choice:b.dataset.m});await F.sleep(800);clearInterval(spin);F.stop();show.innerHTML=`<div class="vs"><b>${RPS[g.you][0]}</b> VS <b>${RPS[g.house][0]}</b></div><p class="mut">你出${RPS[g.you][1]}，莊家出${RPS[g.house][1]}</p>`+result(g);money()}catch(e){clearInterval(spin);show.innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
