@@ -1187,6 +1187,22 @@
    "needs": [
     "town_goal.sql"
    ]
+  },
+  {
+   "file": "town_bj2.sql",
+   "kind": "patch",
+   "needs": [
+    "town_casino2.sql",
+    "town_casino4.sql"
+   ],
+   "note": "21 點擬真規則：加倍、分牌（最多 4 手、分 A 一張）、天生 21 點 3:2、莊家偷看；town_bj2 新函式，就地改 town_cgame／town_casino 路由；最佳策略拿回率 0.9927"
+  },
+  {
+   "file": "town_bj2_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_bj2.sql"
+   ]
   }
  ]
 }
