@@ -355,6 +355,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"estate-1124",date:"11/24",title:"莊園與公告欄",items:["莊園換上塔樓與紅地毯","公告欄最上面顯示鎮基金"]},
   {id:"bal5-1124",date:"11/24",title:"好運與景氣",items:["戶外偶爾遇到稀有好事","景氣差時貧富差越大越重"]},
   {id:"bal4-1124",date:"11/24",title:"能力屬性強化",items:["能力上限提高到 8","力量、敏捷、魅力有新效果","能力可花 $5000 洗點"]},
   {id:"bal3-1124",date:"11/24",title:"好感更容易回升",items:["不合的朋友回復更快，和好 +10","好麻吉以上打工薪水 +3%"]},
@@ -1771,7 +1772,7 @@ async function civicModal(){$("modal").classList.remove("hide");$("mbody").inner
   vh=`<p><b>${what}</b></p><p class="mut">${esc(v.bn)} 發起 · 贊成 ${v.yn} ／ 反對 ${v.nn} · 還有 ${fmtLeft(left)} · 要至少 ${c.quorum} 票、贊成多於反對才通過</p>`+(v.mine?`<p class="mut">你投了${v.mine=="yes"?"贊成":"反對"}</p>`:at?`<div class="row"><button class="pri" data-v="yes">贊成</button><button data-v="no">反對</button></div>`:'<p class="mut">要走到市政廳才能投票</p>')}
  else if(at){vh='<div class="row"><button data-poll="1">發起投票</button>'+(mayor?'<button class="pri" data-build="1">提建設案</button>':"")+'</div><p class="mut">投票：任何居民都能問大家一件事（是非題，只當民意調查）。建設案只有鎮長能提，要花鎮基金</p>'}
  else vh='<p class="mut">現在沒有投票。要走到市政廳才能發起</p>';
- $("mbody").innerHTML=`<h2>🏛️ 市政廳</h2><p>鎮基金 <b>${CUR}${(+c.fund).toLocaleString()}</b></p><p class="mut">來源：${src}。薪水不抽，只能花在居民投票通過的建設案，不能轉給任何人</p><h3>公告欄</h3>${ann}${mayor&&at?'<div class="row"><button data-an="1">貼新公告</button></div>':""}<h3>投票</h3>${vh}<h3>已蓋好</h3><p class="mut">${built}</p><h3>最近結果</h3>${hist}<div class="row"><button id="mc">關閉</button></div>`;
+ $("mbody").innerHTML=`<h2>🏛️ 市政廳</h2><p>鎮基金 <b>${CUR}${(+c.fund).toLocaleString()}</b></p><p class="mut">來源：${src}。薪水不抽，只能花在居民投票通過的建設案，不能轉給任何人</p><h3>公告欄</h3><p class="annline"><b>鎮基金：${CUR}${(+c.fund).toLocaleString()}</b></p>${ann}${mayor&&at?'<div class="row"><button data-an="1">貼新公告</button></div>':""}<h3>投票</h3>${vh}<h3>已蓋好</h3><p class="mut">${built}</p><h3>最近結果</h3>${hist}<div class="row"><button id="mc">關閉</button></div>`;
  $("mc").onclick=()=>$("modal").classList.add("hide");
  $("mbody").querySelectorAll("[data-un]").forEach(b=>b.onclick=()=>go("unannounce",b.dataset.un));
  $("mbody").querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>go("vote",b.dataset.v));
@@ -1933,7 +1934,15 @@ function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas")
    if(hl>=2){m.fillStyle="rgba(0,0,0,.22)";m.fillRect(X-8,Y+T+10,W+16,6);[X+20,X+W-36].forEach(a=>{m.fillStyle="#8b5a2b";m.fillRect(a-2,Y+T+40,20,6);m.fillStyle="#e74c3c";m.fillRect(a,Y+T+36,4,4);m.fillStyle="#f1c40f";m.fillRect(a+8,Y+T+36,4,4)})}
    if(hl>=3){m.fillStyle="#8d8d8d";m.fillRect(X+W-30,Y-16,16,24);m.fillStyle="#6d6d6d";m.fillRect(X+W-32,Y-20,20,6);m.fillStyle="#f4f1de";for(let k=-6;k<W+8;k+=14){if(k>W/2-26&&k<W/2+26)continue;m.fillRect(X+k,Y+3*T+14,4,18)}m.fillRect(X-6,Y+3*T+20,W/2-26+6,3);m.fillRect(X+W/2+26,Y+3*T+20,W/2-26+6,3)}
    if(hl>=4){m.fillStyle="#f1c40f";m.fillRect(X-8,Y,W+16,5);m.fillStyle="#e8d9a8";[W/2-30,W/2+22].forEach(a=>{m.fillRect(X+a,Y+T+30,8,2*T-12);m.fillStyle="#cdbb85";m.fillRect(X+a-2,Y+T+26,12,6);m.fillStyle="#e8d9a8"})}}
-  if(o&&it.lx&&it.lx.estate){m.fillStyle="#f1c40f";m.fillRect(X-14,Y-10,W+28,6);m.fillRect(X+W/2-14,Y-24,28,16);m.fillStyle="#e74c3c";m.fillRect(X+W/2-2,Y-40,3,18);m.fillRect(X+W/2+1,Y-40,14,8);m.fillStyle="#fff";[8,W-16].forEach(a=>m.fillRect(X+a,Y+T+8,8,3*T-14));m.fillStyle="#c9a227";m.fillRect(X-8,Y+3*T-8,W+16,6);m.fillStyle="#5aa84f";[-14,W+6].forEach(a=>m.fillRect(X+a,Y+3*T+8,10,3*T-16))}
+  if(o&&it.lx&&it.lx.estate){const cx=X+W/2,G="#f1c40f",D="#c9a227",S="#e8d9a8",B="#2e86c1";m.fillStyle=G;m.fillRect(X-14,Y-10,W+28,6);
+   [X-14,X+W-2].forEach(a=>{m.fillStyle=S;m.fillRect(a,Y-22,16,16);m.fillStyle=D;m.fillRect(a-2,Y-28,20,6);m.fillStyle=B;m.fillRect(a+2,Y-34,12,6);m.fillStyle=G;m.fillRect(a+6,Y-40,4,6);m.fillStyle="#3a6ea5";m.fillRect(a+5,Y-18,6,8)});
+   m.fillStyle=S;m.fillRect(cx-18,Y-30,36,24);m.fillStyle="#3a6ea5";m.fillRect(cx-4,Y-24,8,12);m.fillStyle=D;m.fillRect(cx-20,Y-34,40,5);m.fillStyle=B;m.fillRect(cx-16,Y-42,32,8);m.fillRect(cx-10,Y-48,20,6);m.fillStyle=G;m.fillRect(cx-4,Y-52,8,4);m.fillStyle="#fff";m.fillRect(cx-1,Y-62,3,10);m.fillStyle="#e74c3c";m.fillRect(cx+2,Y-62,14,8);
+   m.fillStyle="#fff";[8,W-16].forEach(a=>{m.fillRect(X+a,Y+T+8,8,3*T-14);m.fillStyle=G;m.fillRect(X+a-2,Y+T+6,12,4);m.fillRect(X+a-2,Y+3*T-10,12,4);m.fillStyle="#fff"});
+   m.fillStyle=D;m.fillRect(X-8,Y+3*T-8,W+16,6);m.fillStyle=G;m.fillRect(cx-15,Y+3*T-2,30,5);m.fillRect(cx-15,Y+3*T+3,4,T-9);m.fillRect(cx+11,Y+3*T+3,4,T-9);
+   m.fillStyle=D;m.fillRect(cx-13,Y+4*T,26,T);m.fillStyle="#c0392b";m.fillRect(cx-10,Y+4*T,20,T);m.fillStyle=G;m.fillRect(cx-10,Y+4*T+T/2,20,2);
+   m.fillStyle="#5aa84f";[-14,W+6].forEach(a=>m.fillRect(X+a,Y+3*T+8,10,3*T-16));
+   [-12,W-6].forEach(a=>{m.fillStyle="#cfcfcf";m.fillRect(X+a-4,Y+3*T+22,22,12);m.fillStyle="#5dade2";m.fillRect(X+a-2,Y+3*T+24,18,8);m.fillStyle="#fff";m.fillRect(X+a+5,Y+3*T+12,4,10)});
+   [-34,34].forEach(a=>{m.fillStyle="#555";m.fillRect(cx+a-1,Y+3*T+4,3,T);m.fillStyle="#ffe27a";m.fillRect(cx+a-3,Y+3*T-2,7,7)})}
   sign(o?o.name+" 的家":"空屋",X+W/2,Y+T/2+6,o?null:"rgba(90,90,90,.85)");
   ((it.d)||[]).slice(0,4).forEach((d,i)=>deco(m,d,X+[16,48,144,172][i],Y+4*T+18,night))}
  const bld=(k,wall,roof,deco)=>{if(!isOn(k))return;const [x,y,w,h]=PLACES[k].r,X=x*T,Y=y*T,W=w*T,H=h*T;m.fillStyle="rgba(0,0,0,.18)";m.fillRect(X+8,Y+16,W,H);m.fillStyle=wall;m.fillRect(X,Y+14,W,H-14);m.fillStyle=roof;m.fillRect(X-6,Y,W+12,20);deco(X,Y,W,H)};

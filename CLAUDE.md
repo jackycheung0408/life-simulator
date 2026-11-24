@@ -748,11 +748,12 @@
 - `supabase/town_faint_relief.sql`（**尚未套用**，需使用者核准；實測 `town_faint_relief_test.sql`）：B 設定 `items.ae`（我的人生「自動吃零食」，預設關）飽足 ≤2 且有零食自動吃一包；C 昏倒醫藥費每台灣日第 1 次 500、第 2 次 1000、之後 1500（`items.fh={d,n}`，不追溯）。RPC `town_autoeat(rid,pin,op)`。
 - 2026-11-23 起使用者在對話明確授權後，Claude 可加 `--destructive-ok` 略過 DESTRUCTIVE 輸入（`sql.py apply ... --prod --yes --destructive-ok`）；沒有明確授權不得加。
 
-## 2026-11-24 全站平衡五批（**SQL 全部尚未套用正式站**；前端 v344～v348 已上線，舊伺服器下只有文字先變；每批 SQL 都是就地改函式、可重複執行、找不到錨點整檔失敗；實測檔最後 rollback，結果在 REPORT；依使用者選擇，打工薪水不遞減、NPC 這輪不做）
+## 2026-11-24 全站平衡五批（**SQL 五批皆已套用正式站 2026-11-24，回滾實測通過（批 4 洗點測試的金額 BAD 是測試前段咖啡／結算造成的容差，洗點扣 5000、基金 +2500、能力歸零皆正確）**；前端 v344～v348 已上線，舊伺服器下只有文字先變；每批 SQL 都是就地改函式、可重複執行、找不到錨點整檔失敗；實測檔最後 rollback，結果在 REPORT；依使用者選擇，打工薪水不遞減、NPC 這輪不做）
 套用順序（每批 `python3 tools/sql/sql.py apply <檔> --test <實測檔> --prod`，含 update 的要 DESTRUCTIVE）：
 1. `town_bal1_faint.sql`（需 town_faint_meal.sql 已套）：自動吃零食預設開（`items.ae` 缺值＝開，只有 false 才關；我的人生按鈕同步）；醒來設 `items.fg`＝30 分鐘保護，期間飽足歸零不昏倒（停在 1）。實測 `town_bal1_faint_test.sql`。
 2. `town_bal2_tax.sql`（需 town_econ.sql）：`town_tax` 稅階 5～10 萬 0.3%、10～100 萬 0.8%、100～500 萬 3%、500 萬以上 5%（存 100 萬每天 7350、500 萬 127350）；kt 上限 1.2→2.0（`town_econ_tick` 就地改）。前端 `taxOf` 已同步。注意：之後若重套 `town.sql` 會把 `town_tax` 還原，要再套本檔。實測 `town_bal2_tax_test.sql`。
 3. `town_bal3_bond.sql`（需 town_jail／town_bond_recover）：每日回復 +2（≤−50 +3，cron `town-bond-recover` 覆蓋，含 update 字樣）；和好 +10；`town_pr_pct` 重建：有任何好感 ≥30 的朋友打工薪水 +3%（前科 92→95、一般 100→103，所有打工路徑都乘它；重套 `town_jail.sql` 會還原）。實測 `town_bal3_bond_test.sql`。
 4. `town_bal4_stats.sql`（需 town_jail／town_tweaks／town_stats2／bal3）：能力上限 5→8（`town_at`／`town_train`／`town_stats` spend；開局 10 點仍每項 0～5；need 公式與每日 8 進度不變）；力量＝被砍精力損失 35−1.5×點、被扁心情 −max(4,12−點)；敏捷＝喪屍豬碰到機率 −4%／點（hash 每分鐘固定判定）；魅力＝送禮對方心情 +2／點、咖啡精力 +2／點；洗點 `town_stats_reset(rid,pin)` $5000（一半進基金、一半銷毀，能力全歸零含訓練點數、`td` 保留）。前端 statsModal 有「洗點」兩段確認、mock 有假回應。實測 `town_bal4_stats_test.sql`。
 5. `town_bal5_events.sql`（需 town_pool／town_retention／town_econ）：個人突發事件過 50% 判定後 1.5% 變稀有好事（撿到 $300／精力補滿／飽足 +40 心情 +15，每人每天 1 次 `items.rg`，id 9001～9003）；景氣差薪水 90% − (首富占比−50%)×25（封頂 −5 → 最低 85%，讀 `town_econ.hist` 最後一筆 `top`）；重建 `town_wd_pct`（保留午間市集／夜市 +10%；重套 `town_retention.sql` 會還原）。實測 `town_bal5_events_test.sql`。
+- 莊園外觀（2026-11-24，前端 v349）：`buildMap` 房子迴圈有 `lx.estate` 時畫雙側塔樓、藍色圓頂塔樓與旗、金柱頭、金門框、紅地毯、噴泉、門燈；市政廳 `civicModal` 公告欄最上面一行「鎮基金：$N」（`town_civic view` 的 `fund`，每次開啟更新）。視覺情境 `estate-home`、`modal-civic`。
 - 沒做：擊掌／訊息遞減、好感正值衰減、高階打工遞減（使用者未選）；基金回流、NPC。未驗證：所有 SQL 沒在 Postgres 跑過（等回滾實測）。
