@@ -772,3 +772,8 @@
 5. `town_bal5_events.sql`（需 town_pool／town_retention／town_econ）：個人突發事件過 50% 判定後 1.5% 變稀有好事（撿到 $300／精力補滿／飽足 +40 心情 +15，每人每天 1 次 `items.rg`，id 9001～9003）；景氣差薪水 90% − (首富占比−50%)×25（封頂 −5 → 最低 85%，讀 `town_econ.hist` 最後一筆 `top`）；重建 `town_wd_pct`（保留午間市集／夜市 +10%；重套 `town_retention.sql` 會還原）。實測 `town_bal5_events_test.sql`。
 - 莊園外觀（v349 的「房子換莊園圖」已於 v352 移除，改成獨立一棟，見「莊園獨立一棟」）；市政廳 `civicModal` 公告欄最上面一行「鎮基金：$N」（`town_civic view` 的 `fund`）。視覺情境 `estate-home`（家照舊外觀）、`estate-yard`、`in-estate`、`modal-civic`。
 - 沒做：擊掌／訊息遞減、好感正值衰減、高階打工遞減（使用者未選）；基金回流、NPC。未驗證：所有 SQL 沒在 Postgres 跑過（等回滾實測）。
+
+## 備份、壓測、錯誤紀錄（2026-11-24）
+- **備份**（Free 方案無內建備份）：`tools/backup/`（`backup.sh` pg_dump→加密→保留 14 份、`verify-backup.sh`、`restore-drill.md`、launchd plist 範例、`tables.txt`）。連線字串／密語放使用者 `~/.config/town-backup.env`，**不進 repo**；`node tools/backup/verify-tables.mjs` 比對 `supabase/*.sql` 的新表（`node town/test.js` 會跑）。新增表要加進 `tables.txt`。
+- **壓測**：`supabase/town_stress_test.sql`（108 人回滾實測，貼 SQL Editor）、`node tools/stress/stress.mjs`（負載模型）；`town_state` 瘦身設計見 `docs/town-state-slimming.md`（尚未改）。每鎮上限 12 人。
+- **錯誤紀錄**：`supabase/town_errlog.sql`（表、限速每 ua 每分鐘 3 筆、截 300 字、遮 Email／網址參數、2% 機率清 7 天前；`town_errlog_view` 鎮長用）；前端 `ERR`（town.js，不走 `rpc()`）、鎮長面板「錯誤紀錄」。實測 `town_errlog_test.sql`。
