@@ -169,7 +169,9 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(sql.includes("greatest(300, mins * "+J.bailPerMin+")")&&J.bailMin==300,"保釋金公式和 JAIL 不一致");
  check(sql.includes("t.energy - "+J.hurt[0])&&sql.includes("t.fun - "+J.hurt[1])&&sql.includes("r.energy - "+J.self[0])&&sql.includes("r.fun - "+J.self[1]),"砍人傷害和 JAIL 不一致");
  check(sql.includes("then .8 else .45")&&J.catchP==45&&J.catchFallP==80,"被抓機率和 JAIL 不一致");
- check(M.COLS==85,"COLS 要和 town_shops1.sql 的 px 上限（85）一致");check(require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8").includes("px > 71 or")&&require("fs").readFileSync(__dirname+"/../supabase/town_shops1.sql","utf8").includes("'px > 85', 'px > 85'"),"town.sql 仍是 71，town_shops1.sql 要把 px 上限改成 85");
+ check(M.COLS==100,"COLS 要和 town_expand.sql 的 px 上限（99）一致");check(require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8").includes("px > 71 or")&&require("fs").readFileSync(__dirname+"/../supabase/town_shops1.sql","utf8").includes("'px > 85', 'px > 85'")&&require("fs").readFileSync(__dirname+"/../supabase/town_expand.sql","utf8").includes("px > 99"),"town.sql 71 → town_shops1.sql 85 → town_expand.sql 99");
+ {const rp=M.route([14,13],[99,10]),rq=M.route([14,13],[88,20]);check(rp&&rp.length>1&&rq&&rq.length>1,"新東區（x86～99）要走得到");}
+
  {const fs=require("fs"),sh=fs.readFileSync(__dirname+"/../supabase/town_shops1.sql","utf8"),R=M.PLACES.realty,H=M.PLACES.harbor,D=M.DOCK,gap=(a,b)=>Math.max(b[0]-(a[0]+a[2]),a[0]-(b[0]+b[2]),b[1]-(a[1]+a[3]),a[1]-(b[1]+b[3]));
   check(sh.split("\n").slice(0,12).every(l=>/^--/.test(l)||l.trim()==""),"town_shops1.sql 檔頭每行都要是註解");
   check(/'realty'/.test(sh)&&/'harbor'/.test(sh)&&/layout4/.test(sh)&&/shops_in/.test(sh)&&/town_place_name/.test(sh)&&/town_fi/.test(sh)&&/town_need_in_pl/.test(sh)&&/town_features/.test(sh),"town_shops1.sql 要涵蓋地點名、白名單、進館、功能開關、旗標、遷移");

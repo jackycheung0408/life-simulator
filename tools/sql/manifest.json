@@ -969,6 +969,21 @@
    ]
   },
   {
+   "file": "town_expand.sql",
+   "kind": "patch",
+   "needs": [
+    "town_shops1.sql"
+   ],
+   "note": "地圖東側加寬 COLS 85→100（px > 85 → 99），layout6 標記；重套 town.sql／town_shops1.sql 後要再套"
+  },
+  {
+   "file": "town_expand_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_expand.sql"
+   ]
+  },
+  {
    "file": "town_catalog1.sql",
    "kind": "patch",
    "needs": [
