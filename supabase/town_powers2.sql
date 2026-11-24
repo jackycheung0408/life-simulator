@@ -147,7 +147,7 @@ begin
       perform public.town_save_r(v_t);
       return jsonb_build_object('msg', '免去了 ' || v_t.name || ' 的' || v_on, 'pub', a.name || ' 免去了 ' || v_t.name || ' 的' || v_on);
     end if;
-  else
+  elsif pk = 'payout' then
     select coalesce(fund, 0) into v_fund from public.town_towns where id = tid for update;
     if num > 10 and via <> 'vote' then raise exception '動用基金超過 10%% 要交居民投票'; end if;
     select count(*) into v_act from public.town_residents where town_id = tid and seen_at > now() - interval '3 days';
@@ -164,6 +164,7 @@ begin
       select tid, id, 'luck', left(name || ' 領到鎮長的全民紅包 €' || v_per, 118) from public.town_residents where town_id = tid and seen_at > now() - interval '3 days';
     return jsonb_build_object('paid', v_per, 'msg', '全民紅包發出去了：' || v_act || ' 位活躍居民每人 €' || v_per || '（共 €' || v_tot || '，來自鎮基金）',
       'pub', a.name || ' 以鎮長權力發了全民紅包，' || v_act || ' 位活躍居民每人 €' || v_per || '（鎮基金 −€' || v_tot || ')' || (case when via = 'vote' then '（居民投票通過）' else '' end));
+  else raise exception '這個權力不在這裡行使';
   end if;
 end $$;
 
