@@ -128,7 +128,7 @@ select public.town_estate_patch('town_estate_gate', 2,
   if coalesce(o.items->''lx''->>''gate'', '''') = ''list'' then
     if coalesce(o.items->''lx''->''wl'', ''[]''::jsonb) @> to_jsonb(r.id) then return; end if;
   end if;
-  if o.items->>''fi'' = pl and o.place = pl and not o.sleeping then return; end if;', 'gate');
+  if o.items->>''fi'' = pl and o.place = pl and not o.sleeping then return; end if;', '->''lx''->>''gate''');
 drop function public.town_estate_patch(text, int, text, text, text);
 
 -- 莊主管理：view／gate（note = open|lock|list|default）／wl_add／wl_del（target = 居民 id）
