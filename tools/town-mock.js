@@ -47,9 +47,12 @@ if(!String(url).includes("/rpc/"))return _fetch(url,o);const fn=url.split("/rpc/
   else if(g=="ch_start"){c.cx={b:b.bet,s:1,v:[0,50,90,120,220].sort(()=>Math.random()-.5)};c.ch-=b.bet;return ok({game:{bet:b.bet,s:1},money:r.money,casino:{chips:c.ch,bh:""}})}
   else if(g=="ch_pick"){const st=c.cx,p=+b.choice,rv=[0,1,2,3,4].filter(i=>i!=p)[Math.floor(Math.random()*4)];st.s=2;st.p=p;st.r=rv;return ok({game:{bet:st.b,s:2,pick:p,rev:rv,revv:st.v[rv]},money:r.money,casino:{chips:c.ch,bh:""}})}
   else if(g=="ch_final"){const st=c.cx,f=+b.choice;win=Math.floor(st.b*st.v[f]/100);res={v:st.v,pick:st.p,rev:st.r,fin:f,switched:f!=st.p,mult:st.v[f],win,bet:st.b};delete c.cx;c.ch+=win;return ok({game:res,money:r.money,casino:{chips:c.ch,bh:""}})}
-  else if(g=="bj_start"){c.bj={b:b.bet};c.ch-=b.bet;res={p:[103,411],d:[301],done:false,bet:b.bet}}
-  else if(g=="bj_hit"){res={p:[103,411,204],d:[301],done:false,bet:(c.bj||{}).b||50}}
-  else if(g=="bj_stand"){const bt=(c.bj||{}).b||50;res={p:[103,411],d:[301,108],done:true,win:bt,bet:bt};c.ch+=bt}
+  else if(g=="bj_start"){c.bj={b:b.bet,hs:[{c:[108,308],b:b.bet}],i:0};c.ch-=b.bet;res={hs:c.bj.hs,i:0,d:[301],done:false,dbl:c.ch>=b.bet,spl:true,bet:b.bet}}
+  else if(/^bj_(hit|stand|double|split)$/.test(g)){const s=c.bj||{b:50,hs:[{c:[108,308],b:50}],i:0},bt=s.b,fin=()=>{const w=s.hs.reduce((x,h)=>x+h.b*2*(h.c.reduce((q,y)=>q+Math.min(y%100,10),0)>21?0:1),0);c.ch+=w;delete c.bj;return {hs:s.hs.map(h=>Object.assign({w:h.b*2},h)),i:s.hs.length-1,d:[301,108],done:true,win:w,bet:s.hs.reduce((x,h)=>x+h.b,0)}};
+    if(g=="bj_split"){c.ch-=bt;s.hs=[{c:[108,204],b:bt},{c:[308,411],b:bt}];s.i=0;c.bj=s;res={hs:s.hs,i:0,d:[301],done:false,dbl:true,spl:false,bet:bt*2}}
+    else if(g=="bj_double"){c.ch-=bt;s.hs[s.i].c.push(205);s.hs[s.i].b=bt*2;s.hs[s.i].x=1;s.hs[s.i].f=1;if(s.hs.every(h=>h.f)||s.hs.length==1)res=fin();else{s.i++;c.bj=s;res={hs:s.hs,i:s.i,d:[301],done:false,dbl:true,spl:false,bet:s.hs.reduce((x,h)=>x+h.b,0)}}}
+    else if(g=="bj_hit"){s.hs[s.i].c.push(204);c.bj=s;res={hs:s.hs,i:s.i,d:[301],done:false,dbl:false,spl:false,bet:s.hs.reduce((x,h)=>x+h.b,0)}}
+    else{s.hs[s.i].f=1;if(s.hs.every(h=>h.f))res=fin();else{s.i=s.hs.findIndex(h=>!h.f);c.bj=s;res={hs:s.hs,i:s.i,d:[301],done:false,dbl:true,spl:false,bet:s.hs.reduce((x,h)=>x+h.b,0)}}}}
   else return bad("測試用 mock 只支援 bacc／wheel／dice／slots 與階段 E");
   c.ch+=win-b.bet;return ok({game:res,money:r.money,casino:{chips:c.ch,bh:c.bh||"",cd:null}})}
  if(fn=="town_game2"){const r=R(b.rid);const g=b.game,c=n=>(1+Math.floor(Math.random()*4))*100+1+Math.floor(Math.random()*13);let res;
