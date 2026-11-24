@@ -9,6 +9,7 @@ const n=+m[1]+1;
 h=h.replace(/town\.js\?v=\d+/,"town.js?v="+n);
 if(process.argv.includes("--icons"))h=h.replace(/icons\.js\?v=(\d+)/,(a,b)=>"icons.js?v="+(+b+1));
 if(process.argv.includes("--sfx"))h=h.replace(/sfx\.js\?v=(\d+)/,(a,b)=>"sfx.js?v="+(+b+1));
+if(process.argv.includes("--ld"))h=h.replace(/ld\.js\?v=(\d+)/,(a,b)=>"ld.js?v="+(+b+1));
 fs.writeFileSync(dir+"index.html",h);
 fs.writeFileSync(dir+"version.json",JSON.stringify({v:n})+"\n");
 console.log("town.js ?v="+n+"，version.json 已同步");
