@@ -171,7 +171,6 @@ M.setRows(4);{check(M.lightG(0,6)==M.lightG(0,7)&&M.lightG(0,15)==M.lightG(0,16)
  check(sql.includes("then .8 else .45")&&J.catchP==45&&J.catchFallP==80,"被抓機率和 JAIL 不一致");
  check(M.COLS==100,"COLS 要和 town_expand.sql 的 px 上限（99）一致");check(require("fs").readFileSync(__dirname+"/../supabase/town.sql","utf8").includes("px > 71 or")&&require("fs").readFileSync(__dirname+"/../supabase/town_shops1.sql","utf8").includes("'px > 85', 'px > 85'")&&require("fs").readFileSync(__dirname+"/../supabase/town_expand.sql","utf8").includes("px > 99"),"town.sql 71 → town_shops1.sql 85 → town_expand.sql 99");
  {const rp=M.route([14,13],[99,10]),rq=M.route([14,13],[88,20]);check(rp&&rp.length>1&&rq&&rq.length>1,"新東區（x86～99）要走得到");}
-
  {const fs=require("fs"),sh=fs.readFileSync(__dirname+"/../supabase/town_shops1.sql","utf8"),R=M.PLACES.realty,H=M.PLACES.harbor,D=M.DOCK,gap=(a,b)=>Math.max(b[0]-(a[0]+a[2]),a[0]-(b[0]+b[2]),b[1]-(a[1]+a[3]),a[1]-(b[1]+b[3]));
   check(sh.split("\n").slice(0,12).every(l=>/^--/.test(l)||l.trim()==""),"town_shops1.sql 檔頭每行都要是註解");
   check(/'realty'/.test(sh)&&/'harbor'/.test(sh)&&/layout4/.test(sh)&&/shops_in/.test(sh)&&/town_place_name/.test(sh)&&/town_fi/.test(sh)&&/town_need_in_pl/.test(sh)&&/town_features/.test(sh),"town_shops1.sql 要涵蓋地點名、白名單、進館、功能開關、旗標、遷移");
@@ -583,4 +582,29 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  const mk=JSON.parse(fs.readFileSync(__dirname+"/../tools/sql/manifest.json","utf8")).files.map(f=>f.file);check(mk.includes("town_season.sql")&&mk.includes("town_season_test.sql"),"賽季 SQL 要登記 manifest");
  check(/function seasonModal/.test(tj)&&/id="seaBtn"/.test(tj)&&/seaRankHtml\(\)/.test(tj)&&/UT\.hit\("season:open"\)/.test(tj),"賽季前端入口（選單、榜單本季、UT）要在");
 }
+// 設施搬遷（supabase/town_move.sql）：候選位置合法、前後端一致、搬了還走得到
+{const fs=require("fs"),sq=fs.readFileSync(__dirname+"/../supabase/town_move.sql","utf8"),tj=fs.readFileSync(__dirname+"/town.js","utf8"),ix=fs.readFileSync(__dirname+"/index.html","utf8");
+ check(sq.split("\n").slice(0,12).every(l=>/^--/.test(l)||l.trim()==""),"town_move.sql 檔頭每行都要是註解");
+ const gap=(a,b)=>Math.max(b[0]-(a[0]+a[2]),a[0]-(b[0]+b[2]),b[1]-(a[1]+a[3]),a[1]-(b[1]+b[3])),keys=Object.keys(M.MV_DEF);
+ check(keys.length==5,"可搬的建築要正好 5 棟");
+ const sd=[...sq.matchAll(/when '(\w+)' then array\[(\d+),(\d+),(\d+),(\d+),(\d+)\]/g)].map(m=>[m[1],m.slice(2).map(Number)]);
+ check(sd.length==5&&sd.every(([k,a])=>JSON.stringify(a)==JSON.stringify(M.MV_DEF[k])),"SQL town_mv_def 要和前端 MV_DEF 一致");
+ for(const k of keys){const d=M.MV_DEF[k],P=M.PLACES[k];check(JSON.stringify(P.r)==JSON.stringify(d.slice(0,4))&&P.door[0]==d[0]+d[4]&&P.door[1]==d[1]+d[3],"MV_DEF 要和 PLACES 預設一致："+k);
+  const ys=M.MV_SLOTS[k].map(a=>a[1]);check(M.MV_SLOTS[k].length>=2&&M.MV_SLOTS[k].every(a=>a[0]==88),"每棟至少 2 個候選位置（x=88）："+k);
+  check(k=="arena"?JSON.stringify(ys)=="[0,8]"&&/ny in \(0, 8\)/.test(sq):JSON.stringify(ys)=="[0,9,17]"&&/ny in \(0, 9, 17\)/.test(sq),"SQL 候選 y 要和 MV_SLOTS 一致："+k);
+  for(const [sx,sy] of M.MV_SLOTS[k].concat([[d[0],d[1]]])){const r=[sx,sy,d[2],d[3]],tag=k+"@"+sx+","+sy;
+   check(sx+d[2]<=M.COLS&&sy>=0&&sy+d[3]<=M.mapRows(),"候選位置超出地圖："+tag);
+   for(const o in M.PLACES){if(o==k||o.startsWith("estate:"))continue;check(gap(r,M.PLACES[o].r)>=2,"候選位置離 "+o+" 不到 2 格："+tag)}
+   check(gap(r,M.DOCK)>=2,"候選位置貼著碼頭："+tag);
+   for(let y=r[1];y<r[1]+r[3];y++)for(let x=r[0];x<r[0]+r[2];x++)if(M.isRoad(x,y)||(x>=16&&x<=17&&y>=8&&y<=14))check(false,"候選位置壓到馬路："+tag+" ("+x+","+y+")");
+   M.applyLayout({[k]:[sx,sy]});const dr=M.PLACES[k].door;check(!M.blocked(dr[0],dr[1])&&M.route([14,13],dr),"搬到候選位置後門口要走得到："+tag);check(M.MV_COST(k)==d[2]*d[3]*2000,"搬遷費 = 面積×2000："+k);
+   M.applyLayout({})}}
+ check(M.applyLayout({cafe:[88,0]}).join()=="cafe"&&M.PLACES.cafe.r[0]==88&&M.applyLayout({}).join()=="cafe"&&M.PLACES.cafe.r[0]==36,"applyLayout 要回傳有變的地點並能還原");
+ {const m=sq.match(/select 383/),v=+(ix.match(/town\.js\?v=(\d+)/)||[])[1];check(m&&v>=383,"town_mv_minver 要 ≤ 目前前端版本（town.js?v）");}
+ check(/town_mv_door\(r\.town_id, ''arena''\)/.test(sq)&&/set place = ''arena'', x = \(public\.town_mv_door/.test(sq)&&/town_mv_settle\(t\.id\)/.test(sq)&&/'relocate'/.test(sq)&&/layout7/.test(sq)&&/\* 2000/.test(sq),"town_move.sql 要補 town_pk 門口、town_state 結算、relocate 白名單、遷移與面積×2000 費用");
+ check(/for update/.test(sq)&&/interval '24 hours'/.test(sq)&&/86400/.test(sq),"town_move.sql 要有鎖列、24 小時冷卻與預告");
+ check(M.FEATS&&M.FEATS.some(f=>f[0]=="relocate"),"FEATS 要有 relocate");
+ check(/function moveModal/.test(tj)&&/town_move/.test(tj)&&/mvWhy\(r\)/.test(tj)&&/MYV/.test(tj.slice(tj.indexOf("function moveModal"),tj.indexOf("function moveModal")+3000)),"前端要有 moveModal、mvWhy、帶 cv:MYV");
+ check(!/sign\("(咖啡廳|電影院|健身房|餐廳|格鬥場)",\d/.test(tj),"可搬建築的招牌不能寫死座標");
+ const mk=JSON.parse(fs.readFileSync(__dirname+"/../tools/sql/manifest.json","utf8")).files.map(f=>f.file);check(mk.includes("town_move.sql")&&mk.includes("town_move_test.sql")&&fs.existsSync(__dirname+"/../supabase/town_move_test.sql"),"town_move SQL 要登記並有實測檔")}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

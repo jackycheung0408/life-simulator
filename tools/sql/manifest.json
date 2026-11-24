@@ -984,6 +984,25 @@
    ]
   },
   {
+   "file": "town_move.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_mischief.sql",
+    "town_fi.sql",
+    "town_shops1.sql",
+    "town_expand.sql"
+   ],
+   "note": "設施搬遷（5 棟商業建築，鎮長在不動產公司付鎮基金、預告 24 小時）：town_towns.layout／mv、town_move RPC、town_state／town_pk 補丁；重套 town.sql／town_mischief.sql 後要再套"
+  },
+  {
+   "file": "town_move_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_move.sql"
+   ]
+  },
+  {
    "file": "town_catalog1.sql",
    "kind": "patch",
    "needs": [

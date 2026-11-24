@@ -142,7 +142,7 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ── 地圖：寬 34 格。市中心固定；住宅一排 3 間（5×4 格，門在正下方），住滿就往下多開一條街，最多 4 排 ──
 const T=32,COLS=100,MAXROWS=4;let OCC=new Set(),NR=2,OFF=new Set(),POOPS=[];
 // 鎮長可以關掉的設施
-const FEATS=[["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、打地鼠、記憶翻牌、下戰帖"],["casino","小豬賭場","押錢遊戲 9 種，用籌碼玩，換回現金抽 0.5%"],["rafi","拉菲's office","白領打工，薪水較高"],["stock","證券交易所","買賣 8 檔小豬鎮股票"],["zombie","喪屍豬","街上全天會出現喪屍豬，夜間更多，打倒領獎"],["carshop","車行","買腳踏車、機車、汽車"],["lux","奢侈品","高級套餐、溫泉、旅行（錢多的人花錢用）"],["jail","監獄","砍人被抓的人關在這裡，可勞動、探監、保釋"],["hospital","醫院","昏倒、住院的人送這裡，可看診、探病"],["police","警察局","繳罰單、自首、報案、治安統計"],["townhall","市政廳","鎮基金、公告、居民投票、建設案"],["realty","不動產公司","房子升級、買莊園"],["harbor","碼頭船行","買遊艇"],["furnshop","家具行","買家具、小道具、門口擺飾"],["wearshop","服飾店","買造型服飾、試穿"]];
+const FEATS=[["relocate","設施搬遷","鎮長付費搬設施"],["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、打地鼠、記憶翻牌、下戰帖"],["casino","小豬賭場","押錢遊戲 9 種，用籌碼玩，換回現金抽 0.5%"],["rafi","拉菲's office","白領打工，薪水較高"],["stock","證券交易所","買賣 8 檔小豬鎮股票"],["zombie","喪屍豬","街上全天會出現喪屍豬，夜間更多，打倒領獎"],["carshop","車行","買腳踏車、機車、汽車"],["lux","奢侈品","高級套餐、溫泉、旅行（錢多的人花錢用）"],["jail","監獄","砍人被抓的人關在這裡，可勞動、探監、保釋"],["hospital","醫院","昏倒、住院的人送這裡，可看診、探病"],["police","警察局","繳罰單、自首、報案、治安統計"],["townhall","市政廳","鎮基金、公告、居民投票、建設案"],["realty","不動產公司","房子升級、買莊園"],["harbor","碼頭船行","買遊艇"],["furnshop","家具行","買家具、小道具、門口擺飾"],["wearshop","服飾店","買造型服飾、試穿"]];
 const setOff=a=>{OFF=new Set(a||[])};const isOn=k=>!OFF.has(k);
 const setRows=n=>{NR=clamp(n||2,2,MAXROWS)};
 const baseRows=()=>NR<=2?23:30+7*(NR-3);
@@ -191,6 +191,13 @@ const pjTier=(k,n)=>(k=="rafi"?RFT:PJT).reduce((a,t,i)=>n>=t?i:a,0);
 const pjWage=(k,n)=>k=="rafi"?RFW[pjTier(k,n)]:Math.floor(PJ[k][2]*PJM[pjTier(k,n)]/100);
 const pjName=(k,n)=>PJN[k][pjTier(k,n)];
 const JOBS=[["實習生",0,190],["員工",10,260],["組長",30,350],["經理",70,520],["主管",150,800],["資深主管",250,920],["協理",400,1050],["副總",650,1250],["總經理",1000,1500]];
+// 設施搬遷（supabase/town_move.sql）：只有 5 棟商業建築可搬，候選位置寫死（要和 SQL town_mv_slot_ok／town_mv_def 一致）。MV_DEF = [x,y,寬,高,門的 x 位移]，門在建築正下方一格
+const MV_DEF={cafe:[36,0,6,5,2],restaurant:[2,9,6,5,3],cinema:[36,9,8,5,4],gym:[38,17,6,4,2],arena:[50,0,7,6,3]};
+const MV_SLOTS={cafe:[[88,0],[88,9],[88,17]],restaurant:[[88,0],[88,9],[88,17]],cinema:[[88,0],[88,9],[88,17]],gym:[[88,0],[88,9],[88,17]],arena:[[88,0],[88,8]]};
+const MV_COST=k=>MV_DEF[k][2]*MV_DEF[k][3]*2000,MV_AREA=y=>y<7?"東區北段":y<15?"東區中段":"東區南段";
+let LAYOUT_KEY=null,MV=null;
+// 把小鎮的 layout（{地點:[x,y]}）蓋到 PLACES；回傳這次位置變了的地點清單（第一次載入回傳空陣列）
+function applyLayout(lay){const L=lay||{},key=JSON.stringify(L),first=LAYOUT_KEY===null;if(key===LAYOUT_KEY)return [];LAYOUT_KEY=key;const ch=[];for(const k in MV_DEF){const d=MV_DEF[k],p=L[k]||[d[0],d[1]],o=PLACES[k].r;if(o[0]!=p[0]||o[1]!=p[1])ch.push(k);PLACES[k].r=[p[0],p[1],d[2],d[3]];PLACES[k].door=[p[0]+d[4],p[1]+d[3]]}return first?[]:ch}
 const FOUNTAIN=[16,10,2,3];const DOCK=[66,17,5,4];const BOARDP=[13,9],STATUEP=[15,9];
 // 路上物件：位置要和資料庫 town_obj_near 一致；用法：[名稱, 按鈕, 說明]
 const OBJS={vend:{x:19,y:5,name:"自動販賣機",acts:[["投一罐飲料 🥤","€30 · 精力 +12 · 偶爾掉兩罐"]]},trash:{x:8,y:14,name:"垃圾桶",acts:[["撿垃圾 🗑️","心情 +4 · 每天翻 3 次 · 可能撿到東西"]]},
@@ -374,7 +381,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
-  {id:"estate-free-1124",date:"11/24",title:"莊園想幹嘛就幹嘛",items:["莊園裡能吃飯、睡覺、洗澡","莊主決定誰能進莊園","宴會桌、鋼琴自己搬"]},
+  {id:"move-1124",date:"11/24",title:"設施搬家",items:["鎮長到不動產公司申請搬遷","咖啡廳等 5 棟可搬到東區","預告 24 小時，花鎮基金"]},
   {id:"expand-1124",date:"11/24",title:"小鎮東邊變大",items:["東邊多一大片空地","路線和走路都照舊"]},
   {id:"season-1124",date:"11/24",title:"賽季開跑",items:["每月一季，比積分拿限定造型","打工、賭場、揪團、街機、成就算分","選單「賽季」、榜單「本季」"]},
   {id:"music2-1124",date:"11/24",title:"新音樂",items:["慶典、賭場大贏有舞曲","酒吧、舞池、賭場、監獄有專屬曲","市政廳、PK 也換新曲"]},  {id:"dex-1124",date:"11/24",title:"新增圖鑑",items:["選單「圖鑑」：收藏、造型、家具","美食、地點、鎮民也能收","集滿拿稱號和零食"]},
@@ -682,7 +689,7 @@ function baccBig(bh){const rows=6,cells={},ties={};let last="",c=-1,r=0,maxc=-1,
   if(!last){c=0;r=0}else if(ch==last){if(r<rows-1&&!cells[key(c,r+1)])r++;else c++;while(cells[key(c,r)])c++}else{c=maxc+1;r=0}
   cells[key(c,r)]=ch;last=ch;maxc=Math.max(maxc,c);if(pend){ties[key(c,r)]=pend;pend=0}}
  const cols=Math.max(maxc+1,1),g=Array.from({length:cols},(_,x)=>Array.from({length:rows},(_,y)=>({w:cells[key(x,y)]||"",t:ties[key(x,y)]||0})));return g}
-if(typeof module!=="undefined")module.exports={__setOcc:a=>{OCC=new Set(a)},DOCK,BOARDP,STATUEP,mnMult,crM,PLK,SCM,SCP,CHV,PIGW,PIGO1,PIGO2,PJPIPS,PJTYPE_PIPS,baccBig,baccBead,chipStack,CHIPD,DGM,SLW,SLPAY,KPAY,DSUM,RWHEEL,RRED,DGFEE,NIUM,VENACT,HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,TAP_DEF,objNear,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,JOBS,PJT,PJM,PJN,RFT,RFW,pjTier,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,happyAt,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
+if(typeof module!=="undefined")module.exports={__setOcc:a=>{OCC=new Set(a)},DOCK,BOARDP,STATUEP,mnMult,crM,PLK,SCM,SCP,CHV,PIGW,PIGO1,PIGO2,PJPIPS,PJTYPE_PIPS,baccBig,baccBead,chipStack,CHIPD,DGM,SLW,SLPAY,KPAY,DSUM,RWHEEL,RRED,DGFEE,NIUM,VENACT,HOSP,POLICE,CIVIC,CIVQ,POWERS,PWORD,hospIn,vin,roomOf,visitHost,JAIL,JAILX,JE,paroleWhy,priorOn,wantedOn,paroleOn,bailCost,FAC,TASKS,UPDATES,PEV,JT,setOff,OBJS,TAP_DEF,objNear,FEATS,MV_DEF,MV_SLOTS,MV_COST,applyLayout,T,COLS,setRows,mapRows,homeXY,door,visitSpot,PLACES,PJ,pjWage,pjName,JOBS,PJT,PJM,PJN,RFT,RFW,pjTier,blocked,bfs,freePath,route,los,placeAt,slotAt,tickLocal,isRoad,hasT,moodOf,payOf,happyAt,hasF,FURN,HOUSES,HOME_DIM,WALLF,FLAT,HACT,fpOf,homeRoom,roomOf,inside,VEH,vehOwn,vehOf,isCross,isSide,CWX,lightG,isInter,zoneLim,ib,vwear,vspd,premOf,fixCost,sellVal,insLeft,ROOMS,ITEM,RW,RH,roomSpots,fin};
 
 function init(){
 
@@ -767,7 +774,7 @@ function apply(st){S=st;OCC=new Set((st.residents||[]).map(r=>r.slot));try{estSy
   if(!w)walkers[r.id]={x:r.x,y:r.y,path:[],tx:r.x,ty:r.y};else if(r.id!=me&&(Math.abs(w.tx-r.x)>.01||Math.abs(w.ty-r.y)>.01)){const p=route([Math.round(w.x),Math.round(w.y)],[Math.round(r.x),Math.round(r.y)],vehOf(r));w.path=p?p.slice(1):[[r.x,r.y]]}
   walkers[r.id].tx=r.x;walkers[r.id].ty=r.y});
  if(me&&R[me]){const lv=lvOf(alN(R[me]));if(lastLv!==null&&lv>lastLv)setTimeout(()=>lvUpModal(lv),600);lastLv=lv}
- setOff(st.town.off);const key=st.town.rows+"|"+ESTS.map(e=>e.id+"@"+e.ep).join()+"|"+(st.town.off||[]).join()+"|"+st.residents.map(r=>r.id+":"+r.slot+":"+r.name+":"+JSON.stringify([(r.items||{}).roof,(r.items||{}).wall,(r.items||{}).d,(r.items||{}).hl])).join(",");if(key!=mapKey){mapKey=key;maps={}}
+ setOff(st.town.off);MV=st.town.mv||null;{const mvd=applyLayout(st.town.layout);if(mvd.length){maps={};const w=me&&walkers[me],rm=me&&R[me];if(w&&rm){if(mvd.includes(rm.place)){w.x=w.tx=rm.x;w.y=w.ty=rm.y;w.path=[]}else if(w.path.length&&w.dest&&PLACES[w.dest]){const p=route([Math.round(w.x),Math.round(w.y)],PLACES[w.dest].door,vehOf(rm));w.goal=PLACES[w.dest].door;w.path=p?p.slice(1):[]}}toast(mvd.map(k=>PLACES[k].name).join("、")+" 搬家了")}}const key=st.town.rows+"|"+JSON.stringify(st.town.layout||0)+"|"+JSON.stringify(st.town.mv||0)+"|"+ESTS.map(e=>e.id+"@"+e.ep).join()+"|"+(st.town.off||[]).join()+"|"+st.residents.map(r=>r.id+":"+r.slot+":"+r.name+":"+JSON.stringify([(r.items||{}).roof,(r.items||{}).wall,(r.items||{}).d,(r.items||{}).hl])).join(",");if(key!=mapKey){mapKey=key;maps={}}
  $("title").textContent="🐷 "+st.town.name;if(me&&!R[me]){toast("你已經搬離這個小鎮");dropMine(TID);setTimeout(()=>go(""),1200)}
  renderFeed();renderPanel();renderNeeds();if(me)renderStrip();pxify($("feed"));pxify($("tab-rank"));pxify($("tab-ppl"))}
 let mapKey="";
@@ -1008,7 +1015,7 @@ const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀
 // ── 下方面板：依所在地點顯示可以做的事 ──
 // ── 按鈕效果與門檻：全部出自 RULES（頂層）；b.key 或標籤比對 RULES，沒有規則的不顯示晶片（nofx 或待確認）──
 const FXI={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"💰",bond:"💗",fit:"💪"},FXN={hunger:"飽足",energy:"精力",bladder:"膀胱",hygiene:"清潔",fun:"心情",money:"錢",bond:"好感",fit:"體能"};
-const NOFXRE=/^(和旅人聊聊|找流動商人|每日任務板|看室內|拍賣出價|捐款|小鎮經濟報表|逛家具|逛門口擺飾|逛新衣|試穿換造型|家具、服飾、擺飾|應戰|逛貨架|看菜單|福利社|櫃台商品|小攤販|攤位|拍賣與捐款|莊園|走去我的莊園|遊艇|升級|房子已是豪宅|買莊園|莊園 |買遊艇|遊艇 |去碼頭出海|出海|辦派對|幫他取外號|我的人設|報案|叫他出來|申請假釋|出院|自首|會員點數換|看排行榜|起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|玩(輪盤|老虎機|百家樂|21點|骰寶|比大小|基諾|射龍門|妞妞|三公|十八啦|賽豬|牌九|地雷|彈珠台|飛行器|猜杯子|刮刮樂|開寶箱)|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
+const NOFXRE=/^(設施搬遷|和旅人聊聊|找流動商人|每日任務板|看室內|拍賣出價|捐款|小鎮經濟報表|逛家具|逛門口擺飾|逛新衣|試穿換造型|家具、服飾、擺飾|應戰|逛貨架|看菜單|福利社|櫃台商品|小攤販|攤位|拍賣與捐款|莊園|走去我的莊園|遊艇|升級|房子已是豪宅|買莊園|莊園 |買遊艇|遊艇 |去碼頭出海|出海|辦派對|幫他取外號|我的人設|報案|叫他出來|申請假釋|出院|自首|會員點數換|看排行榜|起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|玩(輪盤|老虎機|百家樂|21點|骰寶|比大小|基諾|射龍門|妞妞|三公|十八啦|賽豬|牌九|地雷|彈珠台|飛行器|猜杯子|刮刮樂|開寶箱)|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
 const wageOf=r=>{const n=+((r.items||{}).works)||0;let w=JOBS[0][2];for(const j of JOBS)if(n>=j[1])w=j[2];return w};
 function ruleOf(b,r){if(b.key)return RULES.find(x=>x.m===b.key)||null;const l=String(b.label).replace(/\p{Extended_Pictographic}️?\s*/gu,"").trim();return RULES.find(x=>x.m instanceof RegExp&&x.m.test(l)&&(!x.at||x.at.includes(r.place)))||null}
 function fxOf(b,r){const ru=b.nofx?null:ruleOf(b,r);if(!ru)return{fx:[],need:[],chips:[],rule:null};const fx=typeof ru.fx=="function"?ru.fx(r,{hasF,wage:wageOf}):ru.fx.slice(),need=[];
@@ -1074,9 +1081,10 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
    btn("報案 📜","選一個最近惡搞你的人 · 每天 1 次 · 對方記報案點，不會入獄",()=>reportModal()),
    btn("今日治安 📊","看鎮上今天的罰單、事故、砍人、入獄",()=>policeAct("stats")))}
  else if(p=="realty"){title="不動產公司";note="房子升級、買莊園；不用回家，在這裡辦（價格依小鎮經濟微調）";const lx=(r.items||{}).lx||{},nx=HOUSES[+((r.items||{}).hl)||1];
+  list.push(Object.assign(btn("設施搬遷","鎮長付鎮基金，把咖啡廳等 5 棟搬到東區 · 預告 24 小時",()=>moveModal(),"place"),mvWhy(r)?{dis:mvWhy(r)}:{}));
   list.push(nx?btn(`升級${nx[0]} $${nx[1].toLocaleString()}`,`房間更大、可擺 ${nx[2]} 件家具`,()=>bigGo(`升級成${nx[0]}要花 $${nx[1].toLocaleString()}，確定？`,nx[1],async()=>{await act("upgrade")}),"place"):btn("房子已是豪宅","最高級了",()=>toast("已經是最高級的豪宅"),"place"));
   list.push(lx.estate?btn("走去我的莊園","地圖最下方的莊園區 · 進去辦派對",()=>{const k="estate:"+me;if(PLACES[k])walkTo(k,PLACES[k].door);else toast("莊園還在整理，等一下再試")},"place"):btn("買莊園 $600,000","稱號「莊園主人」· 獨立一棟（在莊園區）· 家不變 · 可辦派對",()=>bigGo("買莊園要花 $600,000，確定？",6e5,()=>econBuy("estate")),"place"))}
- else if(p.startsWith("estate:")){title=(PLACES[p]||{}).name||"莊園";const ow=R[p.slice(7)],gm=((ow&&ow.items&&ow.items.lx)||{}).gate;note=p=="estate:"+me?"你的莊園 · 想幹嘛就幹嘛"+(gm=="open"?" · 全開":gm=="lock"?" · 已上鎖":gm=="list"?" · 僅受邀":""):gm=="open"?"莊園開放參觀":gm=="lock"?"莊園已上鎖":gm=="list"?"僅開放受邀朋友":"莊主在裡面才能參觀";if(p=="estate:"+me&&fin(r)&&!r.sleeping&&!jailed(r)){list.push(...homeLife(r),btn("佈置莊園","搬家具、移動宴會桌展示櫃噴水池鋼琴",()=>estateEditModal(),"home"),btn("莊園管理","進出模式、受邀名單、佈局",()=>estateCtlModal(),"home"))}if(p=="estate:"+me&&fin(r)&&!r.sleeping&&!jailed(r))list.push(btn("辦派對","$5000 · 在線醒著的居民心情 +15、好感 +2 · 30 分鐘內朋友都能進來 · 每天 1 次",()=>econFun("party"),"place"))}
+ else if(p.startsWith("estate:")){title=(PLACES[p]||{}).name||"莊園";const ow=R[p.slice(7)],gm=((ow&&ow.items&&ow.items.lx)||{}).gate;note=p=="estate:"+me?"你的莊園 · 想幹嘛就幹嘛：吃飯、睡覺、洗澡、擺家具、辦派對"+(gm=="open"?" · 全開":gm=="lock"?" · 已上鎖":gm=="list"?" · 只開放受邀的朋友":""):gm=="open"?"莊園開放參觀":gm=="lock"?"莊園已上鎖，只有莊主能進去":gm=="list"?"只開放給受邀的朋友":"莊園主人在裡面時才能進去參觀";if(p=="estate:"+me&&fin(r)&&!r.sleeping&&!jailed(r)){list.push(...homeLife(r),btn("佈置莊園","搬家具、移動宴會桌展示櫃噴水池鋼琴",()=>estateEditModal(),"home"),btn("莊園管理","進出模式、受邀名單、佈局",()=>estateCtlModal(),"home"))}if(p=="estate:"+me&&fin(r)&&!r.sleeping&&!jailed(r))list.push(btn("辦派對","$5000 · 在線醒著的居民心情 +15、好感 +2 · 30 分鐘內朋友都能進來 · 每天 1 次",()=>econFun("party"),"place"))}
  else if(p=="harbor"){title="碼頭船行";note="買遊艇；出海要到碼頭邊（船行裡不能出海）";const lx=(r.items||{}).lx||{};
   list.push(lx.yacht?btn("遊艇 ✔","已擁有 · 到碼頭邊就能出海",()=>toast("你已經有遊艇了"),"place"):btn("買遊艇 $200,000","稱號「遊艇船長」· 可帶朋友出海 · 心情 +25",()=>bigGo("買遊艇要花 $200,000，確定？",2e5,()=>econBuy("yacht")),"place"));
   list.push(btn("去碼頭出海","走到碼頭邊 · 船主才能出海",()=>walkTo("street",[68,16]),"move"))}
@@ -2079,6 +2087,17 @@ async function meetPoll(){if(!me||!pin||!R[me]||document.hidden)return;try{const
 async function econGo(op,num){try{UT.hit("econ:"+op);const x=await rpc("town_econ_use",{rid:me,pin,op,item:null,num});playRoomFx(op);toast(x.msg||"完成");refresh()}catch(e){toast(e.message)}}
 async function econBid(){try{UT.hit("econ:bidview");const us=await rpc("town_econ_use",{rid:me,pin,op:"view"}),A=us.auction||{},f=n=>CUR+(+n||0).toLocaleString();choiceModal("拍賣會："+esc(A.lot||""),`${A.bidder?esc(A.bname)+" 最高價 "+f(A.bid):"還沒人出價"} · 出價先托管，被超過退回，每週一結算`,[[`出價 ${f(A.min)}`,"得標拿稱號，得標金進鎮基金",()=>bigGo(`拍賣出價 ${f(A.min)}（先托管），確定？`,A.min,()=>econGo("bid",A.min))]])}catch(e){toast(e.message)}}
 async function econBuy(k){try{UT.hit("econ:buy:"+k);const x=await rpc("town_econ_use",{rid:me,pin,op:"buy",item:k,num:0});playRoomFx(k);toast(x.msg||"買好了");refresh()}catch(e){toast(e.message)}}
+// ── 設施搬遷：鎮長在不動產公司申請（SQL town_move），花鎮基金、預告 24 小時 ──
+function mvWhy(r){if(!r.mayor)return "只有鎮長能申請";if(!isOn("relocate"))return "鎮長關閉了設施搬遷";if(MV)return "已有一棟在預告搬遷";if(!fin(r))return "要先進去不動產公司";return ""}
+async function moveModal(){$("modal").classList.remove("hide");$("mbody").innerHTML='<p class="mut">載入中…</p>';
+ let j;try{j=await rpc("town_move",{rid:me,pin,op:"view"})}catch(e){$("mbody").innerHTML=`<p class="err">${esc(e.message)}</p><div class="row"><button id="mc">關閉</button></div>`;$("mc").onclick=()=>$("modal").classList.add("hide");return}
+ const f=n=>CUR+(+n||0).toLocaleString(),r=R[me],why=mvWhy(r),cd=j.last&&Date.parse(j.last)>Date.now()-864e5?Date.parse(j.last)+864e5-Date.now():0,mvTxt=j.mv?`<p class="warn">預告中：${PLACES[j.mv.k].name} 將搬到${MV_AREA(j.mv.to[1])}（${fmtLeft(Math.max(0,j.mv.at*1e3-Date.now()))}後完成）</p>`:"";
+ const cur=k=>(j.layout&&j.layout[k])||[MV_DEF[k][0],MV_DEF[k][1]];
+ const rows=Object.keys(MV_DEF).map(k=>{const c=cur(k),d=MV_DEF[k],all=[[d[0],d[1],"回原位"]].concat(MV_SLOTS[k].map(s=>[s[0],s[1],MV_AREA(s[1])]));return `<div class="mvrow"><b>${PLACES[k].name}</b> <span class="mut">目前 (${c[0]},${c[1]}) · 搬遷費 ${f(MV_COST(k))}</span><div class="row"><button data-go="${k}">走去</button>${all.filter(s=>!(s[0]==c[0]&&s[1]==c[1])).map(s=>`<button data-mk="${k}" data-x="${s[0]}" data-y="${s[1]}">${s[2]}</button>`).join("")}</div></div>`}).join("");
+ $("mbody").innerHTML=`<h2>設施搬遷</h2><p class="mut">鎮長付鎮基金（現有 ${f(j.fund)}），費用＝建築面積 × $2,000，預告 24 小時才搬，全鎮 24 小時只能搬一棟；站在門口或裡面的人會跟著移到新門口。</p>${mvTxt}${cd?`<p class="mut">冷卻中，還要 ${fmtLeft(cd)}</p>`:""}${why?`<p class="err">${esc(why)}</p>`:""}${rows}<div class="row"><button id="mc">關閉</button></div>`;pxify($("mbody"));
+ $("mc").onclick=()=>$("modal").classList.add("hide");
+ $("mbody").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{const k=b.dataset.go;$("modal").classList.add("hide");walkTo(k,PLACES[k].door)});
+ $("mbody").querySelectorAll("[data-mk]").forEach(b=>{if(why||cd||j.mv){b.disabled=true;b.style.opacity=".45"}b.onclick=()=>{const k=b.dataset.mk,x=+b.dataset.x,y=+b.dataset.y;UT.hit("move:"+k);tapConfirm(`把${PLACES[k].name}搬到${MV_AREA(y)}？花鎮基金 ${f(MV_COST(k))}，24 小時後完成。`,async()=>{try{await rpc("town_move",{rid:me,pin,op:"apply",kk:k,nx:x,ny:y,cv:MYV});toast("已公告，24 小時後搬家");await refresh();moveModal()}catch(e){toast(e.message)}})}})}
 async function econModal(){$("modal").classList.remove("hide");$("mbody").innerHTML='<p class="mut">載入中…</p>';
  let st,us;try{st=await rpc("town_econ_view",{rid:me,pin,op:"view"});us=await rpc("town_econ_use",{rid:me,pin,op:"view"})}catch(e){$("mbody").innerHTML=`<p class="err">${esc(e.message)}</p><div class="row"><button id="mc">關閉</button></div>`;$("mc").onclick=()=>$("modal").classList.add("hide");return}
  const mayor=!!R[me].mayor,h=(st.hist||[]).slice(-1)[0]||{},f=n=>CUR+(+n||0).toLocaleString(),A=us.auction||{},pc=n=>Math.round((+n||0)*100)+"%";
@@ -2215,7 +2234,7 @@ bld("hospital","#f4f6fa","#d9534f",(X,Y,W,H)=>{m.fillStyle="#d9534f";m.fillRect(
    const sx=STATUEP[0]*T,sy=STATUEP[1]*T;Q(sx+2,sy+16,28,10,"#9aa0a6");Q(sx+4,sy+14,24,3,"#c5cacf");Q(sx+2,sy+24,28,2,"#6b7075")}
   S("lottery",()=>{R0(X+2,Y+8,28,16,"#c0392b");R0(X,Y-6,32,10,"#f1c40f");R0(X+8,Y+10,16,8,"#fff")});
   X=31*T;Y=21*T;R0(X,Y-24,4,30,"#6b4423");R0(X+28,Y-24,4,30,"#6b4423");R0(X,Y-26,32,4,"#6b4423");R0(X+10,Y-22,2,18,"#888");R0(X+20,Y-22,2,18,"#888");R0(X+8,Y-4,16,4,"#d8901a")}
- sign("公司",30.5*T,10);if(isOn("realty"))sign("不動產",76*T,10);if(isOn("furnshop"))sign("家具行",76*T,9*T+10);if(isOn("wearshop"))sign("服飾店",83*T,9*T+10);if(isOn("harbor"))sign("碼頭船行",76*T,17*T+10);sign("餐廳",5*T,9*T+10);sign("超市",28*T,9*T+10);sign("公園",31.5*T,17*T+12);sign("小豬廣場",17*T,8*T+14);if(isOn("casino"))sign("賭場",68.5*T,8*T+10);if(isOn("cafe"))sign("咖啡廳",39*T,10);if(isOn("cinema"))sign("電影院",40*T,9*T+10);if(isOn("gym"))sign("健身房",41*T,17*T+10);if(isOn("rafi"))sign("拉菲's office",49.5*T,17*T+10);if(isOn("stock"))sign("證交所",46*T,10);if(isOn("jail"))sign("監獄",61.5*T,10);if(isOn("hospital"))sign("醫院",61.5*T,9*T+10);if(isOn("police"))sign("警察局",59*T,17*T+10);if(isOn("townhall"))sign("市政廳",68.5*T,10);if(isOn("carshop"))sign("車行",47*T,9*T+14);if(isOn("arena"))sign("格鬥場",53.5*T,10);if(isOn("slaughter"))sign("屠宰場",53.5*T,9*T+10);
+ const sg=(k,nm)=>{const r=PLACES[k].r;if(!isOn(k))return;sign(nm,(r[0]+r[2]/2)*T,r[1]*T+10);if(MV&&MV.k==k)sign("搬遷預告",(r[0]+r[2]/2)*T,r[1]*T+30,"#c0392b")};sign("公司",30.5*T,10);if(isOn("realty"))sign("不動產",76*T,10);if(isOn("furnshop"))sign("家具行",76*T,9*T+10);if(isOn("wearshop"))sign("服飾店",83*T,9*T+10);if(isOn("harbor"))sign("碼頭船行",76*T,17*T+10);sg("restaurant","餐廳");sign("超市",28*T,9*T+10);sign("公園",31.5*T,17*T+12);sign("小豬廣場",17*T,8*T+14);if(isOn("casino"))sign("賭場",68.5*T,8*T+10);sg("cafe","咖啡廳");sg("cinema","電影院");sg("gym","健身房");if(isOn("rafi"))sign("拉菲's office",49.5*T,17*T+10);if(isOn("stock"))sign("證交所",46*T,10);if(isOn("jail"))sign("監獄",61.5*T,10);if(isOn("hospital"))sign("醫院",61.5*T,9*T+10);if(isOn("police"))sign("警察局",59*T,17*T+10);if(isOn("townhall"))sign("市政廳",68.5*T,10);if(isOn("carshop"))sign("車行",47*T,9*T+14);sg("arena","格鬥場");if(isOn("slaughter"))sign("屠宰場",53.5*T,9*T+10);
  if(night){m.fillStyle="rgba(18,28,78,.45)";m.fillRect(0,0,c.width,c.height)}
  return c}
 // 畫一個角色：(x,y) 是身體中心，u 是一格像素的大小

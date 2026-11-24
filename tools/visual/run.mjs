@@ -38,6 +38,18 @@ const SC=[
  {n:"in-townhall",mut:r=>{r.place="townhall";r.x=68;r.y=5;r.items.fi="townhall";r.money=50000}},
  {n:"in-hospital",mut:r=>{r.place="hospital";r.x=61;r.y=14;r.items.fi="hospital"}},
  {n:"low-hunger",mut:r=>{r.hunger=20;r.place="street"}},
+ {n:"move-modal",mut:r=>{r.place="realty";r.x=75;r.y=5;r.items.fi="realty";r.money=50000},run:async p=>{await p.evaluate(()=>{const b=[...document.querySelectorAll("#panel button")].find(x=>/設施搬遷/.test(x.textContent));if(b)b.click()});await p.waitForSelector("#mbody [data-mk]",{timeout:5000}).catch(async e=>{throw new Error("DBG "+await p.evaluate(()=>document.querySelector("#panel").innerText.slice(0,200)+"|"+document.querySelector("#mbody").innerText.slice(0,150)))});await p.waitForTimeout(400)}},
+ {n:"move-zoom",mut:r=>{r.place="street";r.x=60;r.y=8},run:async p=>{await p.evaluate(()=>{const db=JSON.parse(sessionStorage.getItem("mockdb"));db.towns.MOCK01.layout={cafe:[88,0],gym:[88,17]};db.towns.MOCK01.mv={k:"cinema",to:[88,9],at:Math.floor(Date.now()/1e3)+80000,cost:80000,by:"x"};sessionStorage.setItem("mockdb",JSON.stringify(db))});await p.reload();await p.waitForTimeout(1500);await p.click("#zoom");await p.waitForTimeout(900)}},
+ {n:"move-east",mut:r=>{r.place="street";r.x=90;r.y=10}},
+ // 申請搬遷咖啡廳到東區北段（假資料庫 24 小時改成已到期）→ 重載後地圖搬了 → 走去新門口進館
+ {n:"move-done",mut:r=>{r.place="realty";r.x=75;r.y=5;r.items.fi="realty";r.money=50000},run:async p=>{await p.evaluate(()=>sessionStorage.setItem("mockMvSkip","1"));
+   await p.evaluate(()=>{const b=[...document.querySelectorAll("#panel button")].find(x=>/設施搬遷/.test(x.textContent));if(b)b.click()});await p.waitForSelector("#mbody [data-mk]",{timeout:5000});
+   await p.evaluate(()=>document.querySelector('#mbody [data-mk="cafe"][data-y="0"]').click());await p.waitForSelector("#tapc button",{timeout:3000});await p.evaluate(()=>document.querySelector("#tapc button").click());await p.waitForTimeout(1500);
+   await p.reload();await p.waitForTimeout(1500);
+   const lay=await p.evaluate(()=>JSON.parse(sessionStorage.getItem("mockdb")).towns.MOCK01.layout);if(!lay||lay.cafe[0]!=88)throw new Error("搬遷沒有完成："+JSON.stringify(lay));
+   await p.evaluate(()=>{const b=[...document.querySelectorAll("#panel button")].find(x=>/設施搬遷/.test(x.textContent));if(b)b.click()});await p.waitForSelector("#mbody [data-go=cafe]",{timeout:5000});await p.evaluate(()=>document.querySelector("#mbody [data-go=cafe]").click());
+   let ok=false;for(let i=0;i<90&&!ok;i++){await p.waitForTimeout(500);const r=await p.evaluate(()=>JSON.parse(sessionStorage.getItem("mockdb")).res.find(x=>x.id==1));ok=r.place=="cafe"&&r.x==90&&r.y==5}
+   if(!ok)throw new Error("沒有走到新的咖啡廳門口 (90,5)")}},
  {n:"in-realty",mut:r=>{r.place="realty";r.x=75;r.y=5;r.items.fi="realty";r.money=50000}},
  {n:"in-furnshop",mut:r=>{r.place="furnshop";r.x=75;r.y=14;r.items.fi="furnshop";r.money=50000}},
  {n:"in-wearshop",mut:r=>{r.place="wearshop";r.x=82;r.y=14;r.items.fi="wearshop";r.money=50000}},
@@ -213,7 +225,7 @@ for(const [w,h] of SIZES){
    else{const a=PNG.sync.read(fs.readFileSync(bp)),b=PNG.sync.read(fs.readFileSync(shot));
     if(a.width!=b.width||a.height!=b.height)fails.push("diff｜尺寸與基準不同");
     else{const n=pixelmatch(a.data,b.data,null,a.width,a.height,{threshold:0.15}),pct=n/(a.width*a.height)*100;if(pct>DIFF_PCT)fails.push(`diff｜與基準差 ${pct.toFixed(1)}%`)}}
-  }catch(e){fails.push("run｜"+String(e.message).split("\n")[0].slice(0,100))}
+  }catch(e){fails.push("run｜"+String(e.message).split("\n")[0].slice(0,100));if(errs.length)console.log("  console:",[...new Set(errs)].slice(0,3));try{await p.screenshot({path:path.join(OUT,name+"-fail.png")})}catch(_){}}
   await p.close();
   const soft=sc.soft&&fails.length&&fails.every(f=>f.startsWith("run｜"));
   total++;rows.push({name,fails:soft?[]:fails,note:soft?"（略過：操作找不到按鈕）":""});
