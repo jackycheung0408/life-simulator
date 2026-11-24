@@ -515,4 +515,17 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(/town_casino_log/.test(sql)&&/'casino'\]/.test(sql)&&!/create or replace function public\.town_casino(_state)?\(/.test(sql)&&/from public, anon, authenticated/.test(sql),"town_casino_rank.sql 讀 town_casino_log、不重建 town_casino、revoke 含 anon");
  check(/\["casino","賭神"/.test(js),"排行榜前端要有賭神分頁");}
 {const fs=require("fs"),sq=fs.readFileSync(__dirname+"/../supabase/town_persona.sql","utf8"),tj=fs.readFileSync(__dirname+"/town.js","utf8");check(/town_pf_clean\(j->>'nick', 6\)/.test(sq)&&/town_pf_clean\(s, 16\)/.test(sq)&&/> 3 then return json_build_object\('error','口頭禪最多 3 句/.test(sq),"人設 SQL 長度限制 6／16／3 句");check(/maxlength="6"/.test(tj)&&/maxlength="16"/.test(tj)&&/pd'->>'n'\)::int, 0\) >= 3/.test(sq),"人設前端 maxlength 與每天 3 個提議上限")}
+{const fs=require("fs"),tj=fs.readFileSync(__dirname+"/town.js","utf8"),sq=fs.readFileSync(__dirname+"/../supabase/town_estate_plot.sql","utf8");
+ const g=re=>{const m=tj.match(re);return m?+m[1]:NaN};const PER=g(/EST_PER=(\d+)/),RH=g(/EST_ROWH=(\d+)/),W=g(/EST_W=(\d+)/),H=g(/EST_H=(\d+)/);
+ check(PER==9&&RH==10&&W==7&&H==7,"莊園帶常數（EST_PER／ROWH／W／H）要是 9／10／7／7");
+ check(/estPos=p=>\{const row=Math\.floor\(p\/EST_PER\),i=p%EST_PER;return \[2\+9\*i,baseRows\(\)\+EST_ROWH\*row\+1,EST_W,EST_H\]\}/.test(tj),"estPos 公式要是 x=2+9i、y=baseRows+10row+1");
+ check(2+9*(PER-1)+W<=COLS_+21,"莊園帶一排放不下（x 超過地圖寬 85）");
+ for(let i=0;i+1<PER;i++){const gap=(2+9*(i+1))-(2+9*i+W);check(gap>=2,"莊園左右間距要 ≥2 格")}
+ check(RH-H>=2,"莊園上下間距（含門那一列）要 ≥2 格");
+ const room=tj.match(/const ROOM_EST=\{[^\n]*\n/);check(!!room,"要有 ROOM_EST 室內場景");
+ if(room){const its=[...room[0].matchAll(/\["(\w+)",(\d+),(\d+)\]/g)].map(m=>[m[1],+m[2],+m[3]]),seen=new Set();its.forEach(([c,x,y])=>{check(x>=0&&x<12&&y>=0&&y<5,"ROOM_EST 物件超出 12×5："+c);check(new RegExp("\\b"+c+":\\[").test(tj),"ROOM_EST 用了沒定義的 ITEM："+c);if(!/^(lamp|plant|chand|ecarpet)$/.test(c)){const k=x+","+y;check(!seen.has(k),"ROOM_EST 物件重疊："+c);seen.add(k)}})}
+ check(/ptable:\["plate","宴會桌",\/辦派對\//.test(tj)&&/btn\("辦派對"/.test(tj),"宴會桌要對得到「辦派對」按鈕");
+ check(sq.split("\n").slice(0,4).every(l=>/^--/.test(l)||l.trim()==""),"town_estate_plot.sql 檔頭每行都要是註解");
+ check(/py > 120/.test(sq)&&/\^estate:\\d\+\$/.test(sq)&&/town_estate_gate/.test(sq)&&/'pt'/.test(sq)&&/estate_plot/.test(sq),"town_estate_plot.sql 要含 py 放寬、estate 白名單、進入規則、派對開放、遷移");
+ check(!/it\.lx&&it\.lx\.estate/.test(tj),"房子不能再因 lx.estate 換外觀（莊園是獨立一棟）");}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

@@ -135,7 +135,16 @@ const T=32,COLS=85,MAXROWS=4;let NR=2,OFF=new Set(),POOPS=[];
 const FEATS=[["cafe","咖啡廳","喝咖啡回精力"],["cinema","電影院","看電影心情大增"],["gym","健身房","練體能，打架更強"],["arena","格鬥場","打擂台、約打"],["slaughter","屠宰場","溜進去偷飼料，有賺有賠"],["arcade","小豬街機","猜拳、打地鼠、記憶翻牌、下戰帖"],["casino","小豬賭場","押錢遊戲 9 種，用籌碼玩，換回現金抽 0.5%"],["rafi","拉菲's office","白領打工，薪水較高"],["stock","證券交易所","買賣 8 檔小豬鎮股票"],["zombie","喪屍豬","夜間街上會出現喪屍豬，打倒領獎"],["carshop","車行","買腳踏車、機車、汽車"],["lux","奢侈品","高級套餐、溫泉、旅行（錢多的人花錢用）"],["jail","監獄","砍人被抓的人關在這裡，可勞動、探監、保釋"],["hospital","醫院","昏倒、住院的人送這裡，可看診、探病"],["police","警察局","繳罰單、自首、報案、治安統計"],["townhall","市政廳","鎮基金、公告、居民投票、建設案"],["realty","不動產公司","房子升級、買莊園"],["harbor","碼頭船行","買遊艇"],["furnshop","家具行","買家具、小道具、門口擺飾"],["wearshop","服飾店","買造型服飾、試穿"]];
 const setOff=a=>{OFF=new Set(a||[])};const isOn=k=>!OFF.has(k);
 const setRows=n=>{NR=clamp(n||2,2,MAXROWS)};
-const mapRows=()=>NR<=2?23:30+7*(NR-3);
+const baseRows=()=>NR<=2?23:30+7*(NR-3);
+// 莊園帶（2026-11-24）：地圖最下方、有人買莊園才出現；一人一塊 7×7（建築）、每排 9 塊、排高 10；門在建築正下方
+const EST_PER=9,EST_ROWH=10,EST_W=7,EST_H=7;let ESTS=[],ESTN=0;
+const mapRows=()=>baseRows()+(ESTN?Math.ceil(ESTN/EST_PER)*EST_ROWH:0);
+const estPos=p=>{const row=Math.floor(p/EST_PER),i=p%EST_PER;return [2+9*i,baseRows()+EST_ROWH*row+1,EST_W,EST_H]};
+function estSync(res){const L=[];(res||[]).forEach(r=>{const lx=(r.items||{}).lx;if(lx&&lx.estate)L.push({id:r.id,name:r.name,ep:lx.ep==null?null:+lx.ep,d:String(lx.estate)})});
+ const used=new Set(L.filter(e=>e.ep!=null).map(e=>e.ep));let nx=0;L.filter(e=>e.ep==null).sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:a.id-b.id).forEach(e=>{while(used.has(nx))nx++;e.ep=nx;used.add(nx)});
+ for(const k of Object.keys(PLACES))if(k.startsWith("estate:")){delete PLACES[k];delete ROOMS[k];delete NPCS[k];delete NPC_LINES[k]}
+ ESTS=L;ESTN=L.reduce((a,e)=>Math.max(a,e.ep+1),0);
+ L.forEach(e=>{const r=estPos(e.ep),k="estate:"+e.id;e.r=r;PLACES[k]={r,door:[r[0]+3,r[1]+EST_H],name:e.name+"的莊園",block:1};ROOMS[k]=ROOM_EST;NPCS[k]={n:"管家阿德",hair:"#222",job:"管家",base:0,item:""};NPC_LINES[k]=NPC_LINES.estate})}
 const STREETS=["小豬大道","豬尾巴街","豬鼻子街","豬蹄巷"];
 const ROOFS=["#d9534f","#3b7dd8","#b45cc4","#8b5a2b","#2e9e5b","#d8901a","#e0779b","#2a9d8f","#6c5ce7","#c0392b","#16a085","#7f8c8d"];
 const homeXY=s=>{const k=Math.floor(s/3);return [[2,9,20][s%3],k==0?1:k==1?17:24+7*(k-2)]};
@@ -355,6 +364,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"estate-plot-1124",date:"11/24",title:"莊園獨立一棟",items:["莊園蓋在地圖最下方","家不變，莊園多一棟","在莊園裡辦派對"]},
   {id:"estate-1124",date:"11/24",title:"莊園與公告欄",items:["莊園換上塔樓與紅地毯","公告欄最上面顯示鎮基金"]},
   {id:"bal5-1124",date:"11/24",title:"好運與景氣",items:["戶外偶爾遇到稀有好事","景氣差時貧富差越大越重"]},
   {id:"bal4-1124",date:"11/24",title:"能力屬性強化",items:["能力上限提高到 8","力量、敏捷、魅力有新效果","能力可花 $5000 洗點"]},
@@ -559,7 +569,7 @@ const VENACT=new Set(["art","share","combo","bring","seat","chat","sale","sample
 const REG={cafe:["老王","Amy","阿嬤"],restaurant:["胖叔","小雯","老闆娘的朋友"],cinema:["影迷阿凱","小琪","退休老師"],market:["王媽媽","陳伯","小美"]},REGP={cafe:[90,80],restaurant:[200,170],cinema:[280,240],market:[60,50]},REGQ={cafe:"幫我帶一杯咖啡",restaurant:"幫我帶一份便當",cinema:"幫我買一張票",market:"幫我拿一包零食"};
 const TASKS=["今天打工 3 次","做 3 次設施互動","去 3 個不同地點互動","和 2 位鄰居一起互動","健身房簽到","釣到一條魚","點歌或請客一次","吃今日特餐或野餐"];
 const RW=12,RH=5,RC=24;
-const ITEM={fcounter:["till","家具櫃台",/逛家具/,1],fdeco:["picture","擺飾架",/門口擺飾/,1],fsofa:["sofa","展示沙發",null,1],fbed:["bed","展示床",null,1],ffridge:["fridge","展示冰箱",null,1],wcounter:["till","服飾櫃台",/逛新衣/,1],wmirror:["picture","試衣鏡",/試穿/,1],wrack:["shirt","衣架",null,1],rcounter:["till","房仲櫃檯",/^升級|房子已是豪宅/,1],rmodel:["house","房型模型",null,1],deed:["scroll","莊園權狀櫃",/莊園/,1],ycounter:["till","船行櫃檯",/遊艇/,1],ymodel:["boat","遊艇模型",null,1],seachart:["map","海圖桌",/碼頭出海/,1],buoy:["shield","救生圈",null,0],coffee:["cup","咖啡機",/特調咖啡/,1],cake:["cookie","蛋糕櫃",/看菜單|換咖啡/,1],lamp:["lamp","立燈",null,1],jukebox:["guitar","點歌機",/點歌/,1],job:["case","員工通道",/^打工|^應徵/,0],bar:["plate","吧台",/請客|吃一頓/,1],table:["bench","桌椅",/坐下|起身/,1],plant:["plant","盆栽",null,1],
+const ITEM={ptable:["plate","宴會桌",/辦派對/,1],trophycase:["trophy","展示櫃",null,1],efount:["drops","噴水池",null,1],piano:["note","鋼琴",null,1],chand:["light","水晶吊燈",null,0],ecarpet:["rug","紅地毯",null,0],fcounter:["till","家具櫃台",/逛家具/,1],fdeco:["picture","擺飾架",/門口擺飾/,1],fsofa:["sofa","展示沙發",null,1],fbed:["bed","展示床",null,1],ffridge:["fridge","展示冰箱",null,1],wcounter:["till","服飾櫃台",/逛新衣/,1],wmirror:["picture","試衣鏡",/試穿/,1],wrack:["shirt","衣架",null,1],rcounter:["till","房仲櫃檯",/^升級|房子已是豪宅/,1],rmodel:["house","房型模型",null,1],deed:["scroll","莊園權狀櫃",/莊園/,1],ycounter:["till","船行櫃檯",/遊艇/,1],ymodel:["boat","遊艇模型",null,1],seachart:["map","海圖桌",/碼頭出海/,1],buoy:["shield","救生圈",null,0],coffee:["cup","咖啡機",/特調咖啡/,1],cake:["cookie","蛋糕櫃",/看菜單|換咖啡/,1],lamp:["lamp","立燈",null,1],jukebox:["guitar","點歌機",/點歌/,1],job:["case","員工通道",/^打工|^應徵/,0],bar:["plate","吧台",/請客|吃一頓/,1],table:["bench","桌椅",/坐下|起身/,1],plant:["plant","盆栽",null,1],
  kitchen:["meat","廚房窗口",/今日特餐|主餐＋飲料套餐/,1],latteart:["cup","拉花台",/拉花/,1],pot:["plate","共享茶壺桌",/共點/,1],menu:["picture","菜單板",/看菜單|高級套餐/,0],pack:["box","打包櫃檯",/打包|外帶/,1],mirror:["picture","鏡子",null,0],locker:["lock","置物櫃",/櫃台商品|每日簽到/,0],spa:["drops","溫泉池",/溫泉/,0],treadmill:["walk","跑步機",/^健身/,1],rack:["dumbbell","啞鈴架",/^健身/,1],bag:["fist","拳擊沙包",/對練/,1],
  bars:["bars","鐵窗",null,0],vent:["vent","通風口",/越獄/,0],glass:["glass","探監窗口",/探望/,0],gate:["door","大門（假釋）",/假釋/,0],bailDesk:["ticket","保釋櫃檯",/保釋/,1],bunk:["bed","上下鋪",null,1],work:["hammer","勞動工作台",/牢裡的勞動/,1],yard:["tree","放風場",/放風/,0],
  hbed:["bed","病床",null,1],reg:["ticket","掛號櫃檯",/掛號看診|^出院/,1],meds:["box","藥櫃",null,1],cross:["cross","十字標誌",null,0],
@@ -596,8 +606,9 @@ Object.assign(ROOMS,{
  slaughter:{floor:["#8a8a85","#7f7f7a"],wall:"#5a1a1a",items:[["hook",1,0],["hook",3,0],["lamp",5,0],["hook",8,0],["hook",10,0],["cleaver",5,2],["cleaver",6,2],["mshelf",1,3],["mshelf",10,3],["plant",0,4]]}});
 // 店員 NPC：固定在櫃台旁、不佔玩家站位、純表現（不動數值、不寫資料庫）
 ROOMS.cafe.npc=[3,1];ROOMS.cinema.npc=[10,1];ROOMS.market.npc=[10,1];ROOMS.restaurant.npc=[3,1];ROOMS.gym.npc=[5,1];ROOMS.hospital.npc=[7,1];ROOMS.police.npc=[7,1];ROOMS.townhall.npc=[5,1];ROOMS.casino.npc=[8,1];ROOMS.realty.npc=[5,1];ROOMS.harbor.npc=[5,1];ROOMS.furnshop.npc=[4,1];ROOMS.wearshop.npc=[5,1];
+const ROOM_EST={floor:["#7d1f2b","#721a26"],wall:"#2b2f5e",items:[["chand",2,0],["trophycase",4,0],["lamp",6,0],["trophycase",8,0],["chand",10,0],["efount",5,2],["ptable",8,2],["ptable",3,2],["piano",10,4],["ecarpet",6,3],["ecarpet",6,4],["plant",0,4],["plant",11,4]],npc:[1,2]};
 const NPCS={cafe:{n:"小咪",hair:"#7a4a24",job:"咖啡師",base:90,item:"特調咖啡"},restaurant:{n:"阿福",hair:"#222",job:"店長",base:250,item:"餐廳套餐"},gym:{n:"阿力",hair:"#c0392b",job:"教練",base:0,item:""},hospital:{n:"白護理師",hair:"#e8c27a",job:"護理師",base:0,item:""},police:{n:"小林警員",hair:"#222",job:"警員",base:0,item:""},cinema:{n:"小映",hair:"#3b2f6b",job:"售票員",base:300,item:"電影票"},market:{n:"阿珍",hair:"#8a5a2b",job:"店員",base:0,item:""},casino:{n:"荷官小莉",hair:"#222",job:"荷官",base:0,item:""},townhall:{n:"陳櫃員",hair:"#555",job:"櫃員",base:0,item:""},realty:{n:"房仲小陳",hair:"#333",job:"房仲",base:0,item:""},harbor:{n:"船長老王",hair:"#b8b8b8",job:"船長",base:0,item:""},furnshop:{n:"木工阿福",hair:"#7a4a24",job:"木工",base:0,item:""},wearshop:{n:"裁縫小美",hair:"#d1426e",job:"裁縫",base:0,item:""}};
-const NPC_LINES={furnshop:["好床睡得比較香","冰箱買了吃飯比較省","相框掛牆上最好看","每種家具只能買一件喔","門口擺個花圃吧"],wearshop:["皇冠今天最搶手","試穿看看吧","圍巾很適合你","情侶 T 要好麻吉才能穿","換個造型換個心情"],realty:["想換大一點的房子嗎？","豪宅的視野最好","莊園可以辦派對喔","頭期款不用，現金就好","今天有人來看房呢"],harbor:["遊艇停碼頭，風景不一樣","出海要帶朋友才熱鬧","今天風浪不大","船要定期保養喔","船長帽借你戴一下？"],casino:["願賭服輸，量力而為","籌碼放好，別弄丟了","輪盤剛轉完，下一局？","百家樂桌還有位子","離場會自動換回現金喔","今天手氣如何？"],cafe:["今天的豆子很香喔","要不要來杯特調？","歡迎光臨～","外面好像要下雨了","拉花台今天心情很好","集滿 8 點有免費的喔"],cinema:["今天的片很好哭","爆米花剛出爐","情侶座還有位子","散場記得聊聊劇情"],market:["今天的特價別錯過","試吃區有新口味","集滿 10 點換零食","小心地板剛拖過"],restaurant:["今天的菜很新鮮","歡迎光臨，幾位？","小心燙喔","廚房正在忙～","套餐附飲料喔","要外帶也可以"],gym:["多喝水、多伸展","今天練哪裡？","別硬撐，慢慢來","加油，再一組！"],hospital:["有哪裡不舒服嗎？","請多休息","保重身體喔","小聲一點，病人在睡"],police:["遵守交通規則喔","有事可以報案","最近鎮上很平靜","騎車要慢一點"],townhall:["有事可以看公告","投票別忘了","鎮長最近很忙","歡迎來市政廳"]};
+const NPC_LINES={estate:["歡迎光臨莊園","派對要先通知我喔","今天的茶點剛好","小心地毯，別踩髒","主人今天心情很好"],furnshop:["好床睡得比較香","冰箱買了吃飯比較省","相框掛牆上最好看","每種家具只能買一件喔","門口擺個花圃吧"],wearshop:["皇冠今天最搶手","試穿看看吧","圍巾很適合你","情侶 T 要好麻吉才能穿","換個造型換個心情"],realty:["想換大一點的房子嗎？","豪宅的視野最好","莊園可以辦派對喔","頭期款不用，現金就好","今天有人來看房呢"],harbor:["遊艇停碼頭，風景不一樣","出海要帶朋友才熱鬧","今天風浪不大","船要定期保養喔","船長帽借你戴一下？"],casino:["願賭服輸，量力而為","籌碼放好，別弄丟了","輪盤剛轉完，下一局？","百家樂桌還有位子","離場會自動換回現金喔","今天手氣如何？"],cafe:["今天的豆子很香喔","要不要來杯特調？","歡迎光臨～","外面好像要下雨了","拉花台今天心情很好","集滿 8 點有免費的喔"],cinema:["今天的片很好哭","爆米花剛出爐","情侶座還有位子","散場記得聊聊劇情"],market:["今天的特價別錯過","試吃區有新口味","集滿 10 點換零食","小心地板剛拖過"],restaurant:["今天的菜很新鮮","歡迎光臨，幾位？","小心燙喔","廚房正在忙～","套餐附飲料喔","要外帶也可以"],gym:["多喝水、多伸展","今天練哪裡？","別硬撐，慢慢來","加油，再一組！"],hospital:["有哪裡不舒服嗎？","請多休息","保重身體喔","小聲一點，病人在睡"],police:["遵守交通規則喔","有事可以報案","最近鎮上很平靜","騎車要慢一點"],townhall:["有事可以看公告","投票別忘了","鎮長最近很忙","歡迎來市政廳"]};
 const NPC_NIGHT=["這麼晚了還沒睡？","夜深了，早點休息","夜班真安靜"],NPC_BUSY=["今天好熱鬧！","人好多，慢慢來","大家都來了呢"],NPC_EMPTY=["今天好安靜…","只有你一位呢","歡迎，隨便坐"];
 const npcSay=(p,t,cnt)=>{const hr=new Date(Date.now()+8*36e5).getUTCHours(),L=NPC_LINES[p].slice();if(hr>=22||hr<6)L.push(...NPC_NIGHT);if(cnt>=3)L.push(...NPC_BUSY);else if(cnt==0)L.push(...NPC_EMPTY);const k=Math.floor(t/9000);return L[(k*7+p.length)%L.length]};
 // 站位：沒被擋住的地板格，離場景中央近的先排
@@ -707,12 +718,12 @@ $("lg").innerHTML=`${LP.top(list)}
 // ── 鎮內登入：我住在這裡，或用邀請碼搬進來 ──
 let refAt=0;async function refresh(){const st=await rpc("town_state",{tid:TID});refAt=Date.now();apply(st);if(me&&!acctChk&&!modalOpen()&&acctNag()){acctChk=1;setTimeout(()=>acctModal(1),500)}if(me)try{checkInvite();checkPk();checkWoken();checkPwn();checkPersona()}catch(e){}if(Date.now()-civT>6e4)civSync()}
 const seenLuck=new Set();
-function apply(st){S=st;try{UT.names(Object.values(R).map(r=>r.name))}catch(e){}setTimeout(popCheck,0);POOPS=st.poops||[];CUR="$";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>(e.kind=="luck"||e.kind=="rent"||e.kind=="ticket"||e.kind=="crash")&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
+function apply(st){S=st;try{estSync(st.residents)}catch(e){}try{UT.names(Object.values(R).map(r=>r.name))}catch(e){}setTimeout(popCheck,0);POOPS=st.poops||[];CUR="$";try{fxFromEvents(st.events||[])}catch(e){}if(me)(st.events||[]).filter(e=>(e.kind=="luck"||e.kind=="rent"||e.kind=="ticket"||e.kind=="crash")&&e.actor==me&&!seenLuck.has(e.id)).forEach(e=>{seenLuck.add(e.id);if(Date.parse(e.at)>Date.parse(st.now)-20e3)toast(e.msg)});offset=Date.parse(st.now)-Date.now();setRows(st.town.rows);R={};
  st.residents.forEach(r=>{R[r.id]=r;const w=walkers[r.id];
   if(!w)walkers[r.id]={x:r.x,y:r.y,path:[],tx:r.x,ty:r.y};else if(r.id!=me&&(Math.abs(w.tx-r.x)>.01||Math.abs(w.ty-r.y)>.01)){const p=route([Math.round(w.x),Math.round(w.y)],[Math.round(r.x),Math.round(r.y)],vehOf(r));w.path=p?p.slice(1):[[r.x,r.y]]}
   walkers[r.id].tx=r.x;walkers[r.id].ty=r.y});
  if(me&&R[me]){const lv=lvOf(alN(R[me]));if(lastLv!==null&&lv>lastLv)setTimeout(()=>lvUpModal(lv),600);lastLv=lv}
- setOff(st.town.off);const key=st.town.rows+"|"+(st.town.off||[]).join()+"|"+st.residents.map(r=>r.id+":"+r.slot+":"+r.name+":"+JSON.stringify([(r.items||{}).roof,(r.items||{}).wall,(r.items||{}).d,(r.items||{}).hl])).join(",");if(key!=mapKey){mapKey=key;maps={}}
+ setOff(st.town.off);const key=st.town.rows+"|"+ESTS.map(e=>e.id+"@"+e.ep).join()+"|"+(st.town.off||[]).join()+"|"+st.residents.map(r=>r.id+":"+r.slot+":"+r.name+":"+JSON.stringify([(r.items||{}).roof,(r.items||{}).wall,(r.items||{}).d,(r.items||{}).hl])).join(",");if(key!=mapKey){mapKey=key;maps={}}
  $("title").textContent="🐷 "+st.town.name;if(me&&!R[me]){toast("你已經搬離這個小鎮");dropMine(TID);setTimeout(()=>go(""),1200)}
  renderFeed();renderPanel();renderNeeds();if(me)renderStrip();pxify($("feed"));pxify($("tab-rank"));pxify($("tab-ppl"))}
 let mapKey="";
@@ -953,7 +964,7 @@ const goHouse=s=>{const o=bySlot(s);if(!o){toast(`${houseName(s)}是空屋，邀
 // ── 下方面板：依所在地點顯示可以做的事 ──
 // ── 按鈕效果與門檻：全部出自 RULES（頂層）；b.key 或標籤比對 RULES，沒有規則的不顯示晶片（nofx 或待確認）──
 const FXI={hunger:"🍚",energy:"⚡",bladder:"🚽",hygiene:"🛁",fun:"🎉",money:"💰",bond:"💗",fit:"💪"},FXN={hunger:"飽足",energy:"精力",bladder:"膀胱",hygiene:"清潔",fun:"心情",money:"錢",bond:"好感",fit:"體能"};
-const NOFXRE=/^(拍賣出價|捐款|小鎮經濟報表|逛家具|逛門口擺飾|逛新衣|試穿換造型|家具、服飾、擺飾|應戰|逛貨架|看菜單|福利社|櫃台商品|小攤販|攤位|拍賣與捐款|莊園|遊艇|升級|房子已是豪宅|買莊園|莊園 |買遊艇|遊艇 |去碼頭出海|出海|辦派對|幫他取外號|我的人設|報案|叫他出來|申請假釋|出院|自首|會員點數換|看排行榜|起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|玩(輪盤|老虎機|百家樂|21點|骰寶|比大小|基諾|射龍門|妞妞|三公|十八啦|賽豬|牌九|地雷|彈珠台|飛行器|猜杯子|刮刮樂|開寶箱)|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
+const NOFXRE=/^(拍賣出價|捐款|小鎮經濟報表|逛家具|逛門口擺飾|逛新衣|試穿換造型|家具、服飾、擺飾|應戰|逛貨架|看菜單|福利社|櫃台商品|小攤販|攤位|拍賣與捐款|莊園|走去我的莊園|遊艇|升級|房子已是豪宅|買莊園|莊園 |買遊艇|遊艇 |去碼頭出海|出海|辦派對|幫他取外號|我的人設|報案|叫他出來|申請假釋|出院|自首|會員點數換|看排行榜|起床|進屋|進去|出門|佈置|看室內|傳訊息|造型|街機|看盤|市政廳|走到|去|回家|睡覺|保險|維修|賣車|小豬街機|小豬賭場|玩(輪盤|老虎機|百家樂|21點|骰寶|比大小|基諾|射龍門|妞妞|三公|十八啦|賽豬|牌九|地雷|彈珠台|飛行器|猜杯子|刮刮樂|開寶箱)|取消|應徵|邀請朋友|你沒有駕照|附近有|今日治安|.*駕照|.*下車)/;
 const wageOf=r=>{const n=+((r.items||{}).works)||0;let w=JOBS[0][2];for(const j of JOBS)if(n>=j[1])w=j[2];return w};
 function ruleOf(b,r){if(b.key)return RULES.find(x=>x.m===b.key)||null;const l=String(b.label).replace(/\p{Extended_Pictographic}️?\s*/gu,"").trim();return RULES.find(x=>x.m instanceof RegExp&&x.m.test(l)&&(!x.at||x.at.includes(r.place)))||null}
 function fxOf(b,r){const ru=b.nofx?null:ruleOf(b,r);if(!ru)return{fx:[],need:[],chips:[],rule:null};const fx=typeof ru.fx=="function"?ru.fx(r,{hasF,wage:wageOf}):ru.fx.slice(),need=[];
@@ -1019,7 +1030,8 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
    btn("今日治安 📊","看鎮上今天的罰單、事故、砍人、入獄",()=>policeAct("stats")))}
  else if(p=="realty"){title="不動產公司";note="房子升級、買莊園；不用回家，在這裡辦（價格依小鎮經濟微調）";const lx=(r.items||{}).lx||{},nx=HOUSES[+((r.items||{}).hl)||1];
   list.push(nx?btn(`升級${nx[0]}`,`€${nx[1]} · 房間更大、可擺 ${nx[2]} 件家具`,async()=>{await act("upgrade")},"place"):btn("房子已是豪宅","最高級了",()=>toast("已經是最高級的豪宅"),"place"));
-  list.push(lx.estate?btn("莊園 ✔","已擁有 · 回自己家辦派對",()=>toast("你已經有莊園了，回自己家就能辦派對"),"place"):btn("買莊園 $600,000","稱號「莊園主人」· 家有金屋脊 · 可辦派對",()=>econBuy("estate"),"place"))}
+  list.push(lx.estate?btn("走去我的莊園","地圖最下方的莊園區 · 進去辦派對",()=>{const k="estate:"+me;if(PLACES[k])walkTo(k,PLACES[k].door);else toast("莊園還在整理，等一下再試")},"place"):btn("買莊園 $600,000","稱號「莊園主人」· 獨立一棟（在莊園區）· 家不變 · 可辦派對",()=>econBuy("estate"),"place"))}
+ else if(p.startsWith("estate:")){title=(PLACES[p]||{}).name||"莊園";note=p=="estate:"+me?"你的莊園 · 在裡面辦派對；朋友在你在裡面時可以進來參觀":"莊園主人在裡面時才能進去參觀";if(p=="estate:"+me&&fin(r)&&!r.sleeping&&!jailed(r))list.push(btn("辦派對","$5000 · 在線醒著的居民心情 +15、好感 +2 · 30 分鐘內朋友都能進來 · 每天 1 次",()=>fun("party"),"place"))}
  else if(p=="harbor"){title="碼頭船行";note="買遊艇；出海要到碼頭邊（船行裡不能出海）";const lx=(r.items||{}).lx||{};
   list.push(lx.yacht?btn("遊艇 ✔","已擁有 · 到碼頭邊就能出海",()=>toast("你已經有遊艇了"),"place"):btn("買遊艇 $200,000","稱號「遊艇船長」· 可帶朋友出海 · 心情 +25",()=>econBuy("yacht"),"place"));
   list.push(btn("去碼頭出海","走到碼頭邊 · 船主才能出海",()=>walkTo("street",[68,16]),"move"))}
@@ -1035,7 +1047,7 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
  {const lx=(r.items||{}).lx||{},fun=async op=>{try{UT.hit("econ:"+op);const x=await rpc("town_econ_fun",{rid:me,pin,op});toast(x.msg||"完成");refresh()}catch(e){toast(e.message)}};
   if(!r.sleeping&&!jailed(r)){
    if(lx.yacht&&p=="street"&&Math.abs(r.x-68.5)<=6&&Math.abs(r.y-18.5)<=5)list.push(btn("出海","$2000 · 自動帶碼頭邊最多 3 位朋友 · 大家心情 +25 · 1 小時 1 次",()=>fun("yacht"),"place"));
-   if(lx.estate&&p=="home:"+me)list.push(btn("辦派對","$5000 · 在線醒著的居民心情 +15、好感 +2 · 每天 1 次",()=>fun("party"),"place"))}}
+  }}
  if(NPCV&&NPCV.here&&Date.parse(NPCV.until)>Date.now()&&r.place==NPCV.place&&!r.sleeping&&!jailed(r))list.push(btn("找流動商人 💰","限量奇貨，價格偏貴",npcShop,"place"));
  if(!sel&&!r.sleeping&&FACP.includes(p)&&!(walkers[me]&&walkers[me].path.length)){list.push(...facBtns(r));const fn=fqOf(r,p);if(fn)note=(note?note+" · ":"")+`來過 ${fn} 次${tierOf(fn)?"：這裡的"+tierOf(fn):"，5 次變常客有折扣"}`}
  if(!sel&&!r.sleeping&&!(walkers[me]&&walkers[me].path.length))list.push(...inviteBtns(r));
@@ -1913,6 +1925,18 @@ function deco(m,d,x,y,night){const R=(a,b,w,h,c)=>{m.fillStyle=c;m.fillRect(x+a,
  if(d=="bench"){R(-12,-4,26,4,"#8b5a2b");R(-12,-10,26,3,"#8b5a2b");R(-10,0,3,6,"#5a3a1a");R(9,0,3,6,"#5a3a1a")}
  if(d=="tree"){R(-2,-2,4,10,"#6b4423");m.fillStyle=night?"#2f6b3a":"#4caf50";m.beginPath();m.arc(x,y-8,10,0,7);m.fill()}
  if(d=="pigstatue"){R(-8,2,16,6,"#9a9a9a");m.fillStyle="#f6a5c0";m.beginPath();m.arc(x,y-6,9,0,7);m.fill();R(-8,-16,4,4,"#ec7fa6");R(4,-16,4,4,"#ec7fa6");R(-4,-6,8,5,"#ec7fa6");R(-4,-11,2,2,"#222");R(2,-11,2,2,"#222")}}
+function drawEstate(m,T,PX,PY,name,night){const X=PX+T,Y=PY+60,W=5*T;m.fillStyle="#6fbf5a";m.fillRect(PX,PY,7*T,7*T);m.fillStyle="#5aa84f";for(let k=0;k<7*T;k+=16)m.fillRect(PX+k,PY+7*T-6,8,6);
+ m.fillStyle="rgba(0,0,0,.18)";m.fillRect(X+8,Y+T+10,W,3*T);m.fillStyle="#f4ead6";m.fillRect(X,Y+T,W,3*T-6);m.fillStyle="#34495e";m.fillRect(X-8,Y,W+16,T+14);m.fillStyle="rgba(0,0,0,.15)";for(let k=0;k<W+16;k+=12)m.fillRect(X-8+k,Y,6,T+14);m.fillStyle=night?"#ffe9a8":"#cfeefc";m.fillRect(X+20,Y+T+26,16,16);m.fillRect(X+W-36,Y+T+26,16,16);m.fillStyle="#7a4a24";m.fillRect(X+W/2-11,Y+3*T+4,22,T-10);m.fillStyle="#cbbf9f";m.fillRect(X+W/2-10,Y+4*T,20,T);
+ const cx=X+W/2,G="#f1c40f",D="#c9a227",S="#e8d9a8",B="#2e86c1";m.fillStyle=G;m.fillRect(X-14,Y-10,W+28,6);
+   [X-14,X+W-2].forEach(a=>{m.fillStyle=S;m.fillRect(a,Y-22,16,16);m.fillStyle=D;m.fillRect(a-2,Y-28,20,6);m.fillStyle=B;m.fillRect(a+2,Y-34,12,6);m.fillStyle=G;m.fillRect(a+6,Y-40,4,6);m.fillStyle="#3a6ea5";m.fillRect(a+5,Y-18,6,8)});
+   m.fillStyle=S;m.fillRect(cx-18,Y-30,36,24);m.fillStyle="#3a6ea5";m.fillRect(cx-4,Y-24,8,12);m.fillStyle=D;m.fillRect(cx-20,Y-34,40,5);m.fillStyle=B;m.fillRect(cx-16,Y-42,32,8);m.fillRect(cx-10,Y-48,20,6);m.fillStyle=G;m.fillRect(cx-4,Y-52,8,4);m.fillStyle="#fff";m.fillRect(cx-1,Y-62,3,10);m.fillStyle="#e74c3c";m.fillRect(cx+2,Y-62,14,8);
+   m.fillStyle="#fff";[8,W-16].forEach(a=>{m.fillRect(X+a,Y+T+8,8,3*T-14);m.fillStyle=G;m.fillRect(X+a-2,Y+T+6,12,4);m.fillRect(X+a-2,Y+3*T-10,12,4);m.fillStyle="#fff"});
+   m.fillStyle=D;m.fillRect(X-8,Y+3*T-8,W+16,6);m.fillStyle=G;m.fillRect(cx-15,Y+3*T-2,30,5);m.fillRect(cx-15,Y+3*T+3,4,T-9);m.fillRect(cx+11,Y+3*T+3,4,T-9);
+   m.fillStyle=D;m.fillRect(cx-13,Y+4*T,26,T);m.fillStyle="#c0392b";m.fillRect(cx-10,Y+4*T,20,T);m.fillStyle=G;m.fillRect(cx-10,Y+4*T+T/2,20,2);
+   m.fillStyle="#5aa84f";[-14,W+6].forEach(a=>m.fillRect(X+a,Y+3*T+8,10,3*T-16));
+   [-12,W-6].forEach(a=>{m.fillStyle="#cfcfcf";m.fillRect(X+a-4,Y+3*T+22,22,12);m.fillStyle="#5dade2";m.fillRect(X+a-2,Y+3*T+24,18,8);m.fillStyle="#fff";m.fillRect(X+a+5,Y+3*T+12,4,10)});
+   [-34,34].forEach(a=>{m.fillStyle="#555";m.fillRect(cx+a-1,Y+3*T+4,3,T);m.fillStyle="#ffe27a";m.fillRect(cx+a-3,Y+3*T-2,7,7)})
+ m.fillStyle="#2b2f5e";m.fillRect(PX+2,PY+2,7*T-4,18);m.fillStyle="#f1c40f";m.font="11px Cubic11,monospace";m.textAlign="center";m.fillText(name,PX+3.5*T,PY+15);m.textAlign="left"}
 function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas");c.width=COLS*T;c.height=ROWS*T;const m=c.getContext("2d");
  const sign=(t,x,y,bg)=>{m.font="16.5px Cubic11,monospace";const w=m.measureText(t).width+14;m.fillStyle=bg||"rgba(20,20,20,.8)";m.fillRect(x-w/2,y-11,w,22);m.fillStyle="#fff";m.textAlign="center";m.textBaseline="middle";m.fillText(t,x,y+1)};
  const win=(x,y,lit)=>{m.fillStyle=night&&lit!==false?"#ffd76a":"#bfe3ff";m.fillRect(x,y,16,14);m.fillStyle="rgba(255,255,255,.5)";m.fillRect(x,y,16,3);m.fillStyle="#3a3a3a";m.fillRect(x+7,y,2,14)};
@@ -1934,17 +1958,10 @@ function buildMap(night){const ROWS=mapRows(),c=document.createElement("canvas")
    if(hl>=2){m.fillStyle="rgba(0,0,0,.22)";m.fillRect(X-8,Y+T+10,W+16,6);[X+20,X+W-36].forEach(a=>{m.fillStyle="#8b5a2b";m.fillRect(a-2,Y+T+40,20,6);m.fillStyle="#e74c3c";m.fillRect(a,Y+T+36,4,4);m.fillStyle="#f1c40f";m.fillRect(a+8,Y+T+36,4,4)})}
    if(hl>=3){m.fillStyle="#8d8d8d";m.fillRect(X+W-30,Y-16,16,24);m.fillStyle="#6d6d6d";m.fillRect(X+W-32,Y-20,20,6);m.fillStyle="#f4f1de";for(let k=-6;k<W+8;k+=14){if(k>W/2-26&&k<W/2+26)continue;m.fillRect(X+k,Y+3*T+14,4,18)}m.fillRect(X-6,Y+3*T+20,W/2-26+6,3);m.fillRect(X+W/2+26,Y+3*T+20,W/2-26+6,3)}
    if(hl>=4){m.fillStyle="#f1c40f";m.fillRect(X-8,Y,W+16,5);m.fillStyle="#e8d9a8";[W/2-30,W/2+22].forEach(a=>{m.fillRect(X+a,Y+T+30,8,2*T-12);m.fillStyle="#cdbb85";m.fillRect(X+a-2,Y+T+26,12,6);m.fillStyle="#e8d9a8"})}}
-  if(o&&it.lx&&it.lx.estate){const cx=X+W/2,G="#f1c40f",D="#c9a227",S="#e8d9a8",B="#2e86c1";m.fillStyle=G;m.fillRect(X-14,Y-10,W+28,6);
-   [X-14,X+W-2].forEach(a=>{m.fillStyle=S;m.fillRect(a,Y-22,16,16);m.fillStyle=D;m.fillRect(a-2,Y-28,20,6);m.fillStyle=B;m.fillRect(a+2,Y-34,12,6);m.fillStyle=G;m.fillRect(a+6,Y-40,4,6);m.fillStyle="#3a6ea5";m.fillRect(a+5,Y-18,6,8)});
-   m.fillStyle=S;m.fillRect(cx-18,Y-30,36,24);m.fillStyle="#3a6ea5";m.fillRect(cx-4,Y-24,8,12);m.fillStyle=D;m.fillRect(cx-20,Y-34,40,5);m.fillStyle=B;m.fillRect(cx-16,Y-42,32,8);m.fillRect(cx-10,Y-48,20,6);m.fillStyle=G;m.fillRect(cx-4,Y-52,8,4);m.fillStyle="#fff";m.fillRect(cx-1,Y-62,3,10);m.fillStyle="#e74c3c";m.fillRect(cx+2,Y-62,14,8);
-   m.fillStyle="#fff";[8,W-16].forEach(a=>{m.fillRect(X+a,Y+T+8,8,3*T-14);m.fillStyle=G;m.fillRect(X+a-2,Y+T+6,12,4);m.fillRect(X+a-2,Y+3*T-10,12,4);m.fillStyle="#fff"});
-   m.fillStyle=D;m.fillRect(X-8,Y+3*T-8,W+16,6);m.fillStyle=G;m.fillRect(cx-15,Y+3*T-2,30,5);m.fillRect(cx-15,Y+3*T+3,4,T-9);m.fillRect(cx+11,Y+3*T+3,4,T-9);
-   m.fillStyle=D;m.fillRect(cx-13,Y+4*T,26,T);m.fillStyle="#c0392b";m.fillRect(cx-10,Y+4*T,20,T);m.fillStyle=G;m.fillRect(cx-10,Y+4*T+T/2,20,2);
-   m.fillStyle="#5aa84f";[-14,W+6].forEach(a=>m.fillRect(X+a,Y+3*T+8,10,3*T-16));
-   [-12,W-6].forEach(a=>{m.fillStyle="#cfcfcf";m.fillRect(X+a-4,Y+3*T+22,22,12);m.fillStyle="#5dade2";m.fillRect(X+a-2,Y+3*T+24,18,8);m.fillStyle="#fff";m.fillRect(X+a+5,Y+3*T+12,4,10)});
-   [-34,34].forEach(a=>{m.fillStyle="#555";m.fillRect(cx+a-1,Y+3*T+4,3,T);m.fillStyle="#ffe27a";m.fillRect(cx+a-3,Y+3*T-2,7,7)})}
+
   sign(o?o.name+" 的家":"空屋",X+W/2,Y+T/2+6,o?null:"rgba(90,90,90,.85)");
   ((it.d)||[]).slice(0,4).forEach((d,i)=>deco(m,d,X+[16,48,144,172][i],Y+4*T+18,night))}
+ for(const e of ESTS)drawEstate(m,T,e.r[0]*T,e.r[1]*T,e.name+"的莊園",night);
  const bld=(k,wall,roof,deco)=>{if(!isOn(k))return;const [x,y,w,h]=PLACES[k].r,X=x*T,Y=y*T,W=w*T,H=h*T;m.fillStyle="rgba(0,0,0,.18)";m.fillRect(X+8,Y+16,W,H);m.fillStyle=wall;m.fillRect(X,Y+14,W,H-14);m.fillStyle=roof;m.fillRect(X-6,Y,W+12,20);deco(X,Y,W,H)};
  bld("office","#b8c4cf","#5f6b78",(X,Y,W,H)=>{for(let a=0;a<5;a++)for(let b=0;b<3;b++)win(X+16+a*40,Y+36+b*40);m.fillStyle="#555";m.fillRect(X+W/2-14,Y+H-36,28,36)});
  bld("restaurant","#fff3e0","#c0392b",(X,Y,W,H)=>{for(let k=0;k<W;k+=24){m.fillStyle=(k/24)%2?"#fff":"#e74c3c";m.fillRect(X+k,Y+20,24,16)}win(X+20,Y+60);win(X+W-36,Y+60);m.fillStyle="#7a4a24";m.fillRect(X+W/2-12,Y+H-44,24,44)});
@@ -2381,7 +2398,7 @@ function wkPlay(a,x){const k=wkKey(a,x),W=k&&WORK_FX[k];if(!W||wkBusy||!R[me])re
  if(it){roomAnim={code:W[1],it,tv:null,home:false,w:rw(rm),h:rh(rm),born:performance.now(),dur:D,age:0};loopRoom()}
  else{spawnFx(W[2],me);if(a=="cowork"&&x.target&&walkers[x.target])spawnFx(W[2],x.target)}
  return new Promise(r=>setTimeout(()=>{wkBusy=false;r()},D))}
-const ROOM_ACT={donate:"cfund",bid:"auction",buyf:"fcounter",buyw:"wcounter",upgrade:"rcounter",estate:"rcounter",yacht:"ycounter",art:"latteart",share:"pot",combo:"kitchen",bring:"pack",seat:"seat",chat:"screen",sale:"snackshelf",sample:"mshelf",mredeem:"till",latte:"coffee",coffee:"coffee",special:"kitchen",dine:"bar",takeout:"pack",song:"jukebox",treat:"bar",redeem:"cake",spar:"bag",checkin:"locker",workout:"treadmill",spa:"spa",feast:"menu",labor:"work",yard:"yard",visit:"glass",escape:"vent",parole:"gate",bail:"bailDesk",consult:"reg",discharge:"reg",hvisit:"hbed",pay:"pdesk",surrender:"pboard",report:"prep",stats:"pstat",civic:"annb",movie:"screen",popcorn:"popcorn",browse:"till",buy:"till",sneak:"cleaver",vbuy:"vcar",license:"lic",insure:"gar",vfix:"gar",vsell:"gar",trade:"pcs"};
+const ROOM_ACT={party:"ptable",donate:"cfund",bid:"auction",buyf:"fcounter",buyw:"wcounter",upgrade:"rcounter",estate:"rcounter",yacht:"ycounter",art:"latteart",share:"pot",combo:"kitchen",bring:"pack",seat:"seat",chat:"screen",sale:"snackshelf",sample:"mshelf",mredeem:"till",latte:"coffee",coffee:"coffee",special:"kitchen",dine:"bar",takeout:"pack",song:"jukebox",treat:"bar",redeem:"cake",spar:"bag",checkin:"locker",workout:"treadmill",spa:"spa",feast:"menu",labor:"work",yard:"yard",visit:"glass",escape:"vent",parole:"gate",bail:"bailDesk",consult:"reg",discharge:"reg",hvisit:"hbed",pay:"pdesk",surrender:"pboard",report:"prep",stats:"pstat",civic:"annb",movie:"screen",popcorn:"popcorn",browse:"till",buy:"till",sneak:"cleaver",vbuy:"vcar",license:"lic",insure:"gar",vfix:"gar",vsell:"gar",trade:"pcs"};
 const ROOM_ALT={spar:"ring"};
 let lastSpots={},spotsBefore=null;let roomAnim=null;
 const HOME_ACT={toilet:"toilet",shower:"shower",eat:"fridge",tv:"tvcab",nap:"massage",qsleep:"bed",sleep:"bed",feed:"fridge",wakeup:"bed",visit:"sofa"};// 家裡：互動 → 家具（沒有那件家具就在房間中央演）

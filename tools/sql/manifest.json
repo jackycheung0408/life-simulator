@@ -1080,6 +1080,22 @@
    "needs": [
     "town_bal5_events.sql"
    ]
+  },
+  {
+   "file": "town_estate_plot.sql",
+   "kind": "patch",
+   "needs": [
+    "town_econ_use2.sql",
+    "town_shops2.sql"
+   ],
+   "note": "莊園改成獨立一棟（莊園區 estate:<id>、地塊序號 lx.ep、派對在莊園室內、舊資料遷移）；重套 town.sql／town_fi.sql 後要再套"
+  },
+  {
+   "file": "town_estate_plot_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_estate_plot.sql"
+   ]
   }
  ]
 }
