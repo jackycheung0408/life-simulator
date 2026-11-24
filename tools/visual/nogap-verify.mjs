@@ -33,7 +33,7 @@ const open=async(p,t)=>{await ct(p,"小豬賭場");await p.waitForTimeout(500);c
 const count=p=>p.evaluate(()=>{window.__c={};const f=window.fetch;window.fetch=(u,o)=>{try{const b=JSON.parse(o.body||"{}");if(b.game)window.__c[b.game]=(window.__c[b.game]||0)+1}catch(e){}return f(u,o)}});
 const chips=p=>p.evaluate(()=>JSON.parse(sessionStorage.getItem("mockdb")).res.find(x=>x.id==1).items.cas.ch);
 for(const [w,h] of SIZES){const T=`${w}x${h}`;say(`\n===== ${T} =====`);
- for(const [name,tab,go] of [["輪盤","輪盤","#whGo"],["老虎機","老虎機","#slGo"],["21點","21點","#bjGo"]]){
+ for(const [name,tab,go] of (process.env.CR?[]:[["輪盤","輪盤","#whGo"],["老虎機","老虎機","#slGo"],["21點","21點","#bjGo"]])){
   const p=await mk(w,h);await open(p,tab);await count(p);
   const c0=await chips(p);let clicks=0;
   for(let i=0;i<10;i++){const ok=await p.evaluate(sel=>{const b=document.querySelector(sel);if(!b||b.disabled||!b.offsetParent)return false;b.click();return true},go);if(ok)clicks++;await p.waitForTimeout(40)}
@@ -52,4 +52,19 @@ for(const [w,h] of SIZES){const T=`${w}x${h}`;say(`\n===== ${T} =====`);
   say(`  逐局慢點5次 可按${okc}次 籌碼=${await chips(p)} 按鈕可再按=${await p.evaluate(sel=>{const b=document.querySelector(sel);return !!(b&&!b.disabled&&b.offsetParent)},go)}`);
   await p.screenshot({path:path.join(OUT,`nogap-${name}-after-${T}.png`)});await p.context().close()}
 }
+for(const [w,h] of SIZES){const T=`${w}x${h}`;say(`\n===== 飛行器 ${T} =====`);
+ const p=await mk(w,h);await ct(p,"小豬賭場");await p.waitForTimeout(500);
+ const pick=g=>p.evaluate(g=>{const b=document.querySelector(`#mbody button[data-g="${g}"]`);if(b){b.click();return true}return false},g);
+ await p.evaluate(()=>{window.__crx=100000});say("開桌",await pick("crash"));await p.waitForTimeout(700);
+ await p.click("#crGo");await p.waitForTimeout(1500);
+ const c0=await chips(p);say("起飛後 籌碼",c0,"收手鈕",!!(await p.$("#crC")));
+ await p.evaluate(()=>document.querySelector("#modal").classList.add("hide"));await p.waitForTimeout(300);
+ await ct(p,"小豬賭場");await p.waitForTimeout(500);await pick("crash");await p.waitForTimeout(1200);
+ say("db.cr=",await p.evaluate(()=>JSON.stringify(JSON.parse(sessionStorage.getItem("mockdb")).res.find(x=>x.id==1).items.cas.cr)));
+ const st=await p.evaluate(()=>({status:document.getElementById("crS")?.textContent,c:!!document.getElementById("crC"),go:document.getElementById("crGo")?"有起飛鈕":"無起飛鈕",m:document.getElementById("crM")?.textContent}));
+ say("重開桌 還原=",JSON.stringify(st),"籌碼",await chips(p),"(不變)");
+ const r=await p.evaluate(async()=>{try{const x=await fetch("/rpc/town_casino",{method:"POST",body:JSON.stringify({rid:1,pin:"1111",game:"cr_start",bet:100}),headers:{"content-type":"application/json"}});return await x.text()}catch(e){return String(e)}});
+ say("再送 cr_start =>",r.slice(0,120),"籌碼",await chips(p));
+ await p.screenshot({path:path.join(OUT,`nogap-飛行器-restore-${T}.png`)});
+ say("console錯誤",p.__errs.length?p.__errs.join("|"):"無");await p.context().close()}
 await browser.close();srv.close();

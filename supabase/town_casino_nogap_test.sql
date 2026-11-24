@@ -73,12 +73,15 @@ begin
   begin perform public.town_casino(v_a,'x','ch_start',100,null); v_rep := v_rep || ' cx再開局=沒擋'; exception when others then v_rep := v_rep || ' cx再開局=擋'; end;
   v_rep := v_rep || ' 箱子未變=' || (v_x1 = (select items->'cx' from public.town_residents where id = v_a)) || ' 籌碼不變=' || (v_ch0 = (select (items->'cas'->>'ch')::bigint from public.town_residents where id = v_a));
   update public.town_residents set items = items - 'cx' where id = v_a;
-  -- 飛行器：設計是重開覆蓋（舊注已付、新注另扣），確認只留一局、籌碼只會少不會多
+  -- 飛行器：上一局沒結束再開局要擋，舊局與籌碼不變
   perform public.town_casino(v_a,'x','cr_start',100,null);
-  v_ch0 := (select (items->'cas'->>'ch')::bigint from public.town_residents where id = v_a);
-  perform public.town_casino(v_a,'x','cr_start',100,null);
-  v_ch1 := (select (items->'cas'->>'ch')::bigint from public.town_residents where id = v_a);
-  v_rep := v_rep || E'\n[a] cr連開兩次 籌碼差=' || (v_ch0 - v_ch1) || '（100，舊注沒退） 只剩一局=' || ((select items->'cr'->>'b' from public.town_residents where id = v_a) = '100');
+  v_x1 := (select items->'cr' from public.town_residents where id = v_a); v_ch0 := (select (items->'cas'->>'ch')::bigint from public.town_residents where id = v_a);
+  begin perform public.town_casino(v_a,'x','cr_start',100,null); v_rep := v_rep || E'\n[a] cr再開局=沒擋'; exception when others then v_rep := v_rep || E'\n[a] cr再開局=擋（' || sqlerrm || '）'; end;
+  v_rep := v_rep || ' 舊局未變=' || (v_x1 = (select items->'cr' from public.town_residents where id = v_a)) || ' 籌碼不變=' || (v_ch0 = (select (items->'cas'->>'ch')::bigint from public.town_residents where id = v_a));
+  v_res := (public.town_casino(v_a,'x','cr_poll',0,null))::jsonb->'game';
+  v_rep := v_rep || ' cr_poll還原=' || (v_res ? 'alive' or v_res ? 'crashed') || ' 結算後可再開=';
+  update public.town_residents set items = items - 'cr' where id = v_a;
+  begin perform public.town_casino(v_a,'x','cr_start',100,null); v_rep := v_rep || 'true'; exception when others then v_rep := v_rep || 'false'; end;
   update public.town_residents set items = items - 'cr' where id = v_a;
   -- 射龍門：dg_start 不收費，連發兩次籌碼不變；pass 後清掉
   v_ch0 := (select (items->'cas'->>'ch')::bigint from public.town_residents where id = v_a);

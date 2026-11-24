@@ -1672,11 +1672,13 @@ if(gameTab=="dg"){area.innerHTML=`<p class="mut">射龍門（莊家制，沒有�
   const setM=m=>{const e=$("crM");if(!e)return;e.textContent=fm2(m/100)+"×";$("crF").style.width=Math.min(100,Math.log(Math.max(1,m/100))/Math.log(50)*100)+"%"},
    stop=()=>{if(run){clearInterval(run.tk);clearInterval(run.pl);run.done=true}},
    over=g=>{stop();run=null;if(!$("crM"))return;setM(g.x);$("crS").textContent=g.crashed?"墜毀！":"成功收手";$("crF").style.background=g.crashed?"#8b2d2d":"#2e7d4a";$("gShow").innerHTML=(g.crashed?`<p class="mut">在 ×${fm2(g.x/100)} 墜毀${g.m?`（你想領 ×${fm2(g.m/100)}）`:""}</p>`:`<p class="mut">墜毀點 ×${fm2(g.x/100)}，你領了 ×${fm2(g.m/100)}</p>`)+verdict(g);playRes(g);money();lockBet(false);$("crB").innerHTML=`<button class="pri" id="crGo">再飛一次（押 €${gameBet}）</button>`;$("crGo").onclick=go},
-   go=async()=>{$("crGo").disabled=true;try{const g=await pg2("cr_start");money();lockBet(true);$("gShow").innerHTML="";$("crF").style.background="#e0623f";$("crS").textContent="飛行中…";const r={t0:performance.now(),done:false,busy:false};run=r;
+   go=async()=>{$("crGo").disabled=true;try{await pg2("cr_start");money();fly(0)}catch(e){toast(e.message);$("crGo").disabled=false}},
+   fly=el0=>{try{lockBet(true);$("gShow").innerHTML="";$("crF").style.background="#e0623f";$("crS").textContent="飛行中…";const r={t0:performance.now()-el0*1000,done:false,busy:false};run=r;
     r.tk=setInterval(()=>{if(!$("crM")){stop();run=null;return}setM(crM((performance.now()-r.t0)/1000))},50);
     r.pl=setInterval(async()=>{if(r.busy||r.done)return;r.busy=true;try{const p=await playGame("cr_poll",{bet:0});if(p.crashed&&!r.done)over(p)}catch(e){}r.busy=false},900);
     $("crB").innerHTML=`<button class="gbig" id="crC">收手</button>`;$("crC").onclick=async()=>{if(r.done)return;r.done=true;$("crC").disabled=true;const t=Math.max(0,(performance.now()-r.t0)/1000-0.05);try{over(await playGame("cr_cash",{choice:String(crM(t)),bet:0}))}catch(e){toast(e.message);r.done=false;$("crC").disabled=false}}}catch(e){toast(e.message);$("crGo").disabled=false}};
-  $("crGo").onclick=go}
+  $("crGo").onclick=go;
+  (async()=>{try{const p=await playGame("cr_poll",{bet:0});if(!$("crM")||run)return;if(p.crashed){over(p)}else if(p.alive){$("crGo").disabled=true;fly(Math.log(Math.max(100,p.m)/100)/0.1);toast("有一局飛行器還沒結束，已為你還原")}}catch(e){}})()}
  if(gameTab=="cups"){
   area.innerHTML=`<p class="mut">3 個杯子，1 顆球。猜球在哪個杯子下，猜中拿回 ×2.88，沒中輸掉押注（返還率 0.96）。</p><div class="cups" id="cpB">${[0,1,2].map(i=>`<button class="cup" data-c="${i}">${icn("cup")}<span>${i+1} 號杯</span><b class="bl"></b></button>`).join("")}</div><div id="gShow"></div><p class="mut">點一個杯子下注（押 €${gameBet}）</p>`;
   area.querySelectorAll("[data-c]").forEach(b=>b.onclick=async()=>{const all=[...area.querySelectorAll("[data-c]")];all.forEach(x=>{x.disabled=true;x.classList.remove("up");x.querySelector(".bl").textContent=""});lockBet(true);$("gShow").innerHTML="";
