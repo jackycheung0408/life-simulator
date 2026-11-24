@@ -299,6 +299,13 @@
 - **PC 版（≥900px，`pc2css`）**：全站導覽（選單／我／看全鎮／朋友／通知）移到右側欄**頂部**（56px、亮底線）；面板從導覽下方到底部提示列上方（`top:56px;bottom:76px`），內部 `#acts` 唯一可捲、`#mainrow`（常用）貼面板底；面板內分頁是文字頁籤（同手機）；`#info` 在 PC 改成導覽列下方一行 24px 小字（職階、薪水、今天打工次數，`#panel` top 80px）；「最近動態」不在側欄，由底部「通知」涵蓋（`#info .ev` 隱藏）。
 - 尚未做：其餘標籤縮短與合併（小睡／睡覺）、室內舞台按內容放大、PC 橫向版細修。
 
+## 背景音樂 v2（2026-11-24，純前端）
+- `town/music.js`（≤30KB）：資料化的原創流行風格曲＋程式合成引擎（多聲部：方波／電鋼琴／吉他／鋼琴／貝斯／pad／鈴／琶音、鼓組、殘響、dotted-8th 延遲、壓縮器、swing、隨機變奏與程式生成旋律）。**由 `sfx.js` 在音樂開啟後才動態載入（`index.html` 不可載入它，test.js 擋）**。主題 `street`（街上白天）、`cafe`（咖啡廳，爵士 7th）、`night`（20～6 點，小調 pad＋鈴）；格式說明見 music.js 檔頭。新增主題＝加一個 `TH` 物件，`node town/test.js` 會檢查格式。
+- **不得使用或翻奏現成流行歌**（旋律受版權保護）；只做原創、流行和弦進行（I–V–vi–IV、vi–IV–I–V）。外部 CC0 真曲要逐首查授權並經使用者核准才可進 repo。
+- 自適應：`town.js` 每 5 秒 `SFX.ctx({mood,crowd,place})`；心情 sad／low 只留貝斯＋pad、慢 10%；happy 加琶音、快 4%；同地點人數 ≥2 加 hat、≥3 加鼓、≥5 旋律加厚且快 5%。在咖啡廳切咖啡廳曲，夜間夜晚曲（切換在小節組邊界）。
+- 本機試聽：瀏覽器開 `tools/music-preview.html`（每主題一顆鈕，可調心情與人數）。沒有真人試聽過，音質評估靠 Playwright 量測 RMS／peak 無爆音。
+- 之後可加：賭場、監獄、市政廳、PK、慶典主題（資料格式相同）。
+
 ## 像素風規則（2026-11-17）
 - 全遊戲維持像素風：字型只 Cubic 11（11／16.5／22px、不用粗體、字距 0），`-webkit-font-smoothing:none`；canvas 文字也用 Cubic 11，`fillText` 座標取整，`strokeText` 被改成 1px 四向硬描邊（`town.js` 開頭 `pxcss` 與 prototype 補丁）。
 - canvas 一律 `imageSmoothingEnabled=false`＋`image-rendering:pixelated`；地圖縮放 `snapS` 對齊整數裝置像素，鏡頭偏移 `ox/oy` 取整到裝置像素。

@@ -8,7 +8,7 @@ function save(){try{localStorage.setItem("town-snd",JSON.stringify(cfg))}catch(e
 var VOL=[.35,.6,1];
 function mk(){if(C)return C;var A=window.AudioContext||window.webkitAudioContext;if(!A)return null;
  try{C=new A();M=C.createGain();GS=C.createGain();GM=C.createGain();GS.connect(M);GM.connect(M);M.connect(C.destination);lv()}catch(e){C=null}return C}
-function lv(){if(!M)return;M.gain.value=hid?0:VOL[cfg.v];GS.gain.value=cfg.s?.5:0;GM.gain.value=cfg.m?.16:0}
+function lv(){if(!M)return;M.gain.value=hid?0:VOL[cfg.v];GS.gain.value=cfg.s?.5:0;GM.gain.value=cfg.m?.3:0}
 function run(){return C&&C.state=="running"&&!hid}
 var NB=null;function nbuf(){if(!NB){NB=C.createBuffer(1,C.sampleRate*.5,C.sampleRate);var d=NB.getChannelData(0);for(var i=0;i<d.length;i++)d[i]=Math.random()*2-1}return NB}
 // 音：t 開始秒、f 頻率、d 長度、type、v 音量、f2 滑到的頻率、g 輸出節點
@@ -45,20 +45,12 @@ var S={
 };
 var NAMES=Object.keys(S);
 function play(n,force){if(!cfg.s&&!force||!run()||!S[n])return;var now=performance.now();if(last[n]&&now-last[n]<80)return;last[n]=now;try{S[n](C.currentTime+.01)}catch(e){}}
-// ── 音樂：白天輕快、夜間（台灣 20～6 點）安靜，用 setInterval 排音符
-var CH=[[0,4,7],[9,12,16],[5,9,12],[7,11,14]],ROOT=48,MEL=[7,9,12,9,7,4,7,-1,9,12,14,12,9,7,9,-1];
-var PEN=[0,3,5,7,10,12];
+// ── 音樂：引擎與原創曲在 music.js，開音樂才晚載入（首頁不受影響）
+var MS=(document.currentScript&&document.currentScript.src)||"",ml=0;
 function night(){var h=(new Date().getUTCHours()+8)%24;return h>=20||h<6}
-function fr(s){return 440*Math.pow(2,(s-69)/12)}
-function sched(){if(!run()||!cfg.m)return;var nt=night();
- while(nextT<C.currentTime+.3){var t=Math.max(nextT,C.currentTime+.02),i=step++,bar=(i>>3)&3,ch=CH[bar];
-  if(nt){if(i%4==0)tone(t,fr(ROOT+12+ch[(i>>2)%3]),1.1,"triangle",.5,0,GM);if(i%16==8)tone(t,fr(ROOT+24+PEN[(i*7)%6]),1.4,"triangle",.3,0,GM)}
-  else{var m=MEL[i%16];if(m>=0)tone(t,fr(ROOT+12+m),.2,"square",.32,0,GM);
-   if(i%2==0)tone(t,fr(ROOT-12+ch[0]),.22,"triangle",.6,0,GM);
-   if(i%8==4)tone(t,fr(ROOT+ch[1]),.4,"triangle",.3,0,GM)}
-  nextT+=nt?.6:.25}}
-function mstart(){if(mt||!run()||!cfg.m)return;nextT=C.currentTime+.05;step=0;mt=setInterval(sched,120)}
-function mstop(){if(mt){clearInterval(mt);mt=null}}
+function mload(f){if(window.TMUSIC)return f();if(ml==1)return;ml=1;var e=document.createElement("script");e.src=MS.replace(/sfx\.js/,"music.js");e.onload=function(){ml=2;f()};e.onerror=function(){ml=0};document.head.appendChild(e)}
+function mstart(){if(!run()||!cfg.m)return;mload(function(){if(!run()||!cfg.m)return;TMUSIC.set({night:night()});TMUSIC.start(C,GM)})}
+function mstop(){if(window.TMUSIC)TMUSIC.stop()}
 function unlock(){if(!mk())return;var p=C.resume&&C.resume();var go=function(){ok=1;lv();if(cfg.m)mstart()};if(p&&p.then)p.then(go,function(){});else go()}
 ["pointerdown","touchend","keydown","mousedown"].forEach(function(e){addEventListener(e,function(){if(!ok||(C&&C.state!="running"))unlock()},{passive:true,capture:true})});
 addEventListener("click",function(e){var b=e.target&&e.target.closest&&e.target.closest("button");if(b&&!b.disabled&&!b.classList.contains("poor"))play("click")},true);
@@ -76,6 +68,7 @@ window.SFX={
  toast:function(t){t=String(t||"");play(ERR.test(t)?"error":/任務/.test(t)&&/完成|領/.test(t)?"quest":MSG.test(t)?"msg":"toast")},
  act:function(a,x,dm){var n=a=="enter"||a=="exit"?"door":a=="buy"||a=="vbuy"||a=="unwrap"||a=="gift"?"item":null;if(n)play(n);if(dm>=1)setTimeout(function(){play("coin")},n?120:0);else if(dm<=-1)setTimeout(function(){play("pay")},n?120:0)},
  fx:function(ty,mine){if(!mine)return;var m={fight:"hit",crash:"hit",wk_desk:"work_desk",wk_docs:"work_desk",wk_cafe:"work_cafe",wk_serve:"work_serve",wk_lift:"work_lift",wk_scan:"work_scan",eat:"eat",zzz:"zzz",level:"levelup",check:"quest"}[ty];if(m)play(m)},
+ ctx:function(o){if(window.TMUSIC){o.night=night();TMUSIC.set(o)}},
  ready:function(){return run()}
 };
 })();

@@ -364,6 +364,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"music-1124",date:"11/24",title:"背景音樂升級",items:["新增街上、咖啡廳、夜晚三首曲","心情和人多人少會改變編曲","選單「聲音」開啟音樂"]},
   {id:"estate-plot-1124",date:"11/24",title:"莊園獨立一棟",items:["莊園蓋在地圖最下方","家不變，莊園多一棟","在莊園裡辦派對"]},
   {id:"estate-1124",date:"11/24",title:"莊園與公告欄",items:["莊園換上塔樓與紅地毯","公告欄最上面顯示鎮基金"]},
   {id:"bal5-1124",date:"11/24",title:"好運與景氣",items:["戶外偶爾遇到稀有好事","景氣差時貧富差越大越重"]},
@@ -2193,6 +2194,7 @@ $("zoom").onclick=()=>{zoomFar=!zoomFar;cam.user=false;$("zoom").textContent=zoo
   const ev=((S.events)||[]).filter(e=>e.kind!="rent"||e.actor==me).slice().sort((a,b)=>b.at.localeCompare(a.at)||b.id-a.id).slice(0,8);
   const h=jb+`<div class="ev"><h4>最近動態</h4>`+(ev.length?ev.map(e=>`<div class="ir"><em>${hm(e.at)}</em>${esc(e.msg)}</div>`).join(""):`<div class="ir">還沒有動態</div>`)+`</div>`;if(inf.dataset.h!==h){inf.dataset.h=h;inf.innerHTML=h}};
  setInterval(infR,2000);setTimeout(infR,500);
+ setInterval(()=>{const r=R[me];if(!r||!window.SFX||!SFX.ctx)return;SFX.ctx({mood:moodOf(r),crowd:Object.values(R).filter(o=>o.id!=me&&o.place==r.place&&!o.sleeping).length,place:r.place})},5000);
 const kb=document.createElement("div");kb.id="kbh";kb.textContent="方向鍵移動 · E 建議 · 1-9 按鈕";document.body.appendChild(kb);const tp=document.createElement("div");tp.id="tip2";document.body.appendChild(tp);
  const hov=e=>{if(e.pointerType!=="mouse"||ptrs.size||!S||!isPC()||stageRoom()||!R[me]){tp.style.display="none";cv.style.cursor="";return}
   const rc=cv.getBoundingClientRect(),wx=(e.clientX-rc.left)/cam.s+cam.ox,wy=(e.clientY-rc.top)/cam.s+cam.oy,tx=Math.floor(wx/T),ty=Math.floor(wy/T);let nm="";

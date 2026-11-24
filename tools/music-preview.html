@@ -1,0 +1,16 @@
+<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>小豬鎮音樂試聽</title>
+<style>body{font:16px/1.6 system-ui,sans-serif;max-width:520px;margin:16px auto;padding:0 16px;background:#14162b;color:#eee}button,select{font:inherit;padding:10px 14px;margin:4px;background:#2a2d52;color:#fff;border:2px solid #555;cursor:pointer}button.on{background:#d6366f}h3{margin:20px 0 4px}small{color:#aab}input{width:100%}</style>
+<h2>小豬鎮背景音樂試聽</h2><small>原創流行風格曲，程式合成。按主題開始，下面可調心情與人數看分層變化。</small>
+<h3>主題</h3><div id="th"></div><button id="st">停止</button>
+<h3>心情（影響分層與速度）</h3><select id="mood"><option>normal</option><option>happy</option><option>annoyed</option><option>low</option><option>sad</option></select>
+<h3>同地點人數：<span id="cv">0</span></h3><input id="crowd" type="range" min="0" max="8" value="0">
+<p><small>sad／low＝只剩貝斯與氛圍；happy＝加琶音、更快；人數 ≥2 加節奏、≥3 加鼓、≥5 加厚旋律＋更快。</small></p>
+<script src="../town/music.js"></script>
+<script>
+var C,AN,box=document.getElementById("th");
+function ensure(){if(C)return;C=new (window.AudioContext||window.webkitAudioContext)();var g=C.createGain();g.gain.value=.3;AN=C.createAnalyser();g.connect(AN);AN.connect(C.destination);window.AN=AN;window.OUT=g}
+TMUSIC.themes.forEach(function(n){var b=document.createElement("button");b.textContent={street:"街上白天",cafe:"咖啡廳",night:"夜晚"}[n]||n;b.onclick=function(){ensure();C.resume();TMUSIC.stop();TMUSIC.start(C,OUT);TMUSIC.force(n);[].forEach.call(box.children,function(x){x.className=""});b.className="on"};box.appendChild(b)});
+document.getElementById("st").onclick=function(){TMUSIC.stop();[].forEach.call(box.children,function(x){x.className=""})};
+document.getElementById("mood").onchange=function(e){TMUSIC.set({mood:e.target.value})};
+document.getElementById("crowd").oninput=function(e){document.getElementById("cv").textContent=e.target.value;TMUSIC.set({crowd:+e.target.value})};
+</script></html>
