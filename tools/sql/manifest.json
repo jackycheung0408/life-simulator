@@ -1372,6 +1372,26 @@
     "town_season.sql"
    ],
    "note": "賽季回滾實測"
+  },
+  {
+   "file": "town_story.sql",
+   "kind": "patch",
+   "needs": [
+    "town_goal.sql",
+    "town_dex.sql",
+    "town_season.sql",
+    "town_catalog2.sql",
+    "town_fix_numbers.sql"
+   ],
+   "note": "長期目標批 4：主線劇情（8 章、items.mq、RPC town_story、造型 mq3／mq6／mq8、town_goal_hook／town_goods／town_ach_def 就地補丁、成就 81～86）；重套 town_goal.sql／town_dex.sql／town_catalog*.sql／town_fix_numbers.sql 後要再套"
+  },
+  {
+   "file": "town_story_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_story.sql"
+   ],
+   "note": "主線回滾實測"
   }
  ]
 }
