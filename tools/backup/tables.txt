@@ -31,3 +31,5 @@ town_towns
 town_usage
 town_vapid
 town_worlds
+town_season_score
+town_seasons

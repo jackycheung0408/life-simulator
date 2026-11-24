@@ -791,6 +791,11 @@
 - 前端：選單「🏆 成就」→ `achModal`（六分頁、徽章方塊、進度條、領取鈕）、`achPoll` 每 60 秒＋進遊戲 7 秒後（SQL 沒套用時偵測 404 就停）；`UT.hit("ach:*")`；mock 有 `town_ach`；視覺情境 `modal-ach`。`node town/test.js` 檢查 80 個／六類數量／門檻遞增／名稱不重複／計數器有來源／觸發器 exception／RPC 不碰錢與能力／錨點／前端／manifest。
 - 套用：`python3 tools/sql/sql.py apply town_goal.sql --test town_goal_test.sql --prod`（含 trigger 與就地補丁，先 dry-run）。
 
+## 長期目標批 3：賽季（2026-11-24，前端 v379；SQL `supabase/town_season.sql` **尚未套用正式站**，實測 `town_season_test.sql`（回滾，REPORT），在 town_goal／town_dex／town_meet／town_fix_rest／town_casino 之後）
+- 台灣月份一季，惰性結算（`town_season` 每次呼叫先補算上季、補開季與剩 7 天公告，動態 kind `season`）。積分五項各自封頂：打工（每日最多計 40 次）÷2 上限 80、賭神（`town_casino_log` 每日淨贏最多計 5 萬，每 1000 籌碼 1 分，≥20 局，上限 80）、揪團（每日最多計 3 次）×15 上限 90、街機（打地鼠＋翻牌÷2 的本季最高）上限 90、成就（本季新解鎖階數）×2 上限 60；門檻 30 分；活躍（≥30 分）≥3 人才發名次獎：前三名稱號＋當季限定造型＋零食，其餘達標者參與稱號＋零食，不給錢。上限常數在 `town_season_caps()`，前端 `SEA_CAP`，test.js 比對。
+- 表 `town_season_score`（含 `k@日期` 每日計數列）、`town_seasons`；造型 `s2611` 楓葉髮飾、`s2612` 聖誕帽、`s2701` 煙火髮箍（town_shop unlock='season'，買不到，領獎寫進 items.w，圖鑑標「已絕版」不計核心）。新增一季：`town_season_def` 加一列＋town_shop＋WEAR／drawChar。就地補丁 town_goal_hook／town_meet_settle／town_score／town_ach_check／town_dex_list；重套那些檔後要再套本檔。
+- 前端：選單「賽季」`seasonModal`、榜單最上方「本季」、領獎彈窗 `seaAward`（`seasonPoll` 每 5 分鐘）、歷史賽季。試算（11 月現有資料近似）：每人打工都封頂 80，差別在街機／成就／揪團，沒有一人壟斷。
+
 ## 成就數字修復（2026-11-24；SQL `supabase/town_fix_numbers.sql`＋實測 `town_fix_numbers_test.sql`，**已套用正式站 2026-11-24（回滾實測通過；成就計數器回填 87 列）**，在 `town_goal.sql`、`town_bj2.sql` 之後；前端 v369 已上線）
 - 打工達人＝`works`＋`items.jw` 加總、升官＝公司與各工作職階取最高；賭場「贏」改單局淨贏（多步驟遊戲用 ach_c `cacc` 記押注，結算判定），出手闊綽＝累計下注 `cwag`；`town_goal_casino` 改 5 參數；faint 只計「倒下了」、hospital 只計看診、luck 排除補助／登入禮等、jail 加「抓回監獄」（越獄失敗、刑期滿不計）；事件規則集中在 `town_goal_ev_k`（觸發器與回填共用）；能力者 20／28／36、單項專精 6／7／8、全能 3／5／8。
 - 一次性回填 `town_goal_backfill()`（`town_migrations` `ach_backfill1`）：事件型與賭場局數／款式／累計下注整批重算，睡覺／洗澡／坐下／夜貓與單局淨贏類無歷史、從 0 起算；不給獎。**重套 `town_goal.sql`／`town.sql`／`town_casino*.sql` 後要再套本檔。**

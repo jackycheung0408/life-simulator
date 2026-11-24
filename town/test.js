@@ -558,4 +558,19 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(act.includes("r := public.town_ecap(r, e0, act);")&&fac.includes("r := public.town_ecap(r, e0, act);")&&cas.includes("v_delta := m1 - v_chips;"),"town_goal.sql 補丁的錨點要還在 town.sql／town_fac.sql／town_casino4.sql");
  check(/const ACH_CAT=\[\["life","生活"\],\["soc","社交"\],\["eco","經濟"\],\["adv","冒險"\],\["cas","賭場"\],\["col","收藏"\]\]/.test(tj)&&/function achModal/.test(tj)&&/id="achBtn"|ab\.id="achBtn"/.test(tj)&&/UT\.hit\("ach:open"\)/.test(tj)&&/id:"ach-1124"/.test(tj),"前端成就：分類、achModal、選單鈕、UT、UPDATES 要在");
  const mk=JSON.parse(fs.readFileSync(__dirname+"/../tools/sql/manifest.json","utf8")).files.map(f=>f.file);check(mk.includes("town_goal.sql")&&mk.includes("town_goal_test.sql"),"manifest 要登記 town_goal.sql 與實測檔")}
+// 賽季：積分上限、造型清單與前端一致，SQL 不給錢、補丁錨點在
+{const fs=require("fs"),sq=fs.readFileSync(__dirname+"/../supabase/town_season.sql","utf8"),tj=fs.readFileSync(__dirname+"/town.js","utf8");
+ const caps=JSON.parse(sq.match(/select '(\{"w":[^']*\})'::jsonb/)[1]),fc=tj.match(/const SEA_CAP=\{([^}]*)\}/)[1];
+ check(["w","c","m","a","h","need"].every(k=>new RegExp("\\b"+k+":"+caps[k]+"\\b").test(fc)),"賽季積分上限／門檻 SEA_CAP 要和 town_season_caps 一致");
+ check(caps.w+caps.c+caps.m+caps.a+caps.h<=420&&Math.max(caps.w,caps.c,caps.m,caps.a,caps.h)<=0.25*(caps.w+caps.c+caps.m+caps.a+caps.h)+20,"單一項上限太高，會被一項壟斷");
+ const cids=[...sq.matchAll(/\('(s\d{4})', 'wear', 'acc', '([^']+)', 0, 'season'\)/g)].map(m=>[m[1],m[2]]);
+ check(cids.length>=3&&cids.every(([id,nm])=>tj.includes('["'+id+'","'+nm+'",0,"賽季限定"]')&&new RegExp("\\b"+id+":\\(\\)=>").test(tj)),"賽季造型（town_shop）要和 WEAR 與 person 畫法對齊");
+ check(cids.every(([id])=>sq.includes('"cid":"'+id+'"')),"town_season_def 的 cid 要在造型清單裡");
+ const rp=sq.slice(sq.indexOf("function public.town_season(rid"),sq.indexOf("revoke all on function public.town_season(bigint"));
+ check(!/money/.test(rp)&&/'\{snack\}'/.test(rp)&&/'\{titles\}'/.test(rp),"town_season 只能給稱號、造型、零食，不可動錢");
+ check(["town_season_add(r.id, 'work', 1, 40)","town_season_add(a, 'meet', 1, 3)","town_season_add(r.id, 'ar_' || game","town_season_add(r.id, 'ach', n)"].every(x=>sq.includes(x)),"賽季計分補丁要在");
+ check(/enable row level security/.test(sq)&&/from public, anon, authenticated/.test(sq),"賽季資料表要 RLS 全關並收回權限");
+ const mk=JSON.parse(fs.readFileSync(__dirname+"/../tools/sql/manifest.json","utf8")).files.map(f=>f.file);check(mk.includes("town_season.sql")&&mk.includes("town_season_test.sql"),"賽季 SQL 要登記 manifest");
+ check(/function seasonModal/.test(tj)&&/id="seaBtn"/.test(tj)&&/seaRankHtml\(\)/.test(tj)&&/UT\.hit\("season:open"\)/.test(tj),"賽季前端入口（選單、榜單本季、UT）要在");
+}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

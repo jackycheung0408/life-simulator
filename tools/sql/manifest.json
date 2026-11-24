@@ -1270,6 +1270,26 @@
     "town_dex.sql"
    ],
    "note": "圖鑑回滾實測"
+  },
+  {
+   "file": "town_season.sql",
+   "kind": "patch",
+   "needs": [
+    "town_goal.sql",
+    "town_dex.sql",
+    "town_meet.sql",
+    "town_fix_rest.sql",
+    "town_casino.sql"
+   ],
+   "note": "長期目標批 3：賽季（積分各項封頂、惰性結算、town_season RPC、賽季造型 s2611／s2612／s2701、town_goal_hook／town_meet_settle／town_score／town_ach_check／town_dex_list 就地補丁）；重套這些檔後要再套"
+  },
+  {
+   "file": "town_season_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_season.sql"
+   ],
+   "note": "賽季回滾實測"
   }
  ]
 }
