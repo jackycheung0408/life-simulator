@@ -385,6 +385,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"story-1124",date:"11/24",title:"主線劇情開跑",items:["選單「主線」開始連載故事","8 章任務，通關領稱號與造型","可暫停，不影響其他玩法"]},
   {id:"mayor2-1124",date:"11/24",title:"鎮長新權力",items:["發動市集日、煙火夜","任命警長與財務官","全民紅包平分基金"]},
   {id:"nogap-1124",date:"11/24",title:"下注不用等",items:["賭場每局不用再等 3 秒"]},
   {id:"move-1124",date:"11/24",title:"設施搬家",items:["鎮長到不動產公司申請搬遷","咖啡廳等 5 棟可搬到東區","預告 24 小時，花鎮基金"]},
@@ -884,7 +885,7 @@ const WEAR={
  eyes:[["圓眼"],["瞇眼"],["眼鏡"],["墨鏡"]],
  top:[["T恤"],["帽T"],["襯衫"],["suit","西裝",4500],["jersey","球衣",1800],["dress","洋裝",2400],["couple","情侶 T",0,"有好麻吉就解鎖"]],
  bottom:[["長褲"],["短褲"],["裙子"]],
- acc:[["無"],["棒球帽"],["毛帽"],["crown","皇冠",12000],["pigears","小豬耳朵",800],["headphones","耳機",3000],["scarf","圍巾",900],["bandage","繃帶頭",0,"被扁 10 次解鎖"],["s2611","楓葉髮飾",0,"賽季限定"],["s2612","聖誕帽",0,"賽季限定"],["s2701","煙火髮箍",0,"賽季限定"]]};
+ acc:[["無"],["棒球帽"],["毛帽"],["crown","皇冠",12000],["pigears","小豬耳朵",800],["headphones","耳機",3000],["scarf","圍巾",900],["bandage","繃帶頭",0,"被扁 10 次解鎖"],["s2611","楓葉髮飾",0,"賽季限定"],["s2612","聖誕帽",0,"賽季限定"],["s2701","煙火髮箍",0,"賽季限定"],["mq3","咖啡豆髮夾",0,"主線第 3 章獎勵"],["mq6","老鎮長禮帽",0,"主線第 6 章獎勵"],["mq8","小豬鎮徽章冠",0,"主線第 8 章獎勵"]]};
 const DECO=[["flowers","花圃",600],["mailbox","信箱",500],["lamp","路燈",1500],["bench","長椅",2000],["tree","小樹",1200],["pigstatue","小豬雕像",8000]];
 const PANTS=["#2b2b3a","#3b5a8a","#6b4a2b","#7a7a7a","#c0392b","#e8e0cc"];
 const ROOF_C=["#d9534f","#3b7dd8","#b45cc4","#8b5a2b","#2e9e5b","#d8901a","#e0779b","#2a9d8f","#34495e","#9a9a9a"],WALL_C=["#f4ead6","#fff3e0","#e8f1ff","#fde2ea","#e6f4e6","#f0e6ff","#e0e0e0","#ffe8b0"];
@@ -1384,7 +1385,7 @@ function obCss(){if($("obcss"))return;const s=document.createElement("style");s.
 function obIntro(cb){obCss();const P=[["🏠","你搬進了小豬鎮","新家、新鄰居，慢慢來。"],["🏛️","祕書小雅","「歡迎！鎮上消息我來播報。」"],["🎰","酒保阿杰","「賭場我顧著，別玩過頭喔。」"],["🐷","領新手禮","完成 5 個小任務，最多 $1300。"]];let i=0;const end=()=>{$("modal").classList.add("hide");cb&&cb()};
  const draw=()=>{$("modal").classList.remove("hide");const p=P[i];$("mbody").innerHTML=`<div class="obp"><div class="obe">${p[0]}</div><b>${p[1]}</b><p>${p[2]}</p><div class="obd">${P.map((_,j)=>`<i class="${j<=i?"on":""}"></i>`).join("")}</div></div><div class="row"><button id="obx">跳過</button><button id="obn" class="pri">${i<3?"下一格":"開始"}</button></div>`;$("obx").onclick=()=>{const s=obLoad()||{d:[]};s.sk=1;obSave(s);end()};$("obn").onclick=()=>{if(i<3){i++;draw()}else end()}};draw()}
 function obStart(){const s=obLoad();if(!s)obSave({d:[]})}
-async function obClaim(i){const s=obLoad();if(!s||s.d.includes(i)||obBusy||(s.rt||0)>Date.now())return;obBusy=1;let okc=1;try{const r=await rpc("town_onboard",{rid:me,pin,step:i+1});toast(r&&r.reward?`新手任務完成 +$${r.reward}`:"新手任務完成");refresh().catch(()=>{})}catch(e){okc=0;s.rt=Date.now()+30000;obSave(s)}if(okc){s.d.push(i);obSave(s)}obBusy=0;if(!okc)return;if(s.d.length>=5){s.fin=1;obSave(s);setTimeout(()=>{if(modalOpen())return;$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>新手任務全部完成</h2><p>歡迎正式成為小豬鎮居民。</p><div class="row"><button id="obok" class="pri">開始生活</button></div>`;$("obok").onclick=()=>$("modal").classList.add("hide")},1500)}}
+async function obClaim(i){const s=obLoad();if(!s||s.d.includes(i)||obBusy||(s.rt||0)>Date.now())return;obBusy=1;let okc=1;try{const r=await rpc("town_onboard",{rid:me,pin,step:i+1});toast(r&&r.reward?`新手任務完成 +$${r.reward}`:"新手任務完成");refresh().catch(()=>{})}catch(e){okc=0;s.rt=Date.now()+30000;obSave(s)}if(okc){s.d.push(i);obSave(s)}obBusy=0;if(!okc)return;if(s.d.length>=5){s.fin=1;obSave(s);setTimeout(()=>{if(modalOpen())return;$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>新手任務全部完成</h2><p>歡迎正式成為小豬鎮居民。</p><div class="row"><button id="obok">開始生活</button><button id="obst" class="pri">開始主線第 1 章</button></div>`;$("obok").onclick=()=>$("modal").classList.add("hide");$("obst").onclick=()=>{$("modal").classList.add("hide");stStart()}},1500)}}
 function obOff(){const b=$("obbar");if(b)b.parentNode.removeChild(b);document.querySelectorAll(".obhl").forEach(e=>e.classList.remove("obhl"))}
 function obTick(){if(!me||!R[me]||!S)return;const s=obLoad();const r=R[me],it=r.items||{};
  if(!s||s.sk||s.fin||!$("game")||$("game").classList.contains("hide")||it.tr===undefined||!it.wish||!(it.at&&it.at.init)||!$("tips").classList.contains("hide")||modalOpen()){obOff();return}
@@ -1394,6 +1395,102 @@ function obTick(){if(!me||!R[me]||!S)return;const s=obLoad();const r=R[me],it=r.
  const h=`<span><b>新手 ${s.d.length+1}/5　${o.t}</b><br>${o.h}　獎 $${OBR[k]}</span><button id="obsk">略過</button>`;if(b.dataset.k!=k+h){b.dataset.k=k+h;b.innerHTML=h;$("obsk").onclick=()=>{const q=obLoad();q.sk=1;obSave(q);obOff();toast("可在選單「新手引導」重看")}}
  document.querySelectorAll(".obhl").forEach(e=>e.classList.remove("obhl"));if(o.kw.length)document.querySelectorAll("#panel button").forEach(e=>{if(o.kw.some(w=>e.textContent.includes(w)))e.classList.add("obhl")})}
 setInterval(()=>{try{obTick()}catch(e){}},2500);
+// 主線劇情（批 4）：8 章依序解鎖；資料在 items.mq，伺服器 town_story 驗證；對話文字只在這裡。章節 id、任務 id、獎勵要和 supabase/town_story.sql 的 town_story_def 一致
+const STORY=[
+{id:1,nm:"新鎮民報到",ti:"新鎮民",intro:[["🏠","旁白","你搬進了小豬鎮，行李還沒拆完。"],["🏛️","旁白","聽說新鎮民要先去市政廳報到。"],["☕","旁白","然後呢？先認識認識這裡吧。"],["✉️","旁白","一封沒署名的信，正等著你。"]],
+ tk:[{id:"1.1",t:"去市政廳報到",h:"走到市政廳，點陳櫃員",kw:["進去"],ln:[["陳櫃員","新鎮民？先來蓋個章吧！"],["陳櫃員","歡迎來到小豬鎮。咖啡廳的小咪在等你。"]]},
+  {id:"1.2",t:"喝杯歡迎咖啡",h:"在咖啡廳喝一杯咖啡",kw:["進去","咖啡","特調","拉花","手沖"],ln:[["小咪","這杯算我們咖啡廳的歡迎飲料。"]]},
+  {id:"1.3",t:"跟阿福吃頓飯",h:"在餐廳吃一餐",kw:["進去","餐","特餐","湯","麵","甜點"],ln:[["阿福","肚子餓是做不好事的。"]]},
+  {id:"1.4",t:"回家拆信",h:"回到自己家，選怎麼拆信",kw:["進去"],ln:[["旁白","你回到家，桌上多了一封信。"]]}],
+ ch:{q:"桌上有一封沒署名的信。要怎麼辦？",a:["馬上拆開","你一把拆開信，紙上只有一行字。"],b:["先洗澡再看","你洗了個澡，信還安靜地躺在桌上。"],
+  rep:[["信","你不是第一個到這裡的人。"],["信","找找看，鎮上有人也收到過同樣的信。"]]},
+ outro:[["✉️","信","你不是第一個到這裡的人。"],["🐷","旁白","小豬鎮好像藏著什麼故事。"],["🏆","旁白","第一章完成！領取你的獎勵吧。"]]},
+{id:2,nm:"失蹤的小豬雕像",ti:"雕像偵探",intro:[["🗿","旁白","廣場上的小豬雕像不見了，只剩空底座。"]],
+ tk:[{id:"2.1",t:"到廣場看底座",h:"走到廣場",kw:[],ln:[["旁白","底座上有幾道新的刮痕。"]]},{id:"2.2",t:"到公園找線索",h:"走到公園",kw:[],ln:[["旁白","草地上有小小的蹄印。"]]},{id:"2.3",t:"到超市問問",h:"走到超市",kw:[],ln:[["阿珍","昨晚有人搬了一大包東西經過。"]]},
+  {id:"2.4",t:"決定怎麼辦",h:"選擇要報警還是自己查",kw:[],ln:[]}],
+ ch:{q:"線索指向雕像被人搬走了。",a:["報警處理","你把線索交給了警察局。"],b:["自己查下去","你決定自己追查到底。"],rep:[["旁白","不管選哪條路，雕像的下落都還是個謎。"]]},
+ outro:[["🗿","旁白","線索拼起來了：雕像是被『借』走的。"],["🏆","旁白","第二章完成！"]]},
+{id:3,nm:"咖啡廳的祕密配方",ti:"配方守護者",wear:"咖啡豆髮夾",intro:[["☕","小咪","我的祕密配方不見了⋯⋯"]],
+ tk:[{id:"3.1",t:"聽小咪說明",h:"在咖啡廳點小咪",kw:["進去"],ln:[["小咪","配方是昨晚不見的。"]]},{id:"3.2",t:"點杯咖啡想一想",h:"在咖啡廳點任一飲品",kw:["進去","咖啡","特調","拉花","手沖","蛋糕"],ln:[["旁白","咖啡的香氣讓你想起一個細節。"]]},{id:"3.3",t:"問電影院小映",h:"在電影院點小映",kw:["進去"],ln:[["小映","昨晚有個陌生客買了兩張票卻只看了一半。"]]},
+  {id:"3.4",t:"決定相信誰",h:"選擇相信的對象",kw:[],ln:[]}],
+ ch:{q:"小咪和陌生客各說各話。",a:["相信小咪","你站在小咪這邊。"],b:["相信陌生客","你決定先聽聽陌生客的說法。"],rep:[["小咪","配方最後在抽屜夾層找到了，是我自己放太好。"]]},
+ outro:[["☕","小咪","謝謝你陪我找！這是謝禮。"],["🏆","旁白","第三章完成！"]]},
+{id:4,nm:"夜市的神祕商人",ti:"夜市常客",intro:[["🌙","旁白","夜裡的廣場有個怪商人在擺攤。"]],
+ tk:[{id:"4.1",t:"夜晚到廣場",h:"晚上 21～23 點走到廣場",kw:[],ln:[["旁白","燈籠亮了，攤位排成一排。"]]},{id:"4.2",t:"和流動商人聊聊",h:"在廣場或公園找流動商人",kw:["流動商人"],ln:[["商人","我走過很多小鎮，只在這裡停下。"]]},{id:"4.3",t:"問酒保阿杰",h:"去賭場找酒保阿杰（不用下注）",kw:["進去"],ln:[["阿杰","那個商人？他每晚都先看天空。"]]},
+  {id:"4.4",t:"收下信物嗎",h:"選擇收不收下商人的信物",kw:[],ln:[]}],
+ ch:{q:"商人遞來一枚舊鈴鐺。",a:["收下信物","鈴鐺輕輕響了一聲。"],b:["婉拒","你把鈴鐺推了回去。"],rep:[["商人","他說：『有緣的話，會再見面。』"]]},
+ outro:[["🌙","商人","我在找一個回得去的地方。"],["🏆","旁白","第四章完成！"]]},
+{id:5,nm:"巡警的煩惱",ti:"巡警好夥伴",intro:[["🚓","旁白","小林警員最近眉頭深鎖。"]],
+ tk:[{id:"5.1",t:"和小林警員談談",h:"在警察局點小林警員",kw:["進去"],ln:[["小林警員","最近喪屍豬越來越多，我一個人顧不來。"]]},{id:"5.2",t:"打倒一隻喪屍豬",h:"在街上打倒 1 隻喪屍豬",kw:["打喪屍豬"],ln:[["小林警員","幹得好！"]]},{id:"5.3",t:"再打倒兩隻",h:"累計打倒 3 隻",kw:["打喪屍豬"],ln:[["小林警員","鎮上安靜多了。"]]},
+  {id:"5.4",t:"抓還是趕走",h:"決定怎麼處理喪屍豬",kw:[],ln:[]}],
+ ch:{q:"剩下的喪屍豬要怎麼處理？",a:["全部抓起來","你和警員設下了圍欄。"],b:["趕回郊外","你們把牠們趕回了郊外。"],rep:[["小林警員","不管哪個辦法，鎮上都安全了，謝謝你。"]]},
+ outro:[["🚓","小林警員","你是我見過最可靠的鎮民。"],["🏆","旁白","第五章完成！"]]},
+{id:6,nm:"老鎮長的日記",ti:"小鎮史學家",wear:"老鎮長禮帽",intro:[["📖","旁白","聽說老鎮長的日記被拆成幾頁，藏在鎮上。"]],
+ tk:[{id:"6.1",t:"市政廳的第一頁",h:"走到市政廳",kw:[],ln:[["日記","『小豬鎮是從一片空地開始的。』"]]},{id:"6.2",t:"醫院的第二頁",h:"走到醫院",kw:[],ln:[["日記","『大家互相照顧，才有第一間醫院。』"]]},{id:"6.3",t:"監獄的第三頁",h:"走到監獄門口（探監或路過都行）",kw:[],ln:[["日記","『再壞的人，也要給他回家的路。』"]]},
+  {id:"6.4",t:"日記要留給誰",h:"選擇日記的去處",kw:[],ln:[]}],
+ ch:{q:"三頁日記湊齊了。",a:["留給後人","你把日記放進了市政廳的玻璃櫃。"],b:["交給現任鎮長","你把日記交給了現任鎮長。"],rep:[["旁白","小鎮的歷史，從此有人記得。"]]},
+ outro:[["📖","旁白","老鎮長的心意，你讀懂了。"],["🏆","旁白","第六章完成！"]]},
+{id:7,nm:"碼頭的信號",ti:"碼頭守望者",intro:[["🚢","旁白","碼頭那邊夜裡閃著奇怪的光。"]],
+ tk:[{id:"7.1",t:"問船長老王",h:"在碼頭船行點船長老王",kw:["進去"],ln:[["船長老王","那光已經閃三天了，像在求救。"]]},{id:"7.2",t:"查查舊地圖",h:"走到不動產公司",kw:[],ln:[["旁白","舊地圖上，碼頭外標著一個小記號。"]]},{id:"7.3",t:"回報祕書小雅",h:"在市政廳點祕書小雅",kw:["進去"],ln:[["祕書小雅","我會通知鎮長。你先別一個人行動。"]]},
+  {id:"7.4",t:"信任神祕訪客嗎",h:"選擇要不要信任",kw:[],ln:[]}],
+ ch:{q:"一位神祕訪客說，那光是他發的信號。",a:["相信他","你決定給他一個機會。"],b:["保持警戒","你要他先說清楚來意。"],rep:[["神祕訪客","我只是迷路的旅人，謝謝你願意聽。"]]},
+ outro:[["🚢","神祕訪客","小豬鎮的人，比傳說中還溫暖。"],["🏆","旁白","第七章完成！"]]},
+{id:8,nm:"小豬鎮的未來",ti:"小豬鎮代表",wear:"小豬鎮徽章冠",intro:[["🏛️","祕書小雅","市政廳大會要開了，大家都在等你。"]],
+ tk:[{id:"8.1",t:"和祕書小雅確認",h:"在市政廳點祕書小雅",kw:["進去"],ln:[["祕書小雅","每條線索都和你有關。"]]},{id:"8.2",t:"累積 10 次打工",h:"打工累計 10 次",kw:["打工"],ln:[["旁白","小鎮因為你們的努力一點一點變好。"]]},{id:"8.3",t:"走進市政廳大會",h:"走到市政廳",kw:[],ln:[["旁白","大廳坐滿了鎮民。"]]},
+  {id:"8.4",t:"選擇小鎮的方向",h:"三個方向都可以選，各有一個稱號",kw:[],ln:[]}],
+ ch:{q:"小豬鎮的未來，你想走哪條路？",a:["繁榮：蓋更多設施","鎮民舉起了手：好！"],b:["溫馨：大家互相照顧","鎮民笑著點頭。"],c:["冒險：探索未知","鎮民們興奮地鼓掌。"],rep:[["祕書小雅","不論哪個方向，小豬鎮都是大家的家。"]]},
+ outro:[["🐷","旁白","所有線索連成了一條線。"],["🏛️","祕書小雅","小豬鎮的未來，由你們一起寫下。"],["🏆","旁白","全部完成！謝謝你，鎮民代表。"]]}];
+const ST_END={a:"繁榮派",b:"溫馨派",c:"冒險派"};
+let stBusy=0,stOff=0,stLastN=0,stAsked={},stQ=[],stRun=0;
+const stMq=()=>{const r=R[me];return r&&r.items&&r.items.mq||null};
+const stCur=()=>{const m=stMq();if(!m||!m.on)return null;const c=STORY.find(x=>x.id==m.ch);if(!c)return null;const t=c.tk.find(x=>!(m.t||{})[x.id]);return t?{c,t,i:c.tk.indexOf(t)}:{c,t:null}};
+const stLoad=k=>{try{return JSON.parse(localStorage.getItem(k+me)||"null")}catch(e){return null}},stSave=(k,v)=>{try{localStorage.setItem(k+me,JSON.stringify(v))}catch(e){}};
+function stCss(){obCss();if($("stcss"))return;const s=document.createElement("style");s.id="stcss";s.textContent=`.stg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.stg div{height:64px;background:#15122a;border:3px solid #3a3560;display:flex;align-items:center;justify-content:center;font-size:22px}.stg div.on{border-color:#f6a5c0;background:#2a2540}.stg div.fut{opacity:.4}.stbx{background:#15122a;border:3px solid #f6a5c0;padding:8px;min-height:88px;text-align:left}.stbx b{color:#ffd84a;font-weight:normal;font-size:11px;display:block;margin-bottom:4px}.stbx p{margin:0;font-size:16.5px}#stbar{position:fixed;left:8px;right:8px;bottom:calc(var(--phpx,300px) + var(--nav,56px) + 8px);z-index:39;color:#fff;background:#2a2540;border:3px solid #ffd84a;padding:8px;display:flex;gap:8px;align-items:center;font-size:11px;max-width:460px;margin:0 auto}#stbar b{font-size:16.5px;font-weight:normal;color:#ffd84a}#stbar span{flex:1}#stbar button{min-height:44px;min-width:44px;font-size:11px}#stbar.c span{display:none}.stch{border:3px solid #3a3560;padding:8px;margin:8px 0}.stch.on{border-color:#ffd84a}.stch.lk{opacity:.5}.stch p{margin:4px 0;font-size:11px}`;document.head.appendChild(s)}
+// 劇情畫面：2x2 像素漫畫格＋對話框，打字機（點對話框跳過；減少動態時直接顯示）
+function stScene(list,cb,opt){stCss();opt=opt||{};let i=0,tm=0;const rm=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;const end=()=>{clearInterval(tm);$("modal").classList.add("hide");cb&&cb()};
+ const draw=()=>{clearInterval(tm);const p=list[i],n=list.length;$("modal").classList.remove("hide");
+  $("mbody").innerHTML=`<div class="obp">${opt.h?`<b>${esc(opt.h)}</b>`:""}<div class="stg">${[0,1,2,3].map(j=>`<div class="${j==i%4?"on":j>i%4?"fut":""}">${j<=i%4&&list[i-(i%4)+j]?list[i-(i%4)+j][0]:""}</div>`).join("")}</div><div class="stbx" id="stbx"><b>${esc(p[1])}</b><p id="sttx"></p></div><div class="obd" style="margin-top:8px">${list.map((_,j)=>`<i class="${j<=i?"on":""}"></i>`).join("")}</div></div><div class="row"><button id="stx">跳過</button><button id="stn" class="pri">${i<n-1?"下一格":(opt.last||"繼續")}</button></div>`;pxify($("mbody"));
+  const tx=$("sttx"),full=p[2];let k=0;const done=()=>{clearInterval(tm);tx.textContent=full;tm=0};if(rm)done();else{tm=setInterval(()=>{k+=1;tx.textContent=full.slice(0,k);if(k>=full.length)done()},35)}
+  $("stbx").onclick=()=>{if(tm)done()};$("stn").onclick=()=>{if(tm){done();return}if(i<n-1){i++;draw()}else end()};$("stx").onclick=end};draw()}
+function stPlay(list,cb,opt){if(!list.length){cb&&cb();return}stScene(list.map(a=>a.length>=3?a:["💬",a[0],a[1]]),cb,opt)}
+async function stRpc(op,id,choice){if(stOff)return null;try{return await rpc("town_story",{rid:me,pin,op,id:id==null?null:String(id),choice:choice||null})}catch(e){if(/Could not find|404|function/i.test(String(e&&e.message))){stOff=1;return null}throw e}}
+const ST_TALK={"1.1":"townhall","3.1":"cafe","3.3":"cinema","4.2":"merchant","4.3":"casinobar","5.1":"police","7.1":"harbor","7.3":"tsec","8.1":"tsec"},ST_DO=["1.2","1.3","3.2"],ST_N=["5.2","5.3","8.2"];
+function stTalk(k){const c=stCur(),m=stMq();if(!c||!c.t||!m||m.p||ST_TALK[c.t.id]!=k)return;stRpc("talk",k).then(j=>{if(j&&j.hit)refresh().catch(()=>{})}).catch(()=>{})}
+async function stStart(){const j=await stRpc("start");if(!j){toast("主線還沒開放，請稍後再試");return}await refresh().catch(()=>{});const m=stMq();const seen=stLoad("town-sti_")||[];if(!seen.includes(1)){seen.push(1);stSave("town-sti_",seen);stPlay(STORY[0].intro,()=>toast("主線第 1 章開始"),{h:"第 1 章　"+STORY[0].nm,last:"開始"})}else toast("主線繼續")}
+function stChoiceScene(c){const m=stMq();if(!c.ch)return;const o=c.tk[3],opts=Object.keys(c.ch).filter(k=>/^[abc]$/.test(k));stCss();$("modal").classList.remove("hide");
+ $("mbody").innerHTML=`<h2>${esc(c.nm)}</h2><p>${esc(c.ch.q)}</p>${opts.map(k=>`<button class="act" data-k="${k}"><b>${esc(c.ch[k][0])}</b></button>`).join("")}<div class="row"><button id="stl">稍後再選</button></div>`;pxify($("mbody"));
+ $("stl").onclick=()=>$("modal").classList.add("hide");$("mbody").querySelectorAll("[data-k]").forEach(b=>b.onclick=async()=>{if(stBusy)return;stBusy=1;let j;try{j=await stRpc("choose","c"+c.id,b.dataset.k)}catch(e){stBusy=0;toast(e.message||"連不上小鎮，再試一次");return}stBusy=0;UT.hit("story:choose");await refresh().catch(()=>{});const k=b.dataset.k;stPlay([["💬","你",c.ch[k][1]]].concat(c.ch.rep.map(a=>["💬",a[0],a[1]])).concat(j&&j.title?[["🏅","旁白","獲得稱號「"+j.title+"」"]]:[]),()=>{stSeenSync();stTick(1)})})}
+function stClear(c){const m=stMq();stPlay(c.outro,async()=>{if(stBusy)return;stBusy=1;let j;try{j=await stRpc("claim",c.id)}catch(e){stBusy=0;toast(e.message||"領取失敗，再試一次");return}stBusy=0;UT.hit("story:claim");await refresh().catch(()=>{});stCss();$("modal").classList.remove("hide");$("mbody").innerHTML=`<div class="obp"><div class="obe">🏆</div><b>第 ${c.id} 章完成</b><p>${esc(c.nm)}</p><p>獲得：${esc(j&&j.got||"")}</p></div><div class="row"><button id="stok" class="pri">${c.id<8?"繼續下一章":"完成"}</button></div>`;pxify($("mbody"));$("stok").onclick=()=>{$("modal").classList.add("hide");stSeenSync();stTick(1)}},{h:"第 "+c.id+" 章　"+c.nm,last:"領取獎勵"})}
+function stSeenSync(){const m=stMq();if(m)stSave("town-stt_",Object.keys(m.t||{}))}
+// 任務完成後的對話（偵測 items.mq.t 新增）；第一次載入只記錄不播
+function stPlayNew(){const m=stMq();if(!m||!m.on)return false;const old=stLoad("town-stt_");const now=Object.keys(m.t||{});if(!old){stSave("town-stt_",now);return false}const nw=now.filter(x=>!old.includes(x));if(!nw.length)return false;stSave("town-stt_",now);
+ const lines=[];nw.forEach(id=>{const c=STORY.find(x=>x.id==+id.split(".")[0]),t=c&&c.tk.find(x=>x.id==id);if(t&&t.ln)t.ln.forEach(a=>lines.push(a))});if(!lines.length)return false;toast("主線任務完成");stPlay(lines,()=>stTick(1));return true}
+function stBar(c){const m=stMq();let b=$("stbar");if(!c||!c.t||m.p||$("obbar")||!$("game")||$("game").classList.contains("hide")){if(b)b.remove();return}stCss();if(!b){b=document.createElement("div");b.id="stbar";document.body.appendChild(b)}
+ const col=stLoad("town-stc_")?1:0,h=`<span><b>主線 ${c.c.id}-${c.i+1}　${esc(c.t.t)}</b><br>${esc(c.t.h)}</span>${c.t.id.endsWith(".4")?'<button id="stgo" class="pri">選擇</button>':""}<button id="stcl">${col?"展開":"收合"}</button>`;if(b.dataset.k!=h+col){b.dataset.k=h+col;b.className=col?"c":"";b.innerHTML=h;pxify(b);$("stcl").onclick=()=>{stSave("town-stc_",col?0:1);b.dataset.k="";stTick(1)};const g=$("stgo");if(g)g.onclick=()=>stTryChoice(c.c,1)}
+ document.querySelectorAll(".obhl").forEach(e=>e.classList.remove("obhl"));if(c.t.kw&&c.t.kw.length)document.querySelectorAll("#panel button").forEach(e=>{if(c.t.kw.some(w=>e.textContent.includes(w)))e.classList.add("obhl")})}
+function stTryChoice(c,force){const r=R[me];if(c.id==1&&r.place!="home:"+me){if(force)toast("先回到自己家再拆信");return}if(modalOpen())return;stChoiceScene(c)}
+async function stTick(now){try{if(!me||!R[me]||!S||stOff||stBusy)return;const g=$("game");if(!g||g.classList.contains("hide"))return;const m=stMq();if(!m||!m.on){stBar(null);return}const c=stCur();if(!c)return;
+ if(!modalOpen()){const seen=stLoad("town-sti_")||[];if(!seen.includes(c.c.id)&&!m.p){seen.push(c.c.id);stSave("town-sti_",seen);if(stLoad("town-stt_")==null)stSeenSync();stPlay(c.c.intro,()=>stTick(1),{h:"第 "+c.c.id+" 章　"+c.c.nm,last:"開始"});return}if(!m.p&&stPlayNew())return}
+ if(m.p){stBar(null);return}
+ if(!c.t){stBar(null);if(!modalOpen()&&!stAsked["c"+c.c.id]){stAsked["c"+c.c.id]=1;stClear(c.c)}return}
+ stBar(c);const r=R[me],T=c.t;
+ if(T.id.endsWith(".4")&&!modalOpen()&&!stAsked[T.id]){if(!(c.c.id==1&&r.place!="home:"+me)){stAsked[T.id]=1;stChoiceScene(c.c)}return}
+ const kind=ST_TALK[T.id]?"talk":ST_DO.includes(T.id)?"do":ST_N.includes(T.id)?"n":T.id.endsWith(".4")?"ch":"at";
+ if(kind=="at"&&!stAsked["a"+T.id+r.place]){stAsked["a"+T.id+r.place]=1;const j=await stRpc("advance");if(j&&j.hit)await refresh().catch(()=>{});else delete stAsked["a"+T.id+r.place]}
+ else if(kind=="n"&&Date.now()-stLastN>(now?0:20000)){stLastN=Date.now();const j=await stRpc("advance");if(j&&j.hit)await refresh().catch(()=>{})}}catch(e){}}
+async function stModal(){UT.hit("story:open");stCss();$("modal").classList.remove("hide");$("mbody").innerHTML='<h2>主線</h2><p class="mut">讀取中…</p>';let j;try{j=await stRpc("view")}catch(e){$("mbody").innerHTML=`<h2>主線</h2><p class="err">${esc(e.message)}</p><div class="row"><button id="stx">關閉</button></div>`;$("stx").onclick=()=>$("modal").classList.add("hide");return}
+ if(!j){$("mbody").innerHTML='<h2>主線</h2><p class="mut">主線還沒開放，稍後再試。</p><div class="row"><button id="stx">關閉</button></div>';$("stx").onclick=()=>$("modal").classList.add("hide");return}
+ const m=j.mq||{},on=!!m.on,dn=m.dn||[];
+ const rows=STORY.map(c=>{const done=dn.includes(c.id),cur=on&&m.ch==c.id,lk=!done&&!cur;const rw="稱號「"+c.ti+"」"+(c.wear?"、造型「"+c.wear+"」":"")+"、零食";
+  const tk=cur?c.tk.map(t=>`<p>${(m.t||{})[t.id]?"✔":"・"} ${esc(t.t)}${(m.t||{})[t.id]?"":(t.id==(c.tk.find(x=>!(m.t||{})[x.id])||{}).id?"　← "+esc(t.h):"")}</p>`).join(""):"";
+  const all=cur&&c.tk.every(t=>(m.t||{})[t.id]);
+  return `<div class="stch ${cur?"on":lk?"lk":""}"><b>第 ${c.id} 章　${esc(c.nm)}</b>　<small class="mut">${done?"已完成":cur?"進行中":"未解鎖"}</small><p class="mut">獎勵：${esc(rw)}</p>${tk}${all?`<button class="pri" data-cl="${c.id}">領取第 ${c.id} 章獎勵</button>`:""}${cur&&!all&&c.tk.length&&!(m.t||{})[c.tk[3].id]&&(m.t||{})[c.tk[2].id]?`<button data-ch="${c.id}">做選擇</button>`:""}${done?`<button data-rp="${c.id}">重看劇情</button>`:""}${c.id==8&&done?`<p class="mut">結局：${(m.c&&m.c.c8||"").split("").map(k=>ST_END[k]).join("、")}</p>${["a","b","c"].filter(k=>!(m.c.c8||"").includes(k)).map(k=>`<button data-en="${k}">選「${ST_END[k]}」</button>`).join("")}`:""}</div>`}).join("");
+ $("mbody").innerHTML=`<h2>📜 主線劇情</h2><p class="mut">一章一章連載，不限時，可隨時暫停；獎勵只有稱號、造型、零食。</p>${on?`<div class="row"><button id="stpz">${m.p?"繼續主線":"暫停主線"}</button></div>`:`<button class="pri" id="stst">開始第 1 章</button>`}${rows}<div class="row"><button id="stx">關閉</button></div>`;pxify($("mbody"));
+ $("stx").onclick=()=>$("modal").classList.add("hide");const b1=$("stst");if(b1)b1.onclick=async()=>{$("modal").classList.add("hide");await stStart()};const b2=$("stpz");if(b2)b2.onclick=async()=>{await stRpc(m.p?"start":"pause");await refresh().catch(()=>{});toast(m.p?"主線繼續":"主線已暫停");stModal()};
+ $("mbody").querySelectorAll("[data-cl]").forEach(b=>b.onclick=()=>stClear(STORY[b.dataset.cl-1]));$("mbody").querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>stTryChoice(STORY[b.dataset.ch-1],1));
+ $("mbody").querySelectorAll("[data-rp]").forEach(b=>b.onclick=()=>{const c=STORY[b.dataset.rp-1];stPlay(c.intro.concat(c.outro),()=>stModal(),{h:"第 "+c.id+" 章　"+c.nm})});
+ $("mbody").querySelectorAll("[data-en]").forEach(b=>b.onclick=async()=>{try{const q=await stRpc("choose","c8",b.dataset.en);await refresh().catch(()=>{});toast("獲得稱號「"+ST_END[b.dataset.en]+"」");stModal()}catch(e){toast(e.message)}})}
+setInterval(()=>{stTick()},2500);
 function tipsWhenFree(n=0){let seen=null;try{seen=localStorage.getItem("town-tips")}catch(e){}if(seen||n>8)return;if($("modal").classList.contains("hide")&&$("away").classList.contains("hide"))showTips();else setTimeout(()=>tipsWhenFree(n+1),3000)}
 function showTips(){let seen=null;try{seen=localStorage.getItem("town-tips")}catch(e){}if(seen)return;const el=$("tips");el.classList.remove("hide");
  el.innerHTML=`<b>👋 新手小提示</b><p>🗺️ 點地圖上的房子或地點，角色會自己走過去。</p><p>👆 點地圖上的人，可以傳訊息、打電話；走到他旁邊還能擊掌或扁他。</p><p>🍚 上面的需求會隨現實時間下降，快見底時下方會出現粉紅色的「建議下一步」。</p><small>繼續即表示同意<button id="tipT" style="all:unset;text-decoration:underline;cursor:pointer;padding:8px 4px">條款</button>與<button id="tipP" style="all:unset;text-decoration:underline;cursor:pointer;padding:8px 4px">隱私</button></small><div class="row"><button class="pri" id="tipok">知道了</button></div>`;$("tipT").onclick=()=>window.open("terms.html","_blank");$("tipP").onclick=()=>window.open("privacy.html","_blank");
@@ -2043,7 +2140,7 @@ async function achModal(){UT.hit("ach:open");$("modal").classList.remove("hide")
  if((j.new||[]).length)rpc("town_ach",{rid:me,pin,op:"seen"}).catch(()=>{})}
 const DEX_STATE={tab:"col",off:0};
 const dexName=(k,nm)=>/^c\d+$/.test(k)?"扭蛋 "+GSER[Math.floor((+k.slice(1)-1)/6)]+((+k.slice(1)-1)%6+1):nm;
-const dexMark=k=>{if(!me||!pin||DEX_STATE.off)return;rpc("town_dex",{rid:me,pin,op:"mark",key:"n:"+k}).catch(e=>{if(/Could not find|404|function/i.test(String(e&&e.message)))DEX_STATE.off=1})};
+const dexMark=k=>{try{stTalk(k)}catch(e){}if(!me||!pin||DEX_STATE.off)return;rpc("town_dex",{rid:me,pin,op:"mark",key:"n:"+k}).catch(e=>{if(/Could not find|404|function/i.test(String(e&&e.message)))DEX_STATE.off=1})};
 async function dexModal(){UT.hit("dex:open");$("modal").classList.remove("hide");$("mbody").innerHTML='<h2>圖鑑</h2><p class="mut">讀取中…</p>';let j;try{j=await rpc("town_dex",{rid:me,pin,op:"view"})}catch(e){$("mbody").innerHTML=`<h2>圖鑑</h2><p class="err">${esc(e.message)}</p><div class="row"><button id="dxX">關閉</button></div>`;$("dxX").onclick=()=>$("modal").classList.add("hide");return}
  const T=j.tabs||[],tab=DEX_STATE.tab,isT=tab=="ttl",cur=T.find(t=>t.k==tab)||T[0],full=T.every(t=>t.got>=t.tot);
  const can=t=>[[50,Math.ceil(t.tot/2),t.d50,t.t50],[100,t.tot,t.d100,t.t100]];
@@ -2291,6 +2388,9 @@ function drawChar(c,x,y,u,L0,st,tk){const L=normLook(L0),b=st.moving?Math.floor(
   headphones:()=>{R(-5,-13.2,10,1,"#333");R(-6,-9,2,3,"#333");R(4,-9,2,3,"#333")},scarf:()=>{R(-5,-4,10,2,"#c0392b");R(2,-2,2,3,"#c0392b")},bandage:()=>{R(-4,-11,8,1.5,"#fff");R(2,-12.5,2,1.5,"#fff")},
   s2611:()=>{R(2,-14,4,3,"#d9531e");R(3,-15,2,1,"#e8a33d");R(3,-12,1,2,"#8b4a1b");R(4.5,-13,1,1,"#f1c40f")},
   s2612:()=>{R(-5,-13,10,2,"#fff");R(-4,-15,8,2,"#c0392b");R(-2,-17,5,2,"#c0392b");R(2.5,-17.5,2,2,"#fff")},
+  mq3:()=>{R(2,-14,4,2,"#6b3f1d");R(3,-14,1,2,"#4a2a12");R(4,-13,1,1,"#c98a4b")},
+  mq6:()=>{R(-4,-16,8,4,"#2b2b3a");R(-6,-12,12,1,"#2b2b3a");R(-4,-13,8,1,"#c0392b")},
+  mq8:()=>{R(-5,-13,10,2,"#f1c40f");R(-5,-15,2,2,"#f1c40f");R(-1,-16,2,3,"#f1c40f");R(3,-15,2,2,"#f1c40f");R(-.5,-12.5,1,1,"#f6a5c0")},
   s2701:()=>{R(-5,-12.5,10,1,"#333");R(-4.5,-15,1,2.5,"#f1c40f");R(-.5,-16,1,3.5,"#e74c3c");R(3.5,-15,1,2.5,"#3b9bd8");R(-1.5,-15,3,1,"#fff3")}};(ac[L.acc]||(()=>{}))()}
 const CIMG={};const cimg=e=>{if(!CIMG[e]){const i=new Image();i.src=pxIcon(e);CIMG[e]=i}return CIMG[e]};
 // 置中畫一行字，emoji 換成像素圖示；回傳寬度
@@ -2496,7 +2596,7 @@ $("menuBtn").onclick=()=>{const r=R[me];if(r){$("bagN").textContent=bagCount(r)?
 $("menuBack").onclick=closeMenu;$("menuClose").onclick=closeMenu;
 document.querySelectorAll("[data-go-tab]").forEach(b=>b.onclick=()=>{const t=b.dataset.goTab;document.querySelector(`[data-tab=${t}]`).click();if(isMob())document.body.classList.add("social");else $("social").scrollIntoView({behavior:"smooth"})});
 $("friendBtn").onclick=()=>document.body.classList.toggle("fr");$("strip").addEventListener("click",()=>setTimeout(()=>document.body.classList.remove("fr"),50));$("feedBtn").onclick=()=>{document.body.classList.add("social");markSeen()};$("socialClose").onclick=()=>document.body.classList.remove("social");$("menu").addEventListener("click",e=>{if(e.target.closest("button"))closeMenu()});
-$("life").onclick=lifeModal;$("powBtn").onclick=()=>{closeMenu();powersModal()};{const pb=document.createElement("button");pb.id="pfBtn";pb.textContent="🎭 我的人設";$("statBtn").after(pb);pb.onclick=()=>{closeMenu();personaModal()}}{const eb=document.createElement("button");eb.id="econBtn";eb.textContent="📈 小鎮經濟";$("powBtn").after(eb);eb.onclick=()=>{closeMenu();econModal()}}$("taskBtn").onclick=()=>{closeMenu();taskModal()};{const ob=document.createElement("button");ob.id="obBtn";ob.textContent="🧭 新手引導";$("taskBtn").after(ob);ob.onclick=()=>{closeMenu();const q=obLoad()||{d:[]};q.sk=0;if(q.d.length<5)q.fin=0;obSave(q);obIntro(()=>{if(!(obLoad()||{}).sk)toast("新手任務已開啟")})}}$("statBtn").onclick=()=>{closeMenu();statsModal()};{const mb=document.createElement("button");mb.id="meetBtn";mb.textContent="👋 揪團";$("powBtn").after(mb);mb.onclick=()=>{closeMenu();meetModal()}}setInterval(meetPoll,6e4);setTimeout(meetPoll,5e3);{const ab=document.createElement("button");ab.id="achBtn";ab.textContent="🏆 成就";$("meetBtn").after(ab);ab.onclick=()=>{closeMenu();achModal()}}{const db=document.createElement("button");db.id="dexBtn";db.textContent="📖 圖鑑";$("achBtn").after(db);db.onclick=()=>{closeMenu();dexModal()}}{const sb=document.createElement("button");sb.id="seaBtn";sb.textContent="🏅 賽季";$("dexBtn").after(sb);sb.onclick=()=>{closeMenu();seasonModal()}}setInterval(seasonPoll,3e5);setTimeout(seasonPoll,9e3);setInterval(achPoll,6e4);setTimeout(achPoll,7e3);$("sndBtn").onclick=()=>{closeMenu();sndModal()};$("updBtn").onclick=()=>{closeMenu();updModal(true)};$("legalBtn").onclick=()=>{closeMenu();$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>條款與隱私</h2><p class="mut">白話版，一分鐘讀完。</p><div class="row"><button id="lgT">服務條款</button><button id="lgP">隱私權政策</button></div><div class="row"><button id="lgX" class="pri">關閉</button></div>`;$("lgT").onclick=()=>window.open("terms.html","_blank");$("lgP").onclick=()=>window.open("privacy.html","_blank");$("lgX").onclick=()=>$("modal").classList.add("hide")};$("bagBtn").onclick=()=>{closeMenu();bagModal()};
+$("life").onclick=lifeModal;$("powBtn").onclick=()=>{closeMenu();powersModal()};{const pb=document.createElement("button");pb.id="pfBtn";pb.textContent="🎭 我的人設";$("statBtn").after(pb);pb.onclick=()=>{closeMenu();personaModal()}}{const eb=document.createElement("button");eb.id="econBtn";eb.textContent="📈 小鎮經濟";$("powBtn").after(eb);eb.onclick=()=>{closeMenu();econModal()}}$("taskBtn").onclick=()=>{closeMenu();taskModal()};{const ob=document.createElement("button");ob.id="obBtn";ob.textContent="🧭 新手引導";$("taskBtn").after(ob);ob.onclick=()=>{closeMenu();const q=obLoad()||{d:[]};q.sk=0;if(q.d.length<5)q.fin=0;obSave(q);obIntro(()=>{if(!(obLoad()||{}).sk)toast("新手任務已開啟")})}}$("statBtn").onclick=()=>{closeMenu();statsModal()};{const mb=document.createElement("button");mb.id="meetBtn";mb.textContent="👋 揪團";$("powBtn").after(mb);mb.onclick=()=>{closeMenu();meetModal()}}setInterval(meetPoll,6e4);setTimeout(meetPoll,5e3);{const ab=document.createElement("button");ab.id="achBtn";ab.textContent="🏆 成就";$("meetBtn").after(ab);ab.onclick=()=>{closeMenu();achModal()}}{const db=document.createElement("button");db.id="dexBtn";db.textContent="📖 圖鑑";$("achBtn").after(db);db.onclick=()=>{closeMenu();dexModal()}}{const sb=document.createElement("button");sb.id="seaBtn";sb.textContent="🏅 賽季";$("dexBtn").after(sb);sb.onclick=()=>{closeMenu();seasonModal()}}{const tb=document.createElement("button");tb.id="stBtn";tb.textContent="📜 主線";$("seaBtn").after(tb);tb.onclick=()=>{closeMenu();stModal()}}setInterval(seasonPoll,3e5);setTimeout(seasonPoll,9e3);setInterval(achPoll,6e4);setTimeout(achPoll,7e3);$("sndBtn").onclick=()=>{closeMenu();sndModal()};$("updBtn").onclick=()=>{closeMenu();updModal(true)};$("legalBtn").onclick=()=>{closeMenu();$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>條款與隱私</h2><p class="mut">白話版，一分鐘讀完。</p><div class="row"><button id="lgT">服務條款</button><button id="lgP">隱私權政策</button></div><div class="row"><button id="lgX" class="pri">關閉</button></div>`;$("lgT").onclick=()=>window.open("terms.html","_blank");$("lgP").onclick=()=>window.open("privacy.html","_blank");$("lgX").onclick=()=>$("modal").classList.add("hide")};$("bagBtn").onclick=()=>{closeMenu();bagModal()};
 $("relook").onclick=()=>{let look=normLook(R[me].look);$("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>換造型</h2><div id="lk2"></div><div class="row"><button id="mc">取消</button><button class="pri" id="ms">儲存</button></div>`;
  lookPicker($("lk2"),look,l=>look=l,R[me].items||{});$("mc").onclick=()=>$("modal").classList.add("hide");$("ms").onclick=async()=>{try{await rpc("town_login",{rid:me,pin,new_look:look});mapKey="";await refresh();$("modal").classList.add("hide");toast("換好了")}catch(e){toast(e.message)}}};
 $("report").onclick=report;
@@ -2766,6 +2866,7 @@ function npcModal(P){const nn=NPCS[P];if(!nn)return;dexMark(P);const m=({market:
  {const sh=SHELF[P];if(sh&&(sh.news.length||sh.clear.length))rows.push(["今日上新",(sh.news.length?"新："+sh.news.slice(0,3).join("、"):"")+(sh.clear.length?(sh.news.length?" · ":"")+"清倉："+sh.clear.slice(0,2).join("、"):""),()=>goodsModal(P,"new")])}
  if(REG[P]){const nm=REG[P][doyTP()%3],pp=REGP[P];rows.push(["常客："+nm,`${REGQ[P]} · 付 €${pp[0]}、謝禮 €${pp[1]}、心情 +6`,()=>doReg(P)])}
 if(P=="casinobar"){const tp=casTop();rows.push(["賭場榜第一",tp?`${tp.name} · 籌碼 €${tp.c.toLocaleString()}`:"現在沒人有籌碼",async()=>toast(tp?`${nn.n}：${tp.name}現在籌碼最多`:`${nn.n}：今天還沒人下注`)])}
+ if(P=="tsec"){rows.push(["主線劇情","連載故事，隨時可暫停",()=>stModal()])}
  if(P=="tsec"){const d=secNews();rows.push(["鎮基金",`目前 ${CIVF==null?"點開查看":CUR+CIVF.toLocaleString()}`,()=>civicModal()]);rows.push(["今日播報",d.length?d[0].slice(0,26):"今天沒有特別的事",async()=>toast(`${nn.n}：${d.length?d.join("；"):"鎮上很平靜"}`)]);rows.push(["新品與莊園","貨架上新、莊園動態",async()=>{const ns=Object.keys(SHELF).filter(k=>SHELF[k]&&SHELF[k].news&&SHELF[k].news.length).map(k=>SHELF[k].news[0]);const es=Object.values(R||{}).filter(o=>o.items&&o.items.lx&&o.items.lx.estate).map(o=>o.name);toast(`${nn.n}：${ns.length?"新品："+ns.slice(0,3).join("、"):"今天沒有新品"}${es.length?"；莊園主："+es.slice(0,2).join("、"):""}`)}])}
  rows.push(["聽八卦","聽聽鎮上最近的事",async()=>{const ev=((S&&S.events)||[]).filter(e=>e.msg&&e.kind!="rent"&&e.kind!="luck").slice().sort((a,b)=>b.at.localeCompare(a.at)).slice(0,3);toast(ev.length?`${nn.n}：聽說${ev.map(e=>e.msg).join("；")}`:`${nn.n}：最近沒什麼八卦`)}]);
  if(P=="townhall")rows.push(["公告欄委託","今天的額外委託，獎金依職稱",async()=>{try{const j=await rpc("town_quest",{rid:me,pin,op:"view"});if(j&&j.error){toast(j.error);return}const go=async()=>{try{const k=await rpc("town_quest",{rid:me,pin,op:"claim"});if(k&&k.error)toast(k.error);else{toast(k.msg);await refresh()}}catch(e){toast("連不上小鎮，再試一次")}};choiceModal("公告欄委託",`${j.need}，獎金 €${j.reward}（Lv${j.lv}）${j.done?"，今天已完成":j.ready?"，已達成":""}`,[[j.done?"已完成":"交付委託",j.ready?"在市政廳領獎":"還沒達成",async()=>{if(j.done)toast("今天已完成了");else if(!j.ready)toast("還沒達成："+j.need);else await go()}]])}catch(e){toast("連不上小鎮，再試一次")}}]);
