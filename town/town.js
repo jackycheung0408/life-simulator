@@ -1545,7 +1545,7 @@ function gamesModal(){$("modal").classList.remove("hide");$("mbody").classList.r
    $("gShow").innerHTML=`<p>莊家 <b>${g.done?d:"?"}</b>${g.dbj&&g.done?" 天生 21 點":""}</p><div class="cards">${g.d.map(c=>cardHTML(c)).join("")}${g.done?"":cardHTML(0,true)}</div><div class="bjhs">${hh}</div>`+(g.done?result(g):`<p class="mut"><button class="sm" id="bjHint">提示</button> <span id="bjHintTx"></span></p>`);
    lockBet(!g.done);area.querySelector(".gbtns").innerHTML=g.done?`<button class="pri" id="bjGo">再來一局（押 €${gameBet}）</button>`:`<button class="gbig" id="bjHit">要牌</button><button class="gbig" id="bjStand">停牌</button><button class="gbig" id="bjDbl"${g.dbl?"":" disabled"}>加倍</button><button class="gbig" id="bjSpl"${g.spl?"":" disabled"}>分牌</button>`;
    if(g.done){$("bjGo").onclick=()=>gamesModal();money()}else{
-    const go=(a)=>async()=>{UT.hit("bj:"+a);try{show(await playGame(a))}catch(e){toast(e.message)}};
+    const go=(a)=>async()=>{UT.hit("bj:"+a);try{show(await playGame(a));money()}catch(e){toast(e.message)}};
     $("bjHit").onclick=go("bj_hit");$("bjStand").onclick=go("bj_stand");$("bjDbl").onclick=go("bj_double");$("bjSpl").onclick=go("bj_split");
     $("bjHint").onclick=()=>{UT.hit("bj:hint");const t=bjHint(hs[g.i].c,g.d[0],{dbl:g.dbl,spl:g.spl});$("bjHintTx").textContent="基本策略建議："+t}}};
   $("bjGo").onclick=async()=>{try{show(await playGame("bj_start"));money()}catch(e){if(STALE.test(e.message)){const g=await resumeGame("bj_state");if(!g.none){bjBack(g);return}}toast(e.message)}};

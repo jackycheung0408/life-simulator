@@ -1203,6 +1203,38 @@
    "needs": [
     "town_bj2.sql"
    ]
+  },
+  {
+   "file": "town_casino_resume.sql",
+   "kind": "patch",
+   "needs": [
+    "town_casino4.sql",
+    "town_bj2.sql"
+   ],
+   "note": "賭場修復：bj_state／pj_state／hl_state 續玩、開局不蓋舊牌局、老虎機獎池上限 10 萬超出進基金、21 點加倍分牌額外注算進 wagered；就地改 town_casino／town_cgame；重套 casino／bj2 後要再套"
+  },
+  {
+   "file": "town_casino_resume_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_casino_resume.sql"
+   ]
+  },
+  {
+   "file": "town_fix_numbers.sql",
+   "kind": "patch",
+   "needs": [
+    "town_goal.sql",
+    "town_bj2.sql"
+   ],
+   "note": "體檢數字修復：打工達人／升官加總、賭場成就淨贏與累計下注、事件去重、能力成就門檻、一次性回填計數器（town_events／town_casino_log）；重套 town_goal.sql／town.sql／town_casino*.sql 後要再套"
+  },
+  {
+   "file": "town_fix_numbers_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_fix_numbers.sql"
+   ]
   }
  ]
 }
