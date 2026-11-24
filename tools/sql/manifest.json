@@ -1045,6 +1045,24 @@
    "needs": [
     "town_bal3_bond.sql"
    ]
+  },
+  {
+   "file": "town_bal4_stats.sql",
+   "kind": "patch",
+   "needs": [
+    "town_jail.sql",
+    "town_tweaks.sql",
+    "town_stats2.sql",
+    "town_bal3_bond.sql"
+   ],
+   "note": "平衡批4：能力上限8、其他屬性實質效果、洗點$5000（town_at 以此檔為準）"
+  },
+  {
+   "file": "town_bal4_stats_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_bal4_stats.sql"
+   ]
   }
  ]
 }
