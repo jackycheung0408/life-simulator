@@ -1,0 +1,10 @@
+# 備份與機密（絕對不進 repo）
+.env
+*.env
+*.enc
+*.age
+*.pass
+town-backups/
+tools/backup/out/
+node_modules/
+.DS_Store

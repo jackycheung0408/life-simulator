@@ -1,0 +1,31 @@
+# 備份的 public 資料表（一行一個；# 開頭是註解）。新增表後要同步：node tools/backup/verify-tables.mjs 會比對 supabase/*.sql。
+# 刻意不備份（暫存、可重建、無價值）：town_pw_tries town_errlog_rl town_poops town_zombies town_push_log
+town_accounts
+town_auction
+town_bonds
+town_casino_log
+town_civic
+town_cta
+town_devices
+town_duels
+town_econ
+town_errlog
+town_events
+town_flags
+town_happy
+town_jackpot
+town_market
+town_market_news
+town_meets
+town_migrations
+town_npcs
+town_pots
+town_powers
+town_push
+town_recovery
+town_residents
+town_shop
+town_towns
+town_usage
+town_vapid
+town_worlds

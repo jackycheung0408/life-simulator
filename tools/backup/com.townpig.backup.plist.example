@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 範例：複製到 ~/Library/LaunchAgents/com.townpig.backup.plist，把 REPO 與 YOU 換成實際路徑再載入。
+     每天 04:30 執行（Mac 的系統時區要是台灣；睡眠中錯過的排程會在醒來後補跑）。連線字串／密語檔放 ~/.config/town-backup.env（chmod 600），不要寫在這個檔。 -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.townpig.backup</string>
+  <key>ProgramArguments</key><array>
+    <string>/bin/bash</string><string>/Users/YOU/REPO/tools/backup/backup.sh</string>
+  </array>
+  <key>EnvironmentVariables</key><dict>
+    <key>PATH</key><string>/opt/homebrew/opt/libpq/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>4</integer><key>Minute</key><integer>30</integer></dict>
+  <key>StandardOutPath</key><string>/Users/YOU/Library/Logs/town-backup.log</string>
+  <key>StandardErrorPath</key><string>/Users/YOU/Library/Logs/town-backup.log</string>
+</dict></plist>
