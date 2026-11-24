@@ -79,7 +79,7 @@ body.ingame #modal:has(.garea) .card{touch-action:pan-y}
 .rpop{position:absolute;left:8px;right:8px;top:52px;z-index:6;background:#101526;border:3px solid #fff;padding:10px;line-height:1.5;box-shadow:0 0 0 3px var(--ink)}
 .cdnote:empty{display:none}
 .roadsd>summary{cursor:pointer;color:#aaa;margin-top:6px}
-.pcard.sq{position:relative;overflow:hidden;animation:sqin .24s steps(4) backwards;animation-delay:var(--d,0ms)}
+.bside{display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;min-height:84px}.bcol .cards{justify-content:center}.bcol p{margin:2px 0}.pcard.sq,.sqc{will-change:transform}.pcard.sq{position:relative;overflow:hidden;animation:sqin .24s steps(4) backwards;animation-delay:var(--d,0ms)}
 @keyframes sqin{from{transform:translate(60px,-40px);opacity:0}to{transform:none;opacity:1}}
 .sqc{position:absolute;left:0;top:0;right:0;bottom:0;background:repeating-linear-gradient(45deg,#e0779b 0 6px,#c45a80 6px 12px);cursor:grab;touch-action:none;display:flex;align-items:flex-end;justify-content:center;color:#fff;font-size:11px;font-style:normal}
 .sqskip{position:absolute;right:6px;top:6px;z-index:3;padding:4px 10px;min-height:32px}
@@ -371,6 +371,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
+  {id:"bacc-lr-1124",date:"11/24",title:"百家樂版面調整",items:["閒在左、莊在右","發牌更順"]},
   {id:"ach-1124",date:"11/24",title:"成就上線",items:["選單新增「成就」80 項","銅給零食，銀金給稱號","解鎖會跳通知"]},
   {id:"bet-open-1124",date:"11/24",title:"賭桌下注更順",items:["籌碼盤預設展開","自動記住每款上次注碼"]},
   {id:"pinch-empty-1124",date:"11/24",title:"雙指縮放、空屋消失",items:["地圖可雙指縮放","按「重設縮放」回原樣","沒人住的空屋不再顯示"]},
@@ -1530,7 +1531,7 @@ function gamesModal(){$("modal").classList.remove("hide");$("mbody").classList.r
  const pg2=(g,x)=>playGame(g,x,"town_casino"),cardsH=cs=>`<div class="cards">${cs.map(c=>cardHTML(c)).join("")}</div>`;
  if(gameTab=="bacc"){area.innerHTML=`<p class="mut">閒莊各發 2～3 張，點數接近 9 贏（A=1、10JQK=0、取個位）。閒 ×2，莊 ×2（莊以 6 點贏只賠 ×1.5，免佣），和 ×9；和局時押閒莊退回押注。</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="gbig" data-b="p">閒<span>×2</span></button><button class="gbig" data-b="b">莊<span>×2（6 點 ×1.5）</span></button><button class="gbig" data-b="t">和<span>×9</span></button></div><details class="roadsd"><summary>路單</summary><div id="roads">${roadsHtml(CAS&&CAS.bh)}</div></details>`;
   area.querySelectorAll("[data-b]").forEach(b=>b.onclick=async()=>{area.querySelectorAll("[data-b]").forEach(x=>x.disabled=true);try{const g=await pg2("bacc",{choice:b.dataset.b});const side=g.pt>g.bt?"閒贏":g.bt>g.pt?"莊贏":"和局";
-   $("gShow").innerHTML=`<p>閒 <b class="tt">?</b></p>${cardsH(g.p)}<p>莊 <b class="tt">?</b></p>${cardsH(g.b)}`;await squeezeDeal($("gShow"));const tt=$("gShow").querySelectorAll(".tt");tt[0].textContent=g.pt;tt[1].textContent=g.bt;$("gShow").insertAdjacentHTML("beforeend",`<p class="mut">${side}</p>`+result(g));playRes(g);money()}catch(e){$("gShow").innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
+   $("gShow").innerHTML=`<div class="bside"><div class="bcol"><p>閒 <b class="tt">?</b></p>${cardsH(g.p)}</div><div class="bcol"><p>莊 <b class="tt">?</b></p>${cardsH(g.b)}</div></div>`;await squeezeDeal($("gShow"));const tt=$("gShow").querySelectorAll(".tt");tt[0].textContent=g.pt;tt[1].textContent=g.bt;$("gShow").insertAdjacentHTML("beforeend",`<p class="mut">${side}</p>`+result(g));playRes(g);money()}catch(e){$("gShow").innerHTML=`<p class="gres bad">${esc(e.message)}</p>`}
    area.querySelectorAll("[data-b]").forEach(x=>x.disabled=false)})}
 if(gameTab=="dg"){area.innerHTML=`<p class="mut">射龍門（莊家制，沒有入場費和彩池）：先看兩張龍門牌，不想賭可以免費放棄。第三張嚴格在兩張之間才贏，賠率看中間有幾個點數（越窄賠越多，畫面上會寫）；撞柱（同點）輸 2 倍，兩張龍門同點又撞中輸 3 倍；其他輸 1 倍。兩張龍門同點時改押「更大」或「更小」。兩張相鄰自動重發。押注要有 3 倍籌碼。</p><div id="gShow" class="gshow"></div><div class="gbtns"><button class="pri" id="dgGo">發龍門牌</button></div>`;
   const deal=async()=>{try{const g=await playGame("dg_start",{bet:0});const gt=g.gates,show=$("gShow");money();
