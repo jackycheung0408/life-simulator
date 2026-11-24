@@ -540,4 +540,21 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  const calls=sq.split("select public.town_estate_patch(").slice(1);check(calls.length>=7,"town_estate_plot.sql 應有 7 個以上的 patch");
  calls.forEach(c=>{const body=c.slice(0,c.indexOf(");\n")+1),lits=[...body.matchAll(/'((?:[^']|'')*)'/g)].map(m=>m[1].replace(/''/g,"'")),bal=x=>(x.match(/\(/g)||[]).length-(x.match(/\)/g)||[]).length;
   if(lits.length>=4)check(bal(lits[2])==bal(lits[1]),"town_estate_plot.sql 的 patch 改寫前後括號數不同（每個 patch 單獨 execute 要能編譯）："+lits[1].slice(0,40))})}
+{const fs=require("fs"),sq=fs.readFileSync(__dirname+"/../supabase/town_goal.sql","utf8"),tj=fs.readFileSync(__dirname+"/town.js","utf8");
+ check(sq.split("\n").slice(0,3).every(l=>/^--/.test(l)||l.trim()==""),"town_goal.sql 檔頭每行都要是註解");
+ const rows=[...sq.matchAll(/^\s*\((\d+),'(\w+)','([^']+)','([^']+)',array\[([\d,]+)\]\)/gm)].map(m=>({id:+m[1],cat:m[2],nm:m[3],src:m[4],th:m[5].split(",").map(Number)}));
+ check(rows.length==80&&rows.every((r,i)=>r.id==i+1),"成就要 80 個、id 1～80 連號（目前 "+rows.length+"）");
+ const cc={};rows.forEach(r=>cc[r.cat]=(cc[r.cat]||0)+1);check(["life:16","soc:14","eco:12","adv:14","cas:12","col:12"].every(x=>cc[x.split(":")[0]]==+x.split(":")[1]),"六類數量應為 16／14／12／14／12／12："+JSON.stringify(cc));
+ check(rows.every(r=>r.th.length>=1&&r.th.length<=3&&r.th.every((v,i)=>i==0||v>r.th[i-1])),"成就門檻要 1～3 階且遞增");
+ check(new Set(rows.map(r=>r.nm)).size==80,"成就名稱不可重複（稱號會撞名）");
+ const keys=new Set(),addk=m=>keys.add(m);[...sq.matchAll(/town_goal_bump(?:_day)?\((?:new\.actor|r\.id|p_rid), '(\w+)'/g)].forEach(m=>addk(m[1]));[...sq.matchAll(/then '(\w+)'(?:\n|\s)/g)].forEach(m=>addk(m[1]));[...sq.matchAll(/'(cp|cw5k|cw100k|cwin|closs)'/g)].forEach(m=>addk(m[1]));
+ const miss=rows.filter(r=>r.src.startsWith("c:")&&!keys.has(r.src.slice(2))&&!/^cp_/.test(r.src.slice(2))).map(r=>r.src);check(!miss.length,"成就的計數器沒有來源："+miss.join(","));
+ check(/exception when others then null/.test(sq.slice(sq.indexOf("function public.town_goal_ev"),sq.indexOf("drop trigger"))),"town_goal_ev 觸發器要包 exception（絕不影響遊戲）");
+ const rpc=sq.slice(sq.indexOf("function public.town_ach("),sq.indexOf("revoke all on function public.town_ach("));
+ check(!/money/.test(rpc)&&!/'(at|energy)'/.test(rpc)&&/'\{snack\}'/.test(rpc)&&/'\{titles\}'/.test(rpc),"town_ach 只能給零食與稱號，不可動錢、能力、精力");
+ check(/town_goal_ev_t after insert on public\.town_events/.test(sq)&&/from public, anon, authenticated/.test(sq)&&/enable row level security/.test(sq),"town_goal.sql 要有觸發器、收回權限、RLS");
+ const act=fs.readFileSync(__dirname+"/../supabase/town.sql","utf8"),fac=fs.readFileSync(__dirname+"/../supabase/town_fac.sql","utf8"),cas=fs.readFileSync(__dirname+"/../supabase/town_casino4.sql","utf8");
+ check(act.includes("r := public.town_ecap(r, e0, act);")&&fac.includes("r := public.town_ecap(r, e0, act);")&&cas.includes("v_delta := m1 - v_chips;"),"town_goal.sql 補丁的錨點要還在 town.sql／town_fac.sql／town_casino4.sql");
+ check(/const ACH_CAT=\[\["life","生活"\],\["soc","社交"\],\["eco","經濟"\],\["adv","冒險"\],\["cas","賭場"\],\["col","收藏"\]\]/.test(tj)&&/function achModal/.test(tj)&&/id="achBtn"|ab\.id="achBtn"/.test(tj)&&/UT\.hit\("ach:open"\)/.test(tj)&&/id:"ach-1124"/.test(tj),"前端成就：分類、achModal、選單鈕、UT、UPDATES 要在");
+ const mk=JSON.parse(fs.readFileSync(__dirname+"/../tools/sql/manifest.json","utf8")).files.map(f=>f.file);check(mk.includes("town_goal.sql")&&mk.includes("town_goal_test.sql"),"manifest 要登記 town_goal.sql 與實測檔")}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

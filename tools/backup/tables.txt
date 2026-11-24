@@ -1,6 +1,8 @@
 # 備份的 public 資料表（一行一個；# 開頭是註解）。新增表後要同步：node tools/backup/verify-tables.mjs 會比對 supabase/*.sql。
 # 刻意不備份（暫存、可重建、無價值）：town_pw_tries town_errlog_rl town_poops town_zombies town_push_log
 town_accounts
+town_ach_c
+town_ach_u
 town_auction
 town_bonds
 town_casino_log

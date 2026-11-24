@@ -1170,6 +1170,23 @@
     "town.sql"
    ],
    "note": "壓測：交易內建 100 人，量 town_state／act／casino／rank／tick 單次成本與回傳大小，最後 rollback"
+  },
+  {
+   "file": "town_goal.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_fac.sql",
+    "town_casino4.sql"
+   ],
+   "note": "長期目標批 1：成就（80 項、town_ach_c／town_ach_u、事件觸發器、town_goal_hook／casino 就地補丁、RPC town_ach）；重套 town.sql／town_fac.sql／town_casino*.sql 後要再套"
+  },
+  {
+   "file": "town_goal_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_goal.sql"
+   ]
   }
  ]
 }
