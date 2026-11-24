@@ -2,8 +2,8 @@
    SFX.play(name) SFX.music(on) SFX.vol(0~2) SFX.mute(b)；設定存 localStorage town-snd。
    第一次點擊／觸控才解鎖 AudioContext，之前呼叫一律靜默略過。 */
 (function(){
-var C=null,M=null,GS=null,GM=null,cfg={s:1,m:0,v:1},want=0,hid=0,last={},mt=null,step=0,nextT=0,ok=0;
-try{var j=JSON.parse(localStorage.getItem("town-snd")||"null");if(j)cfg={s:j.s==0?0:1,m:j.m?1:0,v:j.v>=0&&j.v<=2?j.v:1}}catch(e){}
+var C=null,M=null,GS=null,GM=null,cfg={s:1,m:1,v:1,mc:0},want=0,hid=0,last={},mt=null,step=0,nextT=0,ok=0;
+try{var j=JSON.parse(localStorage.getItem("town-snd")||"null");if(j)cfg={s:j.s==0?0:1,m:j.mc?(j.m?1:0):1,v:j.v>=0&&j.v<=2?j.v:1,mc:j.mc?1:0}}catch(e){}
 function save(){try{localStorage.setItem("town-snd",JSON.stringify(cfg))}catch(e){}}
 var VOL=[.35,.6,1];
 function mk(){if(C)return C;var A=window.AudioContext||window.webkitAudioContext;if(!A)return null;
@@ -60,7 +60,7 @@ try{var md=document.getElementById("modal");if(md)new MutationObserver(function(
 var ERR=/不能|不夠|不足|失敗|連不上|走不到|擋|被關|沒有/,MSG=/訊息|留言|傳給/;
 window.SFX={
  play:play,names:NAMES,
- music:function(on){cfg.m=on?1:0;save();lv();if(cfg.m)mstart();else mstop()},
+ music:function(on){cfg.m=on?1:0;cfg.mc=1;save();lv();if(cfg.m)mstart();else mstop()},
  sound:function(on){cfg.s=on?1:0;save();lv()},
  vol:function(n){cfg.v=Math.max(0,Math.min(2,n|0));save();lv()},
  mute:function(b){hid=b?1:0;lv();if(b)mstop();else if(cfg.m)mstart()},
