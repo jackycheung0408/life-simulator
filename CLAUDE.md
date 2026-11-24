@@ -319,7 +319,7 @@
 
 ### 按鈕效果表
 <!-- RULES:START -->
-（由 `node tools/town-rules-doc.mjs` 從 `town/town.js` 的 `RULES` 產生，請勿手改；共 74 筆）
+（由 `node tools/town-rules-doc.mjs` 從 `town/town.js` 的 `RULES` 產生，請勿手改；共 76 筆）
 
 | 互動 | 效果 | 門檻 | 機率／備註 | SQL 出處 |
 |---|---|---|---|---|
@@ -397,6 +397,8 @@
 | 探監 | 心情 +3、精力 −2、好感 +2 | 對方在牢裡 | 受刑人心情 +10；同一人 60 分鐘一次 | `town_jail.sql#if act = 'visit' then` |
 | 快速睡覺 | 精力 +50（有好床 +56） | 在自家屋裡 | 睡 15 分鐘自動醒，速率 ×2.5；提早起床按睡到的時間比例；30 分鐘冷卻 | `town.sql#elsif act = 'qsleep' then` |
 | 邀請一起做 | 心情 +12、精力 +5、好感 +1 | 對方同地點醒著 | 對方 1 分鐘內接受才生效，雙方都加成；同一對 30 分鐘一次 | `town_social.sql#r := public.town_tg(r, 12, 5)` |
+| 坐下逗留 | 精力 +0.5／分鐘、心情 +0.4／分鐘 | 在餐廳、咖啡廳、公園或廣場 | 滿 20 分鐘封頂；不到 3 分鐘或換了地點沒有獎勵；有人在場心情多 +2；起身時才結算 | `town_fac.sql#if act = 'sit' then` |
+| 起身 | 精力 +0.5×分鐘、心情 +0.4×分鐘 | — | 坐越久恢復越多，上限 20 分鐘；不到 3 分鐘沒有效果 | `town_fac.sql#elsif act = 'up' then` |
 <!-- RULES:END -->
 
 ## 按鈕分類（2026-11-17 整理；`GORD`／`TABOF`／`btn(...,g)`）
