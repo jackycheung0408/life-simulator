@@ -118,13 +118,14 @@ const UT=(()=>{const W=typeof window!=="undefined"?window:{},Q=new Map(),SEEN=ne
  const send=()=>{tm=0;while(Q.size){const ks=[...Q.keys()].slice(0,20),cs=ks.map(k=>Math.min(50,Q.get(k)));ks.forEach(k=>Q.delete(k));try{fetch(SB+"town_usage_hit",{method:"POST",keepalive:true,headers:{apikey:SBK,"Content-Type":"application/json"},body:JSON.stringify({keys:ks,counts:cs})}).catch(()=>{})}catch(e){}}};
  const hit=(k,n)=>{if(off||!k)return;k=String(k).slice(0,40);if(!OK.test(k))return;Q.set(k,(Q.get(k)||0)+(n||1));if(Q.size>=20)send();else if(!tm)tm=setTimeout(send,2e4)};
  const once=k=>{if(SEEN.has(k))return;SEEN.add(k);hit(k)};
+ const btitle=b=>{const t=b.querySelector(".at>b")||[...b.children].find(x=>x.tagName=="B")||b.querySelector("b,strong");if(t&&t.textContent.trim())return t.textContent;const n=[...b.childNodes].find(x=>x.nodeType==3&&x.textContent.trim());return n?n.textContent:b.textContent};
  const ctx=b=>b.closest("#ptabs")?"ui:tab":b.closest("#modal")?"ui:modal":b.closest("#panel")?"ui:act":b.closest(".bar,.tools")?"ui:nav":b.closest("#login,#lg")?"ui:login":"ui:btn";
  const start=()=>{if(started||off)return;started=1;once("session:start");
-  document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.target.closest("button");if(!b||b.closest("textarea,input,select"))return;if(b.dataset.chip){hit("casino:chip");return}const c=ctx(b),tb=c=="ui:act"?b.querySelector(".at>b"):null,l=tb?clean(tb.textContent,24):clean(b.textContent);if(l)hit(c+":"+l)},true);
+  document.addEventListener("click",e=>{const b=e.target&&e.target.closest&&e.target.closest("button");if(!b||b.closest("textarea,input,select"))return;if(b.dataset.chip){hit("casino:chip");return}const c=ctx(b),l=clean(btitle(b),24);if(l)hit(c+":"+l)},true);
   document.addEventListener("visibilitychange",()=>{if(document.visibilityState=="hidden")send()});addEventListener("pagehide",send);
   const m=document.getElementById("modal");if(m&&W.MutationObserver){let was=!m.classList.contains("hide");mo=new MutationObserver(()=>{const open=!m.classList.contains("hide");if(open==was)return;was=open;if(open)setTimeout(()=>{const h=m.querySelector("h2,h3");lastTitle=clean(h&&h.textContent)||"modal";hit("modal:"+lastTitle)},80);else if(lastTitle)hit("exit:modal:"+lastTitle)});mo.observe(m,{attributes:true,attributeFilter:["class"]})}};
  const q=W.UTQ;W.UTQ={push:once};if(Array.isArray(q))q.forEach(once);
- return{hit,once,start,send,clean,names:a=>{NM.length=0;NM.push(...a)}}})();
+ return{hit,once,start,send,clean,btitle,names:a=>{NM.length=0;NM.push(...a)}}})();
 let rpcHook=null,LOGIN_DEAD=0;const LOSTMSG="這台裝置的登入失效了";const rpc=(fn,body={})=>{if(LOGIN_DEAD&&body&&body.pin&&fn!="town_device")return Promise.reject(new Error(LOSTMSG+"，請重新登入"));if(rpcHook)try{rpcHook(fn,body)}catch(e){}return rpcF(fn,body).catch(()=>{UT.hit("err:rpc:"+fn);throw new Error("連不上小鎮，檢查網路後再按一次")})
  .then(async r=>{const j=await r.json().catch(()=>null);if(!r.ok){const m=(j&&j.message)||"小鎮暫時沒回應，過一下再按一次";if(m.indexOf(LOSTMSG)>=0&&body&&body.pin&&window.__lost)window.__lost();throw new Error(m)}if(j&&j.error){if(j.error.indexOf(LOSTMSG)>=0&&body&&body.pin&&window.__lost)window.__lost();throw new Error(j.error)}return j})};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
