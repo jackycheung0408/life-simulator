@@ -139,7 +139,7 @@
 - 透明：每次寫 `town_events` kind `mayor`（公開）；前端選單「鎮長管理權」（`powBtn`，所有居民）與鎮長面板的按鈕都開 `powersModal`（權力清單、投票、使用紀錄、申訴）；被行使者上線時 `checkPwn` 彈窗（可直接申訴）；不能用的權力照樣顯示、灰掉並寫原因。`tools/town-mock.js` 有 `town_power` 假回應（簡化版）。
 - 教訓：`town_powers.sql` 裡 plpgsql 變數不要叫 `x`／`y`（和 `town_residents` 的位置欄撞名，已改 `en`）。
 
-## 鎮長管理權第二批（2026-11-24；SQL `supabase/town_powers2.sql` **尚未套用正式站、也沒在 Postgres 跑過**；實測檔 `town_powers2_test.sql`（回滾，REPORT，台灣 00:00～02:05 跑會跨日誤判）；順序在 `town_powers.sql`、`town_world.sql`、`town_move.sql` 之後，重套那幾份後要再套一次）
+## 鎮長管理權第二批（2026-11-24；SQL `supabase/town_powers2.sql` **已套用正式站 2026-11-24（回滾實測通過：四個新權力與安全閥、官員任免與任期、紅包守恆與每人上限、投票、錢與基金不變負）**；實測檔 `town_powers2_test.sql`（回滾，REPORT，台灣 00:00～02:05 跑會跨日誤判）；順序在 `town_powers.sql`、`town_world.sql`、`town_move.sql` 之後，重套那幾份後要再套一次）
 - 全用 `pg_get_functiondef` 就地補丁 `town_pw_def／name／check／do／undo／close`、`town_power`、`town_world`（略過標記是只出現在新內容的字串，找不到錨點整檔失敗），新邏輯在 `town_pw2_*`；新增欄位 `town_powers.officers`。登錄 4 列：`event`、`appoint`、`payout`、`relocate`（ext 1，只登記，前端轉到不動產公司搬遷畫面，沿用 FEATS `relocate`）。
 - **全鎮活動 `event`**（num 1 市集日／2 慶典／3 煙火夜）：沿用 `town_worlds`；費用 = 底價（3000／8000／2000）× min(5, max(1, 居民/5))，花鎮基金不退；同時 1 個、進行中不能疊、不能選負面事件；全鎮每天 2 次、冷卻 120 分、新鎮 30 分鐘內不能用；煙火夜 30 分鐘，發動當下 10 分鐘內上線醒著的居民心情 +12（一次，無價格影響），市集日／慶典 90 分鐘。
 - **任命官員 `appoint`**（num 1 任命警長／2 財務官／3 免警長／4 免財務官，免職 tg = 現任）：各 1 人、任期 3 天、居民 ≥3、不能任命自己／鎮長、一人一職、可辭職（`town_power op=resign note=sheriff|treasurer`）；被任命／免職寫 `items.pwn` 通知。警長每天 1 次替鎮長 `jail`（10～60 分鐘），財務官每天 1 次 `grant`（100～1500，只能直接發）；都走原權力的所有安全閥、**計入鎮長的全鎮每日次數**，紀錄 `via` = sheriff／treasurer，動態「警長 X 把 Y 關進監獄」，皆可申訴（財務官補助原本不能申訴，補丁讓 `via=treasurer` 可申訴，`town_pw_undo` 新增 grant 分支：向對方收回到他現有的錢為止，還給基金）。官員資料 `officers={sheriff:{rid,name,until},treasurer:{…}}`，缺值＝沒有；任期過了自動失效。
@@ -750,7 +750,7 @@
 - 前端：地圖東南角碼頭 `DOCK[66,17,5,4]`（水面，`blocked`，`drawDock` 每幀畫、最多 4 艘遊艇、名牌「X 的遊艇」）；有莊園（`items.lx.estate`）的房子在 `buildMap` 換金屋脊＋旗＋白柱＋花園（只換外觀）。面板按鈕「出海」（遊艇擁有者在碼頭附近）、「辦派對」（莊園擁有者在自己家）。
 - 出海 $2000：自動帶碼頭附近（x±6、y±5）上線 5 分鐘內、醒著、沒入獄的居民最多 3 位（隨機，至少 1 位，乘客不用同意也不花錢，只有好處），每人（含船主）心情 +25，船主對乘客好感 +3（`town_bond`），船主 1 小時 1 次（`items.lxc.y`）。派對 $5000：自己的莊園室內（見「莊園獨立一棟」），全鎮上線 10 分鐘內醒著居民心情 +15、好感 +2，每台灣日 1 次（`items.lxc.p`）。7 成銷毀 3 成進基金，錢不夠擋、不欠款。
 
-## 莊園自由（2026-11-24；SQL `supabase/town_estate_free.sql` **尚未套用正式站**，要在 `town_estate_plot.sql` 之後；實測 `town_estate_free_test.sql`（回滾，REPORT）**尚未跑**；本機沒有 Postgres，SQL 只過 `sql.py check` 與前端 mock）
+## 莊園自由（2026-11-24；SQL `supabase/town_estate_free.sql` **已套用正式站 2026-11-24（第一次套用時 gate 補丁的略過標記誤判成已補過而沒生效，已修正標記重套，回滾實測通過）**，要在 `town_estate_plot.sql` 之後；實測 `town_estate_free_test.sql`（回滾，REPORT）**尚未跑**；本機沒有 Postgres，SQL 只過 `sql.py check` 與前端 mock）
 - 使用者要求：莊園裡的活動都不限制、莊主想幹嘛就幹嘛。派對規則（$5000、全鎮 +15、每天 1 次）不動。**A 家居動作**：`town_inside` 就地補丁多認「自己的莊園室內」（`place = estate:自己` 且 `fi = place`），所以 eat／toilet／shower／tv／nap／sleep／qsleep／furn 的「要進屋」檢查自動通過，價格效果同在家；睡著、醒來都留在莊園，離線太久仍由 `town_tick` 送回自己的家。家具另外擺：`items.lx.efp=[[代號,x,y]…]`（≤30 件）、`lx.efc` 代號清單；`town_fu` 在莊園裡看 `efc`（沒擺＝陽春版，同在家），沿用家具清單 `items.f`（一件家具家裡與莊園各擺一次），沒有新增購買項目。莊園室內 12 欄 × 地板 4 列。
 - **B 進出控管**：`items.lx.gate = open|lock|list`、`lx.wl=[居民id]`（≤20）；缺值＝舊行為（莊主在裡面醒著才能進、派對時全員可進）。open 隨時可進、lock 只有莊主、**list 只有白名單可進（莊主不必在）**；派對期間（`lxc.pt`）三種模式都全員可進。`town_estate_gate` 就地補丁；RPC `town_estate_ctl(rid,pin,op,target,note)`：view／gate（note = open|lock|list|default）／wl_add／wl_del。被拒訊息：「X 把莊園上鎖了…」「X 的莊園只開放給受邀的朋友」。
 - **C 室內佈局**：預設物件（宴會桌×2、展示櫃×2、噴水池、鋼琴）鍵 `table1/2 trophy1/2 fount piano`，位置覆蓋存 `lx.ro = {鍵:[x,y]|null}`（缺值＝預設、null＝收回）；吊燈、立燈、地毯、盆栽、管家固定。走 `town_act(act='furn')`：`put:代號:x:y`／`clr:代號`（莊園家具）、`mv:鍵:x:y`／`rm:鍵`／`rs:鍵`（預設物件）。前端 `EST_DEF`（和 SQL `town_estate_def` 一致，`node town/test.js` 比對）、`estRoomOf(items)` 每次 `estSync` 重建 `ROOMS["estate:id"]`（混合物件：`ITEM` 圖示＋`furnDraw` 家具）、`homeLife(r)`（家裡與莊園共用的生活按鈕）、`estIn(r)`、`hasF` 在莊園看 `efc`、`estateEditModal`（佈置）、`estateCtlModal`（進出模式、名單）；莊主在莊園室內面板多「佈置莊園」「莊園管理」。
@@ -804,7 +804,7 @@
 - 前端：選單「🏆 成就」→ `achModal`（六分頁、徽章方塊、進度條、領取鈕）、`achPoll` 每 60 秒＋進遊戲 7 秒後（SQL 沒套用時偵測 404 就停）；`UT.hit("ach:*")`；mock 有 `town_ach`；視覺情境 `modal-ach`。`node town/test.js` 檢查 80 個／六類數量／門檻遞增／名稱不重複／計數器有來源／觸發器 exception／RPC 不碰錢與能力／錨點／前端／manifest。
 - 套用：`python3 tools/sql/sql.py apply town_goal.sql --test town_goal_test.sql --prod`（含 trigger 與就地補丁，先 dry-run）。
 
-## 長期目標批 3：賽季（2026-11-24，前端 v379；SQL `supabase/town_season.sql` **尚未套用正式站**，實測 `town_season_test.sql`（回滾，REPORT），在 town_goal／town_dex／town_meet／town_fix_rest／town_casino 之後）
+## 長期目標批 3：賽季（2026-11-24，前端 v379；SQL `supabase/town_season.sql` **已套用正式站 2026-11-24（回滾實測通過：積分封頂防壟斷、結算冪等、頒獎、領獎、圖鑑絕版格）**，實測 `town_season_test.sql`（回滾，REPORT），在 town_goal／town_dex／town_meet／town_fix_rest／town_casino 之後）
 - 台灣月份一季，惰性結算（`town_season` 每次呼叫先補算上季、補開季與剩 7 天公告，動態 kind `season`）。積分五項各自封頂：打工（每日最多計 40 次）÷2 上限 80、賭神（`town_casino_log` 每日淨贏最多計 5 萬，每 1000 籌碼 1 分，≥20 局，上限 80）、揪團（每日最多計 3 次）×15 上限 90、街機（打地鼠＋翻牌÷2 的本季最高）上限 90、成就（本季新解鎖階數）×2 上限 60；門檻 30 分；活躍（≥30 分）≥3 人才發名次獎：前三名稱號＋當季限定造型＋零食，其餘達標者參與稱號＋零食，不給錢。上限常數在 `town_season_caps()`，前端 `SEA_CAP`，test.js 比對。
 - 表 `town_season_score`（含 `k@日期` 每日計數列）、`town_seasons`；造型 `s2611` 楓葉髮飾、`s2612` 聖誕帽、`s2701` 煙火髮箍（town_shop unlock='season'，買不到，領獎寫進 items.w，圖鑑標「已絕版」不計核心）。新增一季：`town_season_def` 加一列＋town_shop＋WEAR／drawChar。就地補丁 town_goal_hook／town_meet_settle／town_score／town_ach_check／town_dex_list；重套那些檔後要再套本檔。
 - 前端：選單「賽季」`seasonModal`、榜單最上方「本季」、領獎彈窗 `seaAward`（`seasonPoll` 每 5 分鐘）、歷史賽季。試算（11 月現有資料近似）：每人打工都封頂 80，差別在街機／成就／揪團，沒有一人壟斷。
@@ -818,9 +818,14 @@
 - 就地補丁 `town_act` obj 分支（垃圾桶、郵筒每天各 3 次，用 `dc.trash／dc.mail`，每次翻都算，第 4 次回「今天這個垃圾桶已經翻過了」；長椅與飲水機共用每天 100 精力 `dc.bench`）、`town_pk` 死碼；重建 `town_score`（新 RPC `town_score_start` 記 `items.sg={g,t}`：打地鼠要 ≥25 秒且分數 ≤ 秒數/0.7、記憶翻牌每步 ≥0.9 秒；沒開局紀錄用保守上限 25／70）與 `town_onboard`（步驟 1、2、4、5 驗事實，步驟 4 前端改成要有互動事件）。重套 `town.sql`／`town_mischief.sql` 後要再套本檔。
 - 幸運兒：垃圾桶 3 次期望約 $32、郵筒約 $72（一般 $24／$54），已寫進 `RULES`。前端我的人生：刪打工冷卻字樣、財產稅含籌碼與 kt（`moneyAll`＋`town_econ_view`）、新增「車險與事故」列（`vehLife`）。驗證腳本 `tools/visual/fix-rest-verify.mjs`。
 
-## 擴地圖東區與設施搬遷（2026-11-24；SQL `supabase/town_expand.sql` → `town_move.sql` **尚未套用正式站**，實測 `town_expand_test.sql`、`town_move_test.sql`（回滾，REPORT））
+## 擴地圖東區與設施搬遷（2026-11-24；SQL `supabase/town_expand.sql` → `town_move.sql` **已套用正式站 2026-11-24（回滾實測通過；expand 後上限 99、move 三個就地補丁已確認生效）**，實測 `town_expand_test.sql`、`town_move_test.sql`（回滾，REPORT））
 - **階段 1 擴地圖**：`COLS` 85 → 100（東側新增空地 x 85～99，只有草地、道路與樹，沒有設施）。`town_expand.sql` 用 `pg_get_functiondef` 把所有函式的 `px > 85` 改成 `px > 99`，找不到任何一個就整檔失敗；`layout6` 只記遷移標記（新區域沒人站，不必移人）。**重套 `town.sql`／`town_shops1.sql` 後要再套一次**（它們會把上限改回 71／85）。
 - **階段 2 搬遷（最小版）**：只有 5 棟商業建築能搬（咖啡廳、餐廳、電影院、健身房、格鬥場）；房子、莊園、市政廳、醫院、警察局、監獄、碼頭、公園、廣場、其他設施都不能搬。候選位置寫死（原位、或東區 x=88 的 y=0／9／17；格鬥場 y=0／8），前端 `MV_DEF`／`MV_SLOTS` 與 SQL `town_mv_def`／`town_mv_slot_ok` 要一致，`node town/test.js` 會檢查每個候選位置離其他建築 ≥2 格、不壓馬路、搬了門口走得到。
 - 規則：鎮長在不動產公司（已進館）申請，費用 = 面積 × $2000 全由鎮基金支付、直接銷毀（不回流）；全鎮 24 小時只能申請一棟、一次一個預告；預告 24 小時（設施照常），時間到惰性結算（`town_state`／`town_move` 呼叫時 `town_mv_settle`，冪等、鎖列）；完成時 place＝該設施的人（含室內，`items.fi` 不動）與站在新舊建築範圍上的路人移到新門口。鎮長功能開關 `relocate` 可關。申請要帶 `cv`（前端版本 ≥ `town_mv_minver()`）。
 - 資料：`town_towns.layout`（jsonb，`{地點:[x,y]}`，缺值＝預設）、`mv`（預告中）、`mvlast`；`town_state` 回傳 `town.layout`／`town.mv`。前端 `applyLayout`（覆蓋 `PLACES` 的 r／door、清 `maps` 快取、搬到的地點重算走路路徑、toast「搬家了」）、`moveModal`（不動產公司面板「設施搬遷」）。招牌改讀 `PLACES`（`sg()`），不要再寫死座標。格鬥場 PK 放人到門口讀 layout（`town_pk` 就地補丁；其他地點的寫死門座標都屬不可搬建築）。**重套 `town.sql`／`town_mischief.sql` 後要再套 `town_move.sql`**。
 - 已知限制：沒更新的舊客戶端看不到搬遷、會走去舊位置（伺服器只驗 px 範圍，不會卡死）；`tools/visual` 新增 `move-modal／move-east／move-zoom／move-done`。
+
+
+## 賭場下注間隔已取消（2026-11-24；SQL `supabase/town_casino_nogap.sql` **已套用正式站**，回滾實測通過）
+- 伺服器 `town_casino` 的「每局至少間隔 3 秒」已移除（`items.cas.t` 仍會寫入但沒人讀）。重複操作安全：同一居民併發由 `town_auth` 的 `for update` 序列化；有狀態遊戲（21 點、牌九、比大小、地雷、開寶箱、**飛行器**）上一局沒結束再開局一律被擋並導回續玩（飛行器開桌用 `cr_poll` 還原，墜毀則當場結算為輸）；射龍門連發＝放棄重發；無狀態遊戲同一秒連打籌碼守恆。前端防連點 `playGame` 的 `GBUSY` 執行中鎖保留。
+- **教訓**：就地補丁的略過標記（`chk`）不可以是函式名稱或舊內容的子字串（`town_estate_free.sql` 的 `gate` 誤判），要用只出現在補丁新內容的字串；套用後要用 `pg_get_functiondef` 確認補丁真的生效，不要只看「Success」。
