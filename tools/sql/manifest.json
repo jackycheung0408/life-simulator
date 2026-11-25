@@ -1016,7 +1016,8 @@
    "file": "town_powers2_test.sql",
    "kind": "test",
    "needs": [
-    "town_powers2.sql"
+    "town_powers2.sql",
+    "town_payout_cd.sql"
    ]
   },
   {

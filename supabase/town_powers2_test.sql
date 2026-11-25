@@ -128,11 +128,11 @@ begin
   j := public.town_power(ra,'1234','use','appoint',rd,1);
   rep := rep||'任期過了可重新任命：'||(j->>'msg')||E'\n';
 
-  -- 4) 全民紅包
+  -- 4) 全民紅包（要在 town_payout_cd.sql 之後：冷卻改讀 pay_at，重設冷卻要連 pay_at 一起清）
   update public.town_residents set seen_at = now(), money = 1000, items = '{}'::jsonb, place='street' where town_id = tid;
   update public.town_residents set seen_at = now() - interval '4 days' where id = rd;   -- 丁 4 天沒上線 → 活躍 3 人
   update public.town_towns set fund = 10000 where id = tid;
-  update public.town_powers set log = '[]'::jsonb where town_id = tid;
+  update public.town_powers set log = '[]'::jsonb, pay_at = null where town_id = tid;
   v_f0 := 10000; v_m0 := (select sum(money) from public.town_residents where town_id = tid);
   begin perform public.town_power(rb,'1234','use','payout',null,5); rep := rep||'非鎮長紅包：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'非鎮長紅包：'||sqlerrm||E'\n'; end;
   begin perform public.town_power(ra,'1234','use','payout',null,15); rep := rep||'15% 直接發：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'15% 直接發：'||sqlerrm||E'\n'; end;
@@ -142,23 +142,23 @@ begin
   rep := rep||'紅包守恆：錢+基金差='||((select sum(money) from public.town_residents where town_id = tid) + (select fund from public.town_towns where id = tid) - v_m0 - v_f0)||'（期望 0）luck 動態='||(select count(*) from public.town_events where town_id = tid and kind = 'luck' and msg like '%全民紅包%')||'（期望 3）'||E'\n';
   begin perform public.town_power(ra,'1234','use','payout',null,5); rep := rep||'3 天內再發：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'3 天冷卻：'||sqlerrm||E'\n'; end;
   -- 活躍不到 3 人
-  update public.town_powers set log = '[]'::jsonb where town_id = tid;
+  update public.town_powers set log = '[]'::jsonb, pay_at = null where town_id = tid;
   update public.town_residents set seen_at = now() - interval '4 days' where id = rc;
   begin perform public.town_power(ra,'1234','use','payout',null,5); rep := rep||'活躍 2 人：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'活躍 2 人：'||sqlerrm||E'\n'; end;
   update public.town_residents set seen_at = now() where id = rc;
   -- 每人上限 2000
   update public.town_towns set fund = 4000000 where id = tid;
-  update public.town_powers set log = '[]'::jsonb where town_id = tid;
+  update public.town_powers set log = '[]'::jsonb, pay_at = null where town_id = tid;
   v_m0 := (select sum(money) from public.town_residents where town_id = tid);
   j := public.town_power(ra,'1234','use','payout',null,10);
   rep := rep||'每人上限：基金 4000000 發 10% → 基金='||(select fund from public.town_towns where id = tid)||'（期望 3994000：3 人 ×2000）錢增='||((select sum(money) from public.town_residents where town_id = tid) - v_m0)||'（期望 6000）'||E'\n';
   -- 基金太少
   update public.town_towns set fund = 10 where id = tid;
-  update public.town_powers set log = '[]'::jsonb where town_id = tid;
+  update public.town_powers set log = '[]'::jsonb, pay_at = null where town_id = tid;
   begin perform public.town_power(ra,'1234','use','payout',null,5); rep := rep||'基金 10：沒被擋（錯）'||E'\n'; exception when others then rep := rep||'基金太少：'||sqlerrm||E'\n'; end;
   -- 投票通過：15%（> 10%）
   update public.town_towns set fund = 30000 where id = tid;
-  update public.town_powers set log = '[]'::jsonb where town_id = tid;
+  update public.town_powers set log = '[]'::jsonb, pay_at = null where town_id = tid;
   v_f0 := 30000; v_m0 := (select sum(money) from public.town_residents where town_id = tid);
   j := public.town_power(ra,'1234','use','payout',null,15,'vote');
   rep := rep||'紅包投票發起：'||(j->>'msg')||E'\n';
@@ -167,7 +167,7 @@ begin
   perform public.town_power(rc,'1234','view');
   rep := rep||'紅包投票通過（贊成 2 票就夠）：基金='||(select fund from public.town_towns where id = tid)||'（期望 25500 = 30000 − 3×1500）錢增='||((select sum(money) from public.town_residents where town_id = tid) - v_m0)||'（期望 4500）紀錄 via='||(select z.e->>'via' from public.town_powers p, jsonb_array_elements(p.log) z(e) where p.town_id = tid and z.e->>'k' = 'payout' limit 1)||E'\n';
   -- 投票沒過：只有發起人 1 票
-  update public.town_powers set log = '[]'::jsonb where town_id = tid;
+  update public.town_powers set log = '[]'::jsonb, pay_at = null where town_id = tid;
   perform public.town_power(ra,'1234','use','payout',null,15,'vote');
   update public.town_powers set vote = jsonb_set(vote, '{end}', to_jsonb((now() - interval '1 minute')::text)) where town_id = tid;
   perform public.town_power(rc,'1234','view');
@@ -177,7 +177,7 @@ begin
   rep := rep||'名稱：'||public.town_pw_name('event')||'／'||public.town_pw_name('appoint')||'／'||public.town_pw_name('payout')||'／'||public.town_pw_name('relocate')||E'\n';
   -- 6) 舊權力不受影響
   update public.town_residents set place='street', sleeping=false, money=5000, items='{}'::jsonb, seen_at=now() where town_id = tid;
-  update public.town_powers set log = '[]'::jsonb where town_id = tid;
+  update public.town_powers set log = '[]'::jsonb, pay_at = null where town_id = tid;
   j := public.town_power(ra,'1234','use','jail',rb,30);
   rep := rep||'舊關人照常：'||(j->>'msg')||E'\n';
   rep := rep||'toggle 不能關新權力？（可關 event 屬於設計：）'||(case when (select count(*) from public.town_powers where town_id = tid) = 1 then 'ok' else '?' end)||E'\n';
