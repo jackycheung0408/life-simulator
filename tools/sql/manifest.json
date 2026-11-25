@@ -1020,6 +1020,21 @@
    ]
   },
   {
+   "file": "town_payout_cd.sql",
+   "kind": "patch",
+   "needs": [
+    "town_powers2.sql"
+   ],
+   "note": "全民紅包冷卻改讀 town_powers.pay_at（不再靠 log 最近 60 筆）；就地補丁 town_pw2_do；重套 town_powers2.sql 後要再套"
+  },
+  {
+   "file": "town_payout_cd_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_payout_cd.sql"
+   ]
+  },
+  {
    "file": "town_catalog1.sql",
    "kind": "patch",
    "needs": [
