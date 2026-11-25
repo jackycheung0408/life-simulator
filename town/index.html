@@ -259,7 +259,7 @@ var m=/[?&]t=([A-Za-z0-9]+)/.exec(location.search),T=m?m[1]:"",loaded=0,LP=windo
 function mine(){try{return JSON.parse(localStorage.getItem("town-mine")||"[]")}catch(e){return[]}}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function add(src){var s=document.createElement("script");s.src=src;s.async=false;document.body.appendChild(s)}
-function load(){if(loaded)return;loaded=1;add("icons.js?v=28");add("town.js?v=396");add("sfx.js?v=4")}
+function load(){if(loaded)return;loaded=1;add("icons.js?v=28");add("town.js?v=397");add("sfx.js?v=4")}
 function ago(t){if(!t)return"";var s=(Date.now()-t)/1e3;return s<90?"剛剛上線":s<3600?Math.round(s/60)+" 分鐘前上線":s<86400?Math.round(s/3600)+" 小時前上線":Math.round(s/86400)+" 天前上線"}
 var R=function(x,y,w,h,f){return'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+f+'"/>'};
 var HOUSE='<svg viewBox="0 0 12 12" shape-rendering="crispEdges">'+R(3,1,6,1,"#d9534f")+R(2,2,8,1,"#d9534f")+R(1,3,10,1,"#d9534f")+R(2,4,8,7,"#f4ead6")+R(5,7,2,4,"#8b5a2b")+R(3,5,2,2,"#9fd8ff")+R(7,5,2,2,"#9fd8ff")+'</svg>';
@@ -294,7 +294,7 @@ if(T){add("ld.js?v=2");var NS=["載入程式","連線小鎮","讀取角色","進
 function tip(){var e=document.getElementById("ldx");if(e)e.textContent="小提示：「"+TP[ti++%TP.length]+"」"}
 LP.stage=function(n){if(!n){clearInterval(tt);clearTimeout(ts);return}var l=lgd.firstChild;if(!l||l.className!="ld")return;[].forEach.call(l.querySelectorAll(".ls i"),function(x,i){x.className=i<n-1?"on":i==n-1?"on cur":""});document.getElementById("ldt").textContent=n+"／4 "+NS[n-1]+"…"};
 lgd.innerHTML='<div class="ld"><div class="ldp">'+PIG+'</div><b>小豬鎮</b><div class="ls"><i></i><i></i><i></i><i></i></div><small id="ldt"></small><small id="ldx"></small><div id="lds"></div></div>';LP.stage(1);tip();tt=setInterval(tip,3000);
-ts=setTimeout(function(){clearInterval(tt);document.getElementById("ldx").textContent="網路比較慢，再等或重試";var b=document.createElement("button");b.className="ldr";b.textContent="再試一次";b.onclick=function(){location.reload()};document.getElementById("lds").appendChild(b)},6000);
+ts=setTimeout(function(){clearInterval(tt);var x=document.getElementById("ldx");if(!x)return;x.textContent="網路比較慢，再等或重試";var b=document.createElement("button");b.className="ldr";b.textContent="再試一次";b.onclick=function(){location.reload()};document.getElementById("lds").appendChild(b)},6000);
 try{var SB="https://gerqdagicybtyilihvvm.supabase.co/rest/v1/rpc/",K="sb_publishable_bPvbJFXUM_Ax2iPLeTS5zw_foV60x5y",pre=LP.pre={};
 function pf(fn,o){var b=JSON.stringify(o);pre[fn]={b:b,t:Date.now(),f:fetch(SB+fn,{method:"POST",keepalive:true,headers:{apikey:K,"Content-Type":"application/json"},body:b})};pre[fn].f.catch(function(){})}
 pf("town_state",{tid:T.toUpperCase().slice(0,8)});var a0=mine().filter(function(x){return x.tid==T.toUpperCase()})[0];if(a0&&a0.rid)pf("town_login",{rid:a0.rid,pin:a0.pin})}catch(e){}
