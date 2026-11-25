@@ -56,6 +56,8 @@ const SC=[
  {n:"in-harbor",mut:r=>{r.place="harbor";r.x=74;r.y=21;r.items.fi="harbor";r.money=300000}},
  {n:"door-realty",mut:r=>{r.place="realty";r.x=75;r.y=5},soft:1},
  {n:"home-inside",mut:r=>{r.place="home:1"}},
+ {n:"newbie",nb:1,mut:r=>{sessionStorage.setItem("nb","1");localStorage.removeItem("town-tips");Object.keys(localStorage).filter(k=>/^town_(ups|ob)/.test(k)).forEach(k=>localStorage.removeItem(k));delete r.items.tr;delete r.items.wish;delete r.items.at;r.place="street";r.x=15;r.y=12},run:async p=>{const st=()=>p.evaluate(()=>({m:!document.querySelector("#modal").classList.contains("hide")&&document.querySelector("#mbody").innerText.slice(0,12),t:!document.querySelector("#tips").classList.contains("hide")}));const seq=[];for(let i=0;i<14;i++){const x=await st();seq.push(JSON.stringify(x));if(x.m){await p.evaluate(()=>{const b=document.querySelector("#obn");if(b)b.click();else document.querySelector("#modal").classList.add("hide")})}if(x.t&&!x.m){await p.evaluate(()=>document.querySelector("#tipok").click())}await p.waitForTimeout(700)}console.log("SEQ "+[...new Set(seq)].join(" > "))}},
+ {n:"walking-stop",mut:r=>{r.place="street";r.x=15;r.y=12},run:async p=>{await p.evaluate(()=>{document.querySelector("#obbar")&&document.querySelector("#obbar").remove();document.querySelector("#homeBtn").click()});await p.waitForTimeout(600);const t1=await p.evaluate(()=>document.querySelector("#panel").innerText.includes("走路中"));await p.evaluate(()=>{[...document.querySelectorAll("#acts button")].find(b=>b.innerText.includes("停下")).click()});await p.waitForTimeout(1500);const t2=await p.evaluate(()=>document.querySelector("#panel").innerText.includes("走路中"));console.log("STOP walking-before="+t1+" after="+t2)}},
  {n:"home-door",mut:r=>{r.place="home:1";r.items.dr="1"}},
  {n:"in-restaurant",mut:r=>{r.place="restaurant";r.x=5;r.y=14;r.items.fi="restaurant"}},
  {n:"walking",mut:r=>{r.place="street";r.x=15;r.y=12},run:async p=>{await p.evaluate(()=>{document.querySelector("#obbar")&&document.querySelector("#obbar").remove();document.querySelector("#homeBtn").click()});await p.waitForTimeout(600)}},
@@ -212,14 +214,14 @@ for(const [w,h] of SIZES){
   const p=await ctx.newPage();
   p.on("console",m=>{if(m.type()=="error"&&!/Failed to load resource|favicon/.test(m.text()))errs.push(m.text().slice(0,120))});p.on("pageerror",e=>errs.push("pageerror: "+String(e.message).slice(0,120)+" @"+String(e.stack||"").split("\n")[1]));
   try{
-   await p.addInitScript(()=>{try{localStorage.setItem("town-tips","1");localStorage.setItem("town-mine",JSON.stringify([{tid:"MOCK01",name:"測試小鎮",rid:1,pin:"1111",me:"阿明",at:Date.now()}]))}catch(e){}});
+   await p.addInitScript(()=>{try{if(!sessionStorage.getItem("nb"))localStorage.setItem("town-tips","1");localStorage.setItem("town-mine",JSON.stringify([{tid:"MOCK01",name:"測試小鎮",rid:1,pin:"1111",me:"阿明",at:Date.now()}]))}catch(e){}});
    await p.goto(BASE);await p.waitForSelector("#acts button,#panel",{timeout:8000}).catch(()=>{});await p.waitForTimeout(800);
    // 改假資料庫再重載
    await p.evaluate(m=>{const db=JSON.parse(sessionStorage.getItem("mockdb"));const r=db.res.find(x=>x.id==1);r.items=r.items||{};r.items.tr=[];r.items.wish={k:"none",m:0};r.items.at={init:1,st:0,ag:0,ch:0,iq:0,lk:0};const f=eval("("+m+")");f(r);sessionStorage.setItem("mockdb",JSON.stringify(db))},sc.mut.toString());
    await p.reload();await p.waitForTimeout(1200);
    // 關掉新手／更新／特質等彈窗與提示
-   for(let i=0;i<5;i++){await p.waitForTimeout(500);const open=await p.evaluate(()=>!document.querySelector("#modal").classList.contains("hide"));if(!open)break;await p.evaluate(()=>{document.querySelector("#modal").classList.add("hide")})}
-   await p.evaluate(()=>{const u=document.querySelector("#upd");if(u)u.classList.add("hide");const t=document.querySelector("#tips");if(t)t.classList.add("hide")});
+   if(!sc.nb)for(let i=0;i<5;i++){await p.waitForTimeout(500);const open=await p.evaluate(()=>!document.querySelector("#modal").classList.contains("hide"));if(!open)break;await p.evaluate(()=>{document.querySelector("#modal").classList.add("hide")})}
+   if(!sc.nb)await p.evaluate(()=>{const u=document.querySelector("#upd");if(u)u.classList.add("hide");const t=document.querySelector("#tips");if(t)t.classList.add("hide")});
    if(sc.run)await sc.run(p);
    await p.waitForTimeout(400);
    const res=await p.evaluate(CHECK);
