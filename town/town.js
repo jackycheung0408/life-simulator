@@ -386,7 +386,7 @@ const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶"
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
 const UPDATES=[
-  {id:"move-all-1125",date:"11/25",title:"人人可搬設施",items:["玩家自費就能搬設施","鎮長免費、立刻搬","右上按鈕縮小不擋畫面"]},
+  {id:"move-all-1125",date:"11/25",title:"人人可搬設施",items:["玩家自費就能搬設施","鎮長免費、立刻搬","看全鎮、回家移到面板上緣"]},
   {id:"home-music-1125",date:"11/25",title:"回家鈕與音樂",items:["新增「回家」鈕，電腦按 H","音樂預設開，換場地不重疊","常用列的按鈕面板照樣有"]},
   {id:"story-1124",date:"11/24",title:"主線劇情開跑",items:["選單「主線」開始連載故事","8 章任務，通關領稱號與造型","可暫停，不影響其他玩法"]},
   {id:"mayor2-1124",date:"11/24",title:"鎮長新權力",items:["發動市集日、煙火夜","任命警長與財務官","全民紅包平分基金"]},
@@ -2557,7 +2557,7 @@ const goHome=(from)=>{try{UT.hit("home:"+from)}catch(e){}const why=homeWhy();if(
  if(r.place=="home:"+me&&!(w.path&&w.path.length)){if(!inside(r))act("enter");else toast("你已經在家了");return}
  w.path=[];pendingThen=async()=>{await act("enter")};walkTo("home:"+me,door(r.slot))};
 {const hb=document.createElement("button");hb.id="homeBtn";hb.setAttribute("aria-label","回家");hb.innerHTML='<span class="hi">⌂</span>回家';hb.onclick=()=>goHome("btn");const t=$("zoom");t.parentNode.appendChild(hb);
- const st=document.createElement("style");st.textContent="#homeBtn{display:none;position:fixed;top:calc(var(--hud) + 58px);right:8px;width:48px;height:44px;opacity:.85;background:#141a3a;border:2px solid #fff;color:#fff;z-index:30;font-size:11px;line-height:13px;flex-direction:column;align-items:center;justify-content:center;gap:0}body.ingame #homeBtn{display:flex}#homeBtn.poor{opacity:.5}@media (min-width:900px){#homeBtn{top:calc(var(--hud) + 8px);right:64px}}";document.head.appendChild(st);
+ const st=document.createElement("style");st.textContent="#homeBtn{display:none;position:fixed;top:calc(var(--hud) + 58px);right:8px;width:48px;height:44px;opacity:.85;background:#141a3a;border:2px solid #fff;color:#fff;z-index:30;font-size:11px;line-height:13px;flex-direction:column;align-items:center;justify-content:center;gap:0}body.ingame #homeBtn{display:flex}#homeBtn.poor{opacity:.5}@media (min-width:900px){#homeBtn{top:calc(var(--hud) + 8px);right:64px}}@media (max-width:899px){body.ingame #zoom,body.ingame #homeBtn{top:auto;bottom:calc(var(--phpx,300px) + var(--nav,56px));width:60px;height:44px;opacity:1;border-bottom:0}body.ingame #homeBtn .hi{font-size:16.5px;line-height:16px}body.ingame #zoom{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;white-space:nowrap}body.ingame #homeBtn{right:8px}body.ingame #zoom{right:72px}body.ingame.social #zoom,body.ingame.social #homeBtn{display:none}}";document.head.appendChild(st);
  const sync=()=>{const why=homeWhy();hb.classList.toggle("poor",!!why);hb.title=why||"回家（H）"};setInterval(sync,1000)}
 $("zoom").onclick=()=>{if(cam.user&&!zoomFar){cam.user=false;camFree=false;zoomLbl();resize();return}zoomFar=!zoomFar;cam.user=false;$("zoom").textContent=zoomFar?"🔍 拉近":"🗺️ 看全鎮";camFree=zoomFar;resize()};
 // ── PC：游標 hover 提示、鍵盤（≥900px） ──
