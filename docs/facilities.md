@@ -1,0 +1,71 @@
+> 設施室內、進館、公共建設、房子家具、購買設施、莊園：改設施或室內時讀（從 CLAUDE.md 整段搬出，原文未改）
+
+## 各設施更多互動、每日任務板、常客、坐下逗留（SQL 已套用 2026-11-09，實測通過：`supabase/town_fac.sql`，要在 `town.sql`、`town_social.sql` 之後；實測 `supabase/town_fac_test.sql`，最後 rollback，結果在錯誤訊息 REPORT）
+- **不改 `town_act`**：單一 RPC `town_fac(rid,pin,act,item,target)`，前端 `town.js` 的 `FAC` 表（價格、說明、地點）與 SQL 要一致，`node town/test.js` 會比對價格與任務數量。設施面板直接列出（`facBtns`，見「互動按鈕一律第一層」）；選單「每日任務」→ `taskModal`。
+- 動作：餐廳 `special` 特餐 €200（飽足 +40、心情 +12、每天依日期換菜名）、`takeout` 打包 €120（零食 +1）；咖啡廳 `latte` €110（精力 +45、集點 +1）、`redeem` 滿 8 點免費、`treat` 請客 €200（對方心情 +10、好感 +3）、`song` 點歌 €50（在場的人心情 +3）；電影院 `film` €280（每天換片 4 種輪替）、`popcorn` €80；健身房 `spar` 對練（雙方精力 −12、好感 +2）、`checkin` 簽到（連續 3 天 +€60、7 天 +€200）；公園 `fish` 釣魚（餌 €30、期望 25.5，略負）、`picnic` €150；公園／廣場 `frisbee` 丟飛盤、`photo` 自拍／合照。
+- 資料（缺值 = 預設，舊角色免遷移）：`items.fq` 各地點互動次數（≥5 −10%、≥15 −15%，只折該地點的花費）、`items.cs` 集點卡、`items.gy` 簽到、`items.fa` 今天的互動統計與已領任務、`items.sit` 坐下開始時間、冷卻在 `items.cd['f_'||act||對方id]`。
+- 雙人互動好感走 `town_bond`（吃每日上限）、一起加成走 `town_tg`（每人每天 8 次，與設施小事件共用）。
+- **每日任務**：每人每天三個（從 8 個任務挑，`(角色id%8 + 台灣日序) % 8` 起算，間隔 3、5），各 €500，三個全領再 +€1000（2026-11-16 起 ×10；對經濟的影響：一天最多 €2500，約等於實習生打工 13 次，所以比「勤勞獎金」大很多）。新增任務要同步 SQL `town_fac_done` 與前端 `TASKS／taskDone`。
+- **坐下逗留**（餐廳、咖啡廳、公園、廣場）：`sit` 開始、`up` 結算，每分鐘精力 +0.5、心情 +0.4，上限 20 分鐘，不到 3 分鐘或換了地點沒有獎勵，有人在場心情多 +2。
+
+## 進到室內，主畫面就是室內（2026-11-10，前端）
+- 自己人在室內（設施裡 `fin`、自己家屋裡 `inside`、朋友家屋裡 `vin`；住院、坐牢睡著的人也算）而且沒在走路時，`frame()` 開頭 `drawRoomStage()` 把室內放大畫在主畫面（`stageRoom()` 判斷；站在朋友家門口只看得到室內的 `visit` 模式仍是面板上的小畫布），整張地圖不畫，走路時才回到地圖。面板的小畫布 `#room` 在這種情況下不顯示（`drawRoom` 仍然畫它，主畫面是把它放大 `drawImage`）。
+- 點擊：主畫面走 `stageTap` → `roomTap(fx,fy)`（面板小畫布也用同一個函式）：點人 = 選他（面板出現面對面互動；人的身體畫在腳的上一格，所以兩格都算點到）、點物件 = 按面板上對應的按鈕、點空白處提示「點下面的『出門』離開」。室內時拖曳、縮放地圖都停用。
+- 睡著的人（住院、牢裡）躺在病床 `hbed`／上下鋪 `bunk` 上（沒有床就躺在站位上），頭上飄 Z、名字。
+- 看畫面時別忘了：只有「你自己」在室內才換主畫面；朋友在室內、你在街上，地圖照舊。
+
+## 走進設施裡面（咖啡廳、餐廳、健身房、監獄、醫院、警察局、市政廳；SQL 已套用 2026-11-09，實測通過：`supabase/town_fi.sql`，要在 `town.sql`、`town_social.sql` 之後；實測 `supabase/town_fi_test.sql`，最後 rollback，結果在錯誤訊息 REPORT）
+- 獨立 RPC `town_fi(rid,pin,op,place)`（op = enter／exit），不改 `town_act`。資料 `items.fi` = 地點代號（`cafe`／`restaurant`／`gym`），**只有 `fi` 等於現在的 `place` 才算在裡面**（SQL `town_fin`、前端 `fin(r)`），走到別處 place 一變就自動失效（離線超過一小時回家睡也一樣），舊角色缺值 = 在外面；和自家進屋的 `items.dr` 互不相干。**2026-11-17 起前端要求進去才能用設施功能**：有室內的地點（咖啡廳、餐廳、健身房、醫院、警察局、市政廳、監獄）門口的面板只留「進去」（`g:"pin"`，置頂醒目）＋非設施動作（移動、朋友互動、車輛、清便便等），設施動作一律不出現；店裡置頂有「出門」。**2026-11-18 起連伺服器也要求進館**（見下一節「所有設施都要進館」）；有室內的地點增加到 咖啡廳、餐廳、健身房、超市、電影院、公司、拉菲、證交所、格鬥場、車行、屠宰場＋醫院、警察局、市政廳、監獄。
+- 流程：走到設施門口（`arrived`）自動呼叫 enter（失敗就留在門口，面板第一顆是「進去」）；面板在裡面時標題加「（店裡）」並多一顆「出門」；`walkTo` 一開始會先 exit（`leaveRoomLocal`）；在裡面的人地圖上不畫（`draw` 的 `fin` 過濾）、設施兩扇窗戶亮燈。
+- 畫面：面板標題下方的 `<canvas id="room">`（12×5 格、每格 24px，第 0 列是牆，`drawRoom`）。**室內格子系統**（之後家裡擺家具可共用）：物件 = `[代號,格x,格y]`，代號查 `ITEM`（`[像素圖示, 名稱, 對應面板按鈕的文字（null = 裝飾）, 是否擋住站位]`）；場景 `ROOMS[地點] = {floor, wall, items:[[代號,x,y]…]}`。點物件 = 按面板上文字比對到的那顆按鈕；同在裡面的人（`fin` 且醒著）由 `roomSpots` 依離中央遠近排在沒被擋住的地板格，一人一格不重疊，名字在頭上。
+- **互動動畫**：地圖上 `FAC_FX`（設施互動 → `spawnFx` 類型，新增 steam／notes／check／disc／fishing／flash，電影院、公園、廣場也有）；室內 `ROOM_ACT`（互動 → 物件代號）＋`playRoomFx`／`roomFxDraw`：角色走到物件旁（0.4 秒）→ 播動畫（0.9 秒）→ 走回（0.3 秒）。新增動畫用像素方塊或 `PIXICON_NAME`，不要用 emoji 文字。`node town/test.js` 檢查：地點存在、物件在格內不重疊、每個物件對得到按鈕、SQL 白名單和 `ROOMS` 一致、`fin` 判斷。
+- **新增可進入的設施**：`ROOMS` 加一列（物件要用 `ITEM` 已有的代號，新物件先加進 `ITEM`）、`town_fi.sql` 白名單（`pl not in (...)`，測試會比對）加地點、用 `tools/town-mock.js`（已有 `town_fi` 假回應）看畫面。目前有咖啡廳、餐廳、健身房、醫院、警察局、市政廳、監獄（醫院：昏倒／住院的人由 `town_admit` 直接寫 `items.fi = 'hospital'`，所以睡著的病人也算在裡面；監獄：入獄的人自動算在裡面，探監的人才需要「進去」；`town_fi.sql` 白名單含 jail），其餘設施之後陸續開放。
+
+## 所有設施都要進館（2026-11-18；前端已上線 v240；SQL **已套用正式站 2026-11-18（順序 town_fi→town_infac→town.sql→town_fac→town_stock；回滾實測 town_infac_test.sql：62 項全過、0 錯，含不在室內被擋、進去可做、出門又被擋、入獄者先被監獄擋、開關關閉後不擋、錢 3884 不為負）**）
+- **範圍**：有建築門的設施全要進館（`ROOMS` 有場景）；公園、廣場與路邊物件是戶外，不用進。`ROOMS` 新增 超市／電影院／公司／拉菲／證交所／格鬥場／車行／屠宰場（物件對應面板按鈕文字；新圖示 `till／screen／seat／pc／ring／cleaver`；動畫 `wk_type／wk_scan／wk_docs／screen／till／pcs／ring／vcar／cleaver`，`ROOM_ALT` 讓 `spar` 在格鬥場找擂台）。打工動畫 `WORK_FX` 公司、拉菲、超市改在室內桌子／收銀台播。
+- **前端**：走到門口自動進去（沿用 `arrived`→`enterRoom`）；門口只留「進去」＋非設施按鈕；`act`（`FACTS` 清單）、`doFac`、股票買賣一開始都會 `ensureIn()` 自動先進去再做（建議下一步、鍵盤、點擊即互動都經過這裡）。**舊伺服器相容**：`town_fi` 回「這裡還不能進去」就記 `NOENTER[place]`，該地點門口照舊顯示全部設施動作，不會卡住玩家。
+- **伺服器**（`supabase/town_infac.sql`）：`town_infac_on()`（表 `town_flags` 的 `infac` 列，沒有 = 開；緊急關：`insert into town_flags values('infac',false) on conflict (k) do update set v=false`）、`town_need_in_pl(r,pl)`、`town_need_in(r,act,item)`。呼叫點（各一行）：`town_act` 在入獄與設施開關檢查之後（work、cowork、job、buy、browse、movie、spar、sneak、vbuy、license、insure、vfix、vsell、dine、coffee、workout）、`town_fac`（`pl := r.place` 之後，`claim`／`up` 除外）、`town_stock_trade`。例外：公園／廣場、入獄者、監獄／醫院／警察局／市政廳（各自的 RPC）、格鬥場邀約 PK（不檢查）。
+- **套用順序**（先確認前端 v240 已上線）：`town_fi.sql` → `town_infac.sql` → `town.sql` → `town_fac.sql` → `town_stock.sql`（後三份含 `town_need_in` 呼叫，所以一定要在 `town_infac.sql` 之後）；實測 `supabase/town_infac_test.sql`（回滾，REPORT）。要用 AskUserQuestion 讓使用者核准。
+- `tools/visual/run.mjs` 新增 8 個 `in-<地點>` 情境；基準圖尚未更新（`--update` 前先看截圖）。已知：390 寬時 note／職階副標被截成「…」、rafi 的 `span.ai` 18px，屬既有樣式。
+
+## 購買一律在設施：不動產公司、碼頭船行（2026-11-23 第一批；前端 v328；SQL `supabase/town_shops1.sql` **已套用正式站 2026-11-23（旗標 shops_in 仍關；回滾實測 `town_shops1_test.sql` 通過：旗標預設關、關著街上買遊艇可、開著街上買莊園／不動產買遊艇／船行捐款被擋、不動產買莊園 $600000 與升級 hl=2、船行買遊艇、市政廳捐款可、走去新地點可、x=86 擋 x=84 可；居民位置與錢套用前後完全一致）**，實測 `town_shops1_test.sql`（回滾，REPORT））
+- 使用者規則：任何商品、不動產都在鎮上設施裡買，不從選單買。**COLS 71→85**（`town.sql` 仍寫 `px > 71`，由 `town_shops1.sql` 就地改成 85）。新建築：不動產公司 `realty` `[73,0,6,5]` 門 `(75,5)`（房子升級、莊園）、碼頭船行 `harbor` `[73,17,6,4]` 門 `(74,21)`（遊艇；出海仍在碼頭邊，船行有「去碼頭出海」走到 (68,16)）。與市政廳／碼頭相隔 2 格。ROOMS、店員（房仲小陳、船長老王）、FEATS、buildMap 都有。
+- 伺服器：`town_shops1.sql` 用 pg_get_functiondef 就地改 `town_place_name／town_feature／town_features／town_fi／town_need_in_pl／town_act（move 白名單、px、升級）／town_econ_use`（找不到錨點就整檔失敗），加 `layout4` 遷移與旗標 `shops_in`（`town_flags`，預設關）：開了之後房子升級要在不動產公司裡、遊艇／莊園要在船行／不動產公司裡、拍賣與捐款要在市政廳裡；關著時舊入口照舊（舊客戶端相容）。人在不動產公司時升級不必在屋裡（旗標關也行）。開：`insert into public.town_flags(k,v) values ('shops_in',true) on conflict (k) do update set v=true;`。**套用順序在 `town_econ_use2.sql` 之後；重套 `town.sql`／`town_fi.sql`／`town_casino_fi.sql`／`town_econ_sink.sql` 後要再套一次。**
+- 前端：「小鎮經濟」「房屋升級」保留舊入口並加「去 XX」導引按鈕；市政廳面板多「拍賣與捐款」。**第二批**：家具行、服飾店（`shopModal`／`relook`）；第三批：移除舊入口、開旗標。
+- `node town/test.js` 檢查新建築間距 ≥2、不貼碼頭、SQL 矩形一致。`tools/visual` 新增 `in-realty／in-harbor／door-realty`（基準圖未 `--update`）。
+
+## 購買一律在設施（第二批，2026-11-23；前端 v337；SQL `supabase/town_shops2.sql` **已套用正式站 2026-11-23（Town session 用瀏覽器套用；唯讀確認 town_act／town_fi／town_need_in_pl／town_place_name 含 furnshop；旗標 shops_in 仍關；回滾實測 `town_shops2_test.sql` 通過：地點名、走路、進館、買好床／皇冠價格、買錯店擋、旗標關開兩種行為、錢不為負）**，實測 `town_shops2_test.sql`（回滾，REPORT），在 `town_shops1.sql` 之後）
+- 分兩棟（新區 x 72～84 放得下）：家具行 `furnshop` `[73,9,6,5]` 門 `(75,14)`（家具、小道具、門口擺飾）、服飾店 `wearshop` `[81,9,4,5]` 門 `(82,14)`（造型服飾＋「試穿換造型」＝原 `relook`）。店員木工阿福、裁縫小美，ROOMS／FEATS／buildMap／ROOM_ACT（買了播櫃台動畫 `buyf`／`buyw`）齊全。購買走 `shopModal(mode)`（furn／deco／wear；不帶參數＝舊入口＋「去家具行／服飾店」導引），背包多「去買更多」，超市「家具、服飾、擺飾」鈕改導引。**超市目錄 `town_catalog` 沒動。**
+- 伺服器：`town_shops2.sql` 就地改地點白名單（同第一批）與 `town_act` 的 `buy`（w:／d:／f:）：人在服飾店（w:）／家具行（f:、d:）裡才能買；旗標 `shops_in` 關著時超市仍可買、開著時超市擋。含 `layout5` 遷移。拍賣與捐款併進市政廳（第一批 SQL 已擋、第二批前端加「拍賣與捐款」鈕）。第三批：移除舊入口、開旗標。
+
+- **拍賣／捐款併進市政廳（第三批前半，前端 v339，無新 SQL）**：伺服器端（旗標開時拍賣出價與捐款要在市政廳裡）已含在 `town_shops1.sql`。市政廳室內新增拍賣台（`auction`，「拍賣出價」→ `econBid`）、基金箱（`cfund`，「捐款 1 萬／10 萬」→ `econGo`）；「小鎮經濟」選單與 `econModal` 保留舊入口加導引。剩：移除舊入口、開旗標 `shops_in`。
+
+## 房子與室內（2026-11 起家具自由擺放；SQL 已套用 2026-11-09（先 `town_home.sql` 再 `town.sql`），實測通過；`supabase/town_home.sql`，實測 `supabase/town_home_test.sql`，最後 rollback，結果在錯誤訊息 REPORT）
+- 存在 `items`：`hl` 房子等級（缺值 = 1）、`f` 已買家具與小道具、**`fp` 擺放座標 `[[代號,x,y],…]`**（新）、`fu` 已擺出來的代號清單（`town_fu`／前端 `hasF` 照舊讀它，效果「有擺出來才有效」不變；舊角色的 `fu` 是 9 格陣列帶 `""`，照樣有效）。門口擺飾 `d` 仍是 4 樣上限，與家具無關。
+- **舊資料**：沒有 `fp` 的舊角色，`town_fp`／前端 `fpOf` 用舊 9 格 `fu` 換算（格 i → x=1+(i%3)*2、y=1+⌊i/3⌋），`town_migrations` 的 `home1` 一次性寫進 `fp`；沒有家具的人不寫。第一次在新版擺放時 `fu` 會被整理成乾淨的代號清單。**絕不重置、不丟家具。**
+- **房間大小**（寬×地板列數，另有第 0 列牆；`HOME_DIM`／SQL `town_home_w/h`）與可放件數（`HOUSES[..][2]`／`town_home_cap`，含家具和小道具）：小屋 6×3／6 件、公寓 8×3／10、獨棟 9×4／15、豪宅 10×4／20。**上限都 ≥ 舊的 4／6／8／9 格，舊家具一定放得下**。升級房子 €20000／€150000／€400000，房間跟著變大。
+- 4 級外觀：小屋（免費）、公寓、獨棟、豪宅；地圖外觀在 `buildMap` 的房子迴圈（2 級窗台花盆、3 級煙囪＋圍籬、4 級金屋脊＋門柱）。
+- 家具（超市 `town_shop` kind='furn'，買用 `buy` item `f:代號`，每種一件）：好床 €3500 睡覺精力 +90/小時（`town_tick`）、冰箱 €4500 吃飯 €30 且飽足 +48、按摩椅 €6000 快速休息 +100、書櫃 €2500 先佔位、沙發 €4000 看電視心情 +22、電視櫃 €3000 電視冷卻 10 分、地毯 €1000、盆栽 €500。**小道具**（新，一次性購買，純裝飾）：相框 €300、掛畫 €900（這兩個只能掛第 0 列牆）、檯燈 €600、玩具 €400、書堆 €500。SQL 用 `town_fu(r,代號)`，前端 `hasF`、`FURN`，兩邊數值要一致。
+- **擺放**：`town_act(act='furn', item='put:代號:x:y' | 'clr:代號')`（要在屋裡）。`put` 同時是擺新的和移動；一格一件；牆上道具（`WALLF`：frame、painting）y 必須是 0、其他 y ≥ 1；超出房間、沒買、格子有東西、超過件數都會被擋，移動已放的不算新增。SQL `town_furn`（獨立函式，`town_act` 只呼叫它）；**舊格式 `set:格:代號`／`clr:格` 已取消**（舊畫面會提示重新整理）。
+- **畫面**：前端 `interiorModal(id,sel)`（自己的家可擺、移動、收回、升級；朋友的家「看室內」只能看）＝一張 canvas（`drawHomeEdit`，每格 24px 原圖放大、點格子），點家具選取（黃框）→ 點空格移動，背包的家具點名字 → 點空格放下；選取時空格顯示白點、牆道具只能點牆。面板在家屋裡時標題下也有同一張小畫面（`drawRoom`，共用「走進設施裡面」的格子系統：`roomOf(r)` = 設施裡（`fin`）或自家屋裡（`inside`）；家裡的 `homeRoom` 物件 = `[代號,x,y]` 用 `furnDraw` 畫、`FLAT`（地毯、玩具、書堆）和 `WALLF` 不擋人站、站位 `roomSpots`），點家具就是做對應互動（`HACT`：床 = 睡覺、冰箱 = 吃飯、沙發／電視櫃 = 看電視、按摩椅 = 快速休息），點裝飾或空地開「佈置」。
+- **互動動畫**（`HOME_ACT`／`playRoomFx`／`roomFxDraw`，約 1.7 秒）：吃飯 → 走到冰箱前，冰箱開門透光、食物飄；看電視 → 走到沙發坐下（沒有沙發就走到電視櫃前），電視櫃螢幕閃；快速休息 → 坐上按摩椅，震動；快速睡覺／睡覺 → 走到床躺下（`drawRoom` 睡著時一律畫成躺在床上，沒有床就躺地板，飄 Z）。沒有對應家具就在房間中央演、不會卡住。
+- **沒家具＝陽春版（2026-11-09，不送基本款、不擋互動、舊角色不扣錢；SQL 已套用（2026-11-16 查 `town_tick` 含 `bedg`），實測 `supabase/town_furnfx_test.sql`）**：在家互動不需要家具，缺對應家具就打折。睡覺：沒好床睡地上，精力每小時 +64（好床 90）、清潔多掉 1／小時、醒來（`wake`、快速睡覺到時）心情 −3，快速睡覺同比例（約 +40，好床 +56）；吃飯：沒冰箱冷食飽足 +32、心情 −3、價格 €60 不變（有冰箱 +48、€30）；上廁所：沒馬桶清潔 −10、心情 −3；洗澡：沒淋浴間水桶，清潔只回 70% 缺口、精力不加（有才回滿 +10）；看電視：沒電視櫃只發呆心情 +6、15 分鐘冷卻（有電視櫃 +15，再加沙發 +7、冷卻 10 分鐘）；快速休息：按摩椅 +100、沙發 +70、都沒有 +50。新家具馬桶 `toilet` €2000、淋浴間 `shower` €3000（超市，`town_home.sql`）。面板按鈕副標寫「沒有冰箱：冷食…」，不灰掉。SQL 在 `town.sql` 的 `town_tick`（`bedg`）與 `town_act` 的 `eat／toilet／shower／tv／nap`；前端 `tickLocal`（`bed`、`hb`）、面板、`FURN`、`HACT`、`furnDraw`；`node town/test.js` 比對。注意：`town_tick` 的睡眠回復也用 `town_fu`，離線睡覺同樣適用。
+- 新增家具／小道具：`FURN` 加一列、`furnDraw` 畫圖、`FIC` 背包圖示（emoji → 圖示名）、`town_home.sql` 的 `town_shop` 與（掛牆才需要）`town_furn` 的 `k in (...)`；效果型家具再加進 `HACT`／`HOME_ACT`。`node town/test.js` 會比對房間大小、件數上限、小道具價格、掛牆清單和舊 `fu` 換算。
+- 套用順序：`town_home.sql` 先，再 `town.sql`（`town.sql` 的 `furn` 分支呼叫 `town_furn`，只套 `town.sql` 的話擺家具會報錯）。
+
+## 莊園獨立一棟（2026-11-24，前端 v352；SQL `supabase/town_estate_plot.sql` **已套用正式站 2026-11-24（回滾實測通過；老子 lx.ep=0、莊園與遊艇保留、錢不動）**，實測 `town_estate_plot_test.sql`（回滾，REPORT）；使用者決定：莊園帶、莊主在時朋友可參觀、派對沿用 $5000）
+- 莊園是地圖上另一棟建築，**原本的家不動**（房子不再因 `lx.estate` 換外觀）。位置在**莊園帶**：地圖最下方，只有有人買莊園才出現（`mapRows()` = `baseRows()` + ceil(最大序號+1 / 9) × 10）；一人一塊建築 7×7、每排 9 塊（x = 2+9i、y = baseRows+10×列+1）、門在建築正下方 (x+3, y+7)，間距 ≥2。前端 `estPos`／`estSync`（`apply` 呼叫，動態把 `PLACES["estate:<id>"]`、`ROOMS`、`NPCS` 補上）／`drawEstate`（沿用 v349 圖：塔樓、藍圓頂、金門、噴泉＋底座牆屋頂）／`ROOM_EST`（室內：宴會桌＝按「辦派對」、展示櫃、噴水池、鋼琴、水晶吊燈、管家阿德）。
+- 資料：`items.lx.estate` 仍是購買日期字串（舊資料與 `town_econ_use view` 不受影響）；新增 `items.lx.ep` 地塊序號（從 0、同鎮不重複；買莊園時 `town_estate_assign` 鎖鎮列配；前端缺 ep 時依（日期、id）暫算，與 SQL 遷移同順序）。地點 `estate:<居民id>`：走路白名單（對象要有莊園）、`py` 上限 40 → 120、`town_place_name`、進館走 `town_fi`（白名單接受 `estate:%`）＋`town_estate_gate`：莊主隨時可進；別人要「莊主在裡面（fi 等於該地點、醒著）」或「派對中（`lxc.pt` 未到期）」，否則「X 不在莊園裡，只能在門口等」。
+- 派對 `town_econ_fun party` 改要 `place='estate:自己'` 且在室內；開始後 30 分鐘（`lxc.pt`）朋友都能進；效果與價格不變。不動產公司面板：有莊園顯示「走去我的莊園」。遷移（一次性 `estate_plot`）：已有莊園沒有 ep 的居民依（購買日期、id）配序號，不動錢（正式站 2026-11-24 查到居民 35「老子」已有莊園）。
+- 套用順序：`town_econ_use2.sql`、`town_shops2.sql` 之後 → `town_estate_plot.sql`（用 pg_get_functiondef 就地改 `town_econ_use`／`town_econ_fun`／`town_fi`／`town_act`／`town_place_name`，找不到錨點整檔失敗）；**重套 `town.sql`／`town_fi.sql`／`town_econ_use2.sql` 後要再套一次**。`node town/test.js` 檢查常數、間距、`ROOM_EST` 物件、SQL 內容。
+
+## 遊艇出海、莊園派對、碼頭（2026-11-23；SQL `supabase/town_econ_use2.sql` **已套用正式站 2026-11-23（回滾實測全過：各擋條件都擋住、乘客心情 +25、派對 +15、睡著不受影響、基金 +600、錢不為負）**，實測 `town_econ_use2_test.sql`（回滾，REPORT），在 `town_econ_sink.sql` 之後；新 RPC `town_econ_fun(rid,pin,op)`，不動 `town_econ_use`）
+- 前端：地圖東南角碼頭 `DOCK[66,17,5,4]`（水面，`blocked`，`drawDock` 每幀畫、最多 4 艘遊艇、名牌「X 的遊艇」）；有莊園（`items.lx.estate`）的房子在 `buildMap` 換金屋脊＋旗＋白柱＋花園（只換外觀）。面板按鈕「出海」（遊艇擁有者在碼頭附近）、「辦派對」（莊園擁有者在自己家）。
+- 出海 $2000：自動帶碼頭附近（x±6、y±5）上線 5 分鐘內、醒著、沒入獄的居民最多 3 位（隨機，至少 1 位，乘客不用同意也不花錢，只有好處），每人（含船主）心情 +25，船主對乘客好感 +3（`town_bond`），船主 1 小時 1 次（`items.lxc.y`）。派對 $5000：自己的莊園室內（見「莊園獨立一棟」），全鎮上線 10 分鐘內醒著居民心情 +15、好感 +2，每台灣日 1 次（`items.lxc.p`）。7 成銷毀 3 成進基金，錢不夠擋、不欠款。
+
+## 莊園自由（2026-11-24；SQL `supabase/town_estate_free.sql` **已套用正式站 2026-11-24（第一次套用時 gate 補丁的略過標記誤判成已補過而沒生效，已修正標記重套，回滾實測通過）**，要在 `town_estate_plot.sql` 之後；實測 `town_estate_free_test.sql`（回滾，REPORT）**尚未跑**；本機沒有 Postgres，SQL 只過 `sql.py check` 與前端 mock）
+- 使用者要求：莊園裡的活動都不限制、莊主想幹嘛就幹嘛。派對規則（$5000、全鎮 +15、每天 1 次）不動。**A 家居動作**：`town_inside` 就地補丁多認「自己的莊園室內」（`place = estate:自己` 且 `fi = place`），所以 eat／toilet／shower／tv／nap／sleep／qsleep／furn 的「要進屋」檢查自動通過，價格效果同在家；睡著、醒來都留在莊園，離線太久仍由 `town_tick` 送回自己的家。家具另外擺：`items.lx.efp=[[代號,x,y]…]`（≤30 件）、`lx.efc` 代號清單；`town_fu` 在莊園裡看 `efc`（沒擺＝陽春版，同在家），沿用家具清單 `items.f`（一件家具家裡與莊園各擺一次），沒有新增購買項目。莊園室內 12 欄 × 地板 4 列。
+- **B 進出控管**：`items.lx.gate = open|lock|list`、`lx.wl=[居民id]`（≤20）；缺值＝舊行為（莊主在裡面醒著才能進、派對時全員可進）。open 隨時可進、lock 只有莊主、**list 只有白名單可進（莊主不必在）**；派對期間（`lxc.pt`）三種模式都全員可進。`town_estate_gate` 就地補丁；RPC `town_estate_ctl(rid,pin,op,target,note)`：view／gate（note = open|lock|list|default）／wl_add／wl_del。被拒訊息：「X 把莊園上鎖了…」「X 的莊園只開放給受邀的朋友」。
+- **C 室內佈局**：預設物件（宴會桌×2、展示櫃×2、噴水池、鋼琴）鍵 `table1/2 trophy1/2 fount piano`，位置覆蓋存 `lx.ro = {鍵:[x,y]|null}`（缺值＝預設、null＝收回）；吊燈、立燈、地毯、盆栽、管家固定。走 `town_act(act='furn')`：`put:代號:x:y`／`clr:代號`（莊園家具）、`mv:鍵:x:y`／`rm:鍵`／`rs:鍵`（預設物件）。前端 `EST_DEF`（和 SQL `town_estate_def` 一致，`node town/test.js` 比對）、`estRoomOf(items)` 每次 `estSync` 重建 `ROOMS["estate:id"]`（混合物件：`ITEM` 圖示＋`furnDraw` 家具）、`homeLife(r)`（家裡與莊園共用的生活按鈕）、`estIn(r)`、`hasF` 在莊園看 `efc`、`estateEditModal`（佈置）、`estateCtlModal`（進出模式、名單）；莊主在莊園室內面板多「佈置莊園」「莊園管理」。
+- 視覺：`in-estate`（有家具）、`estate-manage`、`estate-edit`、`estate-flow`（Playwright 實際操作吃飯、廁所、洗澡、電視、休息、睡覺起床、擺家具、移動收回預設物件、進出模式、名單、乙被擋，51 項斷言；不留基準圖，跑完刪 `baseline/*estate-flow*`）。套用：`python3 tools/sql/sql.py apply town_estate_free.sql --test town_estate_free_test.sql --prod`（重套 `town.sql`／`town_fi.sql`／`town_estate_plot.sql` 後要再套）。
+
