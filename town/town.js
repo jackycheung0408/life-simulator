@@ -386,7 +386,7 @@ const PEV={
 const JT={restaurant:"分一盤點心",market:"逛特價區",cafe:"喝下午茶",cinema:"看電影",gym:"互相打氣練一組",park:"散步",plaza:"看街頭表演",office:"趕進度",arena:"看比賽",stock:"研究股票",rafi:"一起摸魚",carshop:"看車",slaughter:"探險"};
 
 // 更新通知：每次改版都要在最前面加一則（新的在前）。id 不可重複，11/17 起 1～3 條、每條 ≤ 18 字的簡述。
-const UPDATES=[{id:"polish-1126",date:"11/26",title:"小細節修正",items:["選中的卡片說明字看得清","能力點上限顯示正確","活動橫幅不再被截字、不壓彈窗"]},
+const UPDATES=[{id:"polish-1126",date:"11/26",title:"小細節修正",items:["選中的卡片說明字看得清","活動橫幅不截字、不壓彈窗","新手提示不再和選單搶畫面"]},
   {id:"btn-style-1125",date:"11/25",title:"按鈕換新造型",items:["看全鎮、回家改成藍色像素鈕"]},
   {id:"tablet-feed-1125",date:"11/25",title:"平板動態頁修好",items:["平板的動態、排行改全螢幕顯示"]},
   {id:"ux-fix-1125",date:"11/25",title:"新手與面板更清爽",items:["新手彈窗不再疊在一起","個性、願望可稍後選","走路中可按「停下」"]},
@@ -923,7 +923,7 @@ function updModal(all){const seen=all?null:upsSeen();let list=all?UPDATES:seen?U
  $("modal").classList.remove("hide");$("mbody").innerHTML=`<h2>${all?"更新紀錄":"小鎮更新了"}</h2><div class="list" style="max-height:60vh;overflow:auto">${updHtml(list)}</div><div class="row"><button id="updok" class="pri">好</button></div>`;
  $("updok").onclick=()=>{$("modal").classList.add("hide");upsMark()};if(!all)upsMark();pxify($("mbody"));return true}
 function updCheck(){if(!me||!$("modal").classList.contains("hide"))return;updModal(false)}
-async function enter(){LP.stage&&LP.stage(4);try{LP.stage&&LP.stage(0)}catch(e){}UT.start();UT.once("funnel:enter");document.body.classList.add("ingame");$("menuBtn").classList.remove("hide");if(Date.now()-refAt>3000)await refresh();else if(me)apply(S);setTimeout(()=>{const r=R[me];if(r&&$("modal").classList.contains("hide")){if(!r.items||r.items.tr===undefined){if(obPend){obPend=0;obIntro(()=>{toast("個性與願望，可從選單「我的人生」再選");tipsWhenFree()})}else traitModal()}else if(!r.items.wish)wishModal();else if(!(r.items.at&&r.items.at.init))statsModal(true)}},1500);{const r0=R[me],fresh=!upsSeen()&&r0&&r0.items&&r0.items.tr===undefined;if(fresh){upsMark();obStart();obPend=1}else setTimeout(()=>{try{updCheck()}catch(e){}},2600)}if(!obPend)tipsWhenFree();refreshBell().catch(()=>{});autoPush().catch(()=>{});LP.stage&&LP.stage(0);$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
+async function enter(){LP.stage&&LP.stage(4);try{LP.stage&&LP.stage(0)}catch(e){}UT.start();UT.once("funnel:enter");document.body.classList.add("ingame");$("menuBtn").classList.remove("hide");if(Date.now()-refAt>3000)await refresh();else if(me)apply(S);setTimeout(()=>{const r=R[me];if(r&&$("modal").classList.contains("hide")){if(!r.items||r.items.tr===undefined){if(obPend){obPend=0;obIntro(()=>{toast("個性與願望，可從選單「我的人生」再選");tipsWhenFree()})}else traitModal()}else if(!r.items.wish)wishModal();else if(!(r.items.at&&r.items.at.init))statsModal(true)}},1500);{const r0=R[me],fresh=!upsSeen()&&r0&&r0.items&&r0.items.tr===undefined;if(fresh){upsMark();obStart();obPend=1}else setTimeout(()=>{try{updCheck()}catch(e){}},2600)}if(!obPend)setTimeout(tipsWhenFree,2200);refreshBell().catch(()=>{});autoPush().catch(()=>{});LP.stage&&LP.stage(0);$("login").classList.add("hide");$("game").classList.remove("hide");camFree=false;
  const w=walkers[me];cam.x=w.x*T;cam.y=w.y*T;resize();$("mayor").classList.toggle("hide",!R[me].mayor);
  const ent=mine().find(x=>x.tid==TID);if(ent&&ent.invite){shareModal(ent.invite,true);delete ent.invite;saveMine(ent);return}
  const mineEv=(S.events||[]).filter(e=>e.target==me&&(!lastSeen||e.at>lastSeen));
@@ -1499,7 +1499,7 @@ async function stModal(){UT.hit("story:open");stCss();$("modal").classList.remov
  $("mbody").querySelectorAll("[data-rp]").forEach(b=>b.onclick=()=>{const c=STORY[b.dataset.rp-1];stPlay(c.intro.concat(c.outro),()=>stModal(),{h:"第 "+c.id+" 章　"+c.nm})});
  $("mbody").querySelectorAll("[data-en]").forEach(b=>b.onclick=async()=>{try{const q=await stRpc("choose","c8",b.dataset.en);await refresh().catch(()=>{});toast("獲得稱號「"+ST_END[b.dataset.en]+"」");stModal()}catch(e){toast(e.message)}})}
 setInterval(()=>{stTick()},2500);
-function tipsWhenFree(n=0){let seen=null;try{seen=localStorage.getItem("town-tips")}catch(e){}if(seen||n>8)return;if($("modal").classList.contains("hide")&&$("away").classList.contains("hide"))showTips();else setTimeout(()=>tipsWhenFree(n+1),3000)}
+function tipsWhenFree(n=0){let seen=null;try{seen=localStorage.getItem("town-tips")}catch(e){}if(seen||n>20)return;if($("modal").classList.contains("hide")&&$("away").classList.contains("hide"))showTips();else setTimeout(()=>tipsWhenFree(n+1),3000)}
 function showTips(){let seen=null;try{seen=localStorage.getItem("town-tips")}catch(e){}if(seen)return;const el=$("tips");el.classList.remove("hide");
  el.innerHTML=`<b>👋 新手小提示</b><p>🗺️ 點地圖上的房子或地點，角色會自己走過去。</p><p>👆 點地圖上的人，可以傳訊息、打電話；走到他旁邊還能擊掌或扁他。</p><p>🍚 上面的需求會隨現實時間下降，快見底時下方會出現粉紅色的「建議下一步」。</p><small>繼續即表示同意<button id="tipT" style="all:unset;text-decoration:underline;cursor:pointer;padding:8px 4px">條款</button>與<button id="tipP" style="all:unset;text-decoration:underline;cursor:pointer;padding:8px 4px">隱私</button></small><div class="row"><button class="pri" id="tipok">知道了</button></div>`;$("tipT").onclick=()=>window.open("terms.html","_blank");$("tipP").onclick=()=>window.open("privacy.html","_blank");
  $("tipok").onclick=()=>{el.classList.add("hide");try{localStorage.setItem("town-tips","1")}catch(e){}}}
