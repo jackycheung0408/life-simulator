@@ -13,7 +13,7 @@ typeof document!=="undefined"&&(()=>{const st=document.createElement("style");st
 typeof document!=="undefined"&&(()=>{const st=document.createElement("style");st.id="dealcss";st.textContent=`/* 發牌臨場感：新牌從牌堆滑進來、蓋牌翻面（步進動畫，像素風）；結果等牌發完才出現；減少動態效果時關掉 */
 .pcard{position:relative}
 .pcard.dealt{animation:pdeal .28s steps(7) backwards;animation-delay:var(--d,0ms)}
-.pcard.dealt::after{content:"";position:absolute;left:-3px;top:-3px;right:-3px;bottom:-3px;background:repeating-linear-gradient(45deg,#e0779b 0 6px,#c45a80 6px 12px);animation:pcover .28s steps(1) forwards;animation-delay:var(--d,0ms)}
+.pcard.dealt::after{content:"";position:absolute;left:-3px;top:-3px;right:-3px;bottom:-3px;background:#e0779b;box-shadow:inset 0 0 0 3px #c45a80;animation:pcover .28s steps(1) forwards;animation-delay:var(--d,0ms)}
 .pcard.dealt.nocover::after{display:none}
 .gres.late{animation:gresin .2s steps(4) backwards;animation-delay:var(--d,0ms)}
 .gshow.felt{background:#1d6b3f;border:3px solid var(--ink);box-shadow:inset 0 0 0 3px #145230;padding:8px}
@@ -82,7 +82,7 @@ body.ingame #modal:has(.garea) .card{touch-action:pan-y}
 .roadsd>summary{cursor:pointer;color:#aaa;margin-top:6px}
 .bside{display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center;min-height:84px}.bcol .cards{justify-content:center}.bcol p{margin:2px 0}.pcard.sq,.sqc{will-change:transform}.pcard.sq{position:relative;overflow:hidden;animation:sqin .24s steps(4) backwards;animation-delay:var(--d,0ms)}
 @keyframes sqin{from{transform:translate(60px,-40px);opacity:0}to{transform:none;opacity:1}}
-.sqc{position:absolute;left:0;top:0;right:0;bottom:0;background:repeating-linear-gradient(45deg,#e0779b 0 6px,#c45a80 6px 12px);cursor:grab;touch-action:none;display:flex;align-items:flex-end;justify-content:center;color:#fff;font-size:11px;font-style:normal}
+.sqc{position:absolute;left:0;top:0;right:0;bottom:0;background:#e0779b;box-shadow:inset 0 0 0 3px #c45a80;cursor:grab;touch-action:none;display:flex;align-items:flex-end;justify-content:center;color:#fff;font-size:11px;font-style:normal}
 .sqskip{position:absolute;right:6px;top:6px;z-index:3;padding:4px 10px;min-height:32px}
 .sqhint{position:absolute;left:8px;top:8px;max-width:38%;line-height:1.3;z-index:3;font-size:11px;color:#cfe8d6;pointer-events:none}
 /* 賭場桌面 v2：像素籌碼、下注列固定在底部、遊戲切換列、手機不擠 */
