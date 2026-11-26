@@ -76,3 +76,4 @@
 - 交通、駕照、罰單、事故保險 → docs/traffic.md
 - 等級、職階、個性、背包、成就、賽季、主線、新手引導 → docs/progression.md
 - 三遊戲共用 Supabase → docs/supabase-shared.md；state 瘦身設計 → docs/town-state-slimming.md
+- 商業化計畫（訂閱、免費版範圍、成功標準、不做清單）→ docs/monetization.md
