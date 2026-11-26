@@ -617,4 +617,24 @@ console.log(`檢查 2～4 排房子，共 ${routes} 條路線`);
  check(/function moveModal/.test(tj)&&/town_move/.test(tj)&&/mvWhy\(r\)/.test(tj)&&/MYV/.test(tj.slice(tj.indexOf("function moveModal"),tj.indexOf("function moveModal")+3000)),"前端要有 moveModal、mvWhy、帶 cv:MYV");
  check(!/sign\("(咖啡廳|電影院|健身房|餐廳|格鬥場)",\d/.test(tj),"可搬建築的招牌不能寫死座標");
  const mk=JSON.parse(fs.readFileSync(__dirname+"/../tools/sql/manifest.json","utf8")).files.map(f=>f.file);check(mk.includes("town_move.sql")&&mk.includes("town_move_test.sql")&&fs.existsSync(__dirname+"/../supabase/town_move_test.sql"),"town_move SQL 要登記並有實測檔")}
+// 搬自己的家（supabase/town_home_move.sql）：每個住宅位置都能搬進去、門口走得到、不壓馬路與其他建築、前後端一致
+{const fs=require("fs"),sq=fs.readFileSync(__dirname+"/../supabase/town_home_move.sql","utf8"),tj=fs.readFileSync(__dirname+"/town.js","utf8"),ix=fs.readFileSync(__dirname+"/index.html","utf8");
+ check(sq.split("\n").slice(0,16).every(l=>/^--/.test(l)||l.trim()==""),"town_home_move.sql 檔頭每行都要是註解");
+ const gap=(a,b)=>Math.max(b[0]-(a[0]+a[2]),a[0]-(b[0]+b[2]),b[1]-(a[1]+a[3]),a[1]-(b[1]+b[3]));
+ for(const nr of [2,3,4]){M.setRows(nr);M.__setOcc([0]);
+  for(let k=0;k<nr*3;k++){M.__setHSITE(k==0?{}:{0:k});const [hx,hy]=M.homeXY(0),dd=M.door(0),r=[hx,hy,5,4],tag="排數 "+nr+" 位置 "+k;
+   check(JSON.stringify(M.siteXY(k))==JSON.stringify([hx,hy]),"homeXY 要讀 HSITE："+tag);
+   check(!M.blocked(dd[0],dd[1])&&!!M.route([14,13],dd),"搬進去後門口要走得到："+tag);
+   check(M.blocked(hx+1,hy+1),"搬進去後房子要擋路："+tag);
+   for(let y=hy;y<hy+4;y++)for(let x=hx;x<hx+5;x++)if(M.isRoad(x,y))check(false,"房子壓到馬路："+tag);
+   for(const o in M.PLACES){if(o.startsWith("estate:"))continue;check(gap(r,M.PLACES[o].r)>=2,"房子離 "+o+" 不到 2 格："+tag)}
+   check(gap(r,M.DOCK)>=2,"房子貼著碼頭："+tag)}}
+ M.setRows(2);M.__setHSITE({});M.__setOcc([]);
+ check(tj.includes("HM_COST=5*4*2000")&&/select 5::bigint \* 4 \* 2000/.test(sq),"搬家費 = 面積 5×4 × 2000，前後端一致");
+ {const m=sq.match(/town_hmv_minver\(\) returns int language sql immutable as \$\$ select (\d+)/),v=+(ix.match(/town\.js\?v=(\d+)/)||[])[1];check(m&&v>=+m[1],"town_hmv_minver 要 ≤ 目前前端版本（town.js?v）");}
+ check(/town_hmv_settle\(t\.id\)/.test(sq)&&/town_hdoor\(r\.town_id, r\.id, r\.slot\)/.test(sq)&&/town_site_busy\(t\.id, want_slot\)/.test(sq)&&/'hmv',t\.hmv/.test(sq)&&/homemove1/.test(sq),"town_home_move.sql 要補 town_state／town_tick／town_join");
+ check(/for update/.test(sq)&&/86400/.test(sq)&&/'relocate'/.test(sq)&&/not r\.mayor|r\.mayor then/.test(sq),"town_home_move.sql 要有鎖列、24 小時冷卻、功能開關與鎮長規則");
+ check(/function homeMoveModal/.test(tj)&&/town_hmove/.test(tj)&&/nsite:k,cv:MYV/.test(tj)&&/homeMoveModal\(\),"place"/.test(tj),"前端要有 homeMoveModal 與不動產公司入口、帶 cv:MYV");
+ const mk=JSON.parse(fs.readFileSync(__dirname+"/../tools/sql/manifest.json","utf8")).files.map(f=>f.file);check(mk.includes("town_home_move.sql")&&mk.includes("town_home_move_test.sql")&&fs.existsSync(__dirname+"/../supabase/town_home_move_test.sql"),"town_home_move.sql 與實測檔要登記 manifest 並存在");
+}
 if(fails.length){console.log("❌ 測試失敗：\n- "+fails.join("\n- "));process.exit(1)}console.log("✅ 全部通過");

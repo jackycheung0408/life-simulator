@@ -44,3 +44,10 @@
 - 已知限制：沒更新的舊客戶端看不到搬遷、會走去舊位置（伺服器只驗 px 範圍，不會卡死）；`tools/visual` 新增 `move-modal／move-east／move-zoom／move-done`。
 
 
+
+## 搬自己的家（2026-11-26；SQL `supabase/town_home_move.sql`，實測 `town_home_move_test.sql`（回滾，REPORT）；使用者決定：鎮長只能搬自己、免費立刻）
+- 新位置＝鎮上現有 12 個住宅位置（site 0～11，和 `town_door(slot)`／前端 `siteXY` 同一套座標）裡沒人住、沒人預約、且那條街已開（`site/3 < rows`）的空位，可搬回原位。**沒有搬到東區**：東區（x≥85）被設施候選位置佔滿，放不下 5×4 的房子。
+- 規則：不動產公司（已進館）「搬家」按鈕；一般居民自費 $40,000（面積 5×4 × 2000，銷毀）、每人 24 小時一次、同時一個預告、預告 24 小時後惰性結算；鎮長搬自己免費立刻；功能開關 `relocate` 一併管。申請帶 `cv`（≥ `town_hmv_minver()`）。
+- 資料：`town_towns.layout.h = {居民id: site}`（缺值＝原本 slot；用居民 id 不用 slot，居民離開後新人不會繼承）、`hmv = {居民id:{to,at,cost}}`、`hlast`。家具／莊園／背包在居民 `items`，完全不動；完成時 `place='home:<主人>'` 的人移到新門口（主人站門口、別人門口旁）、新房子範圍上的路人移到門口旁。
+- 就地補丁：`town_state`（結算、回傳 `hmv`）、`town_tick`（待機回家讀新位置）、`town_join`（挑 slot 沒人且位置沒人占的；全滿罕見情況報「暫時沒有空的住宅位置」）。**重套 `town.sql`／`town_catalog1.sql`／`town_move.sql` 後要再套**。
+- 前端：`HSITE`（slot→site，`apply` 從 `town.layout.h` 算）→ `homeXY(slot)`；`homeMoveModal`（不動產公司「搬家」）；`HMV` 在空位畫「X的新家」招牌；別人或自己的家搬了會 toast「X 搬家了」並重算走路路徑。`tools/visual` 新增 `home-move-modal／home-move-map`；`node town/test.js` 檢查每個位置的門口走得到、不壓馬路、離建築 ≥2 格。

@@ -1003,6 +1003,24 @@
    ]
   },
   {
+   "file": "town_home_move.sql",
+   "kind": "patch",
+   "needs": [
+    "town.sql",
+    "town_catalog1.sql",
+    "town_move.sql"
+   ],
+   "note": "搬自己的家（只能搬到鎮上現有空的住宅位置；自費 $40,000 預告 24 小時、鎮長搬自己免費立刻）：layout.h／hmv／hlast、town_hmove RPC、town_state／town_tick／town_join 補丁；重套 town.sql／town_catalog1.sql／town_move.sql 後要再套"
+  },
+  {
+   "file": "town_home_move_test.sql",
+   "kind": "test",
+   "needs": [
+    "town_home_move.sql"
+   ],
+   "note": "搬家回滾實測"
+  },
+  {
    "file": "town_powers2.sql",
    "kind": "patch",
    "needs": [
