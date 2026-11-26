@@ -91,7 +91,7 @@ body.ingame #modal:has(.garea) .card{touch-action:pan-y}
 .bstack{flex-wrap:wrap;align-items:center;max-height:104px;overflow-y:auto}.cstk{display:flex;flex-wrap:wrap;gap:2px;width:auto;height:auto;position:static}.chip.u{position:static;width:44px;height:44px;border-width:4px;font-size:11px;animation:none}button.chip.u{cursor:pointer}.chip.u.dim{opacity:.45}.chip.u.pop{animation:chippop .2s steps(3)}.chip.u.rm{filter:brightness(2.2);transform:scale(.6)}@keyframes chippop{0%{transform:scale(1.5)}100%{transform:none}}.bstack small{font-size:11px}.tbar .tchip{font-size:11px}.tbar h2{flex:none;max-width:48%}
 .ctray{flex-wrap:wrap;justify-content:center;gap:4px;padding:2px}
 .gbusy #gArea button,.gbusy .betbar button{pointer-events:none}
-@media (max-height:720px){.ctray{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;touch-action:pan-x}.ctray::-webkit-scrollbar{display:none}}
+@media (max-height:720px){.ctray{gap:2px;padding:0}}
 .ctray .chip{flex:none}
 .betbar{position:sticky;bottom:-1px;z-index:4;background:#101526;border-top:3px solid #fff;margin:8px -4px 0;padding:6px 8px 4px}
 .betbar .crow{margin:0 0 4px;justify-content:space-between;flex-wrap:nowrap}
