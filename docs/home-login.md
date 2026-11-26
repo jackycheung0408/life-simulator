@@ -54,3 +54,8 @@
 ## 比大小狀態鍵修正（2026-11-18；SQL **已套用正式站 2026-11-18（整份 town.sql＋town_hlfix.sql；回滾實測 town_hlfix_test.sql：舊寫法報錯重現、退回押注 1000、hl 已清；居民 26 的 items.hl 已不存在）**；town.sql 已移除舊 4 參數 town_device，test.js 擋 town.sql 的 town_device／town_auth 與單檔不一致）
 - 比大小進行中的牌局原本存 `items.hl`，和房子等級 `items.hl` 同鍵：牌局開著時 `town_login`／`town_rent` 讀 `(items->>'hl')::int` 報「invalid input syntax for type integer」，玩家登不進去（H7CE2M 居民 26 實例）。已改存 `items.hlg`（`town.sql`），清理檔 `supabase/town_hlfix.sql`（退回押注、移除物件型 hl），實測 `town_hlfix_test.sql`。套用順序：`town.sql` → `town_hlfix.sql` → `town_account.sql`。
 
+
+## 多鎮與邀請（2026-11-26）
+- 沒帶 `?t=` ＝首頁：住過的鎮清單（第一顆「回到 XX」）＋加入（邀請碼或連結）＋建立；遊戲內選單「我的小鎮」回首頁；主畫面 web app 只住一個鎮時原本會自動轉回該鎮，現在網址帶 `t=`（含空的 `?t=`）就不轉，所以可以換鎮。
+- 邀請：`shareModal`（複製訊息／只複製連結／只複製邀請碼／系統分享 `navigator.share`）；連結 `?t=鎮&i=邀請碼`，`i` 存 sessionStorage `town-inv-<鎮>` 後從網址拿掉。
+- localStorage 按鎮分開：`town-shelfn-<鎮>`、`town-shelf-<鎮>-<店>`、`town-recent2-<鎮>`、`town-seen-<鎮>`；`town-ob_`／`town_ups_` 用角色 id（全站唯一）；`town-mine`、`town-tips`、`town-snd`、`town-bet*`、`town-cid` 是跨鎮共用的裝置設定。
