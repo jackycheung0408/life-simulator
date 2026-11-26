@@ -301,7 +301,7 @@ const fixCost=(r,k)=>Math.ceil(VEH[k][1]*.15*vwear(r,k)/100);
 const sellVal=(r,k)=>Math.round(VEH[k][1]*.6*(1-vwear(r,k)/200));
 const rpLeft=(r,k)=>{const i=((((r&&r.items)||{}).veh||{}).rp||{})[k];return i?Date.parse(i)-nowFn():0};
 const lkLeft=r=>{const i=(((r&&r.items)||{}).veh||{}).lk;return i?Date.parse(i)-nowFn():0};
-const fmtLeft=ms=>{const d=ms/864e5;return d>=1?`${d.toFixed(1)} 天`:`${Math.max(1,Math.round(ms/6e4))} 分鐘`};
+const fmtLeft=ms=>{const d=ms/864e5;if(d>=1)return `${d.toFixed(1)} 天`;const m=Math.max(1,Math.round(ms/6e4));return m>=60?`${Math.floor(m/60)} 小時${m%60?" "+m%60+" 分":""}`:`${m} 分鐘`};
 const susLeft=r=>{const s=r&&r.items&&r.items.sus;return s?Date.parse(s)-nowFn():0};
 const stepCost=(x,y,veh)=>isRoad(x,y)?(veh?1:isCross(x,y)?1:3):(veh?2:1);
 // 最短路徑（上下左右走，依成本），找不到就回傳 null
@@ -1018,7 +1018,7 @@ function tapObj(k){const r=R[me],d=TAP_DEF[k],o=OBJS[k];if(!r||!d)return;if(r.sl
  if(d.ok){go();return}
  tapConfirm(`${o.name} $${d.cost}`,go)}
 const bigGo=(txt,amt,fn)=>amt>=5000?tapConfirm(txt,fn):fn();
-function tapConfirm(txt,fn){let c=$("tapc");if(c)c.remove();c=document.createElement("div");c.id="tapc";c.style.cssText="position:fixed;left:50%;top:40%;transform:translateX(-50%);z-index:60;background:#fff7d6;border:3px solid #2b2b2b;padding:12px;display:flex;gap:8px;align-items:center;font:16.5px 'Cubic 11',monospace;color:#2b2b2b";c.innerHTML=`<span>${esc(txt)}</span>`;
+function tapConfirm(txt,fn){let c=$("tapc");if(c)c.remove();c=document.createElement("div");c.id="tapc";c.style.cssText="position:fixed;left:50%;top:40%;transform:translateX(-50%);z-index:60;background:#fff7d6;border:3px solid #2b2b2b;padding:12px;display:flex;flex-wrap:wrap;justify-content:flex-end;width:min(320px,86vw);box-sizing:border-box;gap:8px;align-items:center;font:16.5px 'Cubic 11',monospace;color:#2b2b2b";c.innerHTML=`<span style="flex:1 1 100%">${esc(txt)}</span>`;
  for(const [l,f] of [["做",()=>{c.remove();fn()}],["取消",()=>c.remove()]]){const b=document.createElement("button");b.textContent=l;b.style.cssText="min-height:44px;padding:0 16px;font:inherit;border:3px solid #2b2b2b;background:#f6a5c0;color:#2b2b2b";b.onclick=f;c.appendChild(b)}document.body.appendChild(c);setTimeout(()=>c.isConnected&&c.remove(),8000)}
 function tapPlace(p){const w=walkers[me];if(p.slot!=null){const o=bySlot(p.slot);if(o&&o.id==me){if(inside(R[me])&&!(w.path.length)){act("exit");return}pendingThen=async()=>{await act("enter")};goHouse(p.slot);return}pendingThen=()=>tapTab("here");goHouse(p.slot);return}
  if(p.board){pendingThen=()=>rankBoard();walkTo(p.dest,p.door);return}
@@ -1099,10 +1099,10 @@ else if(p=="hospital"){title="醫院";const pat=Object.values(R).filter(o=>o.id!
    btn("報案 📜","選一個最近惡搞你的人 · 每天 1 次 · 對方記報案點，不會入獄",()=>reportModal()),
    btn("今日治安 📊","看鎮上今天的罰單、事故、砍人、入獄",()=>policeAct("stats")))}
  else if(p=="realty"){title="不動產公司";note="房子升級、買莊園；不用回家，在這裡辦（價格依小鎮經濟微調）";const lx=(r.items||{}).lx||{},nx=HOUSES[+((r.items||{}).hl)||1];
-  list.push(Object.assign(btn("設施搬遷",r.mayor?"鎮長免費，立刻把咖啡廳等 5 棟搬到東區":"自費把咖啡廳等 5 棟搬到東區 · 預告 24 小時",()=>moveModal(),"place"),mvWhy(r)?{dis:mvWhy(r)}:{}));
-  list.push(Object.assign(btn("搬家",r.mayor?"把你的家搬到鎮上別的空位 · 鎮長免費、立刻":"把你的家搬到鎮上別的空位 · $40,000 · 預告 24 小時",()=>homeMoveModal(),"place"),hmWhy(r)?{dis:hmWhy(r)}:{}));
-  list.push(nx?btn(`升級${nx[0]} $${nx[1].toLocaleString()}`,`房間更大、可擺 ${nx[2]} 件家具`,()=>bigGo(`升級成${nx[0]}要花 $${nx[1].toLocaleString()}，確定？`,nx[1],async()=>{await act("upgrade")}),"place"):btn("房子已是豪宅","最高級了",()=>toast("已經是最高級的豪宅"),"place"));
-  list.push(lx.estate?btn("走去我的莊園","地圖最下方的莊園區 · 進去辦派對",()=>{const k="estate:"+me;if(PLACES[k])walkTo(k,PLACES[k].door);else toast("莊園還在整理，等一下再試")},"place"):btn("買莊園 $600,000","稱號「莊園主人」· 獨立一棟（在莊園區）· 家不變 · 可辦派對",()=>bigGo("買莊園要花 $600,000，確定？",6e5,()=>econBuy("estate")),"place"))}
+  list.push(Object.assign(btn("設施搬遷 🗺️",r.mayor?"鎮長免費，立刻把咖啡廳等 5 棟搬到東區":"自費把咖啡廳等 5 棟搬到東區 · 預告 24 小時",()=>moveModal(),"place"),mvWhy(r)?{dis:mvWhy(r)}:{}));
+  list.push(Object.assign(btn("搬家 🏠",r.mayor?"把你的家搬到鎮上別的空位 · 鎮長免費、立刻":"把你的家搬到鎮上別的空位 · $40,000 · 預告 24 小時",()=>homeMoveModal(),"place"),hmWhy(r)?{dis:hmWhy(r)}:{}));
+  list.push(nx?btn(`升級${nx[0]} 🏡`,`$${nx[1].toLocaleString()} · 可擺 ${nx[2]} 件家具`,()=>bigGo(`升級成${nx[0]}要花 $${nx[1].toLocaleString()}，確定？`,nx[1],async()=>{await act("upgrade")}),"place"):btn("房子已是豪宅","最高級了",()=>toast("已經是最高級的豪宅"),"place"));
+  list.push(lx.estate?btn("走去我的莊園","地圖最下方的莊園區 · 進去辦派對",()=>{const k="estate:"+me;if(PLACES[k])walkTo(k,PLACES[k].door);else toast("莊園還在整理，等一下再試")},"place"):btn("買莊園 🏘️","$600,000 · 稱號「莊園主人」· 可辦派對",()=>bigGo("買莊園要花 $600,000，確定？",6e5,()=>econBuy("estate")),"place"))}
  else if(p.startsWith("estate:")){title=(PLACES[p]||{}).name||"莊園";const ow=R[p.slice(7)],gm=((ow&&ow.items&&ow.items.lx)||{}).gate;note=p=="estate:"+me?"你的莊園 · 想幹嘛就幹嘛"+(gm=="open"?" · 全開":gm=="lock"?" · 已上鎖":gm=="list"?" · 受邀的朋友隨時能進":""):gm=="open"?"莊園開放參觀":gm=="lock"?"莊園已上鎖，只有莊主能進去":gm=="list"?"受邀的朋友隨時能進，其他人要莊主在才能參觀":"莊園主人在裡面時才能進去參觀";if(p=="estate:"+me&&fin(r)&&!r.sleeping&&!jailed(r)){list.push(...homeLife(r),btn("佈置莊園","搬家具、移動宴會桌展示櫃噴水池鋼琴",()=>estateEditModal(),"home"),btn("莊園管理","進出模式、受邀名單、佈局",()=>estateCtlModal(),"home"))}if(p=="estate:"+me&&fin(r)&&!r.sleeping&&!jailed(r))list.push(btn("辦派對","$5000 · 在線醒著的居民心情 +15、好感 +2 · 30 分鐘內朋友都能進來 · 每天 1 次",()=>econFun("party"),"place"))}
  else if(p=="harbor"){title="碼頭船行";note="買遊艇；出海要到碼頭邊（船行裡不能出海）";const lx=(r.items||{}).lx||{};
   list.push(lx.yacht?btn("遊艇 ✔","已擁有 · 到碼頭邊就能出海",()=>toast("你已經有遊艇了"),"place"):btn("買遊艇 $200,000","稱號「遊艇船長」· 可帶朋友出海 · 心情 +25",()=>bigGo("買遊艇要花 $200,000，確定？",2e5,()=>econBuy("yacht")),"place"));
@@ -2238,7 +2238,7 @@ async function homeMoveModal(){$("modal").classList.remove("hide");$("mbody").in
  const f=n=>CUR+(+n||0).toLocaleString(),r=R[me],why=hmWhy(r),cd=!j.mayor&&j.last&&j.last*1e3>Date.now()-864e5?j.last*1e3+864e5-Date.now():0,pend=j.hmv,off=why||cd||(!j.mayor&&pend);
  const mvTxt=pend?`<p class="warn">預告中：搬到${hmName(pend.to)}（${fmtLeft(Math.max(0,pend.at*1e3-Date.now()))}後完成）</p>`:"";
  const btns=(j.free||[]).map(k=>`<button data-hs="${k}">${hmName(k)}${k==j.slot?"（原位）":""}</button>`).join("")||'<p class="mut">現在沒有空位可搬</p>';
- $("mbody").innerHTML=`<h2>搬家</h2><p class="mut">你現在住${hmName(j.cur)}。${j.mayor?"鎮長搬自己的家免費、立刻搬。":`費用 ${f(HM_COST)}（面積 20 格 × $2,000），從你的錢扣（現有 ${f(j.money)}）；預告 24 小時才搬，每人 24 小時只能搬一次。`}家具、莊園和背包都會跟著搬，站在你家門口的人也會一起移到新門口。</p>${mvTxt}${cd?`<p class="mut">冷卻中，還要 ${fmtLeft(cd)}</p>`:""}${why?`<p class="err">${esc(why)}</p>`:""}<h3>空的住宅位置</h3><div class="row">${btns}</div><div class="row"><button id="mc">關閉</button></div>`;pxify($("mbody"));
+ $("mbody").innerHTML=`<h2>搬家</h2><p class="mut">你現在住${hmName(j.cur)}</p><ul class="mut" style="margin:4px 0 8px 16px;padding:0">${j.mayor?"<li>鎮長免費、立刻搬</li>":`<li>費用 ${f(HM_COST)}，你現有 ${f(j.money)}</li><li>預告 24 小時後才搬</li><li>每人 24 小時搬一次</li>`}<li>家具、莊園、背包都帶走</li></ul>${mvTxt}${cd?`<p class="mut">冷卻中，還要 ${fmtLeft(cd)}</p>`:""}${why?`<p class="err">${esc(why)}</p>`:""}<h3>空的住宅位置</h3><div class="row">${btns}</div><div class="row"><button id="mc">關閉</button></div>`;pxify($("mbody"));
  $("mc").onclick=()=>$("modal").classList.add("hide");
  $("mbody").querySelectorAll("[data-hs]").forEach(b=>{if(off){b.disabled=true;b.style.opacity=".45"}b.onclick=()=>{const k=+b.dataset.hs;UT.hit("homemove");tapConfirm(j.mayor?`把家搬到${hmName(k)}？免費，立刻搬。`:`把家搬到${hmName(k)}？扣你 ${f(HM_COST)}，24 小時後完成。`,async()=>{try{const x2=await rpc("town_hmove",{rid:me,pin,op:"apply",nsite:k,cv:MYV});toast(x2&&x2.now?"搬好了":"已公告，24 小時後搬家");await refresh();homeMoveModal()}catch(e){toast(e.message)}})}})}
 async function econModal(){$("modal").classList.remove("hide");$("mbody").innerHTML='<p class="mut">載入中…</p>';
